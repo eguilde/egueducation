@@ -1,0 +1,99 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    [mode]="sidenavMode()"
+    [opened]="sidenavOpened()"
+    [disableClose]="!isHandset()"
+    (closedStart)="mobileOpen.set(false)"
+    class="shell__nav"
+  >
+    <div class="shell__brand">
+      <div class="shell__brand-mark">E</div>
+      <div>
+        <div class="shell__brand-title">EguEducation</div>
+        <div class="shell__brand-subtitle">{{ 'app.subtitle' | transloco }}</div>
+      </div>
+    </div>
+
+    <mat-nav-list class="shell__list">
+      @for (item of visibleNavItems(); track item.route) {
+        <a
+          mat-list-item
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          (click)="closeMobileNav()"
+        >
+          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+          <span matListItemTitle>{{ item.labelKey | transloco }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <div class="shell__bottom">
+      <mat-divider />
+
+      <section class="shell__account">
+        @if (authz.user(); as user) {
+          <div class="shell__account-summary">
+            <div class="shell__account-avatar">{{ (user.name || user.email || user.sub).slice(0, 1).toUpperCase() }}</div>
+            <div>
+              <div class="shell__account-name">{{ user.name || user.email || user.sub }}</div>
+              <div class="shell__account-meta">{{ user.email || user.sub }}</div>
+            </div>
+          </div>
+          <button mat-stroked-button class="shell__auth-btn" (click)="signOut()">
+            {{ 'auth.logout' | transloco }}
+          </button>
+        } @else {
+          <div class="shell__guest">
+            <div class="shell__guest-title">{{ 'auth.notAuthenticated' | transloco }}</div>
+            <button mat-flat-button class="shell__auth-btn" (click)="signIn()">
+              {{ 'auth.login' | transloco }}
+            </button>
+          </div>
+        }
+      </section>
+
+      <mat-expansion-panel>
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{ 'appearance.title' | transloco }}</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="shell__appearance">
+          <div class="shell__appearance-row">
+            <span>{{ 'appearance.mode' | transloco }}</span>
+            <button mat-stroked-button (click)="theme.toggleTheme()">
+              {{ ('appearance.' + theme.mode()) | transloco }}
+            </button>
+          </div>
+
+          <div class="shell__appearance-row shell__appearance-row--stack">
+            <span>{{ 'appearance.language' | transloco }}</span>
+            <mat-button-toggle-group
+              [value]="theme.language()"
+              (change)="theme.setLanguage($event.value)"
+            >
+              <mat-button-toggle value="ro">RO</mat-button-toggle>
+              <mat-button-toggle value="en">EN</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell__content">
+    <mat-toolbar class="shell__toolbar">
+      <button mat-icon-button (click)="toggleNav()" class="shell__menu-btn">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <div class="shell__toolbar-copy">
+        <div class="shell__toolbar-title">EguEducation</div>
+        <div class="shell__toolbar-subtitle">{{ authz.institutionName() || ('app.subtitle' | transloco) }}</div>
+      </div>
+    </mat-toolbar>
+
+    <main class="shell__main">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

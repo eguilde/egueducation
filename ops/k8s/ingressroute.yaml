@@ -1,0 +1,23 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: egueducation-scoalabalotesti-https
+  namespace: education
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`scoalabalotesti.eguilde.cloud`) && (PathPrefix(`/api`) || Path(`/health`))
+      priority: 50
+      services:
+        - name: egueducation-backend
+          port: 8080
+    - kind: Rule
+      match: Host(`scoalabalotesti.eguilde.cloud`)
+      priority: 1
+      services:
+        - name: egueducation-frontend
+          port: 8080
+  tls:
+    secretName: scoalabalotesti-egueducation-tls

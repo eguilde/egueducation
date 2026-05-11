@@ -1,0 +1,35 @@
+<section class="admin-header">
+  <div>
+    <mat-chip>{{ 'admin.badge' | transloco }}</mat-chip>
+    <h1>{{ 'admin.title' | transloco }}</h1>
+    <p>{{ 'admin.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-quick-links">
+  <mat-card appearance="outlined" class="admin-quick-links__card">
+    <h2>{{ 'admin.quickLinks.title' | transloco }}</h2>
+    <div class="admin-quick-links__actions">
+      <a mat-flat-button routerLink="/admin/users">{{ 'admin.quickLinks.users' | transloco }}</a>
+    </div>
+  </mat-card>
+</section>
+
+<section class="admin-stats">
+  @for (card of statCards(); track card.titleKey) {
+    <mat-card appearance="outlined" class="admin-stats__card">
+      <mat-icon>{{ card.icon }}</mat-icon>
+      <div class="admin-stats__value">{{ card.value }}</div>
+      <div class="admin-stats__label">{{ card.titleKey | transloco }}</div>
+    </mat-card>
+  }
+</section>
+
+<section class="admin-sections">
+  @for (section of sections(); track section) {
+    <mat-card appearance="outlined" class="admin-sections__card">
+      <h2>{{ section | transloco }}</h2>
+      <p>{{ 'admin.comingSoon' | transloco }}</p>
+    </mat-card>
+  }
+</section>

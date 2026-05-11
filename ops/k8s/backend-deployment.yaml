@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: egueducation-backend
+  namespace: education
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: egueducation-backend
+  template:
+    metadata:
+      labels:
+        app: egueducation-backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/eguilde/egueducation-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: egueducation-backend-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-scoalabalotesti-db
+                  key: database-url
+            - name: SMSAPI_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: costesti-registratura-secrets
+                  key: smsapi-token
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi

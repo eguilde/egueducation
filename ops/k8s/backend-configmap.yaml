@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: egueducation-backend-config
+  namespace: education
+data:
+  PORT: "8080"
+  APP_ENV: "production"
+  FRONTEND_ORIGIN: "https://scoalabalotesti.eguilde.cloud"
+  OIDC_ISSUER: "https://scoalabalotesti.eguilde.cloud/api/oidc"
+  OIDC_CLIENT_ID: "egueducation-spa"
+  OIDC_DESKTOP_CLIENT_ID: "egueducation-desktop"
+  SMS_SENDER_NAME: "EguEducation"
+  ENABLE_SMS_OTP: "true"
+  ENABLE_PASSKEYS: "true"
+  ENABLE_EUDI_WALLET: "true"
+  ENABLE_GDPR_FEATURES: "true"

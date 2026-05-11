@@ -1,0 +1,138 @@
+{
+  "app": {
+    "subtitle": "Education platform for registry, archive, and workflow operations"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "registratura": "Registry",
+    "workflow": "Workflow",
+    "earchiva": "eArchive",
+    "education": "Education",
+    "admin": "Administration"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "notAuthenticated": "Not signed in",
+    "redirecting": "Finishing authentication",
+    "callbackMessage": "We are signing you in and redirecting you back to the application.",
+    "redirectBadge": "Redirect-based authentication",
+    "oidcBadge": "OIDC, PKCE, and DPoP",
+    "loginTitle": "Secure authentication for registry, workflows, and education modules",
+    "loginBody": "We start with redirect-based OIDC in the same visual language as the main app, while SMS OTP, passkeys, and EUDI Wallet stay ready inside the same experience.",
+    "availableMethods": "Available methods",
+    "redirectFlow": "No popups",
+    "primaryMethod": "Primary method",
+    "loggedOutTitle": "Your session has been closed",
+    "loggedOutBody": "You can sign in again at any time or return to the public dashboard.",
+    "methods": {
+      "oidc_redirect": "OIDC redirect",
+      "sms_otp": "SMS OTP code",
+      "passkey": "Passkey / WebAuthn",
+      "eudi_wallet": "EUDI Wallet"
+    },
+    "methodDescriptions": {
+      "oidc_redirect": "Primary authentication flow based on redirects, authorization code, and PKCE.",
+      "sms_otp": "One-time codes sent over SMS for verification and step-up authentication.",
+      "passkey": "Modern passwordless authentication with hardware keys or biometrics.",
+      "eudi_wallet": "Prepared integration for digital identity and attestations presented through a wallet."
+    }
+  },
+  "appearance": {
+    "title": "Appearance and language",
+    "mode": "Theme mode",
+    "light": "Light",
+    "dark": "Dark",
+    "language": "Language"
+  },
+  "dashboard": {
+    "badge": "Material 3 Expressive",
+    "title": "The new EguEducation foundation is ready for rapid delivery.",
+    "subtitle": "Responsive shell, OIDC authentication, internationalization, red/rose theme, and an administrative foundation for the education modules.",
+    "primaryCta": "Open administration",
+    "secondaryCta": "View registry",
+    "cards": {
+      "registratura": {
+        "title": "Registry and documents",
+        "body": "Full document lifecycle for versions, attachments, classification, and audit."
+      },
+      "workflow": {
+        "title": "Workflow engine",
+        "body": "Configurable definitions, task inbox, SLAs, transitions, and administrative governance."
+      },
+      "archive": {
+        "title": "eArchive",
+        "body": "Funds, series, retention, and manual or automatic archiving."
+      },
+      "education": {
+        "title": "Education modules",
+        "body": "School boards, managerial dossiers, personnel, and professional portfolios."
+      }
+    }
+  },
+  "admin": {
+    "badge": "Full control",
+    "title": "Administrative dashboard",
+    "subtitle": "This becomes the control center for users, positions, permissions, workflows, nomenclatures, archive, and GDPR.",
+    "comingSoon": "The section is prepared for the full implementation of the functionality.",
+    "quickLinks": {
+      "title": "Quick access",
+      "users": "Manage users"
+    },
+    "stats": {
+      "users": "Users",
+      "positions": "Positions",
+      "workflows": "Workflows",
+      "permissions": "Permissions"
+    },
+    "sections": {
+      "users": "Users",
+      "memberships": "Memberships",
+      "orgUnits": "Org chart and units",
+      "org_units": "Org chart and units",
+      "positions": "Operational positions and roles",
+      "permissions": "Permissions and policies",
+      "workflows": "Workflow definitions",
+      "workflow_definitions": "Workflow definitions",
+      "archives": "Archive nomenclatures",
+      "archive_nomenclatures": "Archive nomenclatures",
+      "registry_nomenclatures": "Registry nomenclatures",
+      "education_taxonomies": "Education taxonomies",
+      "gdpr": "GDPR, retention, and access",
+      "gdpr_policies": "GDPR, retention, and access",
+      "auth_methods": "Authentication methods"
+    },
+    "users": {
+      "eyebrow": "User administration",
+      "title": "Users and access",
+      "subtitle": "The first real server-side table validates the shared contract for paging, sorting, and header filters.",
+      "addAction": "Add user",
+      "empty": "There are no users matching the selected filters.",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "position": "Position",
+        "status": "Status",
+        "locale": "Language",
+        "lastLoginAt": "Last sign-in"
+      }
+    },
+    "userStatus": {
+      "active": "Active",
+      "pending": "Pending",
+      "suspended": "Suspended"
+    }
+  },
+  "table": {
+    "filters": {
+      "contains": "Contains",
+      "any": "Any"
+    }
+  },
+  "placeholder": {
+    "registratura": "The registry module will use the shared server-side table, audit, classification, and versioned attachments.",
+    "workflow": "The workflow module will include a designer, task inbox, and authorized transitions.",
+    "earchiva": "The eArchive module will expose funds, series, retention, and archiving.",
+    "education": "The education modules will cover school governance, personnel, mobility, and portfolios."
+  }
+}

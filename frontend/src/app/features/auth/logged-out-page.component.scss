@@ -1,0 +1,31 @@
+.logged-out-page {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}
+
+.logged-out-page mat-card {
+  width: min(100%, 34rem);
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.5rem, 4vw, 2rem);
+  border-radius: 1.75rem;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.logged-out-page h1,
+.logged-out-page p {
+  margin: 0;
+}
+
+.logged-out-page p {
+  color: var(--text-soft);
+}
+
+.logged-out-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}

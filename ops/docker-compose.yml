@@ -1,0 +1,20 @@
+services:
+  api:
+    image: golang:1.26
+    working_dir: /workspace/backend
+    command: sh -lc "go run ./cmd/server"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../backend:/workspace/backend
+    env_file:
+      - ../backend/.env.example
+
+  web:
+    image: node:24
+    working_dir: /workspace/frontend
+    command: sh -lc "npm install && npm start -- --host 0.0.0.0"
+    ports:
+      - "4200:4200"
+    volumes:
+      - ../frontend:/workspace/frontend

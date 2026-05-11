@@ -1,0 +1,41 @@
+.admin-users-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-users-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-users-page__eyebrow {
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--brand-strong);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.admin-users-page__header h1,
+.admin-users-page__header p {
+  margin: 0;
+}
+
+.admin-users-page__header p:last-child {
+  max-width: 48rem;
+  margin-top: 0.5rem;
+  color: var(--text-soft);
+}
+
+.admin-users-page mat-card {
+  padding: 0;
+  border-radius: 1.75rem;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}

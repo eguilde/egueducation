@@ -1,0 +1,30 @@
+<section class="admin-users-page">
+  <header class="admin-users-page__header">
+    <div>
+      <p class="admin-users-page__eyebrow">{{ 'admin.users.eyebrow' | transloco }}</p>
+      <h1>{{ 'admin.users.title' | transloco }}</h1>
+      <p>{{ 'admin.users.subtitle' | transloco }}</p>
+    </div>
+
+    <button mat-flat-button>
+      <mat-icon>person_add</mat-icon>
+      {{ 'admin.users.addAction' | transloco }}
+    </button>
+  </header>
+
+  <mat-card>
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="('admin.users.empty' | transloco)"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+    />
+  </mat-card>
+</section>

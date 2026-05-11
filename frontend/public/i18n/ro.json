@@ -1,0 +1,138 @@
+{
+  "app": {
+    "subtitle": "Platforma educațională pentru registratură, arhivă și fluxuri"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "registratura": "Registratură",
+    "workflow": "Fluxuri",
+    "earchiva": "eArhivă",
+    "education": "Educație",
+    "admin": "Administrare"
+  },
+  "auth": {
+    "login": "Autentificare",
+    "logout": "Deconectare",
+    "notAuthenticated": "Utilizator neautentificat",
+    "redirecting": "Se finalizează autentificarea",
+    "callbackMessage": "Te conectăm și te redirecționăm către aplicație.",
+    "redirectBadge": "Autentificare prin redirect",
+    "oidcBadge": "OIDC, PKCE și DPoP",
+    "loginTitle": "Autentificare sigură pentru registratură, fluxuri și module educaționale",
+    "loginBody": "Pornim cu redirect OIDC în același limbaj vizual ca aplicația principală, iar metodele suplimentare precum SMS OTP, passkey și EUDI Wallet rămân pregătite în aceeași experiență.",
+    "availableMethods": "Metode disponibile",
+    "redirectFlow": "Fără popup-uri",
+    "primaryMethod": "Metodă principală",
+    "loggedOutTitle": "Sesiunea a fost închisă",
+    "loggedOutBody": "Te poți autentifica din nou oricând sau poți reveni în dashboard-ul public al aplicației.",
+    "methods": {
+      "oidc_redirect": "OIDC redirect",
+      "sms_otp": "Cod OTP prin SMS",
+      "passkey": "Passkey / WebAuthn",
+      "eudi_wallet": "Portofel EUDI"
+    },
+    "methodDescriptions": {
+      "oidc_redirect": "Fluxul principal de autentificare bazat pe redirect, Authorization Code și PKCE.",
+      "sms_otp": "Coduri de unică folosință trimise prin SMS pentru verificări și step-up authentication.",
+      "passkey": "Autentificare modernă cu chei hardware sau biometrie, fără parolă.",
+      "eudi_wallet": "Integrare pregătită pentru identitate digitală și atestate prezentate prin wallet."
+    }
+  },
+  "appearance": {
+    "title": "Aspect și limbă",
+    "mode": "Mod temă",
+    "light": "Luminos",
+    "dark": "Întunecat",
+    "language": "Limbă"
+  },
+  "dashboard": {
+    "badge": "Material 3 Expressive",
+    "title": "Baza noului EguEducation este pregătită pentru dezvoltare rapidă.",
+    "subtitle": "Shell responsive, autentificare OIDC, internaționalizare, temă red/rose și fundație administrativă pentru modulele educaționale.",
+    "primaryCta": "Deschide administrarea",
+    "secondaryCta": "Vezi registratura",
+    "cards": {
+      "registratura": {
+        "title": "Registratură și documente",
+        "body": "Ciclu complet pentru documente, versiuni, atașamente, clasificare și audit."
+      },
+      "workflow": {
+        "title": "Motor de workflow",
+        "body": "Definiții configurabile, task inbox, SLA, tranziții și guvernanță administrativă."
+      },
+      "archive": {
+        "title": "eArhivă",
+        "body": "Fonduri, serii, retenție și arhivare manuală sau automată."
+      },
+      "education": {
+        "title": "Module educaționale",
+        "body": "CA, CP, dosare manageriale, personal și portofolii profesionale."
+      }
+    }
+  },
+  "admin": {
+    "badge": "Control complet",
+    "title": "Dashboard administrativ",
+    "subtitle": "Acesta va deveni centrul de administrare pentru utilizatori, poziții, permisiuni, fluxuri, nomenclatoare, arhivă și GDPR.",
+    "comingSoon": "Secțiunea este pregătită pentru implementarea completă a funcționalităților.",
+    "quickLinks": {
+      "title": "Acces rapid",
+      "users": "Gestionează utilizatorii"
+    },
+    "stats": {
+      "users": "Utilizatori",
+      "positions": "Poziții",
+      "workflows": "Fluxuri",
+      "permissions": "Permisiuni"
+    },
+    "sections": {
+      "users": "Utilizatori",
+      "memberships": "Afilieri și membri",
+      "orgUnits": "Organigramă și unități",
+      "org_units": "Organigramă și unități",
+      "positions": "Poziții și roluri operaționale",
+      "permissions": "Permisiuni și politici",
+      "workflows": "Definiții de workflow",
+      "workflow_definitions": "Definiții de workflow",
+      "archives": "Nomenclatoare de arhivă",
+      "archive_nomenclatures": "Nomenclatoare de arhivă",
+      "registry_nomenclatures": "Nomenclatoare de registratură",
+      "education_taxonomies": "Taxonomii educaționale",
+      "gdpr": "GDPR, retenție și acces",
+      "gdpr_policies": "GDPR, retenție și acces",
+      "auth_methods": "Metode de autentificare"
+    },
+    "users": {
+      "eyebrow": "Administrare utilizatori",
+      "title": "Utilizatori și acces",
+      "subtitle": "Primul tabel server-side real al aplicației validează contractul comun pentru paginare, sortare și filtrare în antet.",
+      "addAction": "Adaugă utilizator",
+      "empty": "Nu există utilizatori care să corespundă filtrelor.",
+      "columns": {
+        "name": "Nume",
+        "email": "Email",
+        "position": "Poziție",
+        "status": "Stare",
+        "locale": "Limbă",
+        "lastLoginAt": "Ultima conectare"
+      }
+    },
+    "userStatus": {
+      "active": "Activ",
+      "pending": "În așteptare",
+      "suspended": "Suspendat"
+    }
+  },
+  "table": {
+    "filters": {
+      "contains": "Conține",
+      "any": "Toate"
+    }
+  },
+  "placeholder": {
+    "registratura": "Modulul de registratură va folosi tabelul server-side comun, audit, clasificare și atașamente versionate.",
+    "workflow": "Modulul de workflow va include designer, task inbox și tranziții autorizate.",
+    "earchiva": "Modulul de eArhivă va expune fonduri, serii, retenție și arhivare.",
+    "education": "Modulele educaționale vor acoperi guvernanță școlară, personal, mobilitate și portofolii."
+  }
+}

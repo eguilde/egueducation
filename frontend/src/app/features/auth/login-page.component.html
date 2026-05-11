@@ -1,0 +1,39 @@
+<section class="auth-page">
+  <mat-card class="auth-page__hero">
+    <mat-chip-set>
+      <mat-chip>{{ 'auth.redirectBadge' | transloco }}</mat-chip>
+      <mat-chip>{{ 'auth.oidcBadge' | transloco }}</mat-chip>
+    </mat-chip-set>
+
+    <h1>{{ 'auth.loginTitle' | transloco }}</h1>
+    <p>{{ 'auth.loginBody' | transloco }}</p>
+
+    <div class="auth-page__actions">
+      <button mat-flat-button class="auth-page__primary" (click)="signIn()">
+        <mat-icon>login</mat-icon>
+        {{ 'auth.login' | transloco }}
+      </button>
+    </div>
+  </mat-card>
+
+  <mat-card class="auth-page__panel">
+    <div class="auth-page__panel-header">
+      <h2>{{ 'auth.availableMethods' | transloco }}</h2>
+      <span>{{ 'auth.redirectFlow' | transloco }}</span>
+    </div>
+
+    <div class="auth-page__method-list">
+      @for (method of enabledMethods(); track method.code) {
+        <div class="auth-page__method">
+          <div>
+            <div class="auth-page__method-title">{{ ('auth.methods.' + method.code) | transloco }}</div>
+            <div class="auth-page__method-copy">{{ ('auth.methodDescriptions.' + method.code) | transloco }}</div>
+          </div>
+          @if (method.primary) {
+            <mat-chip highlighted>{{ 'auth.primaryMethod' | transloco }}</mat-chip>
+          }
+        </div>
+      }
+    </div>
+  </mat-card>
+</section>

@@ -1,0 +1,82 @@
+<div class="server-table">
+  <div class="server-table__scroll">
+    <table
+      mat-table
+      matSort
+      [matSortActive]="sortActive"
+      [matSortDirection]="sortDirection"
+      [dataSource]="rows"
+      (matSortChange)="onSortChange($event)"
+    >
+      @for (column of columns; track column.key) {
+        <ng-container [matColumnDef]="column.key">
+          <th
+            mat-header-cell
+            *matHeaderCellDef
+            [class.is-sticky]="column.sticky"
+            [mat-sort-header]="column.key"
+            [disabled]="!column.sortable"
+          >
+            {{ column.label }}
+          </th>
+          <td mat-cell *matCellDef="let row">
+            {{ cellValue(row, column) }}
+          </td>
+        </ng-container>
+
+        <ng-container [matColumnDef]="column.key + '-filter'">
+          <th mat-header-cell *matHeaderCellDef class="server-table__filter-cell">
+            @if (column.filter; as filter) {
+              <mat-form-field
+                [appearance]="filterFieldAppearance"
+                subscriptSizing="dynamic"
+                class="server-table__filter-field"
+              >
+                @switch (filter.type) {
+                  @case ('text') {
+                    <input
+                      matInput
+                      [placeholder]="filter.placeholder || ''"
+                      [value]="filters()[column.key] || ''"
+                      (input)="onFilterChange(column.key, $any($event.target).value)"
+                    />
+                  }
+                  @case ('select') {
+                    <mat-select
+                      [value]="filters()[column.key] || ''"
+                      [placeholder]="filter.placeholder || ''"
+                      (selectionChange)="onFilterChange(column.key, $event.value || '')"
+                    >
+                      <mat-option value="">{{ filter.placeholder || '' }}</mat-option>
+                      @for (option of filter.options || []; track option.value) {
+                        <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                      }
+                    </mat-select>
+                  }
+                }
+              </mat-form-field>
+            } @else {
+              <span class="server-table__filter-spacer"></span>
+            }
+          </th>
+        </ng-container>
+      }
+
+      <tr mat-header-row *matHeaderRowDef="trackColumns(); sticky: true"></tr>
+      <tr mat-header-row *matHeaderRowDef="trackFilterColumns(); sticky: true" class="server-table__filters"></tr>
+      <tr mat-row *matRowDef="let row; columns: trackColumns()"></tr>
+    </table>
+  </div>
+
+  @if (!rows.length) {
+    <div class="server-table__empty">{{ emptyMessage }}</div>
+  }
+
+  <mat-paginator
+    [length]="total"
+    [pageIndex]="pageIndex"
+    [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions"
+    (page)="pageChange.emit($event)"
+  />
+</div>

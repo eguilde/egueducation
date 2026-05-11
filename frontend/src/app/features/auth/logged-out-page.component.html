@@ -1,0 +1,11 @@
+<section class="logged-out-page">
+  <mat-card>
+    <mat-icon>logout</mat-icon>
+    <h1>{{ 'auth.loggedOutTitle' | transloco }}</h1>
+    <p>{{ 'auth.loggedOutBody' | transloco }}</p>
+    <div class="logged-out-page__actions">
+      <a mat-flat-button routerLink="/login">{{ 'auth.login' | transloco }}</a>
+      <a mat-stroked-button routerLink="/dashboard">{{ 'dashboard.primaryCta' | transloco }}</a>
+    </div>
+  </mat-card>
+</section>

@@ -1,0 +1,19 @@
+# Repository
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Backend
+backend/bin/
+backend/tmp/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
