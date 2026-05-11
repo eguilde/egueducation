@@ -33,21 +33,13 @@ jobs:
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
-      - name: Validate frontend build
+      - name: Validate frontend image build
         run: |
           set -euo pipefail
-          docker run --rm \
-            --volume "${PWD}/egueducation/frontend:/app" \
-            --workdir /app \
-            --entrypoint /usr/local/bin/npm \
-            node:24 \
-            ci
-          docker run --rm \
-            --volume "${PWD}/egueducation/frontend:/app" \
-            --workdir /app \
-            --entrypoint /usr/local/bin/npm \
-            node:24 \
-            run build
+          docker build \
+            --file egueducation/frontend/Dockerfile \
+            --tag egueducation-frontend-ci:${GITHUB_SHA} \
+            egueducation/frontend
 
       - name: Build and push frontend image
         run: |

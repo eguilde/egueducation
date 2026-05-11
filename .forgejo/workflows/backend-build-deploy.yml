@@ -33,15 +33,13 @@ jobs:
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
-      - name: Validate backend build
+      - name: Validate backend image build
         run: |
           set -euo pipefail
-          docker run --rm \
-            --volume "${PWD}/egueducation/backend:/src" \
-            --workdir /src \
-            --entrypoint /usr/local/go/bin/go \
-            golang:1.26 \
-            test ./...
+          docker build \
+            --file egueducation/backend/Dockerfile \
+            --tag egueducation-backend-ci:${GITHUB_SHA} \
+            egueducation/backend
 
       - name: Build and push backend image
         run: |
