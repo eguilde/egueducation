@@ -32,9 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf egueducation gitops
-          auth_header=$(printf '%s' "${SCM_USERNAME}:${SCM_PASSWORD}" | base64 | tr -d '\n')
-          git -c http.extraHeader="Authorization: Basic ${auth_header}" \
-            clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
@@ -61,11 +59,12 @@ jobs:
       - name: Update frontend GitOps image tag
         run: |
           set -euo pipefail
+          gitops_ref="${INPUT_GITOPS_REF:-main}"
           auth_header=$(printf '%s' "${SCM_USERNAME}:${SCM_PASSWORD}" | base64 | tr -d '\n')
           git -c http.extraHeader="Authorization: Basic ${auth_header}" \
             clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
           cd gitops
-          git checkout "${{ inputs.gitops_ref }}"
+          git checkout "${gitops_ref}"
           git config user.name "forgejo-actions"
           git config user.email "forgejo-actions@eguilde.cloud"
           git config http.https://forge.eguilde.cloud/.extraheader "Authorization: Basic ${auth_header}"
@@ -89,5 +88,7 @@ jobs:
           git add "$file"
           git diff --cached --quiet && exit 0
           git commit -m "chore(egueducation-frontend): deploy ${GITHUB_SHA}"
-          git pull --rebase origin "${{ inputs.gitops_ref }}"
-          git push origin "HEAD:${{ inputs.gitops_ref }}"
+          git pull --rebase origin "${gitops_ref}"
+          git push origin "HEAD:${gitops_ref}"
+        env:
+          INPUT_GITOPS_REF: ${{ inputs.gitops_ref }}
