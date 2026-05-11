@@ -23,6 +23,7 @@ jobs:
   build-and-deploy:
     runs-on: lan-builder
     env:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
       SCM_PASSWORD: ${{ secrets.SCM_PASSWORD }}
       SCM_USERNAME: ${{ secrets.SCM_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -60,23 +61,15 @@ jobs:
         run: |
           set -euo pipefail
           gitops_ref="${INPUT_GITOPS_REF:-main}"
-          test -n "${SCM_USERNAME:-}" || { echo "SCM_USERNAME secret is missing"; exit 1; }
-          test -n "${SCM_PASSWORD:-}" || { echo "SCM_PASSWORD secret is missing"; exit 1; }
+          if [ -n "${GITOPS_TOKEN:-}" ]; then
+            gitops_url="https://oauth2:${GITOPS_TOKEN}@forge.eguilde.cloud/eguilde/gitops.git"
+          else
+            test -n "${SCM_USERNAME:-}" || { echo "SCM_USERNAME secret is missing"; exit 1; }
+            test -n "${SCM_PASSWORD:-}" || { echo "SCM_PASSWORD secret is missing"; exit 1; }
+            gitops_url="https://${SCM_USERNAME}:${SCM_PASSWORD}@forge.eguilde.cloud/eguilde/gitops.git"
+          fi
 
-          askpass="$(mktemp)"
-          cat > "${askpass}" <<EOF
-          #!/bin/sh
-          case "\$1" in
-            *Username*) printf '%s\n' "${SCM_USERNAME}" ;;
-            *Password*) printf '%s\n' "${SCM_PASSWORD}" ;;
-            *) printf '\n' ;;
-          esac
-          EOF
-          chmod 700 "${askpass}"
-          export GIT_ASKPASS="${askpass}"
-          export GIT_TERMINAL_PROMPT=0
-
-          git clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
+          git clone "${gitops_url}" gitops
           cd gitops
           git checkout "${gitops_ref}"
           git config user.name "forgejo-actions"
@@ -103,6 +96,5 @@ jobs:
           git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
           git pull --rebase origin "${gitops_ref}"
           git push origin "HEAD:${gitops_ref}"
-          rm -f "${askpass}"
         env:
           INPUT_GITOPS_REF: ${{ inputs.gitops_ref }}
