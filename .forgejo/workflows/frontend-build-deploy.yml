@@ -60,14 +60,27 @@ jobs:
         run: |
           set -euo pipefail
           gitops_ref="${INPUT_GITOPS_REF:-main}"
-          auth_header=$(printf '%s' "${SCM_USERNAME}:${SCM_PASSWORD}" | base64 | tr -d '\n')
-          git -c http.extraHeader="Authorization: Basic ${auth_header}" \
-            clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
+          test -n "${SCM_USERNAME:-}" || { echo "SCM_USERNAME secret is missing"; exit 1; }
+          test -n "${SCM_PASSWORD:-}" || { echo "SCM_PASSWORD secret is missing"; exit 1; }
+
+          askpass="$(mktemp)"
+          cat > "${askpass}" <<EOF
+          #!/bin/sh
+          case "\$1" in
+            *Username*) printf '%s\n' "${SCM_USERNAME}" ;;
+            *Password*) printf '%s\n' "${SCM_PASSWORD}" ;;
+            *) printf '\n' ;;
+          esac
+          EOF
+          chmod 700 "${askpass}"
+          export GIT_ASKPASS="${askpass}"
+          export GIT_TERMINAL_PROMPT=0
+
+          git clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
           cd gitops
           git checkout "${gitops_ref}"
           git config user.name "forgejo-actions"
           git config user.email "forgejo-actions@eguilde.cloud"
-          git config http.https://forge.eguilde.cloud/.extraheader "Authorization: Basic ${auth_header}"
 
           file="namespaces/education/egueducation/frontend/kustomization.yaml"
           awk -v source_image="registry.eguilde.cloud/eguilde/egueducation-frontend" -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
@@ -90,5 +103,6 @@ jobs:
           git commit -m "chore(egueducation-frontend): deploy ${GITHUB_SHA}"
           git pull --rebase origin "${gitops_ref}"
           git push origin "HEAD:${gitops_ref}"
+          rm -f "${askpass}"
         env:
           INPUT_GITOPS_REF: ${{ inputs.gitops_ref }}
