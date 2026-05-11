@@ -60,6 +60,11 @@ jobs:
       - name: Update frontend GitOps image tag
         run: |
           set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
+            echo "Skipping GitOps update for push-triggered build; use workflow_dispatch for deployment."
+            exit 0
+          fi
+
           gitops_ref="${INPUT_GITOPS_REF:-main}"
           if [ -n "${GITOPS_TOKEN:-}" ]; then
             gitops_url="https://oauth2:${GITOPS_TOKEN}@forge.eguilde.cloud/eguilde/gitops.git"
