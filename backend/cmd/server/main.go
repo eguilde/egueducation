@@ -81,6 +81,8 @@ func main() {
 
 		r.Get("/auth/methods", authService.ListMethods)
 		r.Get("/auth/ui-config", authService.UIConfig)
+		r.Get("/oidc/.well-known/openid-configuration", oidcDiscovery(cfg))
+		r.Get("/oidc/jwks", oidcJWKS)
 		r.Get("/me", authService.SessionContext)
 		r.Get("/admin/dashboard", adminService.Dashboard)
 		r.Get("/admin/users", adminService.ListUsers)
@@ -112,6 +114,33 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", zap.Error(err))
 	}
+}
+
+func oidcDiscovery(cfg config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		issuer := cfg.OIDCIssuer
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"issuer":                                issuer,
+			"authorization_endpoint":                issuer + "/authorize",
+			"token_endpoint":                        issuer + "/token",
+			"userinfo_endpoint":                     issuer + "/userinfo",
+			"jwks_uri":                              issuer + "/jwks",
+			"response_types_supported":              []string{"code"},
+			"grant_types_supported":                 []string{"authorization_code", "refresh_token"},
+			"subject_types_supported":               []string{"public"},
+			"id_token_signing_alg_values_supported": []string{"RS256"},
+			"scopes_supported":                      []string{"openid", "profile", "email", "phone", "offline_access"},
+			"claims_supported":                      []string{"sub", "name", "email", "phone_number", "locale"},
+			"code_challenge_methods_supported":      []string{"S256"},
+			"token_endpoint_auth_methods_supported": []string{"none"},
+		})
+	}
+}
+
+func oidcJWKS(w http.ResponseWriter, r *http.Request) {
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"keys": []any{},
+	})
 }
 
 func cors(frontendOrigin string) func(http.Handler) http.Handler {
