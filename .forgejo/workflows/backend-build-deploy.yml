@@ -39,8 +39,9 @@ jobs:
           docker run --rm \
             --volume "${PWD}/egueducation/backend:/src" \
             --workdir /src \
+            --entrypoint /usr/local/go/bin/go \
             golang:1.26 \
-            sh -lc 'go test ./...'
+            test ./...
 
       - name: Build and push backend image
         run: |

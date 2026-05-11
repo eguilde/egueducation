@@ -39,8 +39,15 @@ jobs:
           docker run --rm \
             --volume "${PWD}/egueducation/frontend:/app" \
             --workdir /app \
+            --entrypoint /usr/local/bin/npm \
             node:24 \
-            sh -lc 'npm ci && npm run build'
+            ci
+          docker run --rm \
+            --volume "${PWD}/egueducation/frontend:/app" \
+            --workdir /app \
+            --entrypoint /usr/local/bin/npm \
+            node:24 \
+            run build
 
       - name: Build and push frontend image
         run: |
