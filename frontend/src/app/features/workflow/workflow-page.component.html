@@ -1,0 +1,190 @@
+<div class="workflow-page">
+  <div class="workflow-page__hero">
+    <div>
+      <p class="workflow-page__eyebrow">{{ 'nav.workflow' | transloco }}</p>
+      <h1>{{ 'workflow.title' | transloco }}</h1>
+      <p>{{ 'workflow.subtitle' | transloco }}</p>
+    </div>
+    <div class="workflow-page__stats">
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.active_tasks }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.activeTasks' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.overdue_tasks }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.overdueTasks' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.waiting_approval }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.waitingApproval' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.active_definitions }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.activeDefinitions' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.ready_dossiers }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.readyDossiers' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="workflow-page__stat-value">{{ dashboard().stats.blocked_dossiers }}</span>
+        <span class="workflow-page__stat-label">{{ 'workflow.stats.blockedDossiers' | transloco }}</span>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="workflow-page__grid">
+    <div class="workflow-page__sidebar">
+      <mat-card appearance="outlined" class="workflow-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'workflow.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'workflow.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="workflow-form" [formGroup]="form">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.definition' | transloco }}</mat-label>
+              <mat-select formControlName="definition_code">
+                @for (definition of definitions(); track definition.code) {
+                  <mat-option [value]="definition.code">{{ definition.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.title' | transloco }}</mat-label>
+              <input matInput formControlName="title" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.documentNumber' | transloco }}</mat-label>
+              <input matInput formControlName="document_number" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.priority' | transloco }}</mat-label>
+              <mat-select formControlName="priority">
+                @for (priority of filters().priorities; track priority) {
+                  <mat-option [value]="priority">{{ ('workflow.priority.' + priority) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.assignedTo' | transloco }}</mat-label>
+              <input matInput formControlName="assigned_to" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'workflow.form.dueDate' | transloco }}</mat-label>
+              <input matInput [matDatepicker]="duePicker" formControlName="due_date" />
+              <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
+              <mat-datepicker #duePicker />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="workflow-form__summary">
+              <mat-label>{{ 'workflow.form.summary' | transloco }}</mat-label>
+              <textarea matInput rows="4" formControlName="summary"></textarea>
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-flat-button type="button" (click)="createTask()">
+            <mat-icon>playlist_add</mat-icon>
+            {{ 'workflow.create.submit' | transloco }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="workflow-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'workflow.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'workflow.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedTask(); as task) {
+            <div class="workflow-details">
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.definition' | transloco }}</span>
+                <strong>{{ task.definition_name }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.currentStep' | transloco }}</span>
+                <strong>{{ task.current_step }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.status' | transloco }}</span>
+                <strong>{{ ('workflow.status.' + task.status) | transloco }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.sourceModule' | transloco }}</span>
+                <strong>{{ ('workflow.sourceModule.' + task.source_module) | transloco }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.dossierReady' | transloco }}</span>
+                <strong>{{ ('workflow.dossierReady.' + (task.dossier_ready ? 'yes' : 'no')) | transloco }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.linkedDocuments' | transloco }}</span>
+                <strong>{{ task.linked_documents_count }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.priority' | transloco }}</span>
+                <strong>{{ ('workflow.priority.' + task.priority) | transloco }}</strong>
+              </div>
+              <div class="workflow-details__row">
+                <span>{{ 'workflow.columns.documentNumber' | transloco }}</span>
+                <strong>{{ task.document_number || '—' }}</strong>
+              </div>
+              @if (task.missing_relations.length) {
+                <mat-chip-set>
+                  @for (relation of task.missing_relations; track relation) {
+                    <mat-chip>{{ ('links.relationType.' + relation) | transloco }}</mat-chip>
+                  }
+                </mat-chip-set>
+              }
+              <p class="workflow-details__summary">{{ task.summary || '—' }}</p>
+
+              @if (canManage() && task.available_actions.length) {
+                <div class="workflow-details__actions">
+                  @for (action of task.available_actions; track action) {
+                    <button mat-flat-button type="button" (click)="transitionTask(action)" [disabled]="isActionBlocked(action, task)">
+                      {{ ('workflow.actions.' + action) | transloco }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="workflow-details__empty">{{ 'workflow.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card appearance="outlined" class="workflow-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'workflow.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'workflow.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [total]="response().total"
+          [pageIndex]="response().page - 1"
+          [pageSize]="response().pageSize"
+          [emptyMessage]="'workflow.list.empty' | transloco"
+          [sortActive]="tableState().sort || ''"
+          [sortDirection]="tableState().direction || ''"
+          [rowClickable]="true"
+          [selectedRowId]="selectedTaskId()"
+          (pageChange)="onPageChange($event)"
+          (filterChange)="onFilterChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="onSelectTask($event)"
+        />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

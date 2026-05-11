@@ -1,0 +1,71 @@
+<div class="feature-page">
+  <div class="feature-page__hero">
+    <div>
+      <p class="feature-page__eyebrow">{{ 'nav.educationDeclarations' | transloco }}</p>
+      <h1>{{ 'educationDeclarations.title' | transloco }}</h1>
+      <p>{{ 'educationDeclarations.subtitle' | transloco }}</p>
+    </div>
+    <div class="feature-page__stats">
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.total_declarations }}</span><span class="feature-page__stat-label">{{ 'educationDeclarations.stats.totalDeclarations' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.submitted_declarations }}</span><span class="feature-page__stat-label">{{ 'educationDeclarations.stats.submittedDeclarations' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.validated_declarations }}</span><span class="feature-page__stat-label">{{ 'educationDeclarations.stats.validatedDeclarations' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.expired_declarations }}</span><span class="feature-page__stat-label">{{ 'educationDeclarations.stats.expiredDeclarations' | transloco }}</span></mat-card>
+    </div>
+  </div>
+
+  <div class="feature-page__grid">
+    <div class="feature-page__sidebar">
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationDeclarations.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationDeclarations.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="feature-form" [formGroup]="form">
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.employeeCode' | transloco }}</mat-label><input matInput formControlName="employee_code" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.fullName' | transloco }}</mat-label><input matInput formControlName="full_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.declarationType' | transloco }}</mat-label><mat-select formControlName="declaration_type">@for (option of taxonomyOptions('education_declaration_type', filters().declaration_types); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (option of taxonomyOptions('education_declaration_status', filters().statuses); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.schoolYear' | transloco }}</mat-label><mat-select formControlName="school_year">@for (option of taxonomyOptions('school_year', filters().school_years); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.submittedOn' | transloco }}</mat-label><input matInput [matDatepicker]="submittedPicker" formControlName="submitted_on" /><mat-datepicker-toggle matIconSuffix [for]="submittedPicker" /><mat-datepicker #submittedPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationDeclarations.form.validUntil' | transloco }}</mat-label><input matInput [matDatepicker]="validPicker" formControlName="valid_until" /><mat-datepicker-toggle matIconSuffix [for]="validPicker" /><mat-datepicker #validPicker /></mat-form-field>
+            <mat-form-field appearance="outline" class="feature-form__summary"><mat-label>{{ 'educationDeclarations.form.summary' | transloco }}</mat-label><textarea matInput rows="4" formControlName="summary"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRecord()"><mat-icon>verified_user</mat-icon>{{ 'educationDeclarations.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationDeclarations.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationDeclarations.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedRecord(); as item) {
+            <div class="feature-details">
+              <div class="feature-details__row"><span>{{ 'educationDeclarations.columns.declarationType' | transloco }}</span><strong>{{ taxonomyLabel('education_declaration_type', item.declaration_type) }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationDeclarations.columns.status' | transloco }}</span><strong>{{ taxonomyLabel('education_declaration_status', item.status) }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationDeclarations.form.validUntil' | transloco }}</span><strong>{{ item.valid_until || '—' }}</strong></div>
+              <p class="feature-details__summary">{{ item.summary || '—' }}</p>
+              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'educationDeclarations.workflow.start' | transloco }}</button>
+            </div>
+          } @else {
+            <p class="feature-details__empty">{{ 'educationDeclarations.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card [sourceModule]="'education.declarations'" [sourceRecordId]="selectedRecordId()" />
+    </div>
+
+    <mat-card appearance="outlined" class="feature-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'educationDeclarations.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'educationDeclarations.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table [columns]="columns()" [rows]="rows()" [total]="response().total" [pageIndex]="response().page - 1" [pageSize]="response().pageSize" [emptyMessage]="'educationDeclarations.list.empty' | transloco" [sortActive]="tableState().sort || ''" [sortDirection]="tableState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedRecordId()" (pageChange)="onPageChange($event)" (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (rowClick)="onSelectRecord($event)" />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

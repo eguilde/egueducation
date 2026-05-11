@@ -1,0 +1,13 @@
+.links-card__form {
+  display: grid;
+  gap: 1rem;
+}
+
+.links-card__list {
+  margin-top: 1rem;
+}
+
+.links-card__empty {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}

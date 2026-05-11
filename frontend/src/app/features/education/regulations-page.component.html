@@ -1,0 +1,74 @@
+<div class="feature-page">
+  <div class="feature-page__hero">
+    <div>
+      <p class="feature-page__eyebrow">{{ 'nav.educationRegulations' | transloco }}</p>
+      <h1>{{ 'educationRegulations.title' | transloco }}</h1>
+      <p>{{ 'educationRegulations.subtitle' | transloco }}</p>
+    </div>
+    <div class="feature-page__stats">
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.total_regulations }}</span><span class="feature-page__stat-label">{{ 'educationRegulations.stats.totalRegulations' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.consultation_items }}</span><span class="feature-page__stat-label">{{ 'educationRegulations.stats.consultationItems' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.approved_regulations }}</span><span class="feature-page__stat-label">{{ 'educationRegulations.stats.approvedRegulations' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.published_regulations }}</span><span class="feature-page__stat-label">{{ 'educationRegulations.stats.publishedRegulations' | transloco }}</span></mat-card>
+    </div>
+  </div>
+
+  <div class="feature-page__grid">
+    <div class="feature-page__sidebar">
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationRegulations.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationRegulations.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="feature-form" [formGroup]="form">
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.schoolYear' | transloco }}</mat-label><mat-select formControlName="school_year">@for (option of taxonomyOptions('school_year', filters().school_years); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.regulationType' | transloco }}</mat-label><mat-select formControlName="regulation_type">@for (option of taxonomyOptions('education_regulation_type', filters().regulation_types); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.title' | transloco }}</mat-label><input matInput formControlName="title" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (option of taxonomyOptions('education_regulation_status', filters().statuses); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.approvalStatus' | transloco }}</mat-label><mat-select formControlName="approval_status">@for (option of taxonomyOptions('education_regulation_approval_status', filters().approval_statuses); track option.value) {<mat-option [value]="option.value">{{ option.label }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.ownerName' | transloco }}</mat-label><input matInput formControlName="owner_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.reviewDueOn' | transloco }}</mat-label><input matInput [matDatepicker]="reviewPicker" formControlName="review_due_on" /><mat-datepicker-toggle matIconSuffix [for]="reviewPicker" /><mat-datepicker #reviewPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationRegulations.form.approvedOn' | transloco }}</mat-label><input matInput [matDatepicker]="approvedPicker" formControlName="approved_on" /><mat-datepicker-toggle matIconSuffix [for]="approvedPicker" /><mat-datepicker #approvedPicker /></mat-form-field>
+            <mat-form-field appearance="outline" class="feature-form__summary"><mat-label>{{ 'educationRegulations.form.summary' | transloco }}</mat-label><textarea matInput rows="4" formControlName="summary"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRecord()"><mat-icon>policy</mat-icon>{{ 'educationRegulations.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationRegulations.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationRegulations.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedRecord(); as item) {
+            <div class="feature-details">
+              <div class="feature-details__row"><span>{{ 'educationRegulations.columns.regulationType' | transloco }}</span><strong>{{ taxonomyLabel('education_regulation_type', item.regulation_type) }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationRegulations.columns.status' | transloco }}</span><strong>{{ taxonomyLabel('education_regulation_status', item.status) }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationRegulations.columns.approvalStatus' | transloco }}</span><strong>{{ taxonomyLabel('education_regulation_approval_status', item.approval_status) }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationRegulations.form.ownerName' | transloco }}</span><strong>{{ item.owner_name || '—' }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationRegulations.form.reviewDueOn' | transloco }}</span><strong>{{ item.review_due_on }}</strong></div>
+              <p class="feature-details__summary">{{ item.summary || '—' }}</p>
+              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'educationRegulations.workflow.start' | transloco }}</button>
+            </div>
+          } @else {
+            <p class="feature-details__empty">{{ 'educationRegulations.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card [sourceModule]="'education.regulations'" [sourceRecordId]="selectedRecordId()" />
+    </div>
+
+    <mat-card appearance="outlined" class="feature-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'educationRegulations.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'educationRegulations.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table [columns]="columns()" [rows]="rows()" [total]="response().total" [pageIndex]="response().page - 1" [pageSize]="response().pageSize" [emptyMessage]="'educationRegulations.list.empty' | transloco" [sortActive]="tableState().sort || ''" [sortDirection]="tableState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedRecordId()" (pageChange)="onPageChange($event)" (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (rowClick)="onSelectRecord($event)" />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

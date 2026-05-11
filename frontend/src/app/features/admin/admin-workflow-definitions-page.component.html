@@ -1,0 +1,71 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.workflowDefinitions.title' | transloco }}</h1>
+    <p>{{ 'admin.workflowDefinitions.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.workflowDefinitions.form.title' | transloco }}</h2>
+    <p>{{ 'admin.workflowDefinitions.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveWorkflowDefinition()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.workflowDefinitions.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.workflowDefinitions.form.name' | transloco }}</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.workflowDefinitions.form.category' | transloco }}</mat-label>
+        <mat-select formControlName="category">
+          @for (value of filters().categories; track value) {
+            <mat-option [value]="value">{{ value }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.workflowDefinitions.form.initialStep' | transloco }}</mat-label>
+        <input matInput formControlName="initial_step" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.workflowDefinitions.form.slaHours' | transloco }}</mat-label>
+        <input matInput type="number" min="1" formControlName="sla_hours" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.workflowDefinitions.form.active' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.workflowDefinitions.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.workflowDefinitions.list.title' | transloco }}</h2>
+    <p>{{ 'admin.workflowDefinitions.list.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.workflowDefinitions.list.empty' | transloco"
+      [rowClickable]="true"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectWorkflowDefinition($event)"
+    />
+  </mat-card>
+</section>

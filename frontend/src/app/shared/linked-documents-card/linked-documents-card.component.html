@@ -1,0 +1,60 @@
+<mat-card appearance="outlined" class="links-card">
+  <mat-card-header>
+    <mat-card-title>{{ 'links.title' | transloco }}</mat-card-title>
+    <mat-card-subtitle>{{ 'links.subtitle' | transloco }}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    @if (canLink()) {
+      <form class="links-card__form" [formGroup]="form">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'links.form.query' | transloco }}</mat-label>
+          <input matInput formControlName="query" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'links.form.document' | transloco }}</mat-label>
+          <mat-select formControlName="document_id">
+            @for (item of lookupResults(); track item.id) {
+              <mat-option [value]="item.id">{{ item.registry_number }} · {{ item.subject }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'links.form.relationType' | transloco }}</mat-label>
+          <mat-select formControlName="relation_type">
+            <mat-option value="primary">{{ 'links.relationType.primary' | transloco }}</mat-option>
+            <mat-option value="supporting">{{ 'links.relationType.supporting' | transloco }}</mat-option>
+            <mat-option value="decision">{{ 'links.relationType.decision' | transloco }}</mat-option>
+            <mat-option value="archive_basis">{{ 'links.relationType.archive_basis' | transloco }}</mat-option>
+            <mat-option value="gdpr_basis">{{ 'links.relationType.gdpr_basis' | transloco }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-flat-button type="button" (click)="createLink()">
+          <mat-icon>attach_file</mat-icon>
+          {{ 'links.form.submit' | transloco }}
+        </button>
+      </form>
+
+      @if (links().length) {
+        <mat-list class="links-card__list">
+          @for (item of links(); track item.link_id) {
+            <mat-list-item lines="3">
+              <div matListItemTitle>{{ item.registry_number }} · {{ item.subject }}</div>
+              <div matListItemLine>{{ item.document_type }} · {{ ('registratura.status.' + item.status) | transloco }}</div>
+              <div matListItemLine>{{ ('links.relationType.' + item.relation_type) | transloco }}</div>
+              <button mat-icon-button matListItemMeta type="button" (click)="deleteLink(item.link_id)" [attr.aria-label]="'Delete link'">
+                <mat-icon>link_off</mat-icon>
+              </button>
+            </mat-list-item>
+          }
+        </mat-list>
+      } @else {
+        <p class="links-card__empty">{{ 'links.empty' | transloco }}</p>
+      }
+    } @else {
+      <p class="links-card__empty">{{ 'links.selectRecord' | transloco }}</p>
+    }
+  </mat-card-content>
+</mat-card>

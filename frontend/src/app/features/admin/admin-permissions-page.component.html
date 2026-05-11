@@ -1,0 +1,91 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.permissions.title' | transloco }}</h1>
+    <p>{{ 'admin.permissions.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card *appHasPermission="'admin.permissions.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.permissions.form.title' | transloco }}</h2>
+    <p>{{ 'admin.permissions.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveAssignment()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.permissions.form.permissionCode' | transloco }}</mat-label>
+        <mat-select formControlName="permission_code">
+          @for (permission of assignmentFilters().permissions; track permission.code) {
+            <mat-option [value]="permission.code">{{ permission.code }} - {{ permission.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.permissions.form.positionCode' | transloco }}</mat-label>
+        <mat-select formControlName="position_code">
+          @for (position of assignmentFilters().positions; track position.code) {
+            <mat-option [value]="position.code">{{ position.code }} - {{ position.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="assigned">
+        {{ 'admin.permissions.form.assigned' | transloco }}
+      </mat-checkbox>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetForm()">
+          {{ 'admin.permissions.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.permissions.form.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.permissions.catalog.title' | transloco }}</h2>
+    <p>{{ 'admin.permissions.catalog.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="permissionColumns()"
+      [rows]="permissionRows()"
+      [rowIdKey]="'code'"
+      [total]="catalogResponse().total"
+      [pageIndex]="catalogResponse().page - 1"
+      [pageSize]="catalogResponse().pageSize"
+      [sortActive]="catalogState().sort ?? ''"
+      [sortDirection]="catalogState().direction ?? ''"
+      [emptyMessage]="'admin.permissions.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedPermissionCode()"
+      (pageChange)="onCatalogPageChange($event)"
+      (filterChange)="onCatalogFilterChange($event)"
+      (sortChange)="onCatalogSortChange($event)"
+      (rowClick)="onSelectPermission($event)"
+    />
+  </mat-card>
+</section>
+
+<section class="admin-page__assignments">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.permissions.assignments.title' | transloco }}</h2>
+    <p>{{ 'admin.permissions.assignments.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="assignmentColumns()"
+      [rows]="assignmentRows()"
+      [total]="assignmentsResponse().total"
+      [pageIndex]="assignmentsResponse().page - 1"
+      [pageSize]="assignmentsResponse().pageSize"
+      [sortActive]="assignmentState().sort ?? ''"
+      [sortDirection]="assignmentState().direction ?? ''"
+      [emptyMessage]="'admin.permissions.assignments.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedAssignmentId()"
+      (pageChange)="onAssignmentPageChange($event)"
+      (filterChange)="onAssignmentFilterChange($event)"
+      (sortChange)="onAssignmentSortChange($event)"
+      (rowClick)="onSelectAssignment($event)"
+    />
+  </mat-card>
+</section>

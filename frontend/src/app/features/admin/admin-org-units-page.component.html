@@ -1,0 +1,75 @@
+<section class="org-units-page__header">
+  <div>
+    <h1>{{ 'admin.orgUnits.title' | transloco }}</h1>
+    <p>{{ 'admin.orgUnits.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="org-units-page__grid">
+  <mat-card *appHasPermission="'admin.org_units.manage'; module: 'admin'" appearance="outlined" class="org-units-page__card">
+    <h2>{{ 'admin.orgUnits.list.title' | transloco }}</h2>
+    <p>{{ 'admin.orgUnits.list.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort || ''"
+      [sortDirection]="tableState().direction || ''"
+      [rowClickable]="true"
+      [rowIdKey]="'code'"
+      [selectedRowId]="selectedCode()"
+      [emptyMessage]="'admin.orgUnits.list.empty' | transloco"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="selectOrgUnit($event)" />
+  </mat-card>
+
+  <mat-card appearance="outlined" class="org-units-page__card">
+    <h2>{{ 'admin.orgUnits.form.title' | transloco }}</h2>
+    <p>{{ 'admin.orgUnits.form.subtitle' | transloco }}</p>
+
+    <form class="org-units-page__form" [formGroup]="form" (ngSubmit)="saveOrgUnit()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.orgUnits.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.orgUnits.form.name' | transloco }}</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.orgUnits.form.parentCode' | transloco }}</mat-label>
+        <mat-select formControlName="parent_code">
+          <mat-option value="">{{ 'admin.orgUnits.form.noParent' | transloco }}</mat-option>
+          @for (option of orgUnitOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.orgUnits.form.sortOrder' | transloco }}</mat-label>
+        <input matInput type="number" formControlName="sort_order" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.orgUnits.form.active' | transloco }}
+      </mat-checkbox>
+
+      <div class="org-units-page__actions">
+        <button mat-stroked-button type="button" (click)="resetForm()">
+          {{ 'admin.orgUnits.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">
+          {{ 'admin.orgUnits.form.submit' | transloco }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+</section>

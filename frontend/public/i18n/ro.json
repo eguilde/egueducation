@@ -8,7 +8,24 @@
     "workflow": "Fluxuri",
     "earchiva": "eArhivă",
     "education": "Educație",
+    "educationDecisions": "Decizii CA / CP",
+    "educationManagerial": "Dosare manageriale",
+    "educationRegulations": "ROF / ROI",
+    "educationPersonnel": "Personal școală",
+    "educationEvaluations": "Evaluări anuale",
+    "educationDeclarations": "Declarații",
+    "educationMobility": "Mobilitate",
+    "educationGradatii": "Gradații de merit",
+    "educationPortfolios": "Portofolii CD",
+    "gdpr": "GDPR",
+    "gdprExports": "Exporturi GDPR",
+    "gdprPublication": "Publicare și anonimizare",
     "admin": "Administrare"
+  },
+  "common": {
+    "close": "Închide",
+    "yes": "Da",
+    "no": "Nu"
   },
   "auth": {
     "login": "Autentificare",
@@ -16,6 +33,7 @@
     "notAuthenticated": "Utilizator neautentificat",
     "redirecting": "Se finalizează autentificarea",
     "callbackMessage": "Te conectăm și te redirecționăm către aplicație.",
+    "callbackEyebrow": "Callback OIDC",
     "redirectBadge": "Autentificare prin redirect",
     "oidcBadge": "OIDC, PKCE și DPoP",
     "loginTitle": "Autentificare sigură pentru registratură, fluxuri și module educaționale",
@@ -23,8 +41,44 @@
     "availableMethods": "Metode disponibile",
     "redirectFlow": "Fără popup-uri",
     "primaryMethod": "Metodă principală",
+    "loggedOutEyebrow": "Sesiune închisă",
     "loggedOutTitle": "Sesiunea a fost închisă",
     "loggedOutBody": "Te poți autentifica din nou oricând sau poți reveni în dashboard-ul public al aplicației.",
+    "visual": {
+      "kicker": "eGuilde Identity",
+      "title": "Acces securizat la servicii educaționale și administrative.",
+      "body": "Același limbaj vizual pentru login, consimțământ și logout, cu redirect OIDC, SMS OTP și controale pregătite pentru passkey și wallet."
+    },
+    "consent": {
+      "eyebrow": "Consimțământ OIDC",
+      "title": "Revizuiește permisiunile cerute înainte de a continua",
+      "subtitle": "Clientul de autentificare folosește același flux sigur ca restul aplicației. Alege ce date pot fi partajate pentru această sesiune.",
+      "clientBody": "solicită acces la datele tale verificate pentru a finaliza autentificarea.",
+      "loading": "Se încarcă cererea de consimțământ.",
+      "unavailable": "Cererea de consimțământ nu mai este disponibilă sau a expirat.",
+      "selectAll": "Selectează toate permisiunile",
+      "allow": "Acceptă și continuă",
+      "deny": "Refuză",
+      "gdpr": "Prin continuare îți exprimi acordul pentru procesarea datelor solicitate în conformitate cu politicile instituției și cu Regulamentul (UE) 2016/679.",
+      "messages": {
+        "selectScope": "Selectează cel puțin o permisiune pentru a continua.",
+        "saveFailed": "Decizia de consimțământ nu a putut fi salvată."
+      }
+    },
+    "logoutConfirm": {
+      "eyebrow": "Confirmare logout",
+      "title": "Vrei să închizi sesiunea curentă?",
+      "subtitle": "Deconectarea va revoca token-urile locale și va închide sesiunea web folosită de providerul OIDC.",
+      "body": "După deconectare va trebui să reiei autentificarea pentru a continua în modulele administrative sau educaționale.",
+      "cancel": "Rămâi autentificat",
+      "error": "Sesiunea nu a putut fi închisă complet. Încearcă din nou."
+    },
+    "accessDenied": {
+      "eyebrow": "Acces restricționat",
+      "title": "Nu ai permisiunea necesară pentru această zonă",
+      "subtitle": "Rolurile, pozițiile sau modulele active din sesiunea curentă nu permit accesul la resursa cerută.",
+      "supportHint": "Dacă accesul ar trebui să fie disponibil, verifică afilierea, poziția operațională și permisiunile atribuite din administrare."
+    },
     "methods": {
       "oidc_redirect": "OIDC redirect",
       "sms_otp": "Cod OTP prin SMS",
@@ -36,6 +90,23 @@
       "sms_otp": "Coduri de unică folosință trimise prin SMS pentru verificări și step-up authentication.",
       "passkey": "Autentificare modernă cu chei hardware sau biometrie, fără parolă.",
       "eudi_wallet": "Integrare pregătită pentru identitate digitală și atestate prezentate prin wallet."
+    },
+    "smsOtp": {
+      "title": "Autentificare prin SMS OTP",
+      "provider": "smsapi.ro",
+      "sentTo": "Cod trimis către {{ phone }}.",
+      "form": {
+        "identifier": "Email sau telefon",
+        "request": "Trimite cod SMS",
+        "code": "Cod OTP",
+        "verify": "Verifică SMS"
+      },
+      "messages": {
+        "sent": "SMS OTP trimis.",
+        "sendFailed": "SMS OTP nu a putut fi trimis.",
+        "verified": "Autentificare prin SMS reușită.",
+        "verifyFailed": "Cod SMS invalid sau expirat."
+      }
     }
   },
   "appearance": {
@@ -77,16 +148,32 @@
     "comingSoon": "Secțiunea este pregătită pentru implementarea completă a funcționalităților.",
     "quickLinks": {
       "title": "Acces rapid",
-      "users": "Gestionează utilizatorii"
+      "users": "Gestionează utilizatorii",
+      "roles": "Gestionează rolurile",
+      "orgUnits": "Gestionează organigrama",
+      "memberships": "Vezi afilierile",
+      "positions": "Vezi pozițiile",
+      "permissions": "Vezi permisiunile",
+      "dossierRequirements": "Configurează cerințele dosarelor",
+      "educationTaxonomies": "Configurează taxonomiile educaționale",
+      "workflowDefinitions": "Configurează definițiile de workflow",
+      "nomenclatures": "Configurează nomenclatoarele",
+      "gdprSettings": "Configurează setările GDPR",
+      "platformSettings": "Configurează autentificarea și modulele",
+      "identity": "Administrează identitatea OIDC",
+      "audit": "Vezi jurnalul de audit"
     },
     "stats": {
       "users": "Utilizatori",
       "positions": "Poziții",
       "workflows": "Fluxuri",
-      "permissions": "Permisiuni"
+      "permissions": "Permisiuni",
+      "readyDossiers": "Dosare pregătite",
+      "blockedDossiers": "Dosare blocate"
     },
     "sections": {
       "users": "Utilizatori",
+      "roles": "Roluri și atribuiri",
       "memberships": "Afilieri și membri",
       "orgUnits": "Organigramă și unități",
       "org_units": "Organigramă și unități",
@@ -94,13 +181,44 @@
       "permissions": "Permisiuni și politici",
       "workflows": "Definiții de workflow",
       "workflow_definitions": "Definiții de workflow",
+      "dossier_requirements": "Cerințe dosare și completitudine",
       "archives": "Nomenclatoare de arhivă",
       "archive_nomenclatures": "Nomenclatoare de arhivă",
       "registry_nomenclatures": "Nomenclatoare de registratură",
       "education_taxonomies": "Taxonomii educaționale",
       "gdpr": "GDPR, retenție și acces",
       "gdpr_policies": "GDPR, retenție și acces",
-      "auth_methods": "Metode de autentificare"
+      "gdpr_settings": "Setări operaționale GDPR",
+      "auth_methods": "Metode de autentificare",
+      "audit": "Jurnal de audit administrativ"
+    },
+    "audit": {
+      "title": "Jurnal de audit administrativ",
+      "subtitle": "Urmărește modificările sensibile din administrare, identitate și configurările operaționale prin același model server-side de tabel.",
+      "empty": "Nu există evenimente de audit pentru filtrele curente.",
+      "columns": {
+        "createdAt": "Creat la",
+        "actorSubject": "Actor",
+        "domain": "Domeniu",
+        "action": "Acțiune",
+        "targetType": "Tip țintă",
+        "targetId": "ID țintă",
+        "status": "Stare",
+        "summary": "Rezumat"
+      },
+      "domains": {
+        "admin": "Administrare",
+        "auth": "Identitate",
+        "registratura": "Registratură",
+        "workflow": "Fluxuri",
+        "earchiva": "eArhivă",
+        "education": "Educație",
+        "gdpr": "GDPR"
+      },
+      "status": {
+        "success": "Succes",
+        "failed": "Eșuat"
+      }
     },
     "users": {
       "eyebrow": "Administrare utilizatori",
@@ -108,6 +226,23 @@
       "subtitle": "Primul tabel server-side real al aplicației validează contractul comun pentru paginare, sortare și filtrare în antet.",
       "addAction": "Adaugă utilizator",
       "empty": "Nu există utilizatori care să corespundă filtrelor.",
+      "form": {
+        "title": "Adaugă sau actualizează utilizator",
+        "subtitle": "Configurează identitatea de bază, starea contului și verificările de contact pentru autentificare și administrare.",
+        "name": "Nume",
+        "email": "Email",
+        "phone": "Telefon",
+        "locale": "Limbă",
+        "status": "Stare",
+        "otpChannel": "Canal OTP",
+        "emailVerified": "Email verificat",
+        "phoneVerified": "Telefon verificat",
+        "reset": "Resetează formularul",
+        "submit": "Salvează utilizatorul"
+      },
+      "otpChannel": {
+        "sms": "SMS"
+      },
       "columns": {
         "name": "Nume",
         "email": "Email",
@@ -115,18 +250,1704 @@
         "status": "Stare",
         "locale": "Limbă",
         "lastLoginAt": "Ultima conectare"
+      },
+      "messages": {
+        "saved": "Utilizatorul a fost salvat cu succes.",
+        "saveFailed": "Utilizatorul nu a putut fi salvat."
+      }
+    },
+    "roles": {
+      "title": "Roluri administrative",
+      "subtitle": "Administrează catalogul de roluri și alocarea lor pe utilizatori pentru stratul de autorizare bazat pe identitate.",
+      "empty": "Nu există roluri pentru filtrele curente.",
+      "form": {
+        "title": "Adaugă sau actualizează rol",
+        "subtitle": "Definește codul și eticheta rolului utilizat în administrare și identitate.",
+        "code": "Cod rol",
+        "label": "Etichetă",
+        "reset": "Resetează formularul",
+        "submit": "Salvează rolul"
+      },
+      "columns": {
+        "code": "Cod",
+        "label": "Etichetă"
+      },
+      "assignments": {
+        "title": "Atribuiri de rol",
+        "subtitle": "Vezi utilizatorii și rolurile administrative asociate.",
+        "empty": "Nu există atribuiri de rol pentru filtrele curente.",
+        "formTitle": "Adaugă sau actualizează atribuire",
+        "formSubtitle": "Asociază sau retrage un rol administrativ pentru un utilizator.",
+        "userId": "Utilizator",
+        "roleCode": "Rol",
+        "assigned": "Atribuire activă",
+        "reset": "Resetează formularul",
+        "submit": "Salvează atribuirea",
+        "columns": {
+          "userName": "Utilizator",
+          "userEmail": "Email",
+          "roleCode": "Cod rol",
+          "roleLabel": "Etichetă rol"
+        }
+      },
+      "messages": {
+        "saved": "Rolul a fost salvat cu succes.",
+        "saveFailed": "Rolul nu a putut fi salvat.",
+        "assigned": "Atribuirea rolului a fost salvată.",
+        "removed": "Atribuirea rolului a fost retrasă.",
+        "assignmentFailed": "Atribuirea rolului nu a putut fi salvată."
+      }
+    },
+    "orgUnits": {
+      "title": "Organigramă și unități",
+      "subtitle": "Administrează structura organizațională a instituției, ierarhia unităților și ordinea lor operațională.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "list": {
+        "title": "Unități organizaționale",
+        "subtitle": "Tabel server-side pentru nume, părinte, stare și ordine în organigramă.",
+        "empty": "Nu există unități pentru filtrele curente."
+      },
+      "form": {
+        "title": "Adaugă sau actualizează o unitate",
+        "subtitle": "Definește codul intern, denumirea, unitatea părinte și ordinea de afișare în structură.",
+        "code": "Cod",
+        "name": "Denumire",
+        "parentCode": "Unitate părinte",
+        "noParent": "Fără părinte",
+        "sortOrder": "Ordine",
+        "active": "Activă",
+        "reset": "Resetează formularul",
+        "submit": "Salvează unitatea"
+      },
+      "columns": {
+        "name": "Denumire",
+        "code": "Cod",
+        "parentName": "Părinte",
+        "sortOrder": "Ordine",
+        "active": "Activă"
+      },
+      "messages": {
+        "saved": "Unitatea organizațională a fost salvată cu succes.",
+        "saveFailed": "Unitatea organizațională nu a putut fi salvată."
+      }
+    },
+    "memberships": {
+      "title": "Afilieri și încadrări",
+      "subtitle": "Vizualizează utilizatorii, pozițiile și organizațiile active din instituție prin aceeași infrastructură server-side.",
+      "empty": "Nu există afilieri care să corespundă filtrelor.",
+      "form": {
+        "title": "Adaugă sau actualizează afiliere",
+        "subtitle": "Leagă un utilizator de o poziție și de organizația în care își exercită atribuțiile.",
+        "userId": "ID utilizator",
+        "positionCode": "Cod poziție",
+        "orgUnit": "Unitate organizațională",
+        "organizationName": "Organizație",
+        "startDate": "Data început",
+        "endDate": "Data sfârșit",
+        "isPrimary": "Afiliere primară",
+        "active": "Activă",
+        "reset": "Resetează formularul",
+        "submit": "Salvează afilierea"
+      },
+      "columns": {
+        "userName": "Utilizator",
+        "userEmail": "Email",
+        "positionName": "Poziție",
+        "organizationName": "Organizație",
+        "startDate": "Data început",
+        "active": "Activă"
+      },
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "messages": {
+        "saved": "Afilierea a fost salvată cu succes.",
+        "saveFailed": "Afilierea nu a putut fi salvată."
+      }
+    },
+    "positions": {
+      "title": "Poziții operaționale",
+      "subtitle": "Administrează funcțiile operaționale și domeniile lor de aplicare pentru RBAC și fluxuri.",
+      "empty": "Nu există poziții care să corespundă filtrelor.",
+      "form": {
+        "title": "Adaugă sau actualizează poziție",
+        "subtitle": "Configurează codul operațional, modulul de aplicare și ordinea de afișare pentru pozițiile folosite de RBAC.",
+        "code": "Cod",
+        "name": "Nume",
+        "scopeModule": "Modul",
+        "sortOrder": "Ordine",
+        "active": "Activă",
+        "reset": "Resetează formularul",
+        "submit": "Salvează poziția"
+      },
+      "columns": {
+        "name": "Nume",
+        "code": "Cod",
+        "scopeModule": "Modul",
+        "sortOrder": "Ordine",
+        "active": "Activă"
+      },
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "messages": {
+        "saved": "Poziția a fost salvată cu succes.",
+        "saveFailed": "Poziția nu a putut fi salvată."
+      }
+    },
+    "permissions": {
+      "title": "Catalog de permisiuni",
+      "subtitle": "Vizualizează permisiunile aplicației și gradul lor de utilizare de către utilizatori și poziții.",
+      "empty": "Nu există permisiuni care să corespundă filtrelor.",
+      "form": {
+        "title": "Atribuie sau retrage permisiune",
+        "subtitle": "Leagă o permisiune de o poziție operațională pentru a controla accesul bazat pe afiliere și rol.",
+        "permissionCode": "Permisiune",
+        "positionCode": "Poziție",
+        "assigned": "Permisiunea rămâne atribuită",
+        "reset": "Resetează formularul",
+        "submit": "Aplică schimbarea"
+      },
+      "catalog": {
+        "title": "Catalog permisiuni",
+        "subtitle": "Selectează o permisiune pentru a filtra și administra rapid atribuirea ei pe poziții."
+      },
+      "assignments": {
+        "title": "Atribuiri pe poziții",
+        "subtitle": "Tabel server-side pentru legăturile dintre permisiuni și pozițiile care le moștenesc în runtime.",
+        "empty": "Nu există atribuiri pentru filtrele selectate.",
+        "columns": {
+          "permissionCode": "Cod permisiune",
+          "permissionLabel": "Etichetă",
+          "positionCode": "Cod poziție",
+          "positionName": "Poziție",
+          "scopeModule": "Modul"
+        }
+      },
+      "columns": {
+        "code": "Cod",
+        "label": "Etichetă",
+        "userCount": "Utilizatori",
+        "roleCount": "Poziții"
+      },
+      "messages": {
+        "saved": "Atribuirea permisiunii a fost salvată cu succes.",
+        "removed": "Atribuirea permisiunii a fost retrasă cu succes.",
+        "saveFailed": "Atribuirea permisiunii nu a putut fi salvată."
       }
     },
     "userStatus": {
       "active": "Activ",
       "pending": "În așteptare",
       "suspended": "Suspendat"
+    },
+    "dossierRequirements": {
+      "title": "Cerințe pentru completitudinea dosarelor",
+      "subtitle": "Configurează ce tipuri de documente sunt obligatorii pentru afișarea completitudinii și pentru tranzițiile critice din workflow.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "form": {
+        "title": "Adaugă sau actualizează o regulă",
+        "subtitle": "Fiecare regulă leagă un modul sursă de un tip de document obligatoriu și de pragul minim necesar.",
+        "sourceModule": "Modul sursă",
+        "relationType": "Tip document",
+        "minCount": "Număr minim",
+        "requiredForReadiness": "Se verifică pentru completitudinea dosarului",
+        "requiredForSubmit": "Blochează trimiterea la aprobare",
+        "requiredForApprove": "Blochează aprobarea finală",
+        "submit": "Salvează regula"
+      },
+      "list": {
+        "title": "Reguli active",
+        "subtitle": "Tabel server-side pentru module, tipuri de documente și acțiunile pe care le blochează.",
+        "empty": "Nu există reguli pentru filtrele selectate."
+      },
+      "columns": {
+        "sourceModule": "Modul sursă",
+        "relationType": "Tip document",
+        "minCount": "Minim",
+        "readiness": "Completitudine",
+        "submit": "La trimitere",
+        "approve": "La aprobare"
+      },
+      "messages": {
+        "saved": "Regula a fost salvată cu succes.",
+        "saveFailed": "Regula nu a putut fi salvată."
+      }
+    },
+    "educationTaxonomies": {
+      "title": "Taxonomii educaționale",
+      "subtitle": "Administrează nomenclatoarele active pentru anii școlari, organisme, stări și alte clasificări folosite în modulele educaționale.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "form": {
+        "title": "Adaugă sau actualizează o intrare",
+        "subtitle": "Configurează codul intern, etichetele în română și engleză, starea și ordinea de afișare.",
+        "domain": "Domeniu",
+        "code": "Cod",
+        "labelRo": "Etichetă română",
+        "labelEn": "Etichetă engleză",
+        "sortOrder": "Ordine",
+        "active": "Activă",
+        "submit": "Salvează intrarea"
+      },
+      "list": {
+        "title": "Intrări active",
+        "subtitle": "Tabel server-side pentru filtrarea și ordonarea taxonomiilor educaționale.",
+        "empty": "Nu există intrări pentru filtrele selectate."
+      },
+      "columns": {
+        "domain": "Domeniu",
+        "code": "Cod",
+        "labelRo": "Etichetă RO",
+        "labelEn": "Etichetă EN",
+        "sortOrder": "Ordine",
+        "active": "Activă"
+      },
+      "messages": {
+        "saved": "Intrarea taxonomiei a fost salvată cu succes.",
+        "saveFailed": "Intrarea taxonomiei nu a putut fi salvată."
+      }
+    },
+    "workflowDefinitions": {
+      "title": "Definiții de workflow",
+      "subtitle": "Administrează codurile, categoriile, pașii inițiali și SLA-urile pentru fluxurile operaționale.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "form": {
+        "title": "Adaugă sau actualizează o definiție",
+        "subtitle": "Configurează definiția folosită de runtime și de lansările din module.",
+        "code": "Cod",
+        "name": "Nume",
+        "category": "Categorie",
+        "initialStep": "Pas inițial",
+        "slaHours": "SLA (ore)",
+        "active": "Activă",
+        "submit": "Salvează definiția"
+      },
+      "list": {
+        "title": "Definiții active și istorice",
+        "subtitle": "Tabel server-side pentru cod, categorie, SLA și stare.",
+        "empty": "Nu există definiții pentru filtrele selectate."
+      },
+      "columns": {
+        "name": "Nume",
+        "code": "Cod",
+        "category": "Categorie",
+        "initialStep": "Pas inițial",
+        "slaHours": "SLA (ore)",
+        "active": "Activă"
+      },
+      "messages": {
+        "saved": "Definiția de workflow a fost salvată cu succes.",
+        "saveFailed": "Definiția de workflow nu a putut fi salvată."
+      }
+    },
+    "nomenclatures": {
+      "title": "Nomenclatoare registratură și arhivă",
+      "subtitle": "Administrează listele folosite de registratură și eArhivă pentru tipuri, stări, direcții, fonduri și serii.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "form": {
+        "title": "Adaugă sau actualizează o intrare",
+        "subtitle": "Configurează domeniul, codul intern, etichetele bilingve și ordinea de afișare.",
+        "domain": "Domeniu",
+        "code": "Cod",
+        "labelRo": "Etichetă română",
+        "labelEn": "Etichetă engleză",
+        "sortOrder": "Ordine",
+        "active": "Activă",
+        "submit": "Salvează intrarea"
+      },
+      "list": {
+        "title": "Intrări active și istorice",
+        "subtitle": "Tabel server-side pentru filtrarea și ordonarea nomenclatoarelor aplicației.",
+        "empty": "Nu există intrări pentru filtrele selectate."
+      },
+      "columns": {
+        "domain": "Domeniu",
+        "code": "Cod",
+        "labelRo": "Etichetă RO",
+        "labelEn": "Etichetă EN",
+        "sortOrder": "Ordine",
+        "active": "Activă"
+      },
+      "messages": {
+        "saved": "Intrarea de nomenclator a fost salvată cu succes.",
+        "saveFailed": "Intrarea de nomenclator nu a putut fi salvată."
+      }
+    },
+    "platform": {
+      "title": "Setări platformă",
+      "subtitle": "Administrează metodele de autentificare, modulele active și parametrii de runtime expuși aplicației.",
+      "auth": {
+        "title": "Metode de autentificare",
+        "subtitle": "Controlează ordinea, metoda primară și activarea logică a canalelor de autentificare.",
+        "form": {
+          "code": "Metodă",
+          "sortOrder": "Ordine",
+          "enabled": "Activată",
+          "primary": "Metodă principală",
+          "submit": "Salvează metoda"
+        }
+      },
+      "modules": {
+        "title": "Module active",
+        "subtitle": "Activează sau dezactivează module la nivel de platformă fără a modifica rutele manual.",
+        "form": {
+          "code": "Modul",
+          "active": "Activ",
+          "submit": "Salvează modulul"
+        }
+      },
+      "runtime": {
+        "title": "Parametri de runtime",
+        "subtitle": "Vizualizare rapidă a setărilor active pentru issuer, clienți și tema aplicației."
+      },
+      "messages": {
+        "methodSaved": "Metoda de autentificare a fost salvată cu succes.",
+        "methodSaveFailed": "Metoda de autentificare nu a putut fi salvată.",
+        "moduleSaved": "Modulul a fost salvat cu succes.",
+        "moduleSaveFailed": "Modulul nu a putut fi salvat."
+      }
+    },
+    "identity": {
+      "title": "Identitate OIDC, consimțăminte și sesiuni",
+      "subtitle": "Administrează clienții providerului, consimțămintele acordate și sesiunile bazate pe refresh token din aceeași zonă operațională.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "clients": {
+        "title": "Clienți OIDC",
+        "subtitle": "Configurează clienții publici, PKCE și redirect-urile permise pentru frontenduri și aplicații conectate.",
+        "empty": "Nu există clienți OIDC pentru filtrele curente.",
+        "columns": {
+          "clientId": "Client ID",
+          "clientName": "Nume client",
+          "redirectUris": "Redirect-uri",
+          "active": "Activ",
+          "createdAt": "Creat la"
+        },
+        "form": {
+          "clientId": "Client ID",
+          "clientName": "Nume client",
+          "redirectUris": "Redirect URI-uri",
+          "publicClient": "Client public",
+          "requirePkce": "PKCE obligatoriu",
+          "active": "Activ",
+          "reset": "Resetează formularul",
+          "submit": "Salvează clientul"
+        }
+      },
+      "consents": {
+        "title": "Consimțăminte acordate",
+        "subtitle": "Vizualizează și revocă acordurile deja salvate între utilizatori și clienți OIDC.",
+        "empty": "Nu există consimțăminte pentru filtrele curente.",
+        "revoke": "Revocă consimțământul",
+        "columns": {
+          "clientId": "Client ID",
+          "subject": "Utilizator",
+          "scope": "Scope",
+          "grantedAt": "Acordat la"
+        }
+      },
+      "sessions": {
+        "title": "Sesiuni și refresh token-uri",
+        "subtitle": "Monitorizează token-urile active și revocate și închide sesiunile persistente atunci când este necesar.",
+        "empty": "Nu există sesiuni OIDC pentru filtrele curente.",
+        "revoke": "Revocă sesiunea",
+        "columns": {
+          "clientId": "Client ID",
+          "subject": "Utilizator",
+          "scope": "Scope",
+          "expiresAt": "Expiră la",
+          "revoked": "Revocată"
+        }
+      },
+      "messages": {
+        "clientSaved": "Clientul OIDC a fost salvat cu succes.",
+        "clientSaveFailed": "Clientul OIDC nu a putut fi salvat.",
+        "consentRevoked": "Consimțământul OIDC a fost revocat.",
+        "consentRevokeFailed": "Consimțământul OIDC nu a putut fi revocat.",
+        "sessionRevoked": "Sesiunea OIDC a fost revocată.",
+        "sessionRevokeFailed": "Sesiunea OIDC nu a putut fi revocată."
+      }
+    },
+    "gdprSettings": {
+      "title": "Setări operaționale GDPR",
+      "subtitle": "Administrează regulile implicite pentru anonimizare, export, SLA și retenție fără a modifica manual codul aplicației.",
+      "boolean": {
+        "yes": "Da",
+        "no": "Nu"
+      },
+      "valueType": {
+        "bool": "Boolean",
+        "int": "Număr",
+        "text": "Text"
+      },
+      "codes": {
+        "publication_anonymization_required": "Anonimizare obligatorie la publicare",
+        "subject_export_requires_approval": "Exportul persoanei vizate necesită aprobare",
+        "default_response_sla_days": "SLA implicit pentru răspuns (zile)",
+        "retention_review_notice_days": "Notificare înainte de revizuirea retenției (zile)",
+        "portfolio_consent_required": "Consimțământ obligatoriu pentru portofolii",
+        "portfolio_authenticity_required": "Declarație de autenticitate obligatorie"
+      },
+      "form": {
+        "title": "Actualizează o setare",
+        "subtitle": "Selectează regula operațională și modifică valoarea persistată în platformă.",
+        "code": "Setare",
+        "valueType": "Tip valoare",
+        "valueBool": "Valoare activă",
+        "valueInt": "Valoare numerică",
+        "valueText": "Valoare text",
+        "submit": "Salvează setarea"
+      },
+      "list": {
+        "title": "Setări active",
+        "subtitle": "Lista reflectă valorile care controlează comportamentul implicit al modulelor GDPR."
+      },
+      "messages": {
+        "saved": "Setarea GDPR a fost salvată cu succes.",
+        "saveFailed": "Setarea GDPR nu a putut fi salvată."
+      }
+    }
+  },
+  "registratura": {
+    "title": "Registratură și evidența documentelor",
+    "subtitle": "Gestionează documente de intrare, ieșire și interne cu filtrare server-side, numerotare și termene de soluționare.",
+    "stats": {
+      "totalDocuments": "Documente în registratură",
+      "documentTypes": "Tipuri de document",
+      "versions": "Versiuni",
+      "attachments": "Atașamente"
+    },
+    "create": {
+      "title": "Înregistrează un document nou",
+      "subtitle": "Creează un document cu număr de registratură generat și metadate inițiale de rutare.",
+      "submit": "Înregistrează documentul"
+    },
+    "list": {
+      "title": "Documente",
+      "subtitle": "Antetele sticky, paginarea server-side, sortarea și filtrele pe coloane sunt active aici.",
+      "empty": "Nu există documente pentru filtrele selectate."
+    },
+    "details": {
+      "title": "Document selectat",
+      "subtitle": "Selectează un document din tabel pentru a vedea starea curentă, istoricul și atașamentele.",
+      "empty": "Selectează un document pentru a vedea detaliile operaționale."
+    },
+    "versions": {
+      "title": "Istoric versiuni",
+      "subtitle": "Înregistrează o nouă versiune operațională când se schimbă starea, responsabilul sau rezumatul documentului.",
+      "submit": "Salvează versiunea",
+      "empty": "Nu există versiuni pentru documentul selectat.",
+      "emptySelection": "Selectează mai întâi un document pentru a administra istoricul versiunilor.",
+      "versionLabel": "Versiunea {{ version }}",
+      "form": {
+        "changeNotes": "Notă modificare"
+      }
+    },
+    "attachments": {
+      "title": "Atașamente și payload",
+      "subtitle": "Gestionează metadatele atașamentelor, cheia de stocare și starea fiecărui fișier asociat documentului.",
+      "submit": "Adaugă atașamentul",
+      "empty": "Nu există atașamente pentru documentul selectat.",
+      "emptySelection": "Selectează mai întâi un document pentru a administra atașamentele.",
+      "form": {
+        "title": "Titlu atașament",
+        "fileName": "Nume fișier",
+        "mimeType": "Tip MIME",
+        "storageKey": "Cheie stocare",
+        "sizeBytes": "Dimensiune (bytes)",
+        "category": "Categorie",
+        "status": "Stare",
+        "uploadedBy": "Încărcat de"
+      },
+      "category": {
+        "incoming_scan": "Scanare document intrare",
+        "supporting": "Document suport",
+        "signed_decision": "Document semnat",
+        "archive_copy": "Copie pentru arhivă",
+        "export_package": "Pachet de export"
+      },
+      "status": {
+        "active": "Activ",
+        "superseded": "Înlocuit",
+        "archived": "Arhivat"
+      }
+    },
+    "form": {
+      "subject": "Obiect",
+      "documentType": "Tip document",
+      "direction": "Sens",
+      "status": "Stare",
+      "correspondent": "Corespondent",
+      "assignedTo": "Asignat către",
+      "confidentiality": "Confidențialitate",
+      "dueDate": "Termen",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "registryNumber": "Nr. registratură",
+      "subject": "Obiect",
+      "documentType": "Tip",
+      "direction": "Sens",
+      "status": "Stare",
+      "correspondent": "Corespondent",
+      "registeredAt": "Înregistrat la",
+      "dueDate": "Termen"
+    },
+    "direction": {
+      "intrare": "Intrare",
+      "iesire": "Ieșire",
+      "intern": "Intern"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "registered": "Înregistrat",
+      "in_workflow": "În workflow",
+      "archived": "Arhivat"
+    },
+    "confidentiality": {
+      "normal": "Normal",
+      "internal": "Intern",
+      "confidential": "Confidențial"
+    },
+    "messages": {
+      "created": "Documentul a fost înregistrat cu succes.",
+      "createFailed": "Documentul nu a putut fi înregistrat.",
+      "versionCreated": "Versiunea documentului a fost salvată.",
+      "versionCreateFailed": "Versiunea documentului nu a putut fi salvată.",
+      "attachmentCreated": "Atașamentul a fost înregistrat.",
+      "attachmentCreateFailed": "Atașamentul nu a putut fi înregistrat."
+    }
+  },
+  "workflow": {
+    "title": "Inbox operațional și runtime pentru fluxuri",
+    "subtitle": "Pornește fluxuri, urmărește task-urile active, filtrează server-side și execută tranziții autorizate din același modul.",
+    "stats": {
+      "activeTasks": "Task-uri active",
+      "overdueTasks": "Task-uri depășite",
+      "waitingApproval": "În așteptare aprobare",
+      "activeDefinitions": "Definiții active",
+      "readyDossiers": "Dosare complete",
+      "blockedDossiers": "Dosare incomplete"
+    },
+    "create": {
+      "title": "Pornește un flux nou",
+      "subtitle": "Creează o instanță de workflow pe baza definițiilor active și setează responsabilii inițiali.",
+      "submit": "Pornește fluxul"
+    },
+    "list": {
+      "title": "Inbox de task-uri",
+      "subtitle": "Lista folosește filtrare, sortare și paginare server-side, cu selectarea task-ului pentru tranziții rapide.",
+      "empty": "Nu există task-uri pentru filtrele curente."
+    },
+    "details": {
+      "title": "Detalii și acțiuni",
+      "subtitle": "Selectează un task din tabel pentru a vedea starea curentă și acțiunile disponibile.",
+      "empty": "Selectează un task pentru a vedea pașii și acțiunile disponibile."
+    },
+    "form": {
+      "definition": "Definiție",
+      "title": "Titlu flux",
+      "documentNumber": "Nr. document",
+      "priority": "Prioritate",
+      "assignedTo": "Asignat către",
+      "dueDate": "Termen",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "title": "Task",
+      "definition": "Definiție",
+      "sourceModule": "Modul sursă",
+      "dossierReady": "Dosar complet",
+      "linkedDocuments": "Documente legate",
+      "status": "Stare",
+      "priority": "Prioritate",
+      "assignedTo": "Asignat către",
+      "currentStep": "Pas curent",
+      "documentNumber": "Nr. document",
+      "dueAt": "Termen",
+      "startedAt": "Pornit la"
+    },
+    "status": {
+      "new": "Nou",
+      "in_progress": "În lucru",
+      "waiting_approval": "Așteaptă aprobare",
+      "approved": "Aprobat",
+      "archived": "Arhivat"
+    },
+    "priority": {
+      "low": "Scăzută",
+      "medium": "Medie",
+      "high": "Ridicată",
+      "urgent": "Urgentă"
+    },
+    "actions": {
+      "start": "Începe lucrul",
+      "submit": "Trimite la aprobare",
+      "approve": "Aprobă",
+      "return": "Returnează pentru completări",
+      "archive": "Arhivează"
+    },
+    "sourceModule": {
+      "registratura": "Registratură",
+      "education": "Educație",
+      "education.governance": "Guvernanță școlară",
+      "education.personnel": "Personal școlar",
+      "education.mobility": "Mobilitate personal",
+      "education.gradatii": "Gradații de merit",
+      "education.portfolios": "Portofolii CD",
+      "gdpr": "GDPR",
+      "gdpr.subject_requests": "Solicitări GDPR",
+      "earchiva": "eArhivă"
+    },
+    "dossierReady": {
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "messages": {
+      "created": "Fluxul a fost pornit cu succes.",
+      "createFailed": "Fluxul nu a putut fi pornit.",
+      "transitioned": "Task-ul a fost actualizat.",
+      "transitionFailed": "Tranziția nu a putut fi aplicată.",
+      "dossierIncomplete": "Dosarul este incomplet pentru această tranziție."
+    }
+  },
+  "earchiva": {
+    "title": "eArhivă și evidența transferurilor",
+    "subtitle": "Administrează fonduri, serii, termene de păstrare și loturi arhivate cu același contract server-side pentru listare și filtrare.",
+    "stats": {
+      "totalRecords": "Înregistrări de arhivă",
+      "validatedRecords": "Validate",
+      "draftRecords": "Ciorne",
+      "uniqueFonds": "Fonduri distincte"
+    },
+    "create": {
+      "title": "Înregistrează un lot de arhivă",
+      "subtitle": "Creează o înregistrare de arhivă cu fond, serie, retenție și localizare fizică sau logică.",
+      "submit": "Înregistrează în arhivă"
+    },
+    "list": {
+      "title": "Registrul de arhivă",
+      "subtitle": "Lista folosește paginare, sortare și filtre sticky în antet pentru fonduri, serii și stări.",
+      "empty": "Nu există înregistrări de arhivă pentru filtrele selectate."
+    },
+    "form": {
+      "title": "Titlu lot",
+      "fond": "Fond",
+      "series": "Serie",
+      "sourceModule": "Modul sursă",
+      "sourceReference": "Referință sursă",
+      "status": "Stare",
+      "retentionYears": "Ani retenție",
+      "assignedArchivist": "Arhivar responsabil",
+      "boxNumber": "Cutie / box",
+      "locationCode": "Cod localizare",
+      "archivedAt": "Data arhivării",
+      "notes": "Observații"
+    },
+    "columns": {
+      "recordNumber": "Nr. arhivă",
+      "title": "Titlu",
+      "fond": "Fond",
+      "series": "Serie",
+      "sourceModule": "Modul sursă",
+      "status": "Stare",
+      "retentionYears": "Retenție",
+      "archivedAt": "Arhivat la"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "validated": "Validat",
+      "archived": "Arhivat"
+    },
+    "sourceModule": {
+      "registratura": "Registratură",
+      "education": "Educație",
+      "gdpr": "GDPR",
+      "earchiva": "eArhivă"
+    },
+    "messages": {
+      "created": "Înregistrarea de arhivă a fost creată cu succes.",
+      "createFailed": "Înregistrarea de arhivă nu a putut fi creată."
+    }
+  },
+  "education": {
+    "title": "Guvernanță școlară și ședințe de organism",
+    "subtitle": "Gestionează ședințe CA, CP, CEAC și CFDCD cu filtrare server-side, cvorum și stări publicabile.",
+    "stats": {
+      "totalMeetings": "Ședințe",
+      "scheduledMeetings": "Programate",
+      "heldMeetings": "Desfășurate",
+      "publishedMeetings": "Publicate"
+    },
+    "create": {
+      "title": "Planifică o ședință",
+      "subtitle": "Înregistrează o ședință de organism cu an școlar, tip, cvorum și date de coordonare.",
+      "submit": "Salvează ședința"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează o ședință pentru a porni fluxul de revizuire și publicare.",
+      "empty": "Selectează o ședință pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Ședințe de guvernanță",
+      "subtitle": "Tabelul listează ședințele organismelor școlare cu filtre pe an, organism, tip și stare.",
+      "empty": "Nu există ședințe pentru filtrele curente."
+    },
+    "form": {
+      "schoolYear": "An școlar",
+      "organism": "Organism",
+      "title": "Titlu ședință",
+      "meetingType": "Tip ședință",
+      "status": "Stare",
+      "quorumRequired": "Cvorum necesar",
+      "participantsCount": "Participanți prezenți",
+      "meetingDate": "Data ședinței",
+      "location": "Locație",
+      "chairperson": "Președinte",
+      "secretaryName": "Secretar",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "title": "Ședință",
+      "schoolYear": "An școlar",
+      "organism": "Organism",
+      "meetingType": "Tip",
+      "status": "Stare",
+      "participants": "Participanți / cvorum",
+      "meetingDate": "Data"
+    },
+    "organism": {
+      "ca": "Consiliu de administrație",
+      "cp": "Consiliu profesoral",
+      "ceac": "CEAC",
+      "cfdcd": "CFDCD"
+    },
+    "meetingType": {
+      "ordinary": "Ordinară",
+      "extraordinary": "Extraordinară"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "scheduled": "Programată",
+      "held": "Desfășurată",
+      "published": "Publicată"
+    },
+    "workflow": {
+      "start": "Pornește workflow de ședință",
+      "defaultTitle": "Revizuire ședință - {{ title }}"
+    },
+    "messages": {
+      "created": "Ședința a fost înregistrată cu succes.",
+      "createFailed": "Ședința nu a putut fi înregistrată.",
+      "workflowStarted": "Workflow-ul pentru ședință a fost pornit.",
+      "workflowStartFailed": "Workflow-ul pentru ședință nu a putut fi pornit."
+    }
+  },
+  "educationDecisions": {
+    "title": "Decizii CA și CP",
+    "subtitle": "Gestionează deciziile organismelor de conducere cu stare juridică, publicare și circuit de aprobare.",
+    "stats": {
+      "totalDecisions": "Decizii",
+      "approvedDecisions": "Aprobate",
+      "publishedDecisions": "Publicate",
+      "pendingPublication": "În publicare"
+    },
+    "create": {
+      "title": "Adaugă o decizie",
+      "subtitle": "Înregistrează decizia, baza legală, starea de publicare și responsabilul de semnare.",
+      "submit": "Salvează decizia"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează o decizie pentru a porni fluxul de verificare, anonimizare și publicare.",
+      "empty": "Selectează o decizie pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul deciziilor",
+      "subtitle": "Tabel server-side pentru organism, stare, publicare și data deciziei.",
+      "empty": "Nu există decizii pentru filtrele curente."
+    },
+    "form": {
+      "schoolYear": "An școlar",
+      "organism": "Organism",
+      "title": "Titlu decizie",
+      "status": "Stare",
+      "publicationStatus": "Stare publicare",
+      "decisionDate": "Data deciziei",
+      "legalBasis": "Bază legală",
+      "signedBy": "Semnat de",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "decisionCode": "Cod decizie",
+      "title": "Titlu",
+      "organism": "Organism",
+      "status": "Stare",
+      "publicationStatus": "Publicare",
+      "decisionDate": "Data deciziei"
+    },
+    "workflow": {
+      "start": "Pornește workflow de decizie",
+      "defaultTitle": "Decizie de guvernanță - {{ title }}"
+    },
+    "messages": {
+      "created": "Decizia a fost creată cu succes.",
+      "createFailed": "Decizia nu a putut fi creată.",
+      "workflowStarted": "Workflow-ul deciziei a fost pornit.",
+      "workflowStartFailed": "Workflow-ul deciziei nu a putut fi pornit."
+    }
+  },
+  "educationManagerial": {
+    "title": "Dosare manageriale",
+    "subtitle": "Gestionează PDI/PAS, planuri manageriale, RAEI, organigrame și alte dosare operaționale ale unității.",
+    "stats": {
+      "totalDossiers": "Dosare",
+      "reviewDossiers": "În avizare",
+      "publishedDossiers": "Publicate",
+      "overdueDossiers": "Depășite"
+    },
+    "create": {
+      "title": "Adaugă un dosar managerial",
+      "subtitle": "Înregistrează tipul de dosar, responsabilul, termenul și nevoia de publicare.",
+      "submit": "Salvează dosarul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un dosar pentru a porni fluxul de avizare și publicare.",
+      "empty": "Selectează un dosar pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul dosarelor manageriale",
+      "subtitle": "Tabel server-side pentru tip, stare, termen și obligativitate de publicare.",
+      "empty": "Nu există dosare manageriale pentru filtrele curente."
+    },
+    "form": {
+      "schoolYear": "An școlar",
+      "dossierType": "Tip dosar",
+      "title": "Titlu",
+      "status": "Stare",
+      "ownerName": "Responsabil",
+      "dueOn": "Termen",
+      "publicationRequired": "Necesită publicare",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "dossierCode": "Cod dosar",
+      "title": "Titlu",
+      "dossierType": "Tip dosar",
+      "status": "Stare",
+      "schoolYear": "An școlar",
+      "dueOn": "Termen"
+    },
+    "workflow": {
+      "start": "Pornește workflow managerial",
+      "defaultTitle": "Dosar managerial - {{ title }}"
+    },
+    "messages": {
+      "created": "Dosarul managerial a fost creat cu succes.",
+      "createFailed": "Dosarul managerial nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul managerial a fost pornit.",
+      "workflowStartFailed": "Workflow-ul managerial nu a putut fi pornit."
+    }
+  },
+  "educationRegulations": {
+    "title": "ROF / ROI și proceduri interne",
+    "subtitle": "Gestionează regulamentele de organizare și funcționare, regulamentele interne și circuitul de consultare, avizare, aprobare și publicare.",
+    "stats": {
+      "totalRegulations": "Regulamente",
+      "consultationItems": "În consultare",
+      "approvedRegulations": "Aprobate",
+      "publishedRegulations": "Publicate"
+    },
+    "create": {
+      "title": "Adaugă un regulament",
+      "subtitle": "Înregistrează tipul regulamentului, starea aprobării, responsabilul și termenul de revizuire.",
+      "submit": "Salvează regulamentul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un regulament pentru a porni fluxul de consultare și aprobare.",
+      "empty": "Selectează un regulament pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul regulamentelor",
+      "subtitle": "Listare server-side pentru tip, stare, etapă de aprobare și termenul de revizuire.",
+      "empty": "Nu există regulamente pentru filtrele curente."
+    },
+    "form": {
+      "schoolYear": "An școlar",
+      "regulationType": "Tip regulament",
+      "title": "Titlu",
+      "status": "Stare",
+      "approvalStatus": "Etapă aprobare",
+      "ownerName": "Responsabil",
+      "reviewDueOn": "Revizuire până la",
+      "approvedOn": "Aprobat la",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "regulationCode": "Cod regulament",
+      "title": "Titlu",
+      "regulationType": "Tip",
+      "status": "Stare",
+      "approvalStatus": "Aprobare",
+      "reviewDueOn": "Revizuire"
+    },
+    "workflow": {
+      "start": "Pornește workflow de regulament",
+      "defaultTitle": "Regulament educațional - {{ title }}"
+    },
+    "messages": {
+      "created": "Regulamentul a fost creat cu succes.",
+      "createFailed": "Regulamentul nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul regulamentului a fost pornit.",
+      "workflowStartFailed": "Workflow-ul regulamentului nu a putut fi pornit."
+    }
+  },
+  "educationPersonnel": {
+    "title": "Personal școlar și evaluare",
+    "subtitle": "Gestionează cadrele, starea evaluării, mobilitatea și portofoliile profesionale în același modul operațional.",
+    "stats": {
+      "totalRecords": "Cadre în evidență",
+      "activeRecords": "Active",
+      "portfoliosEnabled": "Cu portofoliu",
+      "mobilityCases": "Cazuri mobilitate"
+    },
+    "create": {
+      "title": "Adaugă un cadru",
+      "subtitle": "Înregistrează un cadru didactic sau personal auxiliar cu statut, evaluare și mobilitate.",
+      "submit": "Salvează cadrul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un cadru pentru a porni evaluarea sau fluxul de mobilitate.",
+      "empty": "Selectează un cadru pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Evidența personalului",
+      "subtitle": "Tabelul folosește listare server-side pentru tipul de încadrare, stare, evaluare și mobilitate.",
+      "empty": "Nu există înregistrări de personal pentru filtrele curente."
+    },
+    "form": {
+      "fullName": "Nume complet",
+      "roleTitle": "Funcție / disciplină",
+      "employmentType": "Tip încadrare",
+      "status": "Stare",
+      "evaluationStatus": "Stare evaluare",
+      "mobilityStage": "Etapă mobilitate",
+      "schoolYear": "An școlar",
+      "assignedUnit": "Structură / compartiment",
+      "phone": "Telefon",
+      "email": "Email",
+      "hasPortfolio": "Are portofoliu profesional",
+      "notes": "Observații"
+    },
+    "columns": {
+      "fullName": "Cadru",
+      "employeeCode": "Cod",
+      "employmentType": "Încadrare",
+      "status": "Stare",
+      "evaluationStatus": "Evaluare",
+      "mobilityStage": "Mobilitate",
+      "schoolYear": "An școlar",
+      "portfolio": "Portofoliu"
+    },
+    "employmentType": {
+      "titular": "Titular",
+      "suplinitor": "Suplinitor",
+      "plata_cu_ora": "Plata cu ora",
+      "auxiliar": "Auxiliar"
+    },
+    "status": {
+      "active": "Activ",
+      "on_leave": "În concediu",
+      "vacant": "Vacant",
+      "inactive": "Inactiv"
+    },
+    "evaluationStatus": {
+      "draft": "Ciornă",
+      "in_review": "În evaluare",
+      "finalized": "Finalizată"
+    },
+    "mobilityStage": {
+      "none": "Fără mobilitate",
+      "transfer": "Transfer",
+      "detasare": "Detașare",
+      "restrangere": "Restrângere"
+    },
+    "portfolio": {
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "workflow": {
+      "startEvaluation": "Pornește workflow de evaluare",
+      "startMobility": "Pornește workflow de mobilitate",
+      "evaluationTitle": "Evaluare personal - {{ name }}",
+      "mobilityTitle": "Mobilitate personal - {{ name }}"
+    },
+    "messages": {
+      "created": "Înregistrarea de personal a fost creată cu succes.",
+      "createFailed": "Înregistrarea de personal nu a putut fi creată.",
+      "evaluationWorkflowStarted": "Workflow-ul de evaluare a fost pornit.",
+      "mobilityWorkflowStarted": "Workflow-ul de mobilitate a fost pornit.",
+      "workflowStartFailed": "Workflow-ul nu a putut fi pornit."
+    }
+  },
+  "educationEvaluations": {
+    "title": "Evaluări anuale ale personalului",
+    "subtitle": "Gestionează dosarele de evaluare, punctajele, evaluatorii și starea de aprobare prin listare și workflow server-side.",
+    "stats": {
+      "totalEvaluations": "Evaluări",
+      "submittedEvaluations": "Depuse",
+      "approvedEvaluations": "Aprobate",
+      "contestedEvaluations": "Contestate"
+    },
+    "create": {
+      "title": "Adaugă o evaluare",
+      "subtitle": "Înregistrează dosarul de evaluare pentru un cadru, cu punctaj și evaluator.",
+      "submit": "Salvează evaluarea"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează o evaluare pentru a porni fluxul de analiză și aprobare.",
+      "empty": "Selectează o evaluare pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul evaluărilor",
+      "subtitle": "Tabel server-side pentru cod, cadru, stare, punctaj și an școlar.",
+      "empty": "Nu există evaluări pentru filtrele curente."
+    },
+    "form": {
+      "employeeCode": "Cod angajat",
+      "fullName": "Nume complet",
+      "roleTitle": "Funcție / disciplină",
+      "schoolYear": "An școlar",
+      "status": "Stare",
+      "score": "Punctaj",
+      "evaluatorName": "Evaluator",
+      "finalizedOn": "Finalizat la",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "fullName": "Cadru",
+      "evaluationCode": "Cod evaluare",
+      "employeeCode": "Cod angajat",
+      "status": "Stare",
+      "score": "Punctaj",
+      "schoolYear": "An școlar"
+    },
+    "workflow": {
+      "start": "Pornește workflow de evaluare",
+      "defaultTitle": "Evaluare anuală - {{ name }}"
+    },
+    "messages": {
+      "created": "Evaluarea a fost creată cu succes.",
+      "createFailed": "Evaluarea nu a putut fi creată.",
+      "workflowStarted": "Workflow-ul evaluării a fost pornit.",
+      "workflowStartFailed": "Workflow-ul evaluării nu a putut fi pornit."
+    }
+  },
+  "educationDeclarations": {
+    "title": "Declarații și asumări",
+    "subtitle": "Gestionează declarații de interese, autenticitate, GDPR și alte asumări asociate personalului și portofoliilor.",
+    "stats": {
+      "totalDeclarations": "Declarații",
+      "submittedDeclarations": "Depuse",
+      "validatedDeclarations": "Validate",
+      "expiredDeclarations": "Expirate"
+    },
+    "create": {
+      "title": "Adaugă o declarație",
+      "subtitle": "Înregistrează o declarație cu tip, stare, termen și rezumat operațional.",
+      "submit": "Salvează declarația"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează o declarație pentru a porni fluxul de validare și arhivare.",
+      "empty": "Selectează o declarație pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul declarațiilor",
+      "subtitle": "Listare server-side pentru tip, stare, depunere și termen de valabilitate.",
+      "empty": "Nu există declarații pentru filtrele curente."
+    },
+    "form": {
+      "employeeCode": "Cod angajat",
+      "fullName": "Nume complet",
+      "declarationType": "Tip declarație",
+      "status": "Stare",
+      "schoolYear": "An școlar",
+      "submittedOn": "Depusă la",
+      "validUntil": "Valabilă până la",
+      "summary": "Rezumat"
+    },
+    "columns": {
+      "fullName": "Cadru",
+      "declarationCode": "Cod declarație",
+      "declarationType": "Tip declarație",
+      "status": "Stare",
+      "schoolYear": "An școlar",
+      "submittedOn": "Depusă la"
+    },
+    "workflow": {
+      "start": "Pornește workflow de declarație",
+      "defaultTitle": "Declarație personal - {{ name }}"
+    },
+    "messages": {
+      "created": "Declarația a fost creată cu succes.",
+      "createFailed": "Declarația nu a putut fi creată.",
+      "workflowStarted": "Workflow-ul declarației a fost pornit.",
+      "workflowStartFailed": "Workflow-ul declarației nu a putut fi pornit."
+    }
+  },
+  "educationMobility": {
+    "title": "Mobilitatea personalului școlar",
+    "subtitle": "Gestionează transferuri, detașări, pretransferuri și restrângeri cu evidență server-side și trimitere în workflow.",
+    "stats": {
+      "totalCases": "Cazuri",
+      "openCases": "Deschise",
+      "approvedCases": "Aprobate",
+      "transferCases": "Transferuri"
+    },
+    "create": {
+      "title": "Adaugă un caz de mobilitate",
+      "subtitle": "Înregistrează dosarul de mobilitate cu etapă, stare, unități implicate și responsabil de verificare.",
+      "submit": "Salvează cazul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un caz pentru a porni fluxul de verificare și aprobare.",
+      "empty": "Selectează un caz pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul cazurilor de mobilitate",
+      "subtitle": "Lista folosește filtre server-side pentru tip, etapă, stare și data depunerii.",
+      "empty": "Nu există cazuri de mobilitate pentru filtrele curente."
+    },
+    "form": {
+      "employeeCode": "Cod angajat",
+      "fullName": "Nume complet",
+      "schoolYear": "An școlar",
+      "requestType": "Tip solicitare",
+      "stage": "Etapă",
+      "status": "Stare",
+      "sourceSchool": "Unitate sursă",
+      "destinationSchool": "Unitate destinație",
+      "submittedOn": "Data depunerii",
+      "reviewedBy": "Verificat de",
+      "notes": "Observații"
+    },
+    "columns": {
+      "fullName": "Cadru",
+      "caseCode": "Cod caz",
+      "requestType": "Solicitare",
+      "stage": "Etapă",
+      "status": "Stare",
+      "schoolYear": "An școlar",
+      "submittedOn": "Depus la"
+    },
+    "requestType": {
+      "transfer": "Transfer",
+      "detasare": "Detașare",
+      "pretransfer": "Pretransfer",
+      "restrangere": "Restrângere"
+    },
+    "stage": {
+      "draft": "Ciornă",
+      "submitted": "Depus",
+      "review": "În verificare",
+      "approved": "Aprobat",
+      "completed": "Finalizat"
+    },
+    "status": {
+      "open": "Deschis",
+      "pending": "În așteptare",
+      "approved": "Aprobat",
+      "rejected": "Respins",
+      "completed": "Finalizat"
+    },
+    "workflow": {
+      "start": "Pornește workflow de mobilitate",
+      "defaultTitle": "Mobilitate școlară - {{ name }}"
+    },
+    "messages": {
+      "created": "Cazul de mobilitate a fost creat cu succes.",
+      "createFailed": "Cazul de mobilitate nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul de mobilitate a fost pornit.",
+      "workflowStartFailed": "Workflow-ul de mobilitate nu a putut fi pornit."
+    }
+  },
+  "educationGradatii": {
+    "title": "Gradații de merit",
+    "subtitle": "Gestionează dosarele, punctajele, aprobările și finanțarea pentru gradațiile de merit.",
+    "stats": {
+      "totalRecords": "Dosare",
+      "approvedRecords": "Aprobate",
+      "fundedRecords": "Finanțate",
+      "averageScore": "Punctaj mediu"
+    },
+    "create": {
+      "title": "Adaugă un dosar",
+      "subtitle": "Înregistrează un dosar de gradație cu categorie, punctaj, comisie și decizie.",
+      "submit": "Salvează dosarul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un dosar pentru a porni fluxul de evaluare și aprobare.",
+      "empty": "Selectează un dosar pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul gradațiilor",
+      "subtitle": "Tabelul listează dosarele cu filtre server-side pentru categorie, stare, finanțare și decizie.",
+      "empty": "Nu există dosare de gradație pentru filtrele curente."
+    },
+    "form": {
+      "fullName": "Nume complet",
+      "roleTitle": "Funcție / disciplină",
+      "schoolYear": "An școlar",
+      "category": "Categorie",
+      "status": "Stare",
+      "score": "Punctaj",
+      "committeeName": "Comisie",
+      "decisionDate": "Data deciziei",
+      "funded": "Finanțat",
+      "notes": "Observații"
+    },
+    "columns": {
+      "fullName": "Cadru",
+      "grantCode": "Cod dosar",
+      "category": "Categorie",
+      "status": "Stare",
+      "schoolYear": "An școlar",
+      "score": "Punctaj",
+      "decisionDate": "Data deciziei",
+      "funded": "Finanțat"
+    },
+    "category": {
+      "predare": "Predare",
+      "management": "Management",
+      "consiliere": "Consiliere",
+      "auxiliar": "Auxiliar"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "submitted": "Depus",
+      "evaluated": "Evaluat",
+      "approved": "Aprobat",
+      "funded": "Finanțat"
+    },
+    "boolean": {
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "workflow": {
+      "start": "Pornește workflow de gradație",
+      "defaultTitle": "Gradație de merit - {{ name }}"
+    },
+    "messages": {
+      "created": "Dosarul de gradație a fost creat cu succes.",
+      "createFailed": "Dosarul de gradație nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul de gradație a fost pornit.",
+      "workflowStartFailed": "Workflow-ul de gradație nu a putut fi pornit."
+    }
+  },
+  "educationPortfolios": {
+    "title": "Portofoliu CD și retenție",
+    "subtitle": "Gestionează portofoliile profesionale cu stadiu de transfer, declarație de autenticitate, consimțământ și termen de păstrare.",
+    "stats": {
+      "totalPortfolios": "Portofolii",
+      "validatedPortfolios": "Validate",
+      "transferPortfolios": "Cu transfer",
+      "declaredPortfolios": "Cu declarație"
+    },
+    "create": {
+      "title": "Adaugă un portofoliu",
+      "subtitle": "Înregistrează un portofoliu cu secțiuni, retenție la 3 ani și metadate GDPR relevante.",
+      "submit": "Salvează portofoliul"
+    },
+    "details": {
+      "title": "Detalii și workflow",
+      "subtitle": "Selectează un portofoliu pentru a porni fluxul de revizuire și transfer.",
+      "empty": "Selectează un portofoliu pentru a vedea detaliile și acțiunile disponibile."
+    },
+    "list": {
+      "title": "Registrul portofoliilor",
+      "subtitle": "Tabel server-side pentru status, retenție, transfer și declarații de autenticitate.",
+      "empty": "Nu există portofolii pentru filtrele curente."
+    },
+    "form": {
+      "ownerName": "Titular portofoliu",
+      "ownerRole": "Funcție / disciplină",
+      "schoolYear": "An școlar",
+      "status": "Stare",
+      "sectionCount": "Număr secțiuni",
+      "lastUpdatedOn": "Ultima actualizare",
+      "retentionUntil": "Păstrare până la",
+      "transferStatus": "Stare transfer",
+      "authenticityDeclared": "Declarație de autenticitate semnată",
+      "consentCaptured": "Consimțământ capturat",
+      "custodian": "Custode",
+      "notes": "Observații"
+    },
+    "columns": {
+      "ownerName": "Titular",
+      "portfolioCode": "Cod",
+      "schoolYear": "An școlar",
+      "status": "Stare",
+      "sectionCount": "Secțiuni",
+      "transferStatus": "Transfer",
+      "retentionUntil": "Păstrare până la",
+      "authenticity": "Autenticitate"
+    },
+    "status": {
+      "draft": "Ciornă",
+      "submitted": "Depus",
+      "validated": "Validat",
+      "transferred": "Transferat",
+      "archived": "Arhivat"
+    },
+    "transferStatus": {
+      "none": "Fără transfer",
+      "prepared": "Pregătit",
+      "sent": "Trimis",
+      "received": "Recepționat"
+    },
+    "boolean": {
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "workflow": {
+      "start": "Pornește workflow de portofoliu",
+      "defaultTitle": "Revizuire portofoliu CD - {{ owner }}"
+    },
+    "messages": {
+      "created": "Portofoliul a fost creat cu succes.",
+      "createFailed": "Portofoliul nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul de portofoliu a fost pornit.",
+      "workflowStartFailed": "Workflow-ul de portofoliu nu a putut fi pornit."
+    }
+  },
+  "gdpr": {
+    "title": "GDPR, retenție și cereri ale persoanelor vizate",
+    "subtitle": "Coordonează politicile de retenție, solicitările GDPR și cazurile care necesită anonimizare sau export.",
+    "stats": {
+      "activePolicies": "Politici active",
+      "pendingRequests": "Solicitări active",
+      "overdueRequests": "Depășite",
+      "anonymizationCases": "Cu anonimizare"
+    },
+    "boolean": {
+      "yes": "Da",
+      "no": "Nu"
+    },
+    "domain": {
+      "registratura": "Registratură",
+      "workflow": "Workflow",
+      "earchiva": "eArhivă",
+      "education": "Educație",
+      "hr": "Resurse umane"
+    },
+    "sourceModule": {
+      "registratura": "Registratură",
+      "workflow": "Workflow",
+      "earchiva": "eArhivă",
+      "education": "Educație",
+      "education.decisions": "Decizii educaționale",
+      "education.managerial": "Dosare manageriale",
+      "education.regulations": "Regulamente educaționale"
+    },
+    "publicationSourceModule": {
+      "education.decisions": "Decizii educaționale",
+      "education.managerial": "Dosare manageriale",
+      "education.regulations": "Regulamente educaționale"
+    },
+    "requestType": {
+      "access": "Acces",
+      "rectification": "Rectificare",
+      "erasure": "Ștergere",
+      "restriction": "Restricționare",
+      "portability": "Portabilitate",
+      "objection": "Opoziție"
+    },
+    "requestStatus": {
+      "received": "Primită",
+      "identity_check": "Verificare identitate",
+      "in_progress": "În lucru",
+      "waiting_approval": "Așteaptă aprobare",
+      "completed": "Finalizată",
+      "rejected": "Respinsă"
+    },
+    "policyStatus": {
+      "draft": "Ciornă",
+      "active": "Activă",
+      "review": "În revizuire",
+      "retired": "Retrasă"
+    },
+    "exportStatus": {
+      "draft": "Proiect",
+      "pending_approval": "În așteptarea aprobării",
+      "approved": "Aprobat",
+      "generated": "Generat",
+      "delivered": "Livrat"
+    },
+    "exportFormat": {
+      "pdf_bundle": "Pachet PDF",
+      "zip_archive": "Arhivă ZIP",
+      "structured_json": "JSON structurat"
+    },
+    "anonymizationStatus": {
+      "not_required": "Nu este necesară",
+      "pending": "În așteptare",
+      "completed": "Finalizată"
+    },
+    "publicationStatus": {
+      "internal": "Intern",
+      "blocked": "Blocată",
+      "ready": "Pregătită",
+      "published": "Publicată"
+    },
+    "workflow": {
+      "start": "Pornește workflow GDPR",
+      "defaultTitle": "Solicitare GDPR - {{ name }}"
+    },
+    "settings": {
+      "title": "Reguli operaționale active",
+      "subtitle": "Aceste valori sunt încărcate din configurarea administrativă a platformei și influențează termenele și aprobările implicite.",
+      "defaultResponseSla": "SLA răspuns: {{ days }} zile",
+      "retentionReviewNotice": "Notificare retenție: {{ days }} zile",
+      "anonymization": "Anonimizare la publicare",
+      "exportApproval": "Aprobare export date"
+    },
+    "requests": {
+      "create": {
+        "title": "Adaugă solicitare GDPR",
+        "subtitle": "Înregistrează o solicitare a persoanei vizate cu termen, responsabil și modul sursă.",
+        "submit": "Salvează solicitarea"
+      },
+      "list": {
+        "title": "Solicitări GDPR",
+        "subtitle": "Lista urmărește termenele, tipul cererii, starea și nevoia de anonimizare.",
+        "empty": "Nu există solicitări GDPR pentru filtrele curente."
+      },
+      "form": {
+        "subjectName": "Persoană vizată",
+        "requestType": "Tip solicitare",
+        "status": "Stare",
+        "submittedOn": "Depusă la",
+        "dueOn": "Termen răspuns",
+        "handledBy": "Gestionată de",
+        "sourceModule": "Modul sursă",
+        "anonymizationRequired": "Necesită anonimizare",
+        "notes": "Observații"
+      },
+      "columns": {
+        "subjectName": "Persoană",
+        "requestCode": "Cod solicitare",
+        "requestType": "Tip",
+        "status": "Stare",
+        "sourceModule": "Modul sursă",
+        "dueOn": "Termen",
+        "anonymization": "Anonimizare"
+      }
+    },
+    "policies": {
+      "create": {
+        "title": "Adaugă politică de retenție",
+        "subtitle": "Definește durata de păstrare, temeiul legal și termenul de revizuire pentru o categorie de date.",
+        "submit": "Salvează politica"
+      },
+      "list": {
+        "title": "Politici de retenție",
+        "subtitle": "Tabelul listează domeniile, categoriile, termenele și starea politicilor de retenție.",
+        "empty": "Nu există politici de retenție pentru filtrele curente."
+      },
+      "form": {
+        "domain": "Domeniu",
+        "recordCategory": "Categorie înregistrare",
+        "retentionYears": "Ani de păstrare",
+        "legalBasis": "Temei legal",
+        "status": "Stare",
+        "reviewDueOn": "Revizuire până la",
+        "ownerName": "Responsabil",
+        "notes": "Observații"
+      },
+      "columns": {
+        "policyCode": "Cod politică",
+        "domain": "Domeniu",
+        "recordCategory": "Categorie",
+        "retentionYears": "Retenție",
+        "status": "Stare",
+        "reviewDueOn": "Revizuire"
+      }
+    },
+    "messages": {
+      "requestCreated": "Solicitarea GDPR a fost creată cu succes.",
+      "requestCreateFailed": "Solicitarea GDPR nu a putut fi creată.",
+      "policyCreated": "Politica de retenție a fost creată cu succes.",
+      "policyCreateFailed": "Politica de retenție nu a putut fi creată.",
+      "workflowStarted": "Workflow-ul GDPR a fost pornit.",
+      "workflowStartFailed": "Workflow-ul GDPR nu a putut fi pornit."
+    }
+  },
+  "gdprExports": {
+    "title": "Exporturi pentru persoanele vizate",
+    "subtitle": "Pregătește, aprobă și livrează pachete de export pentru solicitările GDPR, cu trasabilitate și workflow dedicat.",
+    "stats": {
+      "totalExports": "Exporturi",
+      "pendingApproval": "Așteaptă aprobare",
+      "generatedExports": "Generate",
+      "deliveredExports": "Livrate"
+    },
+    "create": {
+      "title": "Adaugă un export",
+      "subtitle": "Înregistrează pachetul de date, formatul de livrare și pașii de aprobare pentru persoana vizată.",
+      "submit": "Salvează exportul"
+    },
+    "form": {
+      "requestId": "ID solicitare",
+      "subjectName": "Persoană vizată",
+      "sourceModule": "Modul sursă",
+      "status": "Stare",
+      "exportFormat": "Format export",
+      "approvedBy": "Aprobat de",
+      "approvedOn": "Aprobat la",
+      "generatedOn": "Generat la",
+      "packageSummary": "Rezumat pachet",
+      "notes": "Observații"
+    },
+    "details": {
+      "title": "Detalii export",
+      "subtitle": "Revizuiește starea exportului, aprobarea și pachetul livrat pentru înregistrarea selectată.",
+      "empty": "Selectează un export pentru a vedea detaliile și a porni workflow-ul."
+    },
+    "list": {
+      "title": "Registru exporturi",
+      "subtitle": "Tabel server-side pentru coduri de export, formate, stări și termene de generare sau livrare.",
+      "empty": "Nu există exporturi pentru filtrele curente."
+    },
+    "columns": {
+      "subjectName": "Persoană",
+      "exportCode": "Cod export",
+      "sourceModule": "Modul sursă",
+      "status": "Stare",
+      "exportFormat": "Format",
+      "generatedOn": "Generat la"
+    },
+    "workflow": {
+      "start": "Pornește workflow export",
+      "defaultTitle": "Export GDPR pentru {{ code }}"
+    },
+    "messages": {
+      "created": "Exportul GDPR a fost creat cu succes.",
+      "createFailed": "Exportul GDPR nu a putut fi creat.",
+      "workflowStarted": "Workflow-ul de export GDPR a fost pornit.",
+      "workflowStartFailed": "Workflow-ul de export GDPR nu a putut fi pornit."
+    }
+  },
+  "gdprPublication": {
+    "title": "Publicare și anonimizare",
+    "subtitle": "Coordonează verificările de anonimizare și publicarea controlată pentru dosarele educaționale cu impact GDPR.",
+    "stats": {
+      "totalReviews": "Revizuiri",
+      "pendingAnonymization": "Anonimizare în așteptare",
+      "readyForPublication": "Pregătite pentru publicare",
+      "publishedItems": "Publicate"
+    },
+    "create": {
+      "title": "Adaugă o revizuire",
+      "subtitle": "Înregistrează cazul de publicare, stadiul anonimizării și baza legală folosită înainte de publicare.",
+      "submit": "Salvează revizuirea"
+    },
+    "form": {
+      "sourceModule": "Modul sursă",
+      "sourceRecordId": "ID înregistrare sursă",
+      "sourceLabel": "Etichetă sursă",
+      "anonymizationStatus": "Stare anonimizare",
+      "publicationStatus": "Stare publicare",
+      "reviewedBy": "Revizuit de",
+      "reviewedOn": "Revizuit la",
+      "legalBasis": "Bază legală",
+      "notes": "Observații"
+    },
+    "details": {
+      "title": "Detalii revizuire",
+      "subtitle": "Vezi stadiul de anonimizare, publicare și baza legală pentru înregistrarea selectată.",
+      "empty": "Selectează o revizuire pentru a vedea detaliile și a porni workflow-ul."
+    },
+    "list": {
+      "title": "Registru publicare",
+      "subtitle": "Tabel server-side pentru surse, stări de anonimizare și publicare, plus data verificării.",
+      "empty": "Nu există revizuiri pentru filtrele curente."
+    },
+    "columns": {
+      "sourceLabel": "Sursă",
+      "reviewCode": "Cod revizuire",
+      "sourceModule": "Modul sursă",
+      "anonymizationStatus": "Anonimizare",
+      "publicationStatus": "Publicare",
+      "reviewedOn": "Revizuit la"
+    },
+    "workflow": {
+      "start": "Pornește workflow publicare",
+      "defaultTitle": "Revizuire publicare pentru {{ code }}"
+    },
+    "messages": {
+      "created": "Revizuirea de publicare a fost creată cu succes.",
+      "createFailed": "Revizuirea de publicare nu a putut fi creată.",
+      "workflowStarted": "Workflow-ul de publicare a fost pornit.",
+      "workflowStartFailed": "Workflow-ul de publicare nu a putut fi pornit."
     }
   },
   "table": {
     "filters": {
       "contains": "Conține",
-      "any": "Toate"
+      "any": "Toate",
+      "onDate": "La data"
+    }
+  },
+  "links": {
+    "title": "Documente asociate",
+    "subtitle": "Leagă documente de registratură de înregistrarea selectată pentru a construi dosarul operațional complet.",
+    "empty": "Nu există documente asociate încă.",
+    "selectRecord": "Selectează mai întâi o înregistrare pentru a administra documentele asociate.",
+    "form": {
+      "query": "Caută document după număr sau subiect",
+      "document": "Document registratură",
+      "relationType": "Tip relație",
+      "submit": "Asociază document"
+    },
+    "relationType": {
+      "primary": "Document principal",
+      "supporting": "Document suport",
+      "decision": "Document de decizie",
+      "archive_basis": "Bază de arhivare",
+      "gdpr_basis": "Bază GDPR"
+    },
+    "messages": {
+      "created": "Documentul a fost asociat cu succes.",
+      "createFailed": "Documentul nu a putut fi asociat.",
+      "deleted": "Legătura documentului a fost eliminată.",
+      "deleteFailed": "Legătura documentului nu a putut fi eliminată."
     }
   },
   "placeholder": {

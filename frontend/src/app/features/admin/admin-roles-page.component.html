@@ -1,0 +1,112 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.roles.title' | transloco }}</h1>
+    <p>{{ 'admin.roles.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card *appHasPermission="'admin.roles.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.roles.form.title' | transloco }}</h2>
+    <p>{{ 'admin.roles.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="roleForm" (ngSubmit)="saveRole()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.roles.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.roles.form.label' | transloco }}</mat-label>
+        <input matInput formControlName="label" />
+      </mat-form-field>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetRoleForm()">
+          {{ 'admin.roles.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.roles.form.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <app-server-table
+      [columns]="roleColumns()"
+      [rows]="roleRows()"
+      [rowIdKey]="'code'"
+      [total]="rolesResponse().total"
+      [pageIndex]="rolesResponse().page - 1"
+      [pageSize]="rolesResponse().pageSize"
+      [sortActive]="roleTableState().sort ?? ''"
+      [sortDirection]="roleTableState().direction ?? ''"
+      [emptyMessage]="'admin.roles.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedRoleCode()"
+      (pageChange)="onRolePageChange($event)"
+      (filterChange)="onRoleFilterChange($event)"
+      (sortChange)="onRoleSortChange($event)"
+      (rowClick)="selectRole($event)"
+    />
+  </mat-card>
+</section>
+
+<section class="admin-page__assignments">
+  <mat-card *appHasPermission="'admin.roles.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.roles.assignments.formTitle' | transloco }}</h2>
+    <p>{{ 'admin.roles.assignments.formSubtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="assignmentForm" (ngSubmit)="saveAssignment()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.roles.assignments.userId' | transloco }}</mat-label>
+        <mat-select formControlName="user_id">
+          @for (option of userOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.roles.assignments.roleCode' | transloco }}</mat-label>
+        <mat-select formControlName="role_code">
+          @for (option of roleOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="assigned">
+        {{ 'admin.roles.assignments.assigned' | transloco }}
+      </mat-checkbox>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetAssignmentForm()">
+          {{ 'admin.roles.assignments.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.roles.assignments.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.roles.assignments.title' | transloco }}</h2>
+    <p>{{ 'admin.roles.assignments.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="assignmentColumns()"
+      [rows]="assignmentRows()"
+      [total]="assignmentsResponse().total"
+      [pageIndex]="assignmentsResponse().page - 1"
+      [pageSize]="assignmentsResponse().pageSize"
+      [sortActive]="assignmentTableState().sort ?? ''"
+      [sortDirection]="assignmentTableState().direction ?? ''"
+      [emptyMessage]="'admin.roles.assignments.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedAssignmentId()"
+      (pageChange)="onAssignmentPageChange($event)"
+      (filterChange)="onAssignmentFilterChange($event)"
+      (sortChange)="onAssignmentSortChange($event)"
+      (rowClick)="selectAssignment($event)"
+    />
+  </mat-card>
+</section>

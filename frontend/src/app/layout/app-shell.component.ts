@@ -62,6 +62,18 @@ export class AppShellComponent {
     { icon: 'account_tree', labelKey: 'nav.workflow', route: '/workflow', permission: 'workflow.read', module: 'workflow' },
     { icon: 'inventory_2', labelKey: 'nav.earchiva', route: '/earchiva', permission: 'earchiva.read', module: 'earchiva' },
     { icon: 'school', labelKey: 'nav.education', route: '/education', permission: 'education.read', module: 'education' },
+    { icon: 'gavel', labelKey: 'nav.educationDecisions', route: '/education/decisions', permission: 'education.decisions.read', module: 'education' },
+    { icon: 'fact_check', labelKey: 'nav.educationManagerial', route: '/education/managerial', permission: 'education.managerial.read', module: 'education' },
+    { icon: 'policy', labelKey: 'nav.educationRegulations', route: '/education/regulations', permission: 'education.regulations.read', module: 'education' },
+    { icon: 'badge', labelKey: 'nav.educationPersonnel', route: '/education/personnel', permission: 'education.personnel.read', module: 'education' },
+    { icon: 'assignment_turned_in', labelKey: 'nav.educationEvaluations', route: '/education/evaluations', permission: 'education.evaluations.read', module: 'education' },
+    { icon: 'verified_user', labelKey: 'nav.educationDeclarations', route: '/education/declarations', permission: 'education.declarations.read', module: 'education' },
+    { icon: 'swap_horiz', labelKey: 'nav.educationMobility', route: '/education/mobility', permission: 'education.mobility.read', module: 'education' },
+    { icon: 'military_tech', labelKey: 'nav.educationGradatii', route: '/education/gradatii', permission: 'education.gradatii.read', module: 'education' },
+    { icon: 'folder_shared', labelKey: 'nav.educationPortfolios', route: '/education/portfolios', permission: 'education.portfolios.read', module: 'education' },
+    { icon: 'policy', labelKey: 'nav.gdpr', route: '/gdpr', permission: 'gdpr.read', module: 'gdpr' },
+    { icon: 'download', labelKey: 'nav.gdprExports', route: '/gdpr/exports', permission: 'gdpr.exports.read', module: 'gdpr' },
+    { icon: 'visibility_lock', labelKey: 'nav.gdprPublication', route: '/gdpr/publication-reviews', permission: 'gdpr.publication.read', module: 'gdpr' },
     { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin', permission: 'admin.read', module: 'admin' },
   ];
   protected readonly visibleNavItems = computed(() =>
@@ -94,7 +106,7 @@ export class AppShellComponent {
   }
 
   protected async signOut(): Promise<void> {
-    await this.auth.logout();
+    await this.router.navigate(['/auth/logout']);
   }
 
   protected canAccess(permission?: string, moduleCode?: string): boolean {

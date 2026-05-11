@@ -9,11 +9,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
+import { HasPermissionDirective } from '../../shared/authz/has-permission.directive';
 
 @Component({
   selector: 'app-admin-dashboard-page',
   standalone: true,
-  imports: [RouterLink, TranslocoPipe, MatButtonModule, MatCardModule, MatChipsModule, MatIconModule],
+  imports: [RouterLink, TranslocoPipe, MatButtonModule, MatCardModule, MatChipsModule, MatIconModule, HasPermissionDirective],
   templateUrl: './admin-dashboard-page.component.html',
   styleUrl: './admin-dashboard-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +31,8 @@ export class AdminDashboardPageComponent {
         permissions: 0,
         workflows: 0,
         archives: 0,
+        ready_dossiers: 0,
+        blocked_dossiers: 0,
       },
       modules: [],
       admin_sections: [],
@@ -42,6 +45,8 @@ export class AdminDashboardPageComponent {
     { icon: 'badge', value: String(this.dashboard().stats.positions), titleKey: 'admin.stats.positions' },
     { icon: 'account_tree', value: String(this.dashboard().stats.workflows), titleKey: 'admin.stats.workflows' },
     { icon: 'verified_user', value: String(this.dashboard().stats.permissions), titleKey: 'admin.stats.permissions' },
+    { icon: 'task_alt', value: String(this.dashboard().stats.ready_dossiers), titleKey: 'admin.stats.readyDossiers' },
+    { icon: 'warning', value: String(this.dashboard().stats.blocked_dossiers), titleKey: 'admin.stats.blockedDossiers' },
   ]);
 
   protected readonly sections = computed(() =>

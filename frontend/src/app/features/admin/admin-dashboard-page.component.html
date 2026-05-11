@@ -10,7 +10,20 @@
   <mat-card appearance="outlined" class="admin-quick-links__card">
     <h2>{{ 'admin.quickLinks.title' | transloco }}</h2>
     <div class="admin-quick-links__actions">
-      <a mat-flat-button routerLink="/admin/users">{{ 'admin.quickLinks.users' | transloco }}</a>
+      <a *appHasPermission="'admin.users.read'; module: 'admin'" mat-flat-button routerLink="/admin/users">{{ 'admin.quickLinks.users' | transloco }}</a>
+      <a *appHasPermission="'admin.roles.read'; module: 'admin'" mat-stroked-button routerLink="/admin/roles">{{ 'admin.quickLinks.roles' | transloco }}</a>
+      <a *appHasPermission="'admin.org_units.read'; module: 'admin'" mat-stroked-button routerLink="/admin/org-units">{{ 'admin.quickLinks.orgUnits' | transloco }}</a>
+      <a *appHasPermission="'admin.memberships.read'; module: 'admin'" mat-stroked-button routerLink="/admin/memberships">{{ 'admin.quickLinks.memberships' | transloco }}</a>
+      <a *appHasPermission="'admin.positions.read'; module: 'admin'" mat-stroked-button routerLink="/admin/positions">{{ 'admin.quickLinks.positions' | transloco }}</a>
+      <a *appHasPermission="'admin.permissions.read'; module: 'admin'" mat-stroked-button routerLink="/admin/permissions">{{ 'admin.quickLinks.permissions' | transloco }}</a>
+      <a *appHasPermission="'admin.dossier_requirements.read'; module: 'admin'" mat-stroked-button routerLink="/admin/dossier-requirements">{{ 'admin.quickLinks.dossierRequirements' | transloco }}</a>
+      <a *appHasPermission="'admin.education_taxonomies.read'; module: 'admin'" mat-stroked-button routerLink="/admin/education-taxonomies">{{ 'admin.quickLinks.educationTaxonomies' | transloco }}</a>
+      <a *appHasPermission="'admin.workflow_definitions.read'; module: 'admin'" mat-stroked-button routerLink="/admin/workflow-definitions">{{ 'admin.quickLinks.workflowDefinitions' | transloco }}</a>
+      <a *appHasPermission="'admin.nomenclatures.read'; module: 'admin'" mat-stroked-button routerLink="/admin/nomenclatures">{{ 'admin.quickLinks.nomenclatures' | transloco }}</a>
+      <a *appHasPermission="'admin.gdpr_settings.read'; module: 'admin'" mat-stroked-button routerLink="/admin/gdpr-settings">{{ 'admin.quickLinks.gdprSettings' | transloco }}</a>
+      <a *appHasPermission="['admin.auth_methods.read', 'admin.modules.read']; mode: 'any'; module: 'admin'" mat-stroked-button routerLink="/admin/platform-settings">{{ 'admin.quickLinks.platformSettings' | transloco }}</a>
+      <a *appHasPermission="'admin.identity.read'; module: 'admin'" mat-stroked-button routerLink="/admin/identity">{{ 'admin.quickLinks.identity' | transloco }}</a>
+      <a *appHasPermission="'admin.audit.read'; module: 'admin'" mat-stroked-button routerLink="/admin/audit">{{ 'admin.quickLinks.audit' | transloco }}</a>
     </div>
   </mat-card>
 </section>

@@ -1,0 +1,113 @@
+<div class="gdpr-page">
+  <div class="gdpr-page__hero">
+    <div>
+      <p class="gdpr-page__eyebrow">{{ 'nav.gdpr' | transloco }}</p>
+      <h1>{{ 'gdpr.title' | transloco }}</h1>
+      <p>{{ 'gdpr.subtitle' | transloco }}</p>
+    </div>
+    <div class="gdpr-page__stats">
+      <mat-card appearance="outlined"><span class="gdpr-page__stat-value">{{ dashboard().stats.active_policies }}</span><span class="gdpr-page__stat-label">{{ 'gdpr.stats.activePolicies' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="gdpr-page__stat-value">{{ dashboard().stats.pending_requests }}</span><span class="gdpr-page__stat-label">{{ 'gdpr.stats.pendingRequests' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="gdpr-page__stat-value">{{ dashboard().stats.overdue_requests }}</span><span class="gdpr-page__stat-label">{{ 'gdpr.stats.overdueRequests' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="gdpr-page__stat-value">{{ dashboard().stats.anonymization_cases }}</span><span class="gdpr-page__stat-label">{{ 'gdpr.stats.anonymizationCases' | transloco }}</span></mat-card>
+    </div>
+  </div>
+
+  <mat-card appearance="outlined" class="gdpr-page__card gdpr-page__settings-card">
+    <mat-card-title>{{ 'gdpr.settings.title' | transloco }}</mat-card-title>
+    <mat-card-subtitle>{{ 'gdpr.settings.subtitle' | transloco }}</mat-card-subtitle>
+
+    <mat-chip-set class="gdpr-page__settings-chips">
+      <mat-chip>{{ 'gdpr.settings.defaultResponseSla' | transloco:{ days: config().settings.default_response_sla_days } }}</mat-chip>
+      <mat-chip>{{ 'gdpr.settings.retentionReviewNotice' | transloco:{ days: config().settings.retention_review_notice_days } }}</mat-chip>
+      <mat-chip>
+        {{ 'gdpr.settings.anonymization' | transloco }}:
+        {{ ('gdpr.boolean.' + (config().settings.publication_anonymization_required ? 'yes' : 'no')) | transloco }}
+      </mat-chip>
+      <mat-chip>
+        {{ 'gdpr.settings.exportApproval' | transloco }}:
+        {{ ('gdpr.boolean.' + (config().settings.subject_export_requires_approval ? 'yes' : 'no')) | transloco }}
+      </mat-chip>
+    </mat-chip-set>
+  </mat-card>
+
+  <div class="gdpr-page__grid">
+    <div class="gdpr-page__sidebar">
+      <mat-card appearance="outlined" class="gdpr-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdpr.requests.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdpr.requests.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="gdpr-form" [formGroup]="subjectForm">
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.subjectName' | transloco }}</mat-label><input matInput formControlName="subject_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.requestType' | transloco }}</mat-label><mat-select formControlName="request_type">@for (option of requestFilters().request_types; track option) {<mat-option [value]="option">{{ ('gdpr.requestType.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (option of requestFilters().statuses; track option) {<mat-option [value]="option">{{ ('gdpr.requestStatus.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.submittedOn' | transloco }}</mat-label><input matInput [matDatepicker]="submittedPicker" formControlName="submitted_on" /><mat-datepicker-toggle matIconSuffix [for]="submittedPicker" /><mat-datepicker #submittedPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.dueOn' | transloco }}</mat-label><input matInput [matDatepicker]="duePicker" formControlName="due_on" /><mat-datepicker-toggle matIconSuffix [for]="duePicker" /><mat-datepicker #duePicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.handledBy' | transloco }}</mat-label><input matInput formControlName="handled_by" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.requests.form.sourceModule' | transloco }}</mat-label><mat-select formControlName="source_module">@for (option of requestFilters().source_modules; track option) {<mat-option [value]="option">{{ ('gdpr.sourceModule.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-checkbox formControlName="anonymization_required">{{ 'gdpr.requests.form.anonymizationRequired' | transloco }}</mat-checkbox>
+            <mat-form-field appearance="outline" class="gdpr-form__summary"><mat-label>{{ 'gdpr.requests.form.notes' | transloco }}</mat-label><textarea matInput rows="4" formControlName="notes"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createSubjectRequest()"><mat-icon>person_search</mat-icon>{{ 'gdpr.requests.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="gdpr-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdpr.policies.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdpr.policies.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="gdpr-form" [formGroup]="retentionForm">
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.domain' | transloco }}</mat-label><mat-select formControlName="domain_code">@for (option of retentionFilters().domains; track option) {<mat-option [value]="option">{{ ('gdpr.domain.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.recordCategory' | transloco }}</mat-label><input matInput formControlName="record_category" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.retentionYears' | transloco }}</mat-label><input matInput type="number" min="1" formControlName="retention_years" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.legalBasis' | transloco }}</mat-label><input matInput formControlName="legal_basis" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (option of retentionFilters().statuses; track option) {<mat-option [value]="option">{{ ('gdpr.policyStatus.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.reviewDueOn' | transloco }}</mat-label><input matInput [matDatepicker]="reviewPicker" formControlName="review_due_on" /><mat-datepicker-toggle matIconSuffix [for]="reviewPicker" /><mat-datepicker #reviewPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdpr.policies.form.ownerName' | transloco }}</mat-label><input matInput formControlName="owner_name" /></mat-form-field>
+            <mat-form-field appearance="outline" class="gdpr-form__summary"><mat-label>{{ 'gdpr.policies.form.notes' | transloco }}</mat-label><textarea matInput rows="4" formControlName="notes"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRetentionPolicy()"><mat-icon>schedule</mat-icon>{{ 'gdpr.policies.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+    </div>
+
+    <div class="gdpr-page__content">
+      <mat-card appearance="outlined" class="gdpr-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdpr.requests.list.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdpr.requests.list.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <app-server-table [columns]="requestColumns()" [rows]="requestRows()" [total]="requestResponse().total" [pageIndex]="requestResponse().page - 1" [pageSize]="requestResponse().pageSize" [emptyMessage]="'gdpr.requests.list.empty' | transloco" [sortActive]="requestState().sort || ''" [sortDirection]="requestState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedRequestId()" (pageChange)="onRequestPageChange($event)" (filterChange)="onRequestFilterChange($event)" (sortChange)="onRequestSortChange($event)" (rowClick)="onSelectRequest($event)" />
+          @if (selectedRequest(); as item) {
+            <div class="gdpr-selected">
+              <div class="gdpr-selected__row"><span>{{ 'gdpr.requests.columns.requestType' | transloco }}</span><strong>{{ ('gdpr.requestType.' + item.request_type) | transloco }}</strong></div>
+              <div class="gdpr-selected__row"><span>{{ 'gdpr.requests.columns.status' | transloco }}</span><strong>{{ ('gdpr.requestStatus.' + item.status) | transloco }}</strong></div>
+              <div class="gdpr-selected__row"><span>{{ 'gdpr.requests.columns.sourceModule' | transloco }}</span><strong>{{ ('gdpr.sourceModule.' + item.source_module) | transloco }}</strong></div>
+              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'gdpr.workflow.start' | transloco }}</button>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="gdpr-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdpr.policies.list.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdpr.policies.list.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <app-server-table [columns]="retentionColumns()" [rows]="retentionResponse().items" [total]="retentionResponse().total" [pageIndex]="retentionResponse().page - 1" [pageSize]="retentionResponse().pageSize" [emptyMessage]="'gdpr.policies.list.empty' | transloco" [sortActive]="retentionState().sort || ''" [sortDirection]="retentionState().direction || ''" (pageChange)="onRetentionPageChange($event)" (filterChange)="onRetentionFilterChange($event)" (sortChange)="onRetentionSortChange($event)" />
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card
+        [sourceModule]="'gdpr.subject_requests'"
+        [sourceRecordId]="selectedRequestId()"
+      />
+    </div>
+  </div>
+</div>

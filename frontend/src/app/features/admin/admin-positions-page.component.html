@@ -1,0 +1,64 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.positions.title' | transloco }}</h1>
+    <p>{{ 'admin.positions.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card *appHasPermission="'admin.positions.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.positions.form.title' | transloco }}</h2>
+    <p>{{ 'admin.positions.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="savePosition()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.positions.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.positions.form.name' | transloco }}</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.positions.form.scopeModule' | transloco }}</mat-label>
+        <input matInput formControlName="scope_module" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.positions.form.sortOrder' | transloco }}</mat-label>
+        <input matInput type="number" formControlName="sort_order" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.positions.form.active' | transloco }}
+      </mat-checkbox>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetForm()">
+          {{ 'admin.positions.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.positions.form.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.positions.empty' | transloco"
+      [rowClickable]="true"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectPosition($event)"
+    />
+  </mat-card>
+</section>

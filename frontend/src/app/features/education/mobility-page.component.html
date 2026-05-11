@@ -1,0 +1,79 @@
+<div class="feature-page">
+  <div class="feature-page__hero">
+    <div>
+      <p class="feature-page__eyebrow">{{ 'nav.educationMobility' | transloco }}</p>
+      <h1>{{ 'educationMobility.title' | transloco }}</h1>
+      <p>{{ 'educationMobility.subtitle' | transloco }}</p>
+    </div>
+    <div class="feature-page__stats">
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.total_cases }}</span><span class="feature-page__stat-label">{{ 'educationMobility.stats.totalCases' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.open_cases }}</span><span class="feature-page__stat-label">{{ 'educationMobility.stats.openCases' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.approved_cases }}</span><span class="feature-page__stat-label">{{ 'educationMobility.stats.approvedCases' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.transfer_cases }}</span><span class="feature-page__stat-label">{{ 'educationMobility.stats.transferCases' | transloco }}</span></mat-card>
+    </div>
+  </div>
+
+  <div class="feature-page__grid">
+    <div class="feature-page__sidebar">
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationMobility.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationMobility.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="feature-form" [formGroup]="form">
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.employeeCode' | transloco }}</mat-label><input matInput formControlName="employee_code" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.fullName' | transloco }}</mat-label><input matInput formControlName="full_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.schoolYear' | transloco }}</mat-label><mat-select formControlName="school_year">@for (option of filters().school_years; track option) {<mat-option [value]="option">{{ option }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.requestType' | transloco }}</mat-label><mat-select formControlName="request_type">@for (option of filters().request_types; track option) {<mat-option [value]="option">{{ ('educationMobility.requestType.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.stage' | transloco }}</mat-label><mat-select formControlName="stage">@for (option of filters().stages; track option) {<mat-option [value]="option">{{ ('educationMobility.stage.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (option of filters().statuses; track option) {<mat-option [value]="option">{{ ('educationMobility.status.' + option) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.submittedOn' | transloco }}</mat-label><input matInput [matDatepicker]="submittedPicker" formControlName="submitted_on" /><mat-datepicker-toggle matIconSuffix [for]="submittedPicker" /><mat-datepicker #submittedPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.sourceSchool' | transloco }}</mat-label><input matInput formControlName="source_school" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.destinationSchool' | transloco }}</mat-label><input matInput formControlName="destination_school" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'educationMobility.form.reviewedBy' | transloco }}</mat-label><input matInput formControlName="reviewed_by" /></mat-form-field>
+            <mat-form-field appearance="outline" class="feature-form__summary"><mat-label>{{ 'educationMobility.form.notes' | transloco }}</mat-label><textarea matInput rows="4" formControlName="notes"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRecord()"><mat-icon>swap_horiz</mat-icon>{{ 'educationMobility.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationMobility.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationMobility.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedCase(); as item) {
+            <div class="feature-details">
+              <div class="feature-details__row"><span>{{ 'educationMobility.columns.requestType' | transloco }}</span><strong>{{ ('educationMobility.requestType.' + item.request_type) | transloco }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationMobility.columns.stage' | transloco }}</span><strong>{{ ('educationMobility.stage.' + item.stage) | transloco }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationMobility.columns.status' | transloco }}</span><strong>{{ ('educationMobility.status.' + item.status) | transloco }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationMobility.form.destinationSchool' | transloco }}</span><strong>{{ item.destination_school || '—' }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'educationMobility.form.reviewedBy' | transloco }}</span><strong>{{ item.reviewed_by || '—' }}</strong></div>
+              <p class="feature-details__summary">{{ item.notes || '—' }}</p>
+              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'educationMobility.workflow.start' | transloco }}</button>
+            </div>
+          } @else {
+            <p class="feature-details__empty">{{ 'educationMobility.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card
+        [sourceModule]="'education.mobility'"
+        [sourceRecordId]="selectedCaseId()"
+      />
+    </div>
+
+    <mat-card appearance="outlined" class="feature-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'educationMobility.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'educationMobility.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table [columns]="columns()" [rows]="rows()" [total]="response().total" [pageIndex]="response().page - 1" [pageSize]="response().pageSize" [emptyMessage]="'educationMobility.list.empty' | transloco" [sortActive]="tableState().sort || ''" [sortDirection]="tableState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedCaseId()" (pageChange)="onPageChange($event)" (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (rowClick)="onSelectCase($event)" />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

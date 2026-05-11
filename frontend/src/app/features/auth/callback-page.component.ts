@@ -2,46 +2,64 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 
-import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-callback-page',
   standalone: true,
-  imports: [TranslocoPipe, MatCardModule, MatProgressSpinnerModule],
+  imports: [TranslocoPipe, AuthShellComponent, MatIconModule, MatProgressSpinnerModule],
   template: `
-    <div class="callback-page">
-      <mat-card appearance="outlined" class="callback-page__card">
+    <app-auth-shell
+      [eyebrow]="'auth.callbackEyebrow' | transloco"
+      [title]="'auth.redirecting' | transloco"
+      [subtitle]="'auth.callbackMessage' | transloco"
+      [visualKicker]="'auth.visual.kicker' | transloco"
+      [visualTitle]="'auth.visual.title' | transloco"
+      [visualBody]="'auth.visual.body' | transloco">
+      <div class="callback-page__card">
         <mat-progress-spinner diameter="44" mode="indeterminate" />
-        <h1>{{ 'auth.redirecting' | transloco }}</h1>
         @if (error()) {
-          <p>{{ error() }}</p>
+          <div class="callback-page__error">
+            <mat-icon>error</mat-icon>
+            <p>{{ error() }}</p>
+          </div>
         } @else {
           <p>{{ 'auth.callbackMessage' | transloco }}</p>
         }
-      </mat-card>
-    </div>
+      </div>
+    </app-auth-shell>
   `,
   styles: `
-    .callback-page {
-      min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: 1.5rem;
-      background: linear-gradient(180deg, var(--surface-page) 0%, var(--surface-page-alt) 100%);
-    }
-
     .callback-page__card {
-      width: min(100%, 28rem);
       display: grid;
       gap: 1rem;
       place-items: center;
       text-align: center;
+      padding: 1.5rem;
       border-radius: 1.5rem;
-      padding: 2rem;
-      background: var(--surface-card);
+      border: 1px solid rgb(148 163 184 / 0.18);
+      background: rgb(255 255 255 / 0.58);
+    }
+
+    .callback-page__card p {
+      margin: 0;
+      color: var(--text-soft);
+    }
+
+    .callback-page__error {
+      display: grid;
+      gap: 0.5rem;
+      justify-items: center;
+      color: #be123c;
+    }
+
+    :host-context(.dark-theme) .callback-page__card {
+      background: rgb(15 23 42 / 0.58);
+      border-color: rgb(148 163 184 / 0.18);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

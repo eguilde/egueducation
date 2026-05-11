@@ -1,0 +1,81 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.gdprSettings.title' | transloco }}</h1>
+    <p>{{ 'admin.gdprSettings.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.gdprSettings.form.title' | transloco }}</h2>
+    <p>{{ 'admin.gdprSettings.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="save()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.gdprSettings.form.code' | transloco }}</mat-label>
+        <mat-select formControlName="code">
+          @for (value of codeOptions; track value) {
+            <mat-option [value]="value">{{ ('admin.gdprSettings.codes.' + value) | transloco }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.gdprSettings.form.valueType' | transloco }}</mat-label>
+        <mat-select formControlName="value_type">
+          <mat-option value="bool">{{ 'admin.gdprSettings.valueType.bool' | transloco }}</mat-option>
+          <mat-option value="int">{{ 'admin.gdprSettings.valueType.int' | transloco }}</mat-option>
+          <mat-option value="text">{{ 'admin.gdprSettings.valueType.text' | transloco }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      @if (currentType() === 'bool') {
+        <mat-checkbox formControlName="value_bool">
+          {{ 'admin.gdprSettings.form.valueBool' | transloco }}
+        </mat-checkbox>
+      }
+
+      @if (currentType() === 'int') {
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'admin.gdprSettings.form.valueInt' | transloco }}</mat-label>
+          <input matInput type="number" formControlName="value_int" />
+        </mat-form-field>
+      }
+
+      @if (currentType() === 'text') {
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'admin.gdprSettings.form.valueText' | transloco }}</mat-label>
+          <input matInput formControlName="value_text" />
+        </mat-form-field>
+      }
+
+      <button mat-flat-button type="submit">{{ 'admin.gdprSettings.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.gdprSettings.list.title' | transloco }}</h2>
+    <p>{{ 'admin.gdprSettings.list.subtitle' | transloco }}</p>
+
+    <div class="admin-page__settings-list">
+      @for (item of items(); track item.code) {
+        <button type="button" class="admin-page__setting-row" (click)="selectSetting(item)">
+          <div class="admin-page__setting-title">{{ ('admin.gdprSettings.codes.' + item.code) | transloco }}</div>
+          <div class="admin-page__setting-value">
+            @switch (item.value_type) {
+              @case ('bool') {
+                {{ ('admin.gdprSettings.boolean.' + (item.value_bool ? 'yes' : 'no')) | transloco }}
+              }
+              @case ('int') {
+                {{ item.value_int }}
+              }
+              @default {
+                {{ item.value_text }}
+              }
+            }
+          </div>
+        </button>
+      }
+    </div>
+  </mat-card>
+</section>

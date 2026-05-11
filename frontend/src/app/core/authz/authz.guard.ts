@@ -3,11 +3,15 @@ import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthzService } from './authz.service';
 
-export const permissionGuard: CanActivateFn = (route) => {
+export const permissionGuard: CanActivateFn = (route, state) => {
   const authz = inject(AuthzService);
   const router = inject(Router);
   const requiredPermission = route.data['permission'] as string | undefined;
   const requiredModule = route.data['module'] as string | undefined;
+
+  if (!authz.user()) {
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
+  }
 
   const allowed =
     (!requiredPermission || authz.hasPermission(requiredPermission)) &&

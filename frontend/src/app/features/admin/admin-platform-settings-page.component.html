@@ -1,0 +1,89 @@
+<section class="platform-page__header">
+  <div>
+    <h1>{{ 'admin.platform.title' | transloco }}</h1>
+    <p>{{ 'admin.platform.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="platform-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.platform.auth.title' | transloco }}</h2>
+    <p>{{ 'admin.platform.auth.subtitle' | transloco }}</p>
+
+    <div class="platform-page__list">
+      @for (item of methodItems(); track item.code) {
+        <button mat-stroked-button type="button" (click)="selectMethod(item)">
+          {{ ('auth.methods.' + item.code) | transloco }}
+        </button>
+      }
+    </div>
+
+    <form class="platform-page__form" [formGroup]="methodForm" (ngSubmit)="saveMethod()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.platform.auth.form.code' | transloco }}</mat-label>
+        <mat-select formControlName="code">
+          @for (item of methodItems(); track item.code) {
+            <mat-option [value]="item.code">{{ ('auth.methods.' + item.code) | transloco }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.platform.auth.form.sortOrder' | transloco }}</mat-label>
+        <input matInput type="number" formControlName="sort_order" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="enabled">
+        {{ 'admin.platform.auth.form.enabled' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="primary_method">
+        {{ 'admin.platform.auth.form.primary' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.platform.auth.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.platform.modules.title' | transloco }}</h2>
+    <p>{{ 'admin.platform.modules.subtitle' | transloco }}</p>
+
+    <div class="platform-page__list">
+      @for (item of moduleItems(); track item.code) {
+        <button mat-stroked-button type="button" (click)="selectModule(item)">
+          {{ item.code }}
+        </button>
+      }
+    </div>
+
+    <form class="platform-page__form" [formGroup]="moduleForm" (ngSubmit)="saveModule()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.platform.modules.form.code' | transloco }}</mat-label>
+        <mat-select formControlName="code">
+          @for (item of moduleItems(); track item.code) {
+            <mat-option [value]="item.code">{{ item.code }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.platform.modules.form.active' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.platform.modules.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined" class="platform-page__meta">
+    <h2>{{ 'admin.platform.runtime.title' | transloco }}</h2>
+    <p>{{ 'admin.platform.runtime.subtitle' | transloco }}</p>
+
+    <div class="platform-page__runtime">
+      <div><span>Issuer</span><strong>{{ uiConfig().oidc_issuer }}</strong></div>
+      <div><span>SPA Client</span><strong>{{ uiConfig().oidc_client_id }}</strong></div>
+      <div><span>Desktop Client</span><strong>{{ uiConfig().desktop_client_id }}</strong></div>
+      <div><span>Theme</span><strong>{{ uiConfig().theme_family }} / {{ uiConfig().theme_brand }}</strong></div>
+      <div><span>Auth Flow</span><strong>{{ uiConfig().auth_flow }}</strong></div>
+    </div>
+  </mat-card>
+</section>

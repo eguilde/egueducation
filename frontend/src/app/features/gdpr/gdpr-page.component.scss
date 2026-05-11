@@ -1,0 +1,62 @@
+.gdpr-page,
+.gdpr-page__hero,
+.gdpr-page__grid,
+.gdpr-page__stats,
+.gdpr-page__sidebar,
+.gdpr-page__content,
+.gdpr-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.gdpr-page__stats {
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.gdpr-page__settings-card {
+  margin-bottom: 1rem;
+}
+
+.gdpr-page__settings-chips {
+  margin-top: 1rem;
+}
+
+.gdpr-page__grid {
+  grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.gdpr-page__eyebrow,
+.gdpr-page__stat-label,
+.gdpr-selected__row span {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.gdpr-page__stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.gdpr-form__summary {
+  grid-column: 1 / -1;
+}
+
+.gdpr-selected {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline) 35%, transparent);
+}
+
+.gdpr-selected__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .gdpr-page__grid {
+    grid-template-columns: 1fr;
+  }
+}

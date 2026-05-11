@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input, output, signal } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -16,7 +17,7 @@ export interface ServerTableFilterOption {
 }
 
 export interface ServerTableFilterConfig {
-  type: 'text' | 'select';
+  type: 'text' | 'select' | 'date';
   placeholder?: string;
   options?: ServerTableFilterOption[];
 }
@@ -27,6 +28,8 @@ export interface ServerTableColumn<T> {
   sortable?: boolean;
   sticky?: boolean;
   formatter?: (row: T) => string;
+  sortKey?: string;
+  filterKey?: string;
   filter?: ServerTableFilterConfig;
 }
 
@@ -39,6 +42,7 @@ export type ServerTableSortState = Sort;
   imports: [
     CommonModule,
     MatButtonModule,
+    MatDatepickerModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
@@ -62,10 +66,14 @@ export class ServerTableComponent {
   @Input() emptyMessage = 'No data';
   @Input() sortActive = '';
   @Input() sortDirection: SortDirection = '';
+  @Input() rowClickable = false;
+  @Input() selectedRowId?: string | null = null;
+  @Input() rowIdKey = 'id';
 
   readonly pageChange = output<PageEvent>();
   readonly filterChange = output<ServerTableFilterState>();
   readonly sortChange = output<ServerTableSortState>();
+  readonly rowClick = output<any>();
 
   protected readonly filters = signal<ServerTableFilterState>({});
   protected readonly filterFieldAppearance: MatFormFieldAppearance = 'outline';
@@ -87,10 +95,38 @@ export class ServerTableComponent {
     this.sortChange.emit(sort);
   }
 
+  protected onDateFilterChange(key: string, value: Date | null): void {
+    const formatted =
+      value == null
+        ? ''
+        : `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    this.onFilterChange(key, formatted);
+  }
+
   protected cellValue(row: any, column: ServerTableColumn<any>): string {
     if (column.formatter) {
       return column.formatter(row);
     }
     return String(row[column.key] ?? '');
+  }
+
+  protected onRowClick(row: any): void {
+    if (!this.rowClickable) {
+      return;
+    }
+    this.rowClick.emit(row);
+  }
+
+  protected rowIdentifier(row: any): string | null {
+    const value = row?.[this.rowIdKey];
+    return value == null ? null : String(value);
+  }
+
+  protected columnFilterKey(column: ServerTableColumn<any>): string {
+    return column.filterKey || column.key;
+  }
+
+  protected columnSortKey(column: ServerTableColumn<any>): string {
+    return column.sortKey || column.key;
   }
 }

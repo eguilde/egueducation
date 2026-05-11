@@ -1,0 +1,21 @@
+.admin-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-page__grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.admin-page__form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 1200px) {
+  .admin-page__grid {
+    grid-template-columns: minmax(20rem, 28rem) minmax(0, 1fr);
+    align-items: start;
+  }
+}

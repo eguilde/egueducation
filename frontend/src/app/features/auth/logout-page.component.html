@@ -1,0 +1,31 @@
+<app-auth-shell
+  [eyebrow]="'auth.logoutConfirm.eyebrow' | transloco"
+  [title]="'auth.logoutConfirm.title' | transloco"
+  [subtitle]="'auth.logoutConfirm.subtitle' | transloco"
+  [visualKicker]="'auth.visual.kicker' | transloco"
+  [visualTitle]="'auth.visual.title' | transloco"
+  [visualBody]="'auth.visual.body' | transloco"
+  accent="amber">
+  <div class="logout-card">
+    <div class="logout-card__icon">
+      <mat-icon>logout</mat-icon>
+    </div>
+
+    <p>{{ 'auth.logoutConfirm.body' | transloco }}</p>
+
+    @if (error()) {
+      <p class="logout-card__error">{{ error() }}</p>
+    }
+
+    <div class="logout-card__actions">
+      <button mat-flat-button type="button" [disabled]="busy()" (click)="confirmLogout()">
+        <mat-icon>logout</mat-icon>
+        {{ 'auth.logout' | transloco }}
+      </button>
+      <button mat-stroked-button type="button" [disabled]="busy()" (click)="cancel()">
+        <mat-icon>arrow_back</mat-icon>
+        {{ 'auth.logoutConfirm.cancel' | transloco }}
+      </button>
+    </div>
+  </div>
+</app-auth-shell>

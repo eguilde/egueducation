@@ -1,0 +1,72 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.educationTaxonomies.title' | transloco }}</h1>
+    <p>{{ 'admin.educationTaxonomies.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.educationTaxonomies.form.title' | transloco }}</h2>
+    <p>{{ 'admin.educationTaxonomies.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveTaxonomy()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.educationTaxonomies.form.domain' | transloco }}</mat-label>
+        <mat-select formControlName="domain">
+          @for (value of filters().domains; track value) {
+            <mat-option [value]="value">{{ value }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.educationTaxonomies.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.educationTaxonomies.form.labelRo' | transloco }}</mat-label>
+        <input matInput formControlName="label_ro" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.educationTaxonomies.form.labelEn' | transloco }}</mat-label>
+        <input matInput formControlName="label_en" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.educationTaxonomies.form.sortOrder' | transloco }}</mat-label>
+        <input matInput type="number" formControlName="sort_order" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.educationTaxonomies.form.active' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.educationTaxonomies.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.educationTaxonomies.list.title' | transloco }}</h2>
+    <p>{{ 'admin.educationTaxonomies.list.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.educationTaxonomies.list.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedTaxonomyId()"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectTaxonomy($event)"
+    />
+  </mat-card>
+</section>

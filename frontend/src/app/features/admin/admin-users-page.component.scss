@@ -1,41 +1,36 @@
-.admin-users-page {
+.admin-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.admin-page__eyebrow {
+  margin: 0 0 0.25rem;
+  font: 600 0.8rem/1.2 var(--mat-sys-title-small-font, inherit);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mat-sys-primary);
+}
+
+.admin-page__grid {
   display: grid;
   gap: 1.5rem;
 }
 
-.admin-users-page__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.admin-page__form {
+  display: grid;
   gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-page__actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
-.admin-users-page__eyebrow {
-  margin: 0 0 0.35rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--brand-strong);
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.admin-users-page__header h1,
-.admin-users-page__header p {
-  margin: 0;
-}
-
-.admin-users-page__header p:last-child {
-  max-width: 48rem;
-  margin-top: 0.5rem;
-  color: var(--text-soft);
-}
-
-.admin-users-page mat-card {
-  padding: 0;
-  border-radius: 1.75rem;
-  border: 1px solid var(--border-soft);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
+@media (min-width: 1200px) {
+  .admin-page__grid {
+    grid-template-columns: minmax(20rem, 28rem) minmax(0, 1fr);
+    align-items: start;
+  }
 }

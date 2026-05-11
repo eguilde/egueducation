@@ -1,0 +1,133 @@
+.registratura-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.registratura-page__hero {
+  display: grid;
+  gap: 1rem;
+}
+
+.registratura-page__eyebrow {
+  margin: 0;
+  color: var(--mat-sys-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.registratura-page__hero h1 {
+  margin: 0.25rem 0;
+}
+
+.registratura-page__hero p {
+  margin: 0;
+  max-width: 70ch;
+}
+
+.registratura-page__stats {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.registratura-page__stats mat-card {
+  padding: 1rem;
+}
+
+.registratura-page__stat-value {
+  display: block;
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+.registratura-page__stat-label {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.95rem;
+}
+
+.registratura-page__grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(20rem, 30rem) minmax(0, 1fr);
+  align-items: start;
+}
+
+.registratura-page__card {
+  min-width: 0;
+}
+
+.registratura-page__sidebar {
+  display: grid;
+  gap: 1rem;
+}
+
+.registratura-page__table-card {
+  min-height: 42rem;
+}
+
+.registratura-form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.registratura-form__summary {
+  grid-column: 1 / -1;
+}
+
+.registratura-details {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.registratura-details__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.registratura-details__row span,
+.registratura-details__empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.registratura-history {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.registratura-history__item {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+  background: color-mix(in srgb, var(--mat-sys-surface) 88%, var(--mat-sys-primary) 12%);
+}
+
+.registratura-history__item p {
+  margin: 0.35rem 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  word-break: break-word;
+}
+
+.registratura-history__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+@media (max-width: 1100px) {
+  .registratura-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .registratura-form {
+    grid-template-columns: 1fr;
+  }
+}

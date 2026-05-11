@@ -1,6 +1,8 @@
 import { DOCUMENT } from '@angular/common';
 import { Inject, Injectable, computed, inject, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import * as oauth from 'oauth4webapi';
+import { firstValueFrom } from 'rxjs';
 
 import { ThemeService } from '../ui/theme.service';
 import { AUTH_CONFIG, AuthConfig, StoredTokens, UserProfile } from './auth.types';
@@ -26,6 +28,7 @@ export class AuthService {
   private readonly dpop = inject(DPoPProofService);
   private readonly theme = inject(ThemeService);
   private readonly document = inject(DOCUMENT);
+  private readonly http = inject(HttpClient);
 
   private readonly profileSignal = signal<UserProfile | null>(null);
   private readonly tokensSignal = signal<StoredTokens | null>(null);
@@ -87,7 +90,14 @@ export class AuthService {
     localStorage.removeItem(TOKENS_KEY);
     this.profileSignal.set(null);
     this.tokensSignal.set(null);
+    await firstValueFrom(this.http.post<{ status: string }>('/api/auth/logout', {}));
     this.document.location.href = this.config.postLogoutRedirectUri;
+  }
+
+  clearLocalSession(): void {
+    localStorage.removeItem(TOKENS_KEY);
+    this.profileSignal.set(null);
+    this.tokensSignal.set(null);
   }
 
   async refresh(): Promise<void> {

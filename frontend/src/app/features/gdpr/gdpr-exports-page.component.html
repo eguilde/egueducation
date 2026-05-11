@@ -1,0 +1,74 @@
+<div class="feature-page">
+  <div class="feature-page__hero">
+    <div>
+      <p class="feature-page__eyebrow">{{ 'nav.gdprExports' | transloco }}</p>
+      <h1>{{ 'gdprExports.title' | transloco }}</h1>
+      <p>{{ 'gdprExports.subtitle' | transloco }}</p>
+    </div>
+    <div class="feature-page__stats">
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.total_exports }}</span><span class="feature-page__stat-label">{{ 'gdprExports.stats.totalExports' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.pending_approval }}</span><span class="feature-page__stat-label">{{ 'gdprExports.stats.pendingApproval' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.generated_exports }}</span><span class="feature-page__stat-label">{{ 'gdprExports.stats.generatedExports' | transloco }}</span></mat-card>
+      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.delivered_exports }}</span><span class="feature-page__stat-label">{{ 'gdprExports.stats.deliveredExports' | transloco }}</span></mat-card>
+    </div>
+  </div>
+
+  <div class="feature-page__grid">
+    <div class="feature-page__sidebar">
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdprExports.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdprExports.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="feature-form" [formGroup]="form">
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.requestId' | transloco }}</mat-label><input matInput formControlName="request_id" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.subjectName' | transloco }}</mat-label><input matInput formControlName="subject_name" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.sourceModule' | transloco }}</mat-label><mat-select formControlName="source_module">@for (value of filters().source_modules; track value) {<mat-option [value]="value">{{ ('gdpr.sourceModule.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.status' | transloco }}</mat-label><mat-select formControlName="status">@for (value of filters().statuses; track value) {<mat-option [value]="value">{{ ('gdpr.exportStatus.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.exportFormat' | transloco }}</mat-label><mat-select formControlName="export_format">@for (value of filters().export_formats; track value) {<mat-option [value]="value">{{ ('gdpr.exportFormat.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.approvedBy' | transloco }}</mat-label><input matInput formControlName="approved_by" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.approvedOn' | transloco }}</mat-label><input matInput [matDatepicker]="approvedPicker" formControlName="approved_on" /><mat-datepicker-toggle matIconSuffix [for]="approvedPicker" /><mat-datepicker #approvedPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.generatedOn' | transloco }}</mat-label><input matInput [matDatepicker]="generatedPicker" formControlName="generated_on" /><mat-datepicker-toggle matIconSuffix [for]="generatedPicker" /><mat-datepicker #generatedPicker /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>{{ 'gdprExports.form.packageSummary' | transloco }}</mat-label><textarea matInput rows="3" formControlName="package_summary"></textarea></mat-form-field>
+            <mat-form-field appearance="outline" class="feature-form__summary"><mat-label>{{ 'gdprExports.form.notes' | transloco }}</mat-label><textarea matInput rows="3" formControlName="notes"></textarea></mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRecord()"><mat-icon>download</mat-icon>{{ 'gdprExports.create.submit' | transloco }}</button></mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="feature-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'gdprExports.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'gdprExports.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedRecord(); as item) {
+            <div class="feature-details">
+              <div class="feature-details__row"><span>{{ 'gdprExports.columns.status' | transloco }}</span><strong>{{ ('gdpr.exportStatus.' + item.status) | transloco }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'gdprExports.columns.exportFormat' | transloco }}</span><strong>{{ ('gdpr.exportFormat.' + item.export_format) | transloco }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'gdprExports.form.approvedBy' | transloco }}</span><strong>{{ item.approved_by || '—' }}</strong></div>
+              <div class="feature-details__row"><span>{{ 'gdprExports.columns.generatedOn' | transloco }}</span><strong>{{ item.generated_on || '—' }}</strong></div>
+              <p class="feature-details__summary">{{ item.package_summary || '—' }}</p>
+              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'gdprExports.workflow.start' | transloco }}</button>
+            </div>
+          } @else {
+            <p class="feature-details__empty">{{ 'gdprExports.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card [sourceModule]="'gdpr.exports'" [sourceRecordId]="selectedRecordId()" />
+    </div>
+
+    <mat-card appearance="outlined" class="feature-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'gdprExports.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'gdprExports.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table [columns]="columns()" [rows]="rows()" [total]="response().total" [pageIndex]="response().page - 1" [pageSize]="response().pageSize" [emptyMessage]="'gdprExports.list.empty' | transloco" [sortActive]="tableState().sort || ''" [sortDirection]="tableState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedRecordId()" (pageChange)="onPageChange($event)" (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (rowClick)="onSelectRecord($event)" />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

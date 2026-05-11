@@ -1,0 +1,37 @@
+.platform-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.platform-page__grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.platform-page__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.platform-page__form {
+  display: grid;
+  gap: 1rem;
+}
+
+.platform-page__runtime {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.platform-page__runtime div {
+  display: grid;
+  gap: 0.125rem;
+}
+
+@media (min-width: 1200px) {
+  .platform-page__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}

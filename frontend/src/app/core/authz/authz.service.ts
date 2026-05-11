@@ -16,8 +16,20 @@ export class AuthzService {
   readonly institutionName = computed(() => this.sessionSignal()?.institution_name ?? '');
 
   async init(): Promise<void> {
-    const session = await firstValueFrom(this.http.get<SessionContext>('/api/me'));
-    this.sessionSignal.set(session ?? null);
+    await this.reload();
+  }
+
+  async reload(): Promise<void> {
+    try {
+      const session = await firstValueFrom(this.http.get<SessionContext>('/api/me'));
+      this.sessionSignal.set(session ?? null);
+    } catch {
+      this.sessionSignal.set(null);
+    }
+  }
+
+  clearSession(): void {
+    this.sessionSignal.set(null);
   }
 
   hasPermission(permission: string): boolean {

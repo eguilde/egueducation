@@ -1,0 +1,71 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.nomenclatures.title' | transloco }}</h1>
+    <p>{{ 'admin.nomenclatures.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.nomenclatures.form.title' | transloco }}</h2>
+    <p>{{ 'admin.nomenclatures.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveNomenclature()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.nomenclatures.form.domain' | transloco }}</mat-label>
+        <mat-select formControlName="domain">
+          @for (value of filters().domains; track value) {
+            <mat-option [value]="value">{{ value }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.nomenclatures.form.code' | transloco }}</mat-label>
+        <input matInput formControlName="code" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.nomenclatures.form.labelRo' | transloco }}</mat-label>
+        <input matInput formControlName="label_ro" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.nomenclatures.form.labelEn' | transloco }}</mat-label>
+        <input matInput formControlName="label_en" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.nomenclatures.form.sortOrder' | transloco }}</mat-label>
+        <input matInput type="number" formControlName="sort_order" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="active">
+        {{ 'admin.nomenclatures.form.active' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.nomenclatures.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.nomenclatures.list.title' | transloco }}</h2>
+    <p>{{ 'admin.nomenclatures.list.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.nomenclatures.list.empty' | transloco"
+      [rowClickable]="true"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectNomenclature($event)"
+    />
+  </mat-card>
+</section>

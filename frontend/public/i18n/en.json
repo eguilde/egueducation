@@ -8,7 +8,24 @@
     "workflow": "Workflow",
     "earchiva": "eArchive",
     "education": "Education",
+    "educationDecisions": "Board decisions",
+    "educationManagerial": "Managerial dossiers",
+    "educationRegulations": "ROF / ROI",
+    "educationPersonnel": "School personnel",
+    "educationEvaluations": "Annual evaluations",
+    "educationDeclarations": "Declarations",
+    "educationMobility": "Mobility",
+    "educationGradatii": "Merit grants",
+    "educationPortfolios": "CD portfolios",
+    "gdpr": "GDPR",
+    "gdprExports": "GDPR exports",
+    "gdprPublication": "Publication and anonymization",
     "admin": "Administration"
+  },
+  "common": {
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
   },
   "auth": {
     "login": "Sign in",
@@ -16,6 +33,7 @@
     "notAuthenticated": "Not signed in",
     "redirecting": "Finishing authentication",
     "callbackMessage": "We are signing you in and redirecting you back to the application.",
+    "callbackEyebrow": "OIDC callback",
     "redirectBadge": "Redirect-based authentication",
     "oidcBadge": "OIDC, PKCE, and DPoP",
     "loginTitle": "Secure authentication for registry, workflows, and education modules",
@@ -23,8 +41,44 @@
     "availableMethods": "Available methods",
     "redirectFlow": "No popups",
     "primaryMethod": "Primary method",
+    "loggedOutEyebrow": "Session closed",
     "loggedOutTitle": "Your session has been closed",
     "loggedOutBody": "You can sign in again at any time or return to the public dashboard.",
+    "visual": {
+      "kicker": "eGuilde Identity",
+      "title": "Secure access to education and administration services.",
+      "body": "The same visual language across login, consent, and logout, with redirect-based OIDC, SMS OTP, and architecture ready for passkeys and wallet-based identity."
+    },
+    "consent": {
+      "eyebrow": "OIDC consent",
+      "title": "Review the requested permissions before you continue",
+      "subtitle": "The authentication client uses the same secure flow as the rest of the app. Choose which verified data can be shared for this session.",
+      "clientBody": "is requesting access to your verified data to complete sign-in.",
+      "loading": "Loading the consent request.",
+      "unavailable": "The consent request is no longer available or has expired.",
+      "selectAll": "Select all permissions",
+      "allow": "Allow and continue",
+      "deny": "Deny",
+      "gdpr": "By continuing, you agree to the processing of the requested data under the institution's policies and Regulation (EU) 2016/679.",
+      "messages": {
+        "selectScope": "Select at least one permission to continue.",
+        "saveFailed": "The consent decision could not be saved."
+      }
+    },
+    "logoutConfirm": {
+      "eyebrow": "Logout confirmation",
+      "title": "Do you want to close the current session?",
+      "subtitle": "Signing out revokes local tokens and closes the web session used by the OIDC provider.",
+      "body": "After signing out, you will need to authenticate again to continue in the administrative or education modules.",
+      "cancel": "Stay signed in",
+      "error": "The session could not be fully closed. Please try again."
+    },
+    "accessDenied": {
+      "eyebrow": "Restricted access",
+      "title": "You do not have the required permission for this area",
+      "subtitle": "The roles, positions, or active modules in the current session do not allow access to the requested resource.",
+      "supportHint": "If this access should be available, review the user's membership, operational position, and assigned permissions in administration."
+    },
     "methods": {
       "oidc_redirect": "OIDC redirect",
       "sms_otp": "SMS OTP code",
@@ -36,6 +90,23 @@
       "sms_otp": "One-time codes sent over SMS for verification and step-up authentication.",
       "passkey": "Modern passwordless authentication with hardware keys or biometrics.",
       "eudi_wallet": "Prepared integration for digital identity and attestations presented through a wallet."
+    },
+    "smsOtp": {
+      "title": "SMS OTP sign-in",
+      "provider": "smsapi.ro",
+      "sentTo": "Code sent to {{ phone }}.",
+      "form": {
+        "identifier": "Email or phone",
+        "request": "Send SMS code",
+        "code": "OTP code",
+        "verify": "Verify SMS"
+      },
+      "messages": {
+        "sent": "SMS OTP sent.",
+        "sendFailed": "The SMS OTP could not be sent.",
+        "verified": "SMS sign-in succeeded.",
+        "verifyFailed": "Invalid or expired SMS code."
+      }
     }
   },
   "appearance": {
@@ -77,16 +148,32 @@
     "comingSoon": "The section is prepared for the full implementation of the functionality.",
     "quickLinks": {
       "title": "Quick access",
-      "users": "Manage users"
+      "users": "Manage users",
+      "roles": "Manage roles",
+      "orgUnits": "Manage org chart",
+      "memberships": "View memberships",
+      "positions": "View positions",
+      "permissions": "View permissions",
+      "dossierRequirements": "Configure dossier requirements",
+      "educationTaxonomies": "Configure education taxonomies",
+      "workflowDefinitions": "Configure workflow definitions",
+      "nomenclatures": "Configure nomenclatures",
+      "gdprSettings": "Configure GDPR settings",
+      "platformSettings": "Configure auth and modules",
+      "identity": "Manage OIDC identity",
+      "audit": "View audit log"
     },
     "stats": {
       "users": "Users",
       "positions": "Positions",
       "workflows": "Workflows",
-      "permissions": "Permissions"
+      "permissions": "Permissions",
+      "readyDossiers": "Ready dossiers",
+      "blockedDossiers": "Blocked dossiers"
     },
     "sections": {
       "users": "Users",
+      "roles": "Roles and assignments",
       "memberships": "Memberships",
       "orgUnits": "Org chart and units",
       "org_units": "Org chart and units",
@@ -94,13 +181,44 @@
       "permissions": "Permissions and policies",
       "workflows": "Workflow definitions",
       "workflow_definitions": "Workflow definitions",
+      "dossier_requirements": "Dossier completeness requirements",
       "archives": "Archive nomenclatures",
       "archive_nomenclatures": "Archive nomenclatures",
       "registry_nomenclatures": "Registry nomenclatures",
       "education_taxonomies": "Education taxonomies",
       "gdpr": "GDPR, retention, and access",
       "gdpr_policies": "GDPR, retention, and access",
-      "auth_methods": "Authentication methods"
+      "gdpr_settings": "GDPR operational settings",
+      "auth_methods": "Authentication methods",
+      "audit": "Administrative audit log"
+    },
+    "audit": {
+      "title": "Administrative audit log",
+      "subtitle": "Track sensitive changes across administration, identity, and operational configuration through the same server-side table model.",
+      "empty": "There are no audit events for the current filters.",
+      "columns": {
+        "createdAt": "Created at",
+        "actorSubject": "Actor",
+        "domain": "Domain",
+        "action": "Action",
+        "targetType": "Target type",
+        "targetId": "Target ID",
+        "status": "Status",
+        "summary": "Summary"
+      },
+      "domains": {
+        "admin": "Administration",
+        "auth": "Identity",
+        "registratura": "Registratura",
+        "workflow": "Workflow",
+        "earchiva": "eArchive",
+        "education": "Education",
+        "gdpr": "GDPR"
+      },
+      "status": {
+        "success": "Success",
+        "failed": "Failed"
+      }
     },
     "users": {
       "eyebrow": "User administration",
@@ -108,6 +226,23 @@
       "subtitle": "The first real server-side table validates the shared contract for paging, sorting, and header filters.",
       "addAction": "Add user",
       "empty": "There are no users matching the selected filters.",
+      "form": {
+        "title": "Add or update user",
+        "subtitle": "Configure core identity data, account state, and contact verification for authentication and administration.",
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "locale": "Language",
+        "status": "Status",
+        "otpChannel": "OTP channel",
+        "emailVerified": "Email verified",
+        "phoneVerified": "Phone verified",
+        "reset": "Reset form",
+        "submit": "Save user"
+      },
+      "otpChannel": {
+        "sms": "SMS"
+      },
       "columns": {
         "name": "Name",
         "email": "Email",
@@ -115,18 +250,1704 @@
         "status": "Status",
         "locale": "Language",
         "lastLoginAt": "Last sign-in"
+      },
+      "messages": {
+        "saved": "The user was saved successfully.",
+        "saveFailed": "The user could not be saved."
+      }
+    },
+    "roles": {
+      "title": "Administrative roles",
+      "subtitle": "Manage the role catalog and user-role assignments for the identity-based authorization layer.",
+      "empty": "There are no roles for the current filters.",
+      "form": {
+        "title": "Add or update role",
+        "subtitle": "Define the code and label of the role used in administration and identity.",
+        "code": "Role code",
+        "label": "Label",
+        "reset": "Reset form",
+        "submit": "Save role"
+      },
+      "columns": {
+        "code": "Code",
+        "label": "Label"
+      },
+      "assignments": {
+        "title": "Role assignments",
+        "subtitle": "Review users and their associated administrative roles.",
+        "empty": "There are no role assignments for the current filters.",
+        "formTitle": "Add or update assignment",
+        "formSubtitle": "Associate or remove an administrative role for a user.",
+        "userId": "User",
+        "roleCode": "Role",
+        "assigned": "Assignment active",
+        "reset": "Reset form",
+        "submit": "Save assignment",
+        "columns": {
+          "userName": "User",
+          "userEmail": "Email",
+          "roleCode": "Role code",
+          "roleLabel": "Role label"
+        }
+      },
+      "messages": {
+        "saved": "The role was saved successfully.",
+        "saveFailed": "The role could not be saved.",
+        "assigned": "The role assignment was saved.",
+        "removed": "The role assignment was removed.",
+        "assignmentFailed": "The role assignment could not be saved."
+      }
+    },
+    "orgUnits": {
+      "title": "Org chart and units",
+      "subtitle": "Manage the institution's organizational structure, unit hierarchy, and operational ordering.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "list": {
+        "title": "Organizational units",
+        "subtitle": "Server-side table for name, parent, state, and org chart ordering.",
+        "empty": "There are no units for the current filters."
+      },
+      "form": {
+        "title": "Add or update a unit",
+        "subtitle": "Define the internal code, display name, parent unit, and ordering within the structure.",
+        "code": "Code",
+        "name": "Name",
+        "parentCode": "Parent unit",
+        "noParent": "No parent",
+        "sortOrder": "Order",
+        "active": "Active",
+        "reset": "Reset form",
+        "submit": "Save unit"
+      },
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "parentName": "Parent",
+        "sortOrder": "Order",
+        "active": "Active"
+      },
+      "messages": {
+        "saved": "The organizational unit was saved successfully.",
+        "saveFailed": "The organizational unit could not be saved."
+      }
+    },
+    "memberships": {
+      "title": "Memberships and assignments",
+      "subtitle": "Review active institutional assignments, positions, and organizations through the shared server-side grid pattern.",
+      "empty": "No memberships match the current filters.",
+      "form": {
+        "title": "Add or update membership",
+        "subtitle": "Link a user to a position and the organization where they operate.",
+        "userId": "User ID",
+        "positionCode": "Position code",
+        "orgUnit": "Organizational unit",
+        "organizationName": "Organization",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "isPrimary": "Primary membership",
+        "active": "Active",
+        "reset": "Reset form",
+        "submit": "Save membership"
+      },
+      "columns": {
+        "userName": "User",
+        "userEmail": "Email",
+        "positionName": "Position",
+        "organizationName": "Organization",
+        "startDate": "Start date",
+        "active": "Active"
+      },
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "messages": {
+        "saved": "The membership was saved successfully.",
+        "saveFailed": "The membership could not be saved."
+      }
+    },
+    "positions": {
+      "title": "Operational positions",
+      "subtitle": "Manage operational positions and their module scope for RBAC and workflow assignment.",
+      "empty": "No positions match the current filters.",
+      "form": {
+        "title": "Add or update position",
+        "subtitle": "Configure the operational code, scope module, and display order for positions used by RBAC.",
+        "code": "Code",
+        "name": "Name",
+        "scopeModule": "Module",
+        "sortOrder": "Order",
+        "active": "Active",
+        "reset": "Reset form",
+        "submit": "Save position"
+      },
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "scopeModule": "Module",
+        "sortOrder": "Order",
+        "active": "Active"
+      },
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "messages": {
+        "saved": "The position was saved successfully.",
+        "saveFailed": "The position could not be saved."
+      }
+    },
+    "permissions": {
+      "title": "Permission catalog",
+      "subtitle": "Review application permissions and how widely they are assigned to users and positions.",
+      "empty": "No permissions match the current filters.",
+      "form": {
+        "title": "Assign or revoke permission",
+        "subtitle": "Link a permission to an operational position to control membership-based runtime access.",
+        "permissionCode": "Permission",
+        "positionCode": "Position",
+        "assigned": "Keep permission assigned",
+        "reset": "Reset form",
+        "submit": "Apply change"
+      },
+      "catalog": {
+        "title": "Permission catalog",
+        "subtitle": "Select a permission to quickly filter and manage which positions inherit it."
+      },
+      "assignments": {
+        "title": "Position assignments",
+        "subtitle": "Server-side table for the links between permissions and the positions that inherit them at runtime.",
+        "empty": "No assignments match the current filters.",
+        "columns": {
+          "permissionCode": "Permission code",
+          "permissionLabel": "Label",
+          "positionCode": "Position code",
+          "positionName": "Position",
+          "scopeModule": "Module"
+        }
+      },
+      "columns": {
+        "code": "Code",
+        "label": "Label",
+        "userCount": "Users",
+        "roleCount": "Positions"
+      },
+      "messages": {
+        "saved": "The permission assignment was saved successfully.",
+        "removed": "The permission assignment was removed successfully.",
+        "saveFailed": "The permission assignment could not be saved."
       }
     },
     "userStatus": {
       "active": "Active",
       "pending": "Pending",
       "suspended": "Suspended"
+    },
+    "dossierRequirements": {
+      "title": "Dossier completeness requirements",
+      "subtitle": "Configure which linked document types are mandatory for completeness visibility and for critical workflow transitions.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "form": {
+        "title": "Add or update a rule",
+        "subtitle": "Each rule links a source module to a required document relation and the minimum count needed.",
+        "sourceModule": "Source module",
+        "relationType": "Document relation",
+        "minCount": "Minimum count",
+        "requiredForReadiness": "Used for dossier completeness",
+        "requiredForSubmit": "Blocks submit for approval",
+        "requiredForApprove": "Blocks final approval",
+        "submit": "Save rule"
+      },
+      "list": {
+        "title": "Active rules",
+        "subtitle": "Server-side table for modules, document relations, and the actions they block.",
+        "empty": "No rules match the current filters."
+      },
+      "columns": {
+        "sourceModule": "Source module",
+        "relationType": "Document relation",
+        "minCount": "Minimum",
+        "readiness": "Completeness",
+        "submit": "On submit",
+        "approve": "On approve"
+      },
+      "messages": {
+        "saved": "The rule was saved successfully.",
+        "saveFailed": "The rule could not be saved."
+      }
+    },
+    "educationTaxonomies": {
+      "title": "Education taxonomies",
+      "subtitle": "Manage the active catalogs for school years, organisms, statuses, and other classifications used in the education modules.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "form": {
+        "title": "Add or update an entry",
+        "subtitle": "Configure the internal code, Romanian and English labels, activity state, and display order.",
+        "domain": "Domain",
+        "code": "Code",
+        "labelRo": "Romanian label",
+        "labelEn": "English label",
+        "sortOrder": "Order",
+        "active": "Active",
+        "submit": "Save entry"
+      },
+      "list": {
+        "title": "Active entries",
+        "subtitle": "Server-side table for filtering and sorting education taxonomies.",
+        "empty": "No entries match the current filters."
+      },
+      "columns": {
+        "domain": "Domain",
+        "code": "Code",
+        "labelRo": "RO label",
+        "labelEn": "EN label",
+        "sortOrder": "Order",
+        "active": "Active"
+      },
+      "messages": {
+        "saved": "The taxonomy entry was saved successfully.",
+        "saveFailed": "The taxonomy entry could not be saved."
+      }
+    },
+    "workflowDefinitions": {
+      "title": "Workflow definitions",
+      "subtitle": "Manage codes, categories, initial steps, and SLAs for operational workflows.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "form": {
+        "title": "Add or update a definition",
+        "subtitle": "Configure the definition used by the runtime and by launches from modules.",
+        "code": "Code",
+        "name": "Name",
+        "category": "Category",
+        "initialStep": "Initial step",
+        "slaHours": "SLA (hours)",
+        "active": "Active",
+        "submit": "Save definition"
+      },
+      "list": {
+        "title": "Active and historical definitions",
+        "subtitle": "Server-side table for code, category, SLA, and state.",
+        "empty": "No definitions match the current filters."
+      },
+      "columns": {
+        "name": "Name",
+        "code": "Code",
+        "category": "Category",
+        "initialStep": "Initial step",
+        "slaHours": "SLA (hours)",
+        "active": "Active"
+      },
+      "messages": {
+        "saved": "The workflow definition was saved successfully.",
+        "saveFailed": "The workflow definition could not be saved."
+      }
+    },
+    "nomenclatures": {
+      "title": "Registry and archive nomenclatures",
+      "subtitle": "Manage the lists used by registratura and eArchive for types, statuses, directions, fonds, and series.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "form": {
+        "title": "Add or update an entry",
+        "subtitle": "Configure the domain, internal code, bilingual labels, and display order.",
+        "domain": "Domain",
+        "code": "Code",
+        "labelRo": "Romanian label",
+        "labelEn": "English label",
+        "sortOrder": "Order",
+        "active": "Active",
+        "submit": "Save entry"
+      },
+      "list": {
+        "title": "Active and historical entries",
+        "subtitle": "Server-side table for filtering and sorting application nomenclatures.",
+        "empty": "No entries match the current filters."
+      },
+      "columns": {
+        "domain": "Domain",
+        "code": "Code",
+        "labelRo": "RO label",
+        "labelEn": "EN label",
+        "sortOrder": "Order",
+        "active": "Active"
+      },
+      "messages": {
+        "saved": "The nomenclature entry was saved successfully.",
+        "saveFailed": "The nomenclature entry could not be saved."
+      }
+    },
+    "platform": {
+      "title": "Platform settings",
+      "subtitle": "Manage authentication methods, active modules, and runtime parameters exposed to the application.",
+      "auth": {
+        "title": "Authentication methods",
+        "subtitle": "Control ordering, the primary method, and logical activation of authentication channels.",
+        "form": {
+          "code": "Method",
+          "sortOrder": "Order",
+          "enabled": "Enabled",
+          "primary": "Primary method",
+          "submit": "Save method"
+        }
+      },
+      "modules": {
+        "title": "Active modules",
+        "subtitle": "Enable or disable platform modules without manually changing routes.",
+        "form": {
+          "code": "Module",
+          "active": "Active",
+          "submit": "Save module"
+        }
+      },
+      "runtime": {
+        "title": "Runtime parameters",
+        "subtitle": "Quick view of the active issuer, clients, and application theme settings."
+      },
+      "messages": {
+        "methodSaved": "The authentication method was saved successfully.",
+        "methodSaveFailed": "The authentication method could not be saved.",
+        "moduleSaved": "The module was saved successfully.",
+        "moduleSaveFailed": "The module could not be saved."
+      }
+    },
+    "identity": {
+      "title": "OIDC identity, consents, and sessions",
+      "subtitle": "Manage provider clients, granted consents, and refresh-token-based sessions from the same operational admin surface.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "clients": {
+        "title": "OIDC clients",
+        "subtitle": "Configure public clients, PKCE requirements, and allowed redirect URIs for SPAs and connected applications.",
+        "empty": "There are no OIDC clients for the current filters.",
+        "columns": {
+          "clientId": "Client ID",
+          "clientName": "Client name",
+          "redirectUris": "Redirect URIs",
+          "active": "Active",
+          "createdAt": "Created at"
+        },
+        "form": {
+          "clientId": "Client ID",
+          "clientName": "Client name",
+          "redirectUris": "Redirect URIs",
+          "publicClient": "Public client",
+          "requirePkce": "Require PKCE",
+          "active": "Active",
+          "reset": "Reset form",
+          "submit": "Save client"
+        }
+      },
+      "consents": {
+        "title": "Granted consents",
+        "subtitle": "Review and revoke stored agreements between users and OIDC clients.",
+        "empty": "There are no consents for the current filters.",
+        "revoke": "Revoke consent",
+        "columns": {
+          "clientId": "Client ID",
+          "subject": "User",
+          "scope": "Scope",
+          "grantedAt": "Granted at"
+        }
+      },
+      "sessions": {
+        "title": "Sessions and refresh tokens",
+        "subtitle": "Monitor active and revoked tokens and close persistent sessions when needed.",
+        "empty": "There are no OIDC sessions for the current filters.",
+        "revoke": "Revoke session",
+        "columns": {
+          "clientId": "Client ID",
+          "subject": "User",
+          "scope": "Scope",
+          "expiresAt": "Expires at",
+          "revoked": "Revoked"
+        }
+      },
+      "messages": {
+        "clientSaved": "The OIDC client was saved successfully.",
+        "clientSaveFailed": "The OIDC client could not be saved.",
+        "consentRevoked": "The OIDC consent was revoked.",
+        "consentRevokeFailed": "The OIDC consent could not be revoked.",
+        "sessionRevoked": "The OIDC session was revoked.",
+        "sessionRevokeFailed": "The OIDC session could not be revoked."
+      }
+    },
+    "gdprSettings": {
+      "title": "GDPR operational settings",
+      "subtitle": "Manage the default anonymization, export, SLA, and retention rules without editing application code.",
+      "boolean": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "valueType": {
+        "bool": "Boolean",
+        "int": "Number",
+        "text": "Text"
+      },
+      "codes": {
+        "publication_anonymization_required": "Publication requires anonymization",
+        "subject_export_requires_approval": "Data subject export requires approval",
+        "default_response_sla_days": "Default response SLA (days)",
+        "retention_review_notice_days": "Retention review notice (days)",
+        "portfolio_consent_required": "Portfolio consent required",
+        "portfolio_authenticity_required": "Portfolio authenticity declaration required"
+      },
+      "form": {
+        "title": "Update a setting",
+        "subtitle": "Select the operational rule and change the persisted value used by the platform.",
+        "code": "Setting",
+        "valueType": "Value type",
+        "valueBool": "Enabled value",
+        "valueInt": "Numeric value",
+        "valueText": "Text value",
+        "submit": "Save setting"
+      },
+      "list": {
+        "title": "Active settings",
+        "subtitle": "This list reflects the values that drive the default GDPR module behavior."
+      },
+      "messages": {
+        "saved": "The GDPR setting was saved successfully.",
+        "saveFailed": "The GDPR setting could not be saved."
+      }
+    }
+  },
+  "registratura": {
+    "title": "Registry and document intake",
+    "subtitle": "Manage incoming, outgoing, and internal documents with server-side filtering, numbering, and follow-up deadlines.",
+    "stats": {
+      "totalDocuments": "Documents in registry",
+      "documentTypes": "Document types",
+      "versions": "Versions",
+      "attachments": "Attachments"
+    },
+    "create": {
+      "title": "Register a new document",
+      "subtitle": "Create a document with generated registry number and initial routing metadata.",
+      "submit": "Register document"
+    },
+    "list": {
+      "title": "Documents",
+      "subtitle": "Sticky headers, server-side paging, sorting, and typed column filters are active here.",
+      "empty": "No documents match the current filters."
+    },
+    "details": {
+      "title": "Selected document",
+      "subtitle": "Select a document from the table to inspect its current state, history, and attachments.",
+      "empty": "Select a document to inspect its operational details."
+    },
+    "versions": {
+      "title": "Version history",
+      "subtitle": "Record a new operational version whenever the document status, owner, or summary changes.",
+      "submit": "Save version",
+      "empty": "There are no versions for the selected document.",
+      "emptySelection": "Select a document first to manage version history.",
+      "versionLabel": "Version {{ version }}",
+      "form": {
+        "changeNotes": "Change notes"
+      }
+    },
+    "attachments": {
+      "title": "Attachments and payload",
+      "subtitle": "Manage attachment metadata, storage keys, and lifecycle state for every file linked to the document.",
+      "submit": "Add attachment",
+      "empty": "There are no attachments for the selected document.",
+      "emptySelection": "Select a document first to manage attachments.",
+      "form": {
+        "title": "Attachment title",
+        "fileName": "File name",
+        "mimeType": "MIME type",
+        "storageKey": "Storage key",
+        "sizeBytes": "Size (bytes)",
+        "category": "Category",
+        "status": "Status",
+        "uploadedBy": "Uploaded by"
+      },
+      "category": {
+        "incoming_scan": "Incoming scan",
+        "supporting": "Supporting document",
+        "signed_decision": "Signed document",
+        "archive_copy": "Archive copy",
+        "export_package": "Export package"
+      },
+      "status": {
+        "active": "Active",
+        "superseded": "Superseded",
+        "archived": "Archived"
+      }
+    },
+    "form": {
+      "subject": "Subject",
+      "documentType": "Document type",
+      "direction": "Direction",
+      "status": "Status",
+      "correspondent": "Correspondent",
+      "assignedTo": "Assigned to",
+      "confidentiality": "Confidentiality",
+      "dueDate": "Due date",
+      "summary": "Summary"
+    },
+    "columns": {
+      "registryNumber": "Registry no.",
+      "subject": "Subject",
+      "documentType": "Type",
+      "direction": "Direction",
+      "status": "Status",
+      "correspondent": "Correspondent",
+      "registeredAt": "Registered at",
+      "dueDate": "Due date"
+    },
+    "direction": {
+      "intrare": "Incoming",
+      "iesire": "Outgoing",
+      "intern": "Internal"
+    },
+    "status": {
+      "draft": "Draft",
+      "registered": "Registered",
+      "in_workflow": "In workflow",
+      "archived": "Archived"
+    },
+    "confidentiality": {
+      "normal": "Normal",
+      "internal": "Internal",
+      "confidential": "Confidential"
+    },
+    "messages": {
+      "created": "Document registered successfully.",
+      "createFailed": "The document could not be registered.",
+      "versionCreated": "The document version was saved.",
+      "versionCreateFailed": "The document version could not be saved.",
+      "attachmentCreated": "The attachment was registered.",
+      "attachmentCreateFailed": "The attachment could not be registered."
+    }
+  },
+  "workflow": {
+    "title": "Operational inbox and workflow runtime",
+    "subtitle": "Start workflows, track active tasks, filter them server-side, and execute authorized transitions in one place.",
+    "stats": {
+      "activeTasks": "Active tasks",
+      "overdueTasks": "Overdue tasks",
+      "waitingApproval": "Waiting approval",
+      "activeDefinitions": "Active definitions",
+      "readyDossiers": "Ready dossiers",
+      "blockedDossiers": "Incomplete dossiers"
+    },
+    "create": {
+      "title": "Start a new workflow",
+      "subtitle": "Create a workflow instance from active definitions and set the initial owners.",
+      "submit": "Start workflow"
+    },
+    "list": {
+      "title": "Task inbox",
+      "subtitle": "The list uses server-side filtering, sorting, and paging, with task selection for quick transitions.",
+      "empty": "There are no tasks for the current filters."
+    },
+    "details": {
+      "title": "Details and actions",
+      "subtitle": "Select a task from the table to inspect its current state and available actions.",
+      "empty": "Select a task to inspect the current step and available actions."
+    },
+    "form": {
+      "definition": "Definition",
+      "title": "Workflow title",
+      "documentNumber": "Document number",
+      "priority": "Priority",
+      "assignedTo": "Assigned to",
+      "dueDate": "Due date",
+      "summary": "Summary"
+    },
+    "columns": {
+      "title": "Task",
+      "definition": "Definition",
+      "sourceModule": "Source module",
+      "dossierReady": "Dossier ready",
+      "linkedDocuments": "Linked documents",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned to",
+      "currentStep": "Current step",
+      "documentNumber": "Document number",
+      "dueAt": "Due date",
+      "startedAt": "Started at"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "waiting_approval": "Waiting approval",
+      "approved": "Approved",
+      "archived": "Archived"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "actions": {
+      "start": "Start work",
+      "submit": "Submit for approval",
+      "approve": "Approve",
+      "return": "Return for updates",
+      "archive": "Archive"
+    },
+    "sourceModule": {
+      "registratura": "Registry",
+      "education": "Education",
+      "education.governance": "School governance",
+      "education.personnel": "School personnel",
+      "education.mobility": "Personnel mobility",
+      "education.gradatii": "Merit grants",
+      "education.portfolios": "CD portfolios",
+      "gdpr": "GDPR",
+      "gdpr.subject_requests": "GDPR requests",
+      "earchiva": "eArchive"
+    },
+    "dossierReady": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "messages": {
+      "created": "The workflow was started successfully.",
+      "createFailed": "The workflow could not be started.",
+      "transitioned": "The task was updated.",
+      "transitionFailed": "The transition could not be applied.",
+      "dossierIncomplete": "The dossier is incomplete for this transition."
+    }
+  },
+  "earchiva": {
+    "title": "eArchive and transfer records",
+    "subtitle": "Manage fonds, series, retention periods, and archived batches using the same server-side contract for listing and filtering.",
+    "stats": {
+      "totalRecords": "Archive records",
+      "validatedRecords": "Validated",
+      "draftRecords": "Drafts",
+      "uniqueFonds": "Distinct fonds"
+    },
+    "create": {
+      "title": "Register an archive batch",
+      "subtitle": "Create an archive record with fond, series, retention, and physical or logical location metadata.",
+      "submit": "Register in archive"
+    },
+    "list": {
+      "title": "Archive register",
+      "subtitle": "The list uses server-side paging, sorting, and sticky header filters for fonds, series, and statuses.",
+      "empty": "There are no archive records for the current filters."
+    },
+    "form": {
+      "title": "Batch title",
+      "fond": "Fond",
+      "series": "Series",
+      "sourceModule": "Source module",
+      "sourceReference": "Source reference",
+      "status": "Status",
+      "retentionYears": "Retention years",
+      "assignedArchivist": "Assigned archivist",
+      "boxNumber": "Box number",
+      "locationCode": "Location code",
+      "archivedAt": "Archived at",
+      "notes": "Notes"
+    },
+    "columns": {
+      "recordNumber": "Archive no.",
+      "title": "Title",
+      "fond": "Fond",
+      "series": "Series",
+      "sourceModule": "Source module",
+      "status": "Status",
+      "retentionYears": "Retention",
+      "archivedAt": "Archived at"
+    },
+    "status": {
+      "draft": "Draft",
+      "validated": "Validated",
+      "archived": "Archived"
+    },
+    "sourceModule": {
+      "registratura": "Registry",
+      "education": "Education",
+      "gdpr": "GDPR",
+      "earchiva": "eArchive"
+    },
+    "messages": {
+      "created": "The archive record was created successfully.",
+      "createFailed": "The archive record could not be created."
+    }
+  },
+  "education": {
+    "title": "School governance and organism meetings",
+    "subtitle": "Manage Board, Teachers' Council, CEAC, and CFDCD meetings with server-side filtering, quorum tracking, and publishable statuses.",
+    "stats": {
+      "totalMeetings": "Meetings",
+      "scheduledMeetings": "Scheduled",
+      "heldMeetings": "Held",
+      "publishedMeetings": "Published"
+    },
+    "create": {
+      "title": "Schedule a meeting",
+      "subtitle": "Register a governance meeting with school year, type, quorum, and coordination metadata.",
+      "submit": "Save meeting"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a meeting to launch the review and publication workflow.",
+      "empty": "Select a meeting to inspect details and available actions."
+    },
+    "list": {
+      "title": "Governance meetings",
+      "subtitle": "The table lists school governance meetings with filters by year, organism, type, and status.",
+      "empty": "There are no meetings for the current filters."
+    },
+    "form": {
+      "schoolYear": "School year",
+      "organism": "Organism",
+      "title": "Meeting title",
+      "meetingType": "Meeting type",
+      "status": "Status",
+      "quorumRequired": "Required quorum",
+      "participantsCount": "Present participants",
+      "meetingDate": "Meeting date",
+      "location": "Location",
+      "chairperson": "Chairperson",
+      "secretaryName": "Secretary",
+      "summary": "Summary"
+    },
+    "columns": {
+      "title": "Meeting",
+      "schoolYear": "School year",
+      "organism": "Organism",
+      "meetingType": "Type",
+      "status": "Status",
+      "participants": "Participants / quorum",
+      "meetingDate": "Date"
+    },
+    "organism": {
+      "ca": "Board of Administration",
+      "cp": "Teachers' Council",
+      "ceac": "CEAC",
+      "cfdcd": "CFDCD"
+    },
+    "meetingType": {
+      "ordinary": "Ordinary",
+      "extraordinary": "Extraordinary"
+    },
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "held": "Held",
+      "published": "Published"
+    },
+    "workflow": {
+      "start": "Start meeting workflow",
+      "defaultTitle": "Meeting review - {{ title }}"
+    },
+    "messages": {
+      "created": "The meeting was registered successfully.",
+      "createFailed": "The meeting could not be registered.",
+      "workflowStarted": "The meeting workflow was started.",
+      "workflowStartFailed": "The meeting workflow could not be started."
+    }
+  },
+  "educationDecisions": {
+    "title": "CA and CP decisions",
+    "subtitle": "Manage governance decisions with legal status, publication controls, and approval workflow.",
+    "stats": {
+      "totalDecisions": "Decisions",
+      "approvedDecisions": "Approved",
+      "publishedDecisions": "Published",
+      "pendingPublication": "Pending publication"
+    },
+    "create": {
+      "title": "Add a decision",
+      "subtitle": "Register the decision, legal basis, publication state, and signing owner.",
+      "submit": "Save decision"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a decision to launch the review, anonymization, and publication workflow.",
+      "empty": "Select a decision to inspect details and available actions."
+    },
+    "list": {
+      "title": "Decision register",
+      "subtitle": "Server-side table for board, status, publication state, and decision date.",
+      "empty": "There are no decisions for the current filters."
+    },
+    "form": {
+      "schoolYear": "School year",
+      "organism": "Board",
+      "title": "Decision title",
+      "status": "Status",
+      "publicationStatus": "Publication status",
+      "decisionDate": "Decision date",
+      "legalBasis": "Legal basis",
+      "signedBy": "Signed by",
+      "summary": "Summary"
+    },
+    "columns": {
+      "decisionCode": "Decision code",
+      "title": "Title",
+      "organism": "Board",
+      "status": "Status",
+      "publicationStatus": "Publication",
+      "decisionDate": "Decision date"
+    },
+    "workflow": {
+      "start": "Start decision workflow",
+      "defaultTitle": "Governance decision - {{ title }}"
+    },
+    "messages": {
+      "created": "The decision was created successfully.",
+      "createFailed": "The decision could not be created.",
+      "workflowStarted": "The decision workflow was started.",
+      "workflowStartFailed": "The decision workflow could not be started."
+    }
+  },
+  "educationManagerial": {
+    "title": "Managerial dossiers",
+    "subtitle": "Manage PDI/PAS, annual plans, RAEI, organigrams, and other operational school dossiers.",
+    "stats": {
+      "totalDossiers": "Dossiers",
+      "reviewDossiers": "In review",
+      "publishedDossiers": "Published",
+      "overdueDossiers": "Overdue"
+    },
+    "create": {
+      "title": "Add a managerial dossier",
+      "subtitle": "Register the dossier type, owner, deadline, and publication requirement.",
+      "submit": "Save dossier"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a dossier to launch the review and publication workflow.",
+      "empty": "Select a dossier to inspect details and available actions."
+    },
+    "list": {
+      "title": "Managerial dossier register",
+      "subtitle": "Server-side table for type, status, deadline, and publication requirement.",
+      "empty": "There are no managerial dossiers for the current filters."
+    },
+    "form": {
+      "schoolYear": "School year",
+      "dossierType": "Dossier type",
+      "title": "Title",
+      "status": "Status",
+      "ownerName": "Owner",
+      "dueOn": "Due on",
+      "publicationRequired": "Requires publication",
+      "summary": "Summary"
+    },
+    "columns": {
+      "dossierCode": "Dossier code",
+      "title": "Title",
+      "dossierType": "Dossier type",
+      "status": "Status",
+      "schoolYear": "School year",
+      "dueOn": "Due on"
+    },
+    "workflow": {
+      "start": "Start managerial workflow",
+      "defaultTitle": "Managerial dossier - {{ title }}"
+    },
+    "messages": {
+      "created": "The managerial dossier was created successfully.",
+      "createFailed": "The managerial dossier could not be created.",
+      "workflowStarted": "The managerial workflow was started.",
+      "workflowStartFailed": "The managerial workflow could not be started."
+    }
+  },
+  "educationRegulations": {
+    "title": "ROF / ROI and internal procedures",
+    "subtitle": "Manage organization and operation regulations, internal regulations, and the consultation, endorsement, approval, and publication cycle.",
+    "stats": {
+      "totalRegulations": "Regulations",
+      "consultationItems": "In consultation",
+      "approvedRegulations": "Approved",
+      "publishedRegulations": "Published"
+    },
+    "create": {
+      "title": "Add a regulation",
+      "subtitle": "Register the regulation type, approval stage, owner, and review deadline.",
+      "submit": "Save regulation"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a regulation to launch the consultation and approval workflow.",
+      "empty": "Select a regulation to inspect details and available actions."
+    },
+    "list": {
+      "title": "Regulation register",
+      "subtitle": "Server-side listing for type, status, approval stage, and review deadline.",
+      "empty": "There are no regulations for the current filters."
+    },
+    "form": {
+      "schoolYear": "School year",
+      "regulationType": "Regulation type",
+      "title": "Title",
+      "status": "Status",
+      "approvalStatus": "Approval stage",
+      "ownerName": "Owner",
+      "reviewDueOn": "Review due on",
+      "approvedOn": "Approved on",
+      "summary": "Summary"
+    },
+    "columns": {
+      "regulationCode": "Regulation code",
+      "title": "Title",
+      "regulationType": "Type",
+      "status": "Status",
+      "approvalStatus": "Approval",
+      "reviewDueOn": "Review due"
+    },
+    "workflow": {
+      "start": "Start regulation workflow",
+      "defaultTitle": "Education regulation - {{ title }}"
+    },
+    "messages": {
+      "created": "The regulation was created successfully.",
+      "createFailed": "The regulation could not be created.",
+      "workflowStarted": "The regulation workflow was started.",
+      "workflowStartFailed": "The regulation workflow could not be started."
+    }
+  },
+  "educationPersonnel": {
+    "title": "School personnel and evaluation",
+    "subtitle": "Manage staff records, evaluation state, mobility, and professional portfolios in the same operational module.",
+    "stats": {
+      "totalRecords": "Personnel records",
+      "activeRecords": "Active",
+      "portfoliosEnabled": "With portfolio",
+      "mobilityCases": "Mobility cases"
+    },
+    "create": {
+      "title": "Add a staff record",
+      "subtitle": "Register a teacher or auxiliary staff member with status, evaluation, and mobility data.",
+      "submit": "Save staff record"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a staff record to launch evaluation or mobility workflows.",
+      "empty": "Select a staff record to inspect details and available actions."
+    },
+    "list": {
+      "title": "Personnel register",
+      "subtitle": "The table uses server-side listing for employment type, status, evaluation, and mobility.",
+      "empty": "There are no personnel records for the current filters."
+    },
+    "form": {
+      "fullName": "Full name",
+      "roleTitle": "Role / subject",
+      "employmentType": "Employment type",
+      "status": "Status",
+      "evaluationStatus": "Evaluation status",
+      "mobilityStage": "Mobility stage",
+      "schoolYear": "School year",
+      "assignedUnit": "Department / unit",
+      "phone": "Phone",
+      "email": "Email",
+      "hasPortfolio": "Has professional portfolio",
+      "notes": "Notes"
+    },
+    "columns": {
+      "fullName": "Staff member",
+      "employeeCode": "Code",
+      "employmentType": "Employment",
+      "status": "Status",
+      "evaluationStatus": "Evaluation",
+      "mobilityStage": "Mobility",
+      "schoolYear": "School year",
+      "portfolio": "Portfolio"
+    },
+    "employmentType": {
+      "titular": "Permanent",
+      "suplinitor": "Substitute",
+      "plata_cu_ora": "Hourly paid",
+      "auxiliar": "Auxiliary"
+    },
+    "status": {
+      "active": "Active",
+      "on_leave": "On leave",
+      "vacant": "Vacant",
+      "inactive": "Inactive"
+    },
+    "evaluationStatus": {
+      "draft": "Draft",
+      "in_review": "In review",
+      "finalized": "Finalized"
+    },
+    "mobilityStage": {
+      "none": "No mobility",
+      "transfer": "Transfer",
+      "detasare": "Secondment",
+      "restrangere": "Restriction"
+    },
+    "portfolio": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "workflow": {
+      "startEvaluation": "Start evaluation workflow",
+      "startMobility": "Start mobility workflow",
+      "evaluationTitle": "Personnel evaluation - {{ name }}",
+      "mobilityTitle": "Personnel mobility - {{ name }}"
+    },
+    "messages": {
+      "created": "The personnel record was created successfully.",
+      "createFailed": "The personnel record could not be created.",
+      "evaluationWorkflowStarted": "The evaluation workflow was started.",
+      "mobilityWorkflowStarted": "The mobility workflow was started.",
+      "workflowStartFailed": "The workflow could not be started."
+    }
+  },
+  "educationEvaluations": {
+    "title": "Annual personnel evaluations",
+    "subtitle": "Manage evaluation dossiers, scores, evaluators, and approval state through server-side listing and workflow.",
+    "stats": {
+      "totalEvaluations": "Evaluations",
+      "submittedEvaluations": "Submitted",
+      "approvedEvaluations": "Approved",
+      "contestedEvaluations": "Contested"
+    },
+    "create": {
+      "title": "Add an evaluation",
+      "subtitle": "Register an annual evaluation dossier for a staff member, with score and evaluator.",
+      "submit": "Save evaluation"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select an evaluation to launch the review and approval flow.",
+      "empty": "Select an evaluation to inspect details and available actions."
+    },
+    "list": {
+      "title": "Evaluation register",
+      "subtitle": "Server-side table for code, staff member, status, score, and school year.",
+      "empty": "There are no evaluations for the current filters."
+    },
+    "form": {
+      "employeeCode": "Employee code",
+      "fullName": "Full name",
+      "roleTitle": "Role / subject",
+      "schoolYear": "School year",
+      "status": "Status",
+      "score": "Score",
+      "evaluatorName": "Evaluator",
+      "finalizedOn": "Finalized on",
+      "summary": "Summary"
+    },
+    "columns": {
+      "fullName": "Staff member",
+      "evaluationCode": "Evaluation code",
+      "employeeCode": "Employee code",
+      "status": "Status",
+      "score": "Score",
+      "schoolYear": "School year"
+    },
+    "workflow": {
+      "start": "Start evaluation workflow",
+      "defaultTitle": "Annual evaluation - {{ name }}"
+    },
+    "messages": {
+      "created": "The evaluation was created successfully.",
+      "createFailed": "The evaluation could not be created.",
+      "workflowStarted": "The evaluation workflow was started.",
+      "workflowStartFailed": "The evaluation workflow could not be started."
+    }
+  },
+  "educationDeclarations": {
+    "title": "Declarations and attestations",
+    "subtitle": "Manage interest, authenticity, GDPR, and other declarations associated with staff members and portfolios.",
+    "stats": {
+      "totalDeclarations": "Declarations",
+      "submittedDeclarations": "Submitted",
+      "validatedDeclarations": "Validated",
+      "expiredDeclarations": "Expired"
+    },
+    "create": {
+      "title": "Add a declaration",
+      "subtitle": "Register a declaration with type, status, deadline, and operational summary.",
+      "submit": "Save declaration"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a declaration to launch the validation and archiving flow.",
+      "empty": "Select a declaration to inspect details and available actions."
+    },
+    "list": {
+      "title": "Declaration register",
+      "subtitle": "Server-side listing for type, status, submission date, and validity deadline.",
+      "empty": "There are no declarations for the current filters."
+    },
+    "form": {
+      "employeeCode": "Employee code",
+      "fullName": "Full name",
+      "declarationType": "Declaration type",
+      "status": "Status",
+      "schoolYear": "School year",
+      "submittedOn": "Submitted on",
+      "validUntil": "Valid until",
+      "summary": "Summary"
+    },
+    "columns": {
+      "fullName": "Staff member",
+      "declarationCode": "Declaration code",
+      "declarationType": "Declaration type",
+      "status": "Status",
+      "schoolYear": "School year",
+      "submittedOn": "Submitted on"
+    },
+    "workflow": {
+      "start": "Start declaration workflow",
+      "defaultTitle": "Personnel declaration - {{ name }}"
+    },
+    "messages": {
+      "created": "The declaration was created successfully.",
+      "createFailed": "The declaration could not be created.",
+      "workflowStarted": "The declaration workflow was started.",
+      "workflowStartFailed": "The declaration workflow could not be started."
+    }
+  },
+  "educationMobility": {
+    "title": "School personnel mobility",
+    "subtitle": "Manage transfers, secondments, pre-transfers, and restrictions with server-side tracking and workflow launch support.",
+    "stats": {
+      "totalCases": "Cases",
+      "openCases": "Open",
+      "approvedCases": "Approved",
+      "transferCases": "Transfers"
+    },
+    "create": {
+      "title": "Add a mobility case",
+      "subtitle": "Register the mobility dossier with stage, status, schools involved, and review owner.",
+      "submit": "Save case"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a case to launch the review and approval workflow.",
+      "empty": "Select a case to inspect details and available actions."
+    },
+    "list": {
+      "title": "Mobility case register",
+      "subtitle": "The list uses server-side filters for request type, stage, status, and submission date.",
+      "empty": "There are no mobility cases for the current filters."
+    },
+    "form": {
+      "employeeCode": "Employee code",
+      "fullName": "Full name",
+      "schoolYear": "School year",
+      "requestType": "Request type",
+      "stage": "Stage",
+      "status": "Status",
+      "sourceSchool": "Source school",
+      "destinationSchool": "Destination school",
+      "submittedOn": "Submitted on",
+      "reviewedBy": "Reviewed by",
+      "notes": "Notes"
+    },
+    "columns": {
+      "fullName": "Staff member",
+      "caseCode": "Case code",
+      "requestType": "Request",
+      "stage": "Stage",
+      "status": "Status",
+      "schoolYear": "School year",
+      "submittedOn": "Submitted on"
+    },
+    "requestType": {
+      "transfer": "Transfer",
+      "detasare": "Secondment",
+      "pretransfer": "Pre-transfer",
+      "restrangere": "Restriction"
+    },
+    "stage": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "review": "In review",
+      "approved": "Approved",
+      "completed": "Completed"
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "completed": "Completed"
+    },
+    "workflow": {
+      "start": "Start mobility workflow",
+      "defaultTitle": "School mobility - {{ name }}"
+    },
+    "messages": {
+      "created": "The mobility case was created successfully.",
+      "createFailed": "The mobility case could not be created.",
+      "workflowStarted": "The mobility workflow was started.",
+      "workflowStartFailed": "The mobility workflow could not be started."
+    }
+  },
+  "educationGradatii": {
+    "title": "Merit grants",
+    "subtitle": "Manage dossiers, scores, approvals, and funding decisions for merit grants.",
+    "stats": {
+      "totalRecords": "Dossiers",
+      "approvedRecords": "Approved",
+      "fundedRecords": "Funded",
+      "averageScore": "Average score"
+    },
+    "create": {
+      "title": "Add a dossier",
+      "subtitle": "Register a merit grant dossier with category, score, committee, and decision metadata.",
+      "submit": "Save dossier"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a dossier to launch the evaluation and approval workflow.",
+      "empty": "Select a dossier to inspect details and available actions."
+    },
+    "list": {
+      "title": "Merit grant register",
+      "subtitle": "The table lists dossiers with server-side filters for category, status, funding, and decision date.",
+      "empty": "There are no merit grant dossiers for the current filters."
+    },
+    "form": {
+      "fullName": "Full name",
+      "roleTitle": "Role / subject",
+      "schoolYear": "School year",
+      "category": "Category",
+      "status": "Status",
+      "score": "Score",
+      "committeeName": "Committee",
+      "decisionDate": "Decision date",
+      "funded": "Funded",
+      "notes": "Notes"
+    },
+    "columns": {
+      "fullName": "Staff member",
+      "grantCode": "Dossier code",
+      "category": "Category",
+      "status": "Status",
+      "schoolYear": "School year",
+      "score": "Score",
+      "decisionDate": "Decision date",
+      "funded": "Funded"
+    },
+    "category": {
+      "predare": "Teaching",
+      "management": "Management",
+      "consiliere": "Counselling",
+      "auxiliar": "Auxiliary"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "evaluated": "Evaluated",
+      "approved": "Approved",
+      "funded": "Funded"
+    },
+    "boolean": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "workflow": {
+      "start": "Start merit workflow",
+      "defaultTitle": "Merit grant - {{ name }}"
+    },
+    "messages": {
+      "created": "The merit grant dossier was created successfully.",
+      "createFailed": "The merit grant dossier could not be created.",
+      "workflowStarted": "The merit workflow was started.",
+      "workflowStartFailed": "The merit workflow could not be started."
+    }
+  },
+  "educationPortfolios": {
+    "title": "CD portfolio and retention",
+    "subtitle": "Manage professional portfolios with transfer stage, authenticity declaration, consent capture, and retention deadline.",
+    "stats": {
+      "totalPortfolios": "Portfolios",
+      "validatedPortfolios": "Validated",
+      "transferPortfolios": "With transfer",
+      "declaredPortfolios": "With declaration"
+    },
+    "create": {
+      "title": "Add a portfolio",
+      "subtitle": "Register a portfolio with sections, 3-year retention, and relevant GDPR metadata.",
+      "submit": "Save portfolio"
+    },
+    "details": {
+      "title": "Details and workflow",
+      "subtitle": "Select a portfolio to launch its review and transfer workflow.",
+      "empty": "Select a portfolio to inspect details and available actions."
+    },
+    "list": {
+      "title": "Portfolio register",
+      "subtitle": "Server-side table for portfolio status, retention, transfer, and authenticity declarations.",
+      "empty": "There are no portfolios for the current filters."
+    },
+    "form": {
+      "ownerName": "Portfolio owner",
+      "ownerRole": "Role / subject",
+      "schoolYear": "School year",
+      "status": "Status",
+      "sectionCount": "Section count",
+      "lastUpdatedOn": "Last updated on",
+      "retentionUntil": "Retain until",
+      "transferStatus": "Transfer status",
+      "authenticityDeclared": "Authenticity declaration signed",
+      "consentCaptured": "Consent captured",
+      "custodian": "Custodian",
+      "notes": "Notes"
+    },
+    "columns": {
+      "ownerName": "Owner",
+      "portfolioCode": "Code",
+      "schoolYear": "School year",
+      "status": "Status",
+      "sectionCount": "Sections",
+      "transferStatus": "Transfer",
+      "retentionUntil": "Retain until",
+      "authenticity": "Authenticity"
+    },
+    "status": {
+      "draft": "Draft",
+      "submitted": "Submitted",
+      "validated": "Validated",
+      "transferred": "Transferred",
+      "archived": "Archived"
+    },
+    "transferStatus": {
+      "none": "No transfer",
+      "prepared": "Prepared",
+      "sent": "Sent",
+      "received": "Received"
+    },
+    "boolean": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "workflow": {
+      "start": "Start portfolio workflow",
+      "defaultTitle": "CD portfolio review - {{ owner }}"
+    },
+    "messages": {
+      "created": "The portfolio was created successfully.",
+      "createFailed": "The portfolio could not be created.",
+      "workflowStarted": "The portfolio workflow was started.",
+      "workflowStartFailed": "The portfolio workflow could not be started."
+    }
+  },
+  "gdpr": {
+    "title": "GDPR, retention, and data subject requests",
+    "subtitle": "Coordinate retention policies, GDPR requests, and cases that require anonymization or export.",
+    "stats": {
+      "activePolicies": "Active policies",
+      "pendingRequests": "Pending requests",
+      "overdueRequests": "Overdue",
+      "anonymizationCases": "Need anonymization"
+    },
+    "boolean": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "domain": {
+      "registratura": "Registry",
+      "workflow": "Workflow",
+      "earchiva": "eArchive",
+      "education": "Education",
+      "hr": "Human resources"
+    },
+    "sourceModule": {
+      "registratura": "Registry",
+      "workflow": "Workflow",
+      "earchiva": "eArchive",
+      "education": "Education",
+      "education.decisions": "Education decisions",
+      "education.managerial": "Managerial dossiers",
+      "education.regulations": "Education regulations"
+    },
+    "publicationSourceModule": {
+      "education.decisions": "Education decisions",
+      "education.managerial": "Managerial dossiers",
+      "education.regulations": "Education regulations"
+    },
+    "requestType": {
+      "access": "Access",
+      "rectification": "Rectification",
+      "erasure": "Erasure",
+      "restriction": "Restriction",
+      "portability": "Portability",
+      "objection": "Objection"
+    },
+    "requestStatus": {
+      "received": "Received",
+      "identity_check": "Identity check",
+      "in_progress": "In progress",
+      "waiting_approval": "Waiting approval",
+      "completed": "Completed",
+      "rejected": "Rejected"
+    },
+    "policyStatus": {
+      "draft": "Draft",
+      "active": "Active",
+      "review": "Review",
+      "retired": "Retired"
+    },
+    "exportStatus": {
+      "draft": "Draft",
+      "pending_approval": "Pending approval",
+      "approved": "Approved",
+      "generated": "Generated",
+      "delivered": "Delivered"
+    },
+    "exportFormat": {
+      "pdf_bundle": "PDF bundle",
+      "zip_archive": "ZIP archive",
+      "structured_json": "Structured JSON"
+    },
+    "anonymizationStatus": {
+      "not_required": "Not required",
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "publicationStatus": {
+      "internal": "Internal",
+      "blocked": "Blocked",
+      "ready": "Ready",
+      "published": "Published"
+    },
+    "workflow": {
+      "start": "Start GDPR workflow",
+      "defaultTitle": "GDPR request - {{ name }}"
+    },
+    "settings": {
+      "title": "Active operational rules",
+      "subtitle": "These values are loaded from the platform administration settings and affect default deadlines and approvals.",
+      "defaultResponseSla": "Response SLA: {{ days }} days",
+      "retentionReviewNotice": "Retention review notice: {{ days }} days",
+      "anonymization": "Publication anonymization",
+      "exportApproval": "Data export approval"
+    },
+    "requests": {
+      "create": {
+        "title": "Add GDPR request",
+        "subtitle": "Register a data subject request with deadline, owner, and source module.",
+        "submit": "Save request"
+      },
+      "list": {
+        "title": "GDPR requests",
+        "subtitle": "The list tracks deadlines, request types, statuses, and anonymization needs.",
+        "empty": "There are no GDPR requests for the current filters."
+      },
+      "form": {
+        "subjectName": "Data subject",
+        "requestType": "Request type",
+        "status": "Status",
+        "submittedOn": "Submitted on",
+        "dueOn": "Response deadline",
+        "handledBy": "Handled by",
+        "sourceModule": "Source module",
+        "anonymizationRequired": "Requires anonymization",
+        "notes": "Notes"
+      },
+      "columns": {
+        "subjectName": "Subject",
+        "requestCode": "Request code",
+        "requestType": "Type",
+        "status": "Status",
+        "sourceModule": "Source module",
+        "dueOn": "Due on",
+        "anonymization": "Anonymization"
+      }
+    },
+    "policies": {
+      "create": {
+        "title": "Add retention policy",
+        "subtitle": "Define retention duration, legal basis, and review deadline for a data category.",
+        "submit": "Save policy"
+      },
+      "list": {
+        "title": "Retention policies",
+        "subtitle": "The table lists domains, record categories, deadlines, and retention policy states.",
+        "empty": "There are no retention policies for the current filters."
+      },
+      "form": {
+        "domain": "Domain",
+        "recordCategory": "Record category",
+        "retentionYears": "Retention years",
+        "legalBasis": "Legal basis",
+        "status": "Status",
+        "reviewDueOn": "Review due on",
+        "ownerName": "Owner",
+        "notes": "Notes"
+      },
+      "columns": {
+        "policyCode": "Policy code",
+        "domain": "Domain",
+        "recordCategory": "Category",
+        "retentionYears": "Retention",
+        "status": "Status",
+        "reviewDueOn": "Review due"
+      }
+    },
+    "messages": {
+      "requestCreated": "The GDPR request was created successfully.",
+      "requestCreateFailed": "The GDPR request could not be created.",
+      "policyCreated": "The retention policy was created successfully.",
+      "policyCreateFailed": "The retention policy could not be created.",
+      "workflowStarted": "The GDPR workflow was started.",
+      "workflowStartFailed": "The GDPR workflow could not be started."
+    }
+  },
+  "gdprExports": {
+    "title": "Data subject exports",
+    "subtitle": "Prepare, approve, and deliver export packages for GDPR requests with traceability and a dedicated workflow.",
+    "stats": {
+      "totalExports": "Exports",
+      "pendingApproval": "Pending approval",
+      "generatedExports": "Generated",
+      "deliveredExports": "Delivered"
+    },
+    "create": {
+      "title": "Add an export",
+      "subtitle": "Register the data package, delivery format, and approval steps for the data subject.",
+      "submit": "Save export"
+    },
+    "form": {
+      "requestId": "Request ID",
+      "subjectName": "Data subject",
+      "sourceModule": "Source module",
+      "status": "Status",
+      "exportFormat": "Export format",
+      "approvedBy": "Approved by",
+      "approvedOn": "Approved on",
+      "generatedOn": "Generated on",
+      "packageSummary": "Package summary",
+      "notes": "Notes"
+    },
+    "details": {
+      "title": "Export details",
+      "subtitle": "Review the export status, approval, and delivered package for the selected record.",
+      "empty": "Select an export to view details and start the workflow."
+    },
+    "list": {
+      "title": "Export register",
+      "subtitle": "Server-side table for export codes, formats, statuses, and generation or delivery deadlines.",
+      "empty": "There are no exports for the current filters."
+    },
+    "columns": {
+      "subjectName": "Subject",
+      "exportCode": "Export code",
+      "sourceModule": "Source module",
+      "status": "Status",
+      "exportFormat": "Format",
+      "generatedOn": "Generated on"
+    },
+    "workflow": {
+      "start": "Start export workflow",
+      "defaultTitle": "GDPR export for {{ code }}"
+    },
+    "messages": {
+      "created": "The GDPR export was created successfully.",
+      "createFailed": "The GDPR export could not be created.",
+      "workflowStarted": "The GDPR export workflow was started.",
+      "workflowStartFailed": "The GDPR export workflow could not be started."
+    }
+  },
+  "gdprPublication": {
+    "title": "Publication and anonymization",
+    "subtitle": "Coordinate anonymization reviews and controlled publication for education dossiers with GDPR impact.",
+    "stats": {
+      "totalReviews": "Reviews",
+      "pendingAnonymization": "Pending anonymization",
+      "readyForPublication": "Ready for publication",
+      "publishedItems": "Published"
+    },
+    "create": {
+      "title": "Add a review",
+      "subtitle": "Register the publication case, anonymization stage, and legal basis used before publication.",
+      "submit": "Save review"
+    },
+    "form": {
+      "sourceModule": "Source module",
+      "sourceRecordId": "Source record ID",
+      "sourceLabel": "Source label",
+      "anonymizationStatus": "Anonymization status",
+      "publicationStatus": "Publication status",
+      "reviewedBy": "Reviewed by",
+      "reviewedOn": "Reviewed on",
+      "legalBasis": "Legal basis",
+      "notes": "Notes"
+    },
+    "details": {
+      "title": "Review details",
+      "subtitle": "See anonymization, publication status, and legal basis for the selected record.",
+      "empty": "Select a review to view details and start the workflow."
+    },
+    "list": {
+      "title": "Publication register",
+      "subtitle": "Server-side table for sources, anonymization and publication statuses, and review dates.",
+      "empty": "There are no reviews for the current filters."
+    },
+    "columns": {
+      "sourceLabel": "Source",
+      "reviewCode": "Review code",
+      "sourceModule": "Source module",
+      "anonymizationStatus": "Anonymization",
+      "publicationStatus": "Publication",
+      "reviewedOn": "Reviewed on"
+    },
+    "workflow": {
+      "start": "Start publication workflow",
+      "defaultTitle": "Publication review for {{ code }}"
+    },
+    "messages": {
+      "created": "The publication review was created successfully.",
+      "createFailed": "The publication review could not be created.",
+      "workflowStarted": "The publication workflow was started.",
+      "workflowStartFailed": "The publication workflow could not be started."
     }
   },
   "table": {
     "filters": {
       "contains": "Contains",
-      "any": "Any"
+      "any": "Any",
+      "onDate": "On date"
+    }
+  },
+  "links": {
+    "title": "Linked documents",
+    "subtitle": "Attach registry documents to the selected record to build the full operational dossier.",
+    "empty": "There are no linked documents yet.",
+    "selectRecord": "Select a record first to manage its linked documents.",
+    "form": {
+      "query": "Search document by number or subject",
+      "document": "Registry document",
+      "relationType": "Relation type",
+      "submit": "Link document"
+    },
+    "relationType": {
+      "primary": "Primary document",
+      "supporting": "Supporting document",
+      "decision": "Decision document",
+      "archive_basis": "Archive basis",
+      "gdpr_basis": "GDPR basis"
+    },
+    "messages": {
+      "created": "The document was linked successfully.",
+      "createFailed": "The document could not be linked.",
+      "deleted": "The document link was removed.",
+      "deleteFailed": "The document link could not be removed."
     }
   },
   "placeholder": {

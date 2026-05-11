@@ -1,0 +1,85 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.memberships.title' | transloco }}</h1>
+    <p>{{ 'admin.memberships.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card *appHasPermission="'admin.memberships.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.memberships.form.title' | transloco }}</h2>
+    <p>{{ 'admin.memberships.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveMembership()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.memberships.form.userId' | transloco }}</mat-label>
+        <mat-select formControlName="user_id">
+          @for (option of userOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.memberships.form.positionCode' | transloco }}</mat-label>
+        <mat-select formControlName="position_code">
+          @for (option of positionOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.memberships.form.orgUnit' | transloco }}</mat-label>
+        <mat-select formControlName="org_unit_code">
+          @for (option of orgUnitOptions(); track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.memberships.form.startDate' | transloco }}</mat-label>
+        <input matInput type="date" formControlName="start_date" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.memberships.form.endDate' | transloco }}</mat-label>
+        <input matInput type="date" formControlName="end_date" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="is_primary">
+        {{ 'admin.memberships.form.isPrimary' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="active">
+        {{ 'admin.memberships.form.active' | transloco }}
+      </mat-checkbox>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetForm()">
+          {{ 'admin.memberships.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.memberships.form.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.memberships.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedMembershipId()"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectMembership($event)"
+    />
+  </mat-card>
+</section>

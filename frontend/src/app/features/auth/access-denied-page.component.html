@@ -1,0 +1,21 @@
+<app-auth-shell
+  [eyebrow]="'auth.accessDenied.eyebrow' | transloco"
+  [title]="'auth.accessDenied.title' | transloco"
+  [subtitle]="'auth.accessDenied.subtitle' | transloco"
+  [visualKicker]="'auth.visual.kicker' | transloco"
+  [visualTitle]="'auth.visual.title' | transloco"
+  [visualBody]="'auth.visual.body' | transloco"
+  accent="amber">
+  <div class="access-denied-card">
+    <div class="access-denied-card__icon">
+      <mat-icon>gpp_bad</mat-icon>
+    </div>
+
+    <p class="access-denied-card__body">{{ supportHint() }}</p>
+
+    <div class="access-denied-card__actions">
+      <a mat-flat-button routerLink="/dashboard">{{ 'dashboard.primaryCta' | transloco }}</a>
+      <a mat-stroked-button routerLink="/login">{{ 'auth.login' | transloco }}</a>
+    </div>
+  </div>
+</app-auth-shell>

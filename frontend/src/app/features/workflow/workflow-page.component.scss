@@ -1,0 +1,123 @@
+.workflow-page {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.workflow-page__hero {
+  display: grid;
+  gap: 1rem;
+}
+
+.workflow-page__eyebrow {
+  margin: 0;
+  color: var(--mat-sys-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.workflow-page__hero h1 {
+  margin: 0.25rem 0;
+}
+
+.workflow-page__hero p {
+  margin: 0;
+  max-width: 72ch;
+}
+
+.workflow-page__stats {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.workflow-page__stats mat-card {
+  padding: 1rem;
+}
+
+.workflow-page__stat-value {
+  display: block;
+  font-size: 1.9rem;
+  font-weight: 700;
+}
+
+.workflow-page__stat-label {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.95rem;
+}
+
+.workflow-page__grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(20rem, 24rem) minmax(0, 1fr);
+}
+
+.workflow-page__sidebar {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.workflow-page__card {
+  min-width: 0;
+}
+
+.workflow-form {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workflow-form__summary {
+  grid-column: 1 / -1;
+}
+
+.workflow-details {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.workflow-details__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.workflow-details__row span,
+.workflow-details__summary,
+.workflow-details__empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.workflow-details__summary {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.workflow-details__actions,
+.workflow-details__empty {
+  margin-top: 0.5rem;
+}
+
+.workflow-details__actions button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 1100px) {
+  .workflow-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .workflow-form {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-details__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

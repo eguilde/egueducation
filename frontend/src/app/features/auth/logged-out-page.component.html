@@ -1,11 +1,19 @@
-<section class="logged-out-page">
-  <mat-card>
-    <mat-icon>logout</mat-icon>
-    <h1>{{ 'auth.loggedOutTitle' | transloco }}</h1>
-    <p>{{ 'auth.loggedOutBody' | transloco }}</p>
-    <div class="logged-out-page__actions">
+<app-auth-shell
+  [eyebrow]="'auth.loggedOutEyebrow' | transloco"
+  [title]="'auth.loggedOutTitle' | transloco"
+  [subtitle]="'auth.loggedOutBody' | transloco"
+  [visualKicker]="'auth.visual.kicker' | transloco"
+  [visualTitle]="'auth.visual.title' | transloco"
+  [visualBody]="'auth.visual.body' | transloco"
+  accent="amber">
+  <div class="logged-out-card">
+    <div class="logged-out-card__icon">
+      <mat-icon>logout</mat-icon>
+    </div>
+
+    <div class="logged-out-card__actions">
       <a mat-flat-button routerLink="/login">{{ 'auth.login' | transloco }}</a>
       <a mat-stroked-button routerLink="/dashboard">{{ 'dashboard.primaryCta' | transloco }}</a>
     </div>
-  </mat-card>
-</section>
+  </div>
+</app-auth-shell>

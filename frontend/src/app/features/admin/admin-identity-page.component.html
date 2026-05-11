@@ -1,0 +1,128 @@
+<section class="identity-page__header">
+  <div>
+    <h1>{{ 'admin.identity.title' | transloco }}</h1>
+    <p>{{ 'admin.identity.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="identity-page__grid">
+  <mat-card appearance="outlined" class="identity-page__card">
+    <div class="identity-page__card-header">
+      <div>
+        <h2>{{ 'admin.identity.clients.title' | transloco }}</h2>
+        <p>{{ 'admin.identity.clients.subtitle' | transloco }}</p>
+      </div>
+    </div>
+
+    <app-server-table
+      [columns]="clientColumns()"
+      [rows]="clientRows()"
+      [total]="clientsResponse().total"
+      [pageIndex]="clientsResponse().page - 1"
+      [pageSize]="clientsResponse().pageSize"
+      [sortActive]="clientTableState().sort || ''"
+      [sortDirection]="clientTableState().direction || ''"
+      [rowClickable]="true"
+      [rowIdKey]="'client_id'"
+      [selectedRowId]="selectedClientId()"
+      [emptyMessage]="'admin.identity.clients.empty' | transloco"
+      (pageChange)="onClientPageChange($event)"
+      (filterChange)="onClientFilterChange($event)"
+      (sortChange)="onClientSortChange($event)"
+      (rowClick)="selectClient($event)" />
+
+    <form *appHasPermission="'admin.identity.manage'; module: 'admin'" class="identity-page__form" [formGroup]="clientForm" (ngSubmit)="saveClient()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.identity.clients.form.clientId' | transloco }}</mat-label>
+        <input matInput formControlName="client_id" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.identity.clients.form.clientName' | transloco }}</mat-label>
+        <input matInput formControlName="client_name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="identity-page__form-full">
+        <mat-label>{{ 'admin.identity.clients.form.redirectUris' | transloco }}</mat-label>
+        <textarea matInput rows="4" formControlName="redirect_uris_text"></textarea>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="public_client">
+        {{ 'admin.identity.clients.form.publicClient' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="require_pkce">
+        {{ 'admin.identity.clients.form.requirePkce' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="active">
+        {{ 'admin.identity.clients.form.active' | transloco }}
+      </mat-checkbox>
+
+      <div class="identity-page__actions">
+        <button mat-stroked-button type="button" (click)="resetClientForm()">
+          {{ 'admin.identity.clients.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">
+          {{ 'admin.identity.clients.form.submit' | transloco }}
+        </button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined" class="identity-page__card">
+    <div class="identity-page__card-header">
+      <div>
+        <h2>{{ 'admin.identity.consents.title' | transloco }}</h2>
+        <p>{{ 'admin.identity.consents.subtitle' | transloco }}</p>
+      </div>
+      <button *appHasPermission="'admin.identity.manage'; module: 'admin'" mat-stroked-button type="button" [disabled]="!selectedConsentId()" (click)="revokeSelectedConsent()">
+        {{ 'admin.identity.consents.revoke' | transloco }}
+      </button>
+    </div>
+
+    <app-server-table
+      [columns]="consentColumns()"
+      [rows]="consentRows()"
+      [total]="consentsResponse().total"
+      [pageIndex]="consentsResponse().page - 1"
+      [pageSize]="consentsResponse().pageSize"
+      [sortActive]="consentTableState().sort || ''"
+      [sortDirection]="consentTableState().direction || ''"
+      [rowClickable]="true"
+      [rowIdKey]="'id'"
+      [selectedRowId]="selectedConsentId()"
+      [emptyMessage]="'admin.identity.consents.empty' | transloco"
+      (pageChange)="onConsentPageChange($event)"
+      (filterChange)="onConsentFilterChange($event)"
+      (sortChange)="onConsentSortChange($event)"
+      (rowClick)="selectConsent($event)" />
+  </mat-card>
+
+  <mat-card appearance="outlined" class="identity-page__card">
+    <div class="identity-page__card-header">
+      <div>
+        <h2>{{ 'admin.identity.sessions.title' | transloco }}</h2>
+        <p>{{ 'admin.identity.sessions.subtitle' | transloco }}</p>
+      </div>
+      <button *appHasPermission="'admin.identity.manage'; module: 'admin'" mat-stroked-button type="button" [disabled]="!selectedSessionId()" (click)="revokeSelectedSession()">
+        {{ 'admin.identity.sessions.revoke' | transloco }}
+      </button>
+    </div>
+
+    <app-server-table
+      [columns]="sessionColumns()"
+      [rows]="sessionRows()"
+      [total]="sessionsResponse().total"
+      [pageIndex]="sessionsResponse().page - 1"
+      [pageSize]="sessionsResponse().pageSize"
+      [sortActive]="sessionTableState().sort || ''"
+      [sortDirection]="sessionTableState().direction || ''"
+      [rowClickable]="true"
+      [rowIdKey]="'token_id'"
+      [selectedRowId]="selectedSessionId()"
+      [emptyMessage]="'admin.identity.sessions.empty' | transloco"
+      (pageChange)="onSessionPageChange($event)"
+      (filterChange)="onSessionFilterChange($event)"
+      (sortChange)="onSessionSortChange($event)"
+      (rowClick)="selectSession($event)" />
+  </mat-card>
+</section>

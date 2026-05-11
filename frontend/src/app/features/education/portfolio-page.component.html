@@ -1,0 +1,193 @@
+<div class="portfolio-page">
+  <div class="portfolio-page__hero">
+    <div>
+      <p class="portfolio-page__eyebrow">{{ 'nav.educationPortfolios' | transloco }}</p>
+      <h1>{{ 'educationPortfolios.title' | transloco }}</h1>
+      <p>{{ 'educationPortfolios.subtitle' | transloco }}</p>
+    </div>
+    <div class="portfolio-page__stats">
+      <mat-card appearance="outlined">
+        <span class="portfolio-page__stat-value">{{ dashboard().stats.total_portfolios }}</span>
+        <span class="portfolio-page__stat-label">{{ 'educationPortfolios.stats.totalPortfolios' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="portfolio-page__stat-value">{{ dashboard().stats.validated_portfolios }}</span>
+        <span class="portfolio-page__stat-label">{{ 'educationPortfolios.stats.validatedPortfolios' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="portfolio-page__stat-value">{{ dashboard().stats.transfer_portfolios }}</span>
+        <span class="portfolio-page__stat-label">{{ 'educationPortfolios.stats.transferPortfolios' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="portfolio-page__stat-value">{{ dashboard().stats.declared_portfolios }}</span>
+        <span class="portfolio-page__stat-label">{{ 'educationPortfolios.stats.declaredPortfolios' | transloco }}</span>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="portfolio-page__grid">
+    <div class="portfolio-page__sidebar">
+      <mat-card appearance="outlined" class="portfolio-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationPortfolios.create.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationPortfolios.create.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form class="portfolio-form" [formGroup]="form">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.ownerName' | transloco }}</mat-label>
+              <input matInput formControlName="owner_name" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.ownerRole' | transloco }}</mat-label>
+              <input matInput formControlName="owner_role" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.schoolYear' | transloco }}</mat-label>
+              <mat-select formControlName="school_year">
+                @for (option of filters().school_years; track option) {
+                  <mat-option [value]="option">{{ option }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.status' | transloco }}</mat-label>
+              <mat-select formControlName="status">
+                @for (option of filters().statuses; track option) {
+                  <mat-option [value]="option">{{ ('educationPortfolios.status.' + option) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.sectionCount' | transloco }}</mat-label>
+              <input matInput type="number" min="0" formControlName="section_count" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.transferStatus' | transloco }}</mat-label>
+              <mat-select formControlName="transfer_status">
+                @for (option of filters().transfer_statuses; track option) {
+                  <mat-option [value]="option">{{ ('educationPortfolios.transferStatus.' + option) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.lastUpdatedOn' | transloco }}</mat-label>
+              <input matInput [matDatepicker]="updatedPicker" formControlName="last_updated_on" />
+              <mat-datepicker-toggle matIconSuffix [for]="updatedPicker" />
+              <mat-datepicker #updatedPicker />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.retentionUntil' | transloco }}</mat-label>
+              <input matInput [matDatepicker]="retentionPicker" formControlName="retention_until" />
+              <mat-datepicker-toggle matIconSuffix [for]="retentionPicker" />
+              <mat-datepicker #retentionPicker />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'educationPortfolios.form.custodian' | transloco }}</mat-label>
+              <input matInput formControlName="custodian" />
+            </mat-form-field>
+
+            <div class="portfolio-form__checks">
+              <mat-checkbox formControlName="authenticity_declared">
+                {{ 'educationPortfolios.form.authenticityDeclared' | transloco }}
+              </mat-checkbox>
+              <mat-checkbox formControlName="consent_captured">
+                {{ 'educationPortfolios.form.consentCaptured' | transloco }}
+              </mat-checkbox>
+            </div>
+
+            <mat-form-field appearance="outline" class="portfolio-form__notes">
+              <mat-label>{{ 'educationPortfolios.form.notes' | transloco }}</mat-label>
+              <textarea matInput rows="4" formControlName="notes"></textarea>
+            </mat-form-field>
+          </form>
+        </mat-card-content>
+        <mat-card-actions align="end">
+          <button mat-flat-button type="button" (click)="createRecord()">
+            <mat-icon>folder_open</mat-icon>
+            {{ 'educationPortfolios.create.submit' | transloco }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
+
+      <mat-card appearance="outlined" class="portfolio-page__card">
+        <mat-card-header>
+          <mat-card-title>{{ 'educationPortfolios.details.title' | transloco }}</mat-card-title>
+          <mat-card-subtitle>{{ 'educationPortfolios.details.subtitle' | transloco }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          @if (selectedPortfolio(); as portfolio) {
+            <div class="portfolio-details">
+              <div class="portfolio-details__row">
+                <span>{{ 'educationPortfolios.columns.portfolioCode' | transloco }}</span>
+                <strong>{{ portfolio.portfolio_code }}</strong>
+              </div>
+              <div class="portfolio-details__row">
+                <span>{{ 'educationPortfolios.columns.status' | transloco }}</span>
+                <strong>{{ ('educationPortfolios.status.' + portfolio.status) | transloco }}</strong>
+              </div>
+              <div class="portfolio-details__row">
+                <span>{{ 'educationPortfolios.columns.transferStatus' | transloco }}</span>
+                <strong>{{ ('educationPortfolios.transferStatus.' + portfolio.transfer_status) | transloco }}</strong>
+              </div>
+              <div class="portfolio-details__row">
+                <span>{{ 'educationPortfolios.form.custodian' | transloco }}</span>
+                <strong>{{ portfolio.custodian || '—' }}</strong>
+              </div>
+              <div class="portfolio-details__row">
+                <span>{{ 'educationPortfolios.columns.sectionCount' | transloco }}</span>
+                <strong>{{ portfolio.section_count }}</strong>
+              </div>
+              <p class="portfolio-details__summary">{{ portfolio.notes || '—' }}</p>
+
+              <button mat-flat-button type="button" (click)="startWorkflow()">
+                <mat-icon>account_tree</mat-icon>
+                {{ 'educationPortfolios.workflow.start' | transloco }}
+              </button>
+            </div>
+          } @else {
+            <p class="portfolio-details__empty">{{ 'educationPortfolios.details.empty' | transloco }}</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <app-linked-documents-card
+        [sourceModule]="'education.portfolios'"
+        [sourceRecordId]="selectedPortfolioId()"
+      />
+    </div>
+
+    <mat-card appearance="outlined" class="portfolio-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'educationPortfolios.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'educationPortfolios.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [total]="response().total"
+          [pageIndex]="response().page - 1"
+          [pageSize]="response().pageSize"
+          [emptyMessage]="'educationPortfolios.list.empty' | transloco"
+          [sortActive]="tableState().sort || ''"
+          [sortDirection]="tableState().direction || ''"
+          [rowClickable]="true"
+          [selectedRowId]="selectedPortfolioId()"
+          (pageChange)="onPageChange($event)"
+          (filterChange)="onFilterChange($event)"
+          (sortChange)="onSortChange($event)"
+          (rowClick)="onSelectPortfolio($event)"
+        />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

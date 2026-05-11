@@ -1,0 +1,137 @@
+<div class="earchiva-page">
+  <div class="earchiva-page__hero">
+    <div>
+      <p class="earchiva-page__eyebrow">{{ 'nav.earchiva' | transloco }}</p>
+      <h1>{{ 'earchiva.title' | transloco }}</h1>
+      <p>{{ 'earchiva.subtitle' | transloco }}</p>
+    </div>
+    <div class="earchiva-page__stats">
+      <mat-card appearance="outlined">
+        <span class="earchiva-page__stat-value">{{ dashboard().stats.total_records }}</span>
+        <span class="earchiva-page__stat-label">{{ 'earchiva.stats.totalRecords' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="earchiva-page__stat-value">{{ dashboard().stats.validated_records }}</span>
+        <span class="earchiva-page__stat-label">{{ 'earchiva.stats.validatedRecords' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="earchiva-page__stat-value">{{ dashboard().stats.draft_records }}</span>
+        <span class="earchiva-page__stat-label">{{ 'earchiva.stats.draftRecords' | transloco }}</span>
+      </mat-card>
+      <mat-card appearance="outlined">
+        <span class="earchiva-page__stat-value">{{ dashboard().stats.unique_fonds }}</span>
+        <span class="earchiva-page__stat-label">{{ 'earchiva.stats.uniqueFonds' | transloco }}</span>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="earchiva-page__grid">
+    <mat-card appearance="outlined" class="earchiva-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'earchiva.create.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'earchiva.create.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form class="earchiva-form" [formGroup]="form">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.title' | transloco }}</mat-label>
+            <input matInput formControlName="title" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.fond' | transloco }}</mat-label>
+            <input matInput formControlName="fond" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.series' | transloco }}</mat-label>
+            <input matInput formControlName="series" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.sourceModule' | transloco }}</mat-label>
+            <mat-select formControlName="source_module">
+              @for (option of filters().source_modules; track option) {
+                <mat-option [value]="option">{{ ('earchiva.sourceModule.' + option) | transloco }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.sourceReference' | transloco }}</mat-label>
+            <input matInput formControlName="source_reference" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.status' | transloco }}</mat-label>
+            <mat-select formControlName="status">
+              @for (option of filters().statuses; track option) {
+                <mat-option [value]="option">{{ ('earchiva.status.' + option) | transloco }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.retentionYears' | transloco }}</mat-label>
+            <input matInput type="number" min="1" formControlName="retention_years" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.assignedArchivist' | transloco }}</mat-label>
+            <input matInput formControlName="assigned_archivist" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.boxNumber' | transloco }}</mat-label>
+            <input matInput formControlName="box_number" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.locationCode' | transloco }}</mat-label>
+            <input matInput formControlName="location_code" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'earchiva.form.archivedAt' | transloco }}</mat-label>
+            <input matInput [matDatepicker]="archivedPicker" formControlName="archived_at" />
+            <mat-datepicker-toggle matIconSuffix [for]="archivedPicker" />
+            <mat-datepicker #archivedPicker />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="earchiva-form__notes">
+            <mat-label>{{ 'earchiva.form.notes' | transloco }}</mat-label>
+            <textarea matInput rows="4" formControlName="notes"></textarea>
+          </mat-form-field>
+        </form>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-flat-button type="button" (click)="createRecord()">
+          <mat-icon>archive</mat-icon>
+          {{ 'earchiva.create.submit' | transloco }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="earchiva-page__card">
+      <mat-card-header>
+        <mat-card-title>{{ 'earchiva.list.title' | transloco }}</mat-card-title>
+        <mat-card-subtitle>{{ 'earchiva.list.subtitle' | transloco }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <app-server-table
+          [columns]="columns()"
+          [rows]="rows()"
+          [total]="response().total"
+          [pageIndex]="response().page - 1"
+          [pageSize]="response().pageSize"
+          [emptyMessage]="'earchiva.list.empty' | transloco"
+          [sortActive]="tableState().sort || ''"
+          [sortDirection]="tableState().direction || ''"
+          (pageChange)="onPageChange($event)"
+          (filterChange)="onFilterChange($event)"
+          (sortChange)="onSortChange($event)"
+        />
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

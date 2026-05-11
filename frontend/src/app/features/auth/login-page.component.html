@@ -1,39 +1,90 @@
-<section class="auth-page">
-  <mat-card class="auth-page__hero">
-    <mat-chip-set>
-      <mat-chip>{{ 'auth.redirectBadge' | transloco }}</mat-chip>
-      <mat-chip>{{ 'auth.oidcBadge' | transloco }}</mat-chip>
-    </mat-chip-set>
+<app-auth-shell
+  [eyebrow]="'auth.redirectBadge' | transloco"
+  [title]="'auth.loginTitle' | transloco"
+  [subtitle]="'auth.loginBody' | transloco"
+  [visualKicker]="'auth.visual.kicker' | transloco"
+  [visualTitle]="'auth.visual.title' | transloco"
+  [visualBody]="'auth.visual.body' | transloco">
+  <div class="auth-method-cards">
+    <button type="button" class="method-card method-card--primary" mat-flat-button (click)="signIn()">
+      <span class="method-card__icon">
+        <mat-icon>shield_lock</mat-icon>
+      </span>
+      <span class="method-card__copy">
+        <span class="method-card__title">{{ 'auth.methods.oidc_redirect' | transloco }}</span>
+        <span class="method-card__subtitle">{{ 'auth.methodDescriptions.oidc_redirect' | transloco }}</span>
+      </span>
+      <mat-chip>{{ 'auth.primaryMethod' | transloco }}</mat-chip>
+    </button>
 
-    <h1>{{ 'auth.loginTitle' | transloco }}</h1>
-    <p>{{ 'auth.loginBody' | transloco }}</p>
-
-    <div class="auth-page__actions">
-      <button mat-flat-button class="auth-page__primary" (click)="signIn()">
-        <mat-icon>login</mat-icon>
-        {{ 'auth.login' | transloco }}
-      </button>
-    </div>
-  </mat-card>
-
-  <mat-card class="auth-page__panel">
-    <div class="auth-page__panel-header">
-      <h2>{{ 'auth.availableMethods' | transloco }}</h2>
-      <span>{{ 'auth.redirectFlow' | transloco }}</span>
-    </div>
-
-    <div class="auth-page__method-list">
-      @for (method of enabledMethods(); track method.code) {
-        <div class="auth-page__method">
-          <div>
-            <div class="auth-page__method-title">{{ ('auth.methods.' + method.code) | transloco }}</div>
-            <div class="auth-page__method-copy">{{ ('auth.methodDescriptions.' + method.code) | transloco }}</div>
-          </div>
-          @if (method.primary) {
-            <mat-chip highlighted>{{ 'auth.primaryMethod' | transloco }}</mat-chip>
-          }
+    @for (method of enabledMethods(); track method.code) {
+      @if (method.code !== 'oidc_redirect') {
+        <div class="method-card">
+          <span class="method-card__icon">
+            <mat-icon>
+              {{
+                method.code === 'sms_otp'
+                  ? 'sms'
+                  : method.code === 'passkey'
+                    ? 'fingerprint'
+                    : 'id_card'
+              }}
+            </mat-icon>
+          </span>
+          <span class="method-card__copy">
+            <span class="method-card__title">{{ ('auth.methods.' + method.code) | transloco }}</span>
+            <span class="method-card__subtitle">
+              {{ ('auth.methodDescriptions.' + method.code) | transloco }}
+            </span>
+          </span>
         </div>
       }
-    </div>
-  </mat-card>
-</section>
+    }
+  </div>
+
+  @if (uiConfig().sms_otp_enabled) {
+    <section class="auth-section">
+      <div class="section-heading">
+        <div>
+          <h2>{{ 'auth.smsOtp.title' | transloco }}</h2>
+          <p>{{ 'auth.smsOtp.provider' | transloco }}</p>
+        </div>
+        <mat-chip-set>
+          <mat-chip>{{ 'auth.redirectFlow' | transloco }}</mat-chip>
+        </mat-chip-set>
+      </div>
+
+      <div class="sms-grid">
+        <form class="sms-form" [formGroup]="smsRequestForm" (ngSubmit)="requestSmsOtp()">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'auth.smsOtp.form.identifier' | transloco }}</mat-label>
+            <input matInput formControlName="identifier" autocomplete="username" />
+          </mat-form-field>
+
+          <button mat-flat-button type="submit">
+            <mat-icon>sms</mat-icon>
+            {{ 'auth.smsOtp.form.request' | transloco }}
+          </button>
+        </form>
+
+        @if (smsState() !== 'idle') {
+          <form class="sms-form" [formGroup]="smsVerifyForm" (ngSubmit)="verifySmsOtp()">
+            <p class="sms-copy">
+              {{ 'auth.smsOtp.sentTo' | transloco:{ phone: maskedPhone() } }}
+            </p>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'auth.smsOtp.form.code' | transloco }}</mat-label>
+              <input matInput formControlName="code" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+            </mat-form-field>
+
+            <button mat-flat-button type="submit" [disabled]="smsState() === 'verifying'">
+              <mat-icon>verified</mat-icon>
+              {{ 'auth.smsOtp.form.verify' | transloco }}
+            </button>
+          </form>
+        }
+      </div>
+    </section>
+  }
+</app-auth-shell>

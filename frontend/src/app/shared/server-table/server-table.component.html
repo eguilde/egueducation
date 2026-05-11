@@ -14,7 +14,7 @@
             mat-header-cell
             *matHeaderCellDef
             [class.is-sticky]="column.sticky"
-            [mat-sort-header]="column.key"
+            [mat-sort-header]="columnSortKey(column)"
             [disabled]="!column.sortable"
           >
             {{ column.label }}
@@ -37,21 +37,31 @@
                     <input
                       matInput
                       [placeholder]="filter.placeholder || ''"
-                      [value]="filters()[column.key] || ''"
-                      (input)="onFilterChange(column.key, $any($event.target).value)"
+                      [value]="filters()[columnFilterKey(column)] || ''"
+                      (input)="onFilterChange(columnFilterKey(column), $any($event.target).value)"
                     />
                   }
                   @case ('select') {
                     <mat-select
-                      [value]="filters()[column.key] || ''"
+                      [value]="filters()[columnFilterKey(column)] || ''"
                       [placeholder]="filter.placeholder || ''"
-                      (selectionChange)="onFilterChange(column.key, $event.value || '')"
+                      (selectionChange)="onFilterChange(columnFilterKey(column), $event.value || '')"
                     >
                       <mat-option value="">{{ filter.placeholder || '' }}</mat-option>
                       @for (option of filter.options || []; track option.value) {
                         <mat-option [value]="option.value">{{ option.label }}</mat-option>
                       }
                     </mat-select>
+                  }
+                  @case ('date') {
+                    <input
+                      matInput
+                      [matDatepicker]="picker"
+                      [placeholder]="filter.placeholder || ''"
+                      (dateChange)="onDateFilterChange(columnFilterKey(column), $event.value || null)"
+                    />
+                    <mat-datepicker-toggle [for]="picker" />
+                    <mat-datepicker #picker />
                   }
                 }
               </mat-form-field>
@@ -64,7 +74,13 @@
 
       <tr mat-header-row *matHeaderRowDef="trackColumns(); sticky: true"></tr>
       <tr mat-header-row *matHeaderRowDef="trackFilterColumns(); sticky: true" class="server-table__filters"></tr>
-      <tr mat-row *matRowDef="let row; columns: trackColumns()"></tr>
+      <tr
+        mat-row
+        *matRowDef="let row; columns: trackColumns()"
+        [class.is-clickable]="rowClickable"
+        [class.is-selected]="selectedRowId && rowIdentifier(row) === selectedRowId"
+        (click)="onRowClick(row)"
+      ></tr>
     </table>
   </div>
 

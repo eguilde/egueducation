@@ -1,0 +1,72 @@
+<section class="admin-page__header">
+  <div>
+    <h1>{{ 'admin.dossierRequirements.title' | transloco }}</h1>
+    <p>{{ 'admin.dossierRequirements.subtitle' | transloco }}</p>
+  </div>
+</section>
+
+<section class="admin-page__grid">
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.dossierRequirements.form.title' | transloco }}</h2>
+    <p>{{ 'admin.dossierRequirements.form.subtitle' | transloco }}</p>
+
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveRequirement()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.dossierRequirements.form.sourceModule' | transloco }}</mat-label>
+        <mat-select formControlName="source_module">
+          @for (value of filters().source_modules; track value) {
+            <mat-option [value]="value">{{ ('workflow.sourceModule.' + value) | transloco }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.dossierRequirements.form.relationType' | transloco }}</mat-label>
+        <mat-select formControlName="relation_type">
+          @for (value of filters().relation_types; track value) {
+            <mat-option [value]="value">{{ ('links.relationType.' + value) | transloco }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.dossierRequirements.form.minCount' | transloco }}</mat-label>
+        <input matInput type="number" min="1" formControlName="min_count" />
+      </mat-form-field>
+
+      <mat-checkbox formControlName="required_for_readiness">
+        {{ 'admin.dossierRequirements.form.requiredForReadiness' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="required_for_submit">
+        {{ 'admin.dossierRequirements.form.requiredForSubmit' | transloco }}
+      </mat-checkbox>
+      <mat-checkbox formControlName="required_for_approve">
+        {{ 'admin.dossierRequirements.form.requiredForApprove' | transloco }}
+      </mat-checkbox>
+
+      <button mat-flat-button type="submit">{{ 'admin.dossierRequirements.form.submit' | transloco }}</button>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
+    <h2>{{ 'admin.dossierRequirements.list.title' | transloco }}</h2>
+    <p>{{ 'admin.dossierRequirements.list.subtitle' | transloco }}</p>
+
+    <app-server-table
+      [columns]="columns()"
+      [rows]="rows()"
+      [total]="response().total"
+      [pageIndex]="response().page - 1"
+      [pageSize]="response().pageSize"
+      [sortActive]="tableState().sort ?? ''"
+      [sortDirection]="tableState().direction ?? ''"
+      [emptyMessage]="'admin.dossierRequirements.list.empty' | transloco"
+      [rowClickable]="true"
+      [selectedRowId]="selectedRequirementId()"
+      (pageChange)="onPageChange($event)"
+      (filterChange)="onFilterChange($event)"
+      (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectRequirement($event)"
+    />
+  </mat-card>
+</section>

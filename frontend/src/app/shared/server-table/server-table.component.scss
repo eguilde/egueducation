@@ -16,6 +16,14 @@ table {
   min-width: 64rem;
 }
 
+.mat-mdc-row.is-clickable {
+  cursor: pointer;
+}
+
+.mat-mdc-row.is-selected {
+  background: color-mix(in srgb, var(--mat-sys-primary-container) 60%, transparent);
+}
+
 .mat-mdc-header-row {
   background: var(--surface-card);
 }

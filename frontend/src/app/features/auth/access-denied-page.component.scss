@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.access-denied-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgb(148 163 184 / 0.18);
+  background: rgb(255 255 255 / 0.58);
+}
+
+.access-denied-card__icon {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, rgb(255 241 242) 0%, rgb(254 205 211) 100%);
+  color: #be123c;
+}
+
+.access-denied-card__body {
+  margin: 0;
+  color: rgb(51 65 85);
+}
+
+.access-denied-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+:host-context(.dark-theme) .access-denied-card {
+  background: rgb(15 23 42 / 0.58);
+  border-color: rgb(148 163 184 / 0.18);
+}
+
+:host-context(.dark-theme) .access-denied-card__body {
+  color: rgb(226 232 240);
+}

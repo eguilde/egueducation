@@ -1,18 +1,74 @@
-<section class="admin-users-page">
-  <header class="admin-users-page__header">
-    <div>
-      <p class="admin-users-page__eyebrow">{{ 'admin.users.eyebrow' | transloco }}</p>
-      <h1>{{ 'admin.users.title' | transloco }}</h1>
-      <p>{{ 'admin.users.subtitle' | transloco }}</p>
-    </div>
+<section class="admin-page__header">
+  <div>
+    <p class="admin-page__eyebrow">{{ 'admin.users.eyebrow' | transloco }}</p>
+    <h1>{{ 'admin.users.title' | transloco }}</h1>
+    <p>{{ 'admin.users.subtitle' | transloco }}</p>
+  </div>
+</section>
 
-    <button mat-flat-button>
-      <mat-icon>person_add</mat-icon>
-      {{ 'admin.users.addAction' | transloco }}
-    </button>
-  </header>
+<section class="admin-page__grid">
+  <mat-card *appHasPermission="'admin.users.manage'; module: 'admin'" appearance="outlined">
+    <h2>{{ 'admin.users.form.title' | transloco }}</h2>
+    <p>{{ 'admin.users.form.subtitle' | transloco }}</p>
 
-  <mat-card>
+    <form class="admin-page__form" [formGroup]="form" (ngSubmit)="saveUser()">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.name' | transloco }}</mat-label>
+        <input matInput formControlName="name" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.email' | transloco }}</mat-label>
+        <input matInput type="email" formControlName="email" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.phone' | transloco }}</mat-label>
+        <input matInput formControlName="phone" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.locale' | transloco }}</mat-label>
+        <mat-select formControlName="locale">
+          <mat-option value="ro">RO</mat-option>
+          <mat-option value="en">EN</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.status' | transloco }}</mat-label>
+        <mat-select formControlName="status">
+          @for (value of filters().statuses; track value) {
+            <mat-option [value]="value">{{ ('admin.userStatus.' + value) | transloco }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'admin.users.form.otpChannel' | transloco }}</mat-label>
+        <mat-select formControlName="preferred_otp_channel">
+          <mat-option value="sms">{{ 'admin.users.otpChannel.sms' | transloco }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="email_verified">
+        {{ 'admin.users.form.emailVerified' | transloco }}
+      </mat-checkbox>
+
+      <mat-checkbox formControlName="phone_verified">
+        {{ 'admin.users.form.phoneVerified' | transloco }}
+      </mat-checkbox>
+
+      <div class="admin-page__actions">
+        <button mat-stroked-button type="button" (click)="resetForm()">
+          {{ 'admin.users.form.reset' | transloco }}
+        </button>
+        <button mat-flat-button type="submit">{{ 'admin.users.form.submit' | transloco }}</button>
+      </div>
+    </form>
+  </mat-card>
+
+  <mat-card appearance="outlined">
     <app-server-table
       [columns]="columns()"
       [rows]="rows()"
@@ -22,9 +78,12 @@
       [sortActive]="tableState().sort ?? ''"
       [sortDirection]="tableState().direction ?? ''"
       [emptyMessage]="('admin.users.empty' | transloco)"
+      [rowClickable]="true"
+      [selectedRowId]="selectedUserId()"
       (pageChange)="onPageChange($event)"
       (filterChange)="onFilterChange($event)"
       (sortChange)="onSortChange($event)"
+      (rowClick)="onSelectUser($event)"
     />
   </mat-card>
 </section>
