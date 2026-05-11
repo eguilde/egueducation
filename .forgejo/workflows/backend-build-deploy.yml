@@ -36,8 +36,11 @@ jobs:
       - name: Validate backend build
         run: |
           set -euo pipefail
-          cd egueducation/backend
-          go test ./...
+          docker run --rm \
+            --volume "${PWD}/egueducation/backend:/src" \
+            --workdir /src \
+            golang:1.26 \
+            sh -lc 'go test ./...'
 
       - name: Build and push backend image
         run: |

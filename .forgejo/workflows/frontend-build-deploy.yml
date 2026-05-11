@@ -36,9 +36,11 @@ jobs:
       - name: Validate frontend build
         run: |
           set -euo pipefail
-          cd egueducation/frontend
-          npm ci
-          npm run build
+          docker run --rm \
+            --volume "${PWD}/egueducation/frontend:/app" \
+            --workdir /app \
+            node:24 \
+            sh -lc 'npm ci && npm run build'
 
       - name: Build and push frontend image
         run: |
