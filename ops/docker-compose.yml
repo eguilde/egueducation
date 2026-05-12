@@ -8,7 +8,7 @@ services:
     volumes:
       - ../backend:/workspace/backend
     env_file:
-      - ../backend/.env.example
+      - ../backend/.env
 
   web:
     image: node:24
