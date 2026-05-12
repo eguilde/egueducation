@@ -17,6 +17,9 @@ env:
 jobs:
   build-and-deploy:
     runs-on: lan-builder
+    defaults:
+      run:
+        shell: bash
     env:
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
