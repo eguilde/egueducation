@@ -17,7 +17,7 @@ concurrency:
 
 env:
   IMAGE: registry.eguilde.cloud/eguilde/egueducation-frontend
-  PLATFORMS: linux/amd64
+  PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
   build-and-deploy:
