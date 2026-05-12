@@ -29,7 +29,7 @@ where sub = 'thomas@eguilde.cloud'
 on conflict do nothing;
 
 insert into app_user_permissions (user_id, permission_code)
-select id, permission_code
+select app_users.id, app_permissions.code
 from app_users
 cross join app_permissions
 where sub = 'thomas@eguilde.cloud'
