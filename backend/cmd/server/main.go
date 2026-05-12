@@ -93,6 +93,7 @@ func main() {
 		r.Get("/auth/ui-config", authService.UIConfig)
 		r.Post("/auth/request-sms", authService.RequestSMSOTP)
 		r.Post("/auth/verify-sms", authService.VerifySMSOTP)
+		r.Post("/auth/session/exchange", authService.ExchangeSession)
 		r.Post("/auth/logout", authService.Logout)
 		r.Get("/oidc/.well-known/openid-configuration", authService.Discovery)
 		r.Get("/oidc/jwks", authService.JWKS)

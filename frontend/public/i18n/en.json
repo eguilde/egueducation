@@ -4,6 +4,8 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "documente": "Documents",
+    "documentFlow": "Document flow",
     "registratura": "Registry",
     "workflow": "Workflow",
     "earchiva": "eArchive",
@@ -22,10 +24,68 @@
     "gdprPublication": "Publication and anonymization",
     "admin": "Administration"
   },
+  "documenteWorkspace": {
+    "title": "Documents and archiving",
+    "subtitle": "Registry, document workflows, and eArchive now live in one workspace, with overview separated from daily operations.",
+    "open": "Open module",
+    "stats": {
+      "registratura": "Registry documents",
+      "workflow": "Active workflow tasks",
+      "blocked": "Blocked dossiers",
+      "archive": "Archived units"
+    },
+    "cards": {
+      "registratura": "Register, search, classify, and track active documents.",
+      "workflow": "Operational workflows, tasks, transitions, and dossier blockers.",
+      "earchiva": "Archive register, retention, and archive intake."
+    }
+  },
+  "educationWorkspace": {
+    "title": "Education and school governance",
+    "subtitle": "Governance, personnel, managerial dossiers, and portfolios are grouped in one operational workspace arranged by logical activity areas.",
+    "open": "Open area",
+    "tabs": {
+      "governance": "Governance"
+    },
+    "stats": {
+      "meetings": "Recorded meetings",
+      "scheduled": "Scheduled meetings",
+      "decisions": "Decisions",
+      "dossiers": "Managerial dossiers"
+    },
+    "cards": {
+      "governanceTitle": "Governance and decisions",
+      "governanceBody": "Boards, councils, regulations, and decisions tracked in one area.",
+      "personnelTitle": "Personnel and evaluations",
+      "personnelBody": "Personnel records, evaluations, mobility, merit grants, and declarations.",
+      "portfolioTitle": "Portfolios and transfer",
+      "portfolioBody": "CD portfolios, retention, transfer, and operational compliance."
+    }
+  },
+  "adminWorkspace": {
+    "title": "Platform administration",
+    "subtitle": "Users, organizational structure, identity, workflows, and compliance are grouped into one administrative center.",
+    "tabs": {
+      "users": "Users",
+      "roles": "Roles",
+      "structure": "Structure",
+      "memberships": "Memberships",
+      "positions": "Positions",
+      "permissions": "Permissions",
+      "workflows": "Workflows",
+      "taxonomies": "Taxonomies",
+      "nomenclatures": "Nomenclatures",
+      "platform": "Platform",
+      "identity": "Identity",
+      "gdpr": "GDPR",
+      "audit": "Audit"
+    }
+  },
   "common": {
     "close": "Close",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "open": "Open"
   },
   "auth": {
     "login": "Sign in",

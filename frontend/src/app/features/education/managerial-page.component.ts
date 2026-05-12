@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import {
   CreateManagerialDossierRequest,
@@ -28,6 +29,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -46,6 +48,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -74,6 +77,7 @@ export class ManagerialPageComponent {
     filters: {},
   });
   protected readonly selectedDossierId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     school_year: this.fb.nonNullable.control('2025-2026', [Validators.required]),
@@ -129,6 +133,13 @@ export class ManagerialPageComponent {
   protected readonly selectedDossier = computed(
     () => this.rows().find((row) => row.id === this.selectedDossierId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<ManagerialDossier>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('common.open'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<ManagerialDossier>[]>(() => [
     {
@@ -204,6 +215,17 @@ export class ManagerialPageComponent {
 
   protected onSelectDossier(record: ManagerialDossier): void {
     this.selectedDossierId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: ManagerialDossier }): void {
+    if (event.action === 'open') {
+      this.onSelectDossier(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createDossier(): void {

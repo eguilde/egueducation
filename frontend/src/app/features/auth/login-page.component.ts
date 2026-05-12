@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -41,7 +41,6 @@ export class LoginPageComponent {
   private readonly fb = inject(FormBuilder);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
   private readonly transloco = inject(TranslocoService);
 
   protected readonly methods = toSignal(this.api.authMethods(), { initialValue: { methods: [] } });
@@ -62,15 +61,18 @@ export class LoginPageComponent {
     },
   });
   protected readonly enabledMethods = computed(() => this.methods().methods.filter((method) => method.enabled));
+  protected readonly secondaryMethods = computed(() =>
+    this.enabledMethods().filter((method) => method.code !== 'oidc_redirect'),
+  );
   protected readonly smsState = signal<'idle' | 'sent' | 'verifying'>('idle');
   protected readonly maskedPhone = signal('');
 
   protected readonly smsRequestForm = this.fb.group({
-    identifier: this.fb.nonNullable.control('thomas@eguilde.cloud', [Validators.required, this.validateIdentifier]),
+    identifier: this.fb.nonNullable.control('', [Validators.required, this.validateIdentifier]),
   });
 
   protected readonly smsVerifyForm = this.fb.group({
-    identifier: this.fb.nonNullable.control('thomas@eguilde.cloud', [Validators.required, this.validateIdentifier]),
+    identifier: this.fb.nonNullable.control('', [Validators.required, this.validateIdentifier]),
     code: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]),
   });
 
@@ -123,12 +125,7 @@ export class LoginPageComponent {
           { duration: 3000 },
         );
         this.smsState.set('sent');
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        if (returnUrl) {
-          window.location.href = returnUrl;
-          return;
-        }
-        await this.router.navigateByUrl('/dashboard');
+        await this.router.navigateByUrl(this.auth.consumeReturnUrl());
       },
       error: () => {
         this.smsState.set('sent');
@@ -139,6 +136,19 @@ export class LoginPageComponent {
         );
       },
     });
+  }
+
+  protected methodIcon(code: string): string {
+    switch (code) {
+      case 'sms_otp':
+        return 'sms';
+      case 'passkey':
+        return 'fingerprint';
+      case 'eudi_wallet':
+        return 'id_card';
+      default:
+        return 'shield_lock';
+    }
   }
 
   private validateIdentifier(control: AbstractControl<string>): ValidationErrors | null {

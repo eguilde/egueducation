@@ -6,12 +6,19 @@
   [visualTitle]="'auth.visual.title' | transloco"
   [visualBody]="'auth.visual.body' | transloco"
   accent="amber">
-  <div class="access-denied-card">
-    <div class="access-denied-card__icon">
-      <mat-icon>gpp_bad</mat-icon>
-    </div>
+  <div class="access-denied-card rounded-[1.5rem] border border-rose-200/60 bg-white/70 p-5 shadow-sm dark:border-rose-900/40 dark:bg-slate-950/35">
+    <div class="flex items-start gap-4">
+      <div class="access-denied-card__icon">
+        <mat-icon>gpp_bad</mat-icon>
+      </div>
 
-    <p class="access-denied-card__body">{{ supportHint() }}</p>
+      <div class="grid gap-2">
+        <p class="text-sm uppercase tracking-[0.12em] text-rose-700 dark:text-rose-300">
+          {{ 'auth.accessDenied.eyebrow' | transloco }}
+        </p>
+        <p class="access-denied-card__body">{{ supportHint() }}</p>
+      </div>
+    </div>
 
     <div class="access-denied-card__actions">
       <a mat-flat-button routerLink="/dashboard">{{ 'dashboard.primaryCta' | transloco }}</a>

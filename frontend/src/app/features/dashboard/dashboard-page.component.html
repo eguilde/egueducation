@@ -13,17 +13,18 @@
   </div>
 
   <div class="hero__actions">
-    <a mat-flat-button routerLink="/admin">{{ 'dashboard.primaryCta' | transloco }}</a>
-    <a mat-stroked-button routerLink="/registratura">{{ 'dashboard.secondaryCta' | transloco }}</a>
+    <a mat-flat-button routerLink="/documente/dashboard">{{ 'dashboard.primaryCta' | transloco }}</a>
+    <a mat-stroked-button routerLink="/education/dashboard">{{ 'dashboard.secondaryCta' | transloco }}</a>
   </div>
 </section>
 
 <section class="cards">
-  @for (card of cards; track card.titleKey) {
+  @for (card of visibleCards(); track card.titleKey) {
     <mat-card appearance="outlined" class="cards__item">
       <mat-icon>{{ card.icon }}</mat-icon>
       <h2>{{ card.titleKey | transloco }}</h2>
       <p>{{ card.bodyKey | transloco }}</p>
+      <a mat-stroked-button [routerLink]="card.route">{{ card.ctaKey | transloco }}</a>
     </mat-card>
   }
 </section>

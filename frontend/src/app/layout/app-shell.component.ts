@@ -23,8 +23,10 @@ interface NavItem {
   icon: string;
   labelKey: string;
   route: string;
-  permission?: string;
-  module?: string;
+  permission?: string | string[];
+  permissionMode?: 'all' | 'any';
+  module?: string | string[];
+  moduleMode?: 'all' | 'any';
 }
 
 @Component({
@@ -57,27 +59,55 @@ export class AppShellComponent {
   protected readonly theme = inject(ThemeService);
 
   protected readonly navItems: NavItem[] = [
-    { icon: 'dashboard', labelKey: 'nav.dashboard', route: '/dashboard', permission: 'dashboard.read', module: 'dashboard' },
-    { icon: 'inbox', labelKey: 'nav.registratura', route: '/registratura', permission: 'registratura.read', module: 'registratura' },
-    { icon: 'account_tree', labelKey: 'nav.workflow', route: '/workflow', permission: 'workflow.read', module: 'workflow' },
-    { icon: 'inventory_2', labelKey: 'nav.earchiva', route: '/earchiva', permission: 'earchiva.read', module: 'earchiva' },
-    { icon: 'school', labelKey: 'nav.education', route: '/education', permission: 'education.read', module: 'education' },
-    { icon: 'gavel', labelKey: 'nav.educationDecisions', route: '/education/decisions', permission: 'education.decisions.read', module: 'education' },
-    { icon: 'fact_check', labelKey: 'nav.educationManagerial', route: '/education/managerial', permission: 'education.managerial.read', module: 'education' },
-    { icon: 'policy', labelKey: 'nav.educationRegulations', route: '/education/regulations', permission: 'education.regulations.read', module: 'education' },
-    { icon: 'badge', labelKey: 'nav.educationPersonnel', route: '/education/personnel', permission: 'education.personnel.read', module: 'education' },
-    { icon: 'assignment_turned_in', labelKey: 'nav.educationEvaluations', route: '/education/evaluations', permission: 'education.evaluations.read', module: 'education' },
-    { icon: 'verified_user', labelKey: 'nav.educationDeclarations', route: '/education/declarations', permission: 'education.declarations.read', module: 'education' },
-    { icon: 'swap_horiz', labelKey: 'nav.educationMobility', route: '/education/mobility', permission: 'education.mobility.read', module: 'education' },
-    { icon: 'military_tech', labelKey: 'nav.educationGradatii', route: '/education/gradatii', permission: 'education.gradatii.read', module: 'education' },
-    { icon: 'folder_shared', labelKey: 'nav.educationPortfolios', route: '/education/portfolios', permission: 'education.portfolios.read', module: 'education' },
-    { icon: 'policy', labelKey: 'nav.gdpr', route: '/gdpr', permission: 'gdpr.read', module: 'gdpr' },
-    { icon: 'download', labelKey: 'nav.gdprExports', route: '/gdpr/exports', permission: 'gdpr.exports.read', module: 'gdpr' },
-    { icon: 'visibility_lock', labelKey: 'nav.gdprPublication', route: '/gdpr/publication-reviews', permission: 'gdpr.publication.read', module: 'gdpr' },
-    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin', permission: 'admin.read', module: 'admin' },
+    {
+      icon: 'dashboard',
+      labelKey: 'nav.dashboard',
+      route: '/dashboard',
+      permission: 'dashboard.read',
+      module: 'dashboard',
+    },
+    {
+      icon: 'folder_open',
+      labelKey: 'nav.documente',
+      route: '/documente/dashboard',
+      permission: ['registratura.read', 'workflow.read', 'earchiva.read'],
+      permissionMode: 'any',
+      module: ['registratura', 'workflow', 'earchiva'],
+      moduleMode: 'any',
+    },
+    {
+      icon: 'school',
+      labelKey: 'nav.education',
+      route: '/education/dashboard',
+      permission: [
+        'education.governance.read',
+        'education.personnel.read',
+        'education.decisions.read',
+        'education.regulations.read',
+        'education.managerial.read',
+        'education.evaluations.read',
+        'education.declarations.read',
+        'education.mobility.read',
+        'education.gradatii.read',
+        'education.portfolios.read',
+      ],
+      permissionMode: 'any',
+      module: 'education',
+    },
+    {
+      icon: 'policy',
+      labelKey: 'nav.gdpr',
+      route: '/gdpr/dashboard',
+      permission: ['gdpr.read', 'gdpr.policies.read', 'gdpr.requests.read'],
+      permissionMode: 'all',
+      module: 'gdpr',
+    },
+    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin/dashboard', permission: 'admin.read', module: 'admin' },
   ];
   protected readonly visibleNavItems = computed(() =>
-    this.navItems.filter((item) => this.canAccess(item.permission, item.module)),
+    this.navItems.filter((item) =>
+      this.canAccess(item.permission, item.module, item.permissionMode, item.moduleMode),
+    ),
   );
 
   protected readonly mobileOpen = signal(false);
@@ -109,9 +139,26 @@ export class AppShellComponent {
     await this.router.navigate(['/auth/logout']);
   }
 
-  protected canAccess(permission?: string, moduleCode?: string): boolean {
-    const permissionOk = !permission || this.authz.hasPermission(permission);
-    const moduleOk = !moduleCode || this.authz.hasModule(moduleCode);
+  protected canAccess(
+    permission?: string | string[],
+    moduleCode?: string | string[],
+    permissionMode: 'all' | 'any' = 'any',
+    moduleMode: 'all' | 'any' = 'any',
+  ): boolean {
+    const permissionOk = !permission || (
+      Array.isArray(permission)
+        ? (permissionMode === 'all'
+            ? permission.every((value) => this.authz.hasPermission(value))
+            : permission.some((value) => this.authz.hasPermission(value)))
+        : this.authz.hasPermission(permission)
+    );
+    const moduleOk = !moduleCode || (
+      Array.isArray(moduleCode)
+        ? (moduleMode === 'all'
+            ? moduleCode.every((value) => this.authz.hasModule(value))
+            : moduleCode.some((value) => this.authz.hasModule(value)))
+        : this.authz.hasModule(moduleCode)
+    );
     return permissionOk && moduleOk;
   }
 }

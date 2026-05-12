@@ -15,6 +15,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AuthzService } from '../../core/authz/authz.service';
 import {
@@ -27,6 +28,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -45,6 +47,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
   ],
   templateUrl: './workflow-page.component.html',
@@ -74,6 +77,7 @@ export class WorkflowPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedTaskId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('details');
 
   protected readonly form = this.fb.group({
     definition_code: this.fb.nonNullable.control('', [Validators.required]),
@@ -136,6 +140,14 @@ export class WorkflowPageComponent {
   protected readonly canManage = computed(
     () => this.authz.hasPermission('workflow.manage') || this.authz.hasPermission('workflow.transition'),
   );
+
+  protected readonly rowActions = computed<ServerTableRowAction<WorkflowTask>[]>(() => [
+    {
+      key: 'details',
+      icon: 'visibility',
+      label: this.transloco.translate('workflow.details.title'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<WorkflowTask>[]>(() => [
     {
@@ -265,6 +277,12 @@ export class WorkflowPageComponent {
 
   protected onSelectTask(task: WorkflowTask): void {
     this.selectedTaskId.set(task.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: WorkflowTask }): void {
+    this.selectedTaskId.set(event.row.id);
+    this.activePanel.set('details');
   }
 
   protected createTask(): void {
@@ -345,6 +363,10 @@ export class WorkflowPageComponent {
 
   protected isActionBlocked(action: string, task: WorkflowTask): boolean {
     return !task.dossier_ready && (action === 'submit' || action === 'approve');
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   private refreshData(): void {

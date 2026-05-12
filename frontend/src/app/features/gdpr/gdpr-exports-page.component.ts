@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { CreateGdprSubjectExportRequest, GdprSubjectExport } from '../../core/api/api.types';
 import { GdprApiService } from '../../core/api/gdpr-api.service';
@@ -23,6 +24,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -39,6 +41,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -67,6 +70,7 @@ export class GdprExportsPageComponent {
     filters: {},
   });
   protected readonly selectedRecordId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     request_id: this.fb.nonNullable.control(''),
@@ -119,6 +123,9 @@ export class GdprExportsPageComponent {
   protected readonly selectedRecord = computed(
     () => this.rows().find((row) => row.id === this.selectedRecordId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<GdprSubjectExport>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<GdprSubjectExport>[]>(() => [
     {
@@ -204,6 +211,34 @@ export class GdprExportsPageComponent {
 
   protected onSelectRecord(record: GdprSubjectExport): void {
     this.selectedRecordId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: GdprSubjectExport }): void {
+    if (event.action === 'open') {
+      this.onSelectRecord(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
+  protected resetForm(): void {
+    this.selectedRecordId.set(null);
+    this.activePanel.set('create');
+    this.form.reset({
+      request_id: '',
+      subject_name: '',
+      source_module: 'education',
+      status: 'pending_approval',
+      export_format: 'pdf_bundle',
+      approved_by: '',
+      approved_on: null,
+      generated_on: null,
+      package_summary: '',
+      notes: '',
+    });
   }
 
   protected createRecord(): void {
@@ -229,6 +264,7 @@ export class GdprExportsPageComponent {
     this.api.createExport(payload).subscribe({
       next: (item) => {
         this.selectedRecordId.set(item.id);
+        this.activePanel.set('details');
         this.snackBar.open(
           this.transloco.translate('gdprExports.messages.created'),
           this.transloco.translate('common.close'),

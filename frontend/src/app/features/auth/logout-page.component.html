@@ -6,12 +6,19 @@
   [visualTitle]="'auth.visual.title' | transloco"
   [visualBody]="'auth.visual.body' | transloco"
   accent="amber">
-  <div class="logout-card">
-    <div class="logout-card__icon">
-      <mat-icon>logout</mat-icon>
-    </div>
+  <div class="logout-card rounded-[1.5rem] border border-amber-200/60 bg-white/70 p-5 shadow-sm dark:border-amber-900/40 dark:bg-slate-950/35">
+    <div class="flex items-start gap-4">
+      <div class="logout-card__icon">
+        <mat-icon>logout</mat-icon>
+      </div>
 
-    <p>{{ 'auth.logoutConfirm.body' | transloco }}</p>
+      <div class="grid gap-2">
+        <p class="text-sm uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+          {{ 'auth.logoutConfirm.eyebrow' | transloco }}
+        </p>
+        <p>{{ 'auth.logoutConfirm.body' | transloco }}</p>
+      </div>
+    </div>
 
     @if (error()) {
       <p class="logout-card__error">{{ error() }}</p>

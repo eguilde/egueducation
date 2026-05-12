@@ -6,6 +6,7 @@ import { combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,6 +24,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -33,6 +35,7 @@ import {
     ReactiveFormsModule,
     TranslocoPipe,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
@@ -68,6 +71,7 @@ export class AdminEducationTaxonomiesPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedTaxonomyId = signal<string | null>(null);
+  protected readonly panelMode = signal<'details' | 'edit'>('details');
 
   protected readonly form = this.fb.group({
     domain: this.fb.nonNullable.control('governance_organism', [Validators.required]),
@@ -98,6 +102,9 @@ export class AdminEducationTaxonomiesPageComponent {
   );
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly selectedTaxonomy = computed(
+    () => this.rows().find((row) => row.id === this.selectedTaxonomyId()) ?? null,
+  );
 
   protected readonly columns = computed<ServerTableColumn<AdminEducationTaxonomy>[]>(() => [
     {
@@ -134,6 +141,13 @@ export class AdminEducationTaxonomiesPageComponent {
       },
     },
   ]);
+  protected readonly rowActions = computed<ServerTableRowAction<AdminEducationTaxonomy>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('admin.educationTaxonomies.list.title'),
+    },
+  ]);
 
   protected onPageChange(event: PageEvent): void {
     this.tableState.update((state) => ({ ...state, page: event.pageIndex + 1, pageSize: event.pageSize }));
@@ -154,6 +168,7 @@ export class AdminEducationTaxonomiesPageComponent {
 
   protected onSelectTaxonomy(record: AdminEducationTaxonomy): void {
     this.selectedTaxonomyId.set(record.id);
+    this.panelMode.set('details');
     this.form.reset({
       domain: record.domain,
       code: record.code,
@@ -162,6 +177,36 @@ export class AdminEducationTaxonomiesPageComponent {
       active: record.active,
       sort_order: record.sort_order,
     });
+  }
+
+  protected onActionClick(event: { action: string; row: AdminEducationTaxonomy }): void {
+    if (event.action === 'open') {
+      this.onSelectTaxonomy(event.row);
+    }
+  }
+
+  protected beginCreate(): void {
+    this.selectedTaxonomyId.set(null);
+    this.panelMode.set('edit');
+    this.form.reset({
+      domain: this.filters().domains[0] ?? 'governance_organism',
+      code: '',
+      label_ro: '',
+      label_en: '',
+      active: true,
+      sort_order: 10,
+    });
+  }
+
+  protected editSelected(): void {
+    if (!this.selectedTaxonomy()) {
+      return;
+    }
+    this.panelMode.set('edit');
+  }
+
+  protected showDetails(): void {
+    this.panelMode.set('details');
   }
 
   protected saveTaxonomy(): void {
@@ -183,6 +228,7 @@ export class AdminEducationTaxonomiesPageComponent {
     this.adminApi.saveEducationTaxonomy(payload).subscribe({
       next: (saved) => {
         this.selectedTaxonomyId.set(saved.id);
+        this.panelMode.set('details');
         this.snackBar.open(
           this.transloco.translate('admin.educationTaxonomies.messages.saved'),
           this.transloco.translate('common.close'),

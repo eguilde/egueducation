@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import {
   CreateGdprRetentionPolicyRequest,
@@ -30,6 +31,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -49,6 +51,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -94,6 +97,9 @@ export class GdprPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedRequestId = signal<string | null>(null);
+  protected readonly selectedRetentionId = signal<string | null>(null);
+  protected readonly requestPanelMode = signal<'create' | 'details'>('create');
+  protected readonly retentionPanelMode = signal<'create' | 'details'>('create');
 
   protected readonly subjectForm = this.fb.group({
     subject_name: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(3)]),
@@ -190,6 +196,17 @@ export class GdprPageComponent {
   protected readonly selectedRequest = computed(
     () => this.requestRows().find((row) => row.id === this.selectedRequestId()) ?? null,
   );
+  protected readonly selectedRetention = computed(
+    () => this.retentionResponse().items.find((row) => row.id === this.selectedRetentionId()) ?? null,
+  );
+  protected readonly requestFilterCount = computed(() => this.countActiveFilters(this.requestState().filters));
+  protected readonly retentionFilterCount = computed(() => this.countActiveFilters(this.retentionState().filters));
+  protected readonly requestRowActions = computed<ServerTableRowAction<GdprSubjectRequest>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
+  protected readonly retentionRowActions = computed<ServerTableRowAction<GdprRetentionPolicy>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly requestColumns = computed<ServerTableColumn<GdprSubjectRequest>[]>(() => [
     {
@@ -360,6 +377,36 @@ export class GdprPageComponent {
 
   protected onSelectRequest(record: GdprSubjectRequest): void {
     this.selectedRequestId.set(record.id);
+    this.requestPanelMode.set('details');
+  }
+
+  protected onSelectRetention(record: GdprRetentionPolicy): void {
+    this.selectedRetentionId.set(record.id);
+    this.retentionPanelMode.set('details');
+  }
+
+  protected onRequestActionClick(event: { action: string; row: GdprSubjectRequest }): void {
+    if (event.action === 'open') {
+      this.onSelectRequest(event.row);
+    }
+  }
+
+  protected onRetentionActionClick(event: { action: string; row: GdprRetentionPolicy }): void {
+    if (event.action === 'open') {
+      this.onSelectRetention(event.row);
+    }
+  }
+
+  protected openCreateRequestPanel(): void {
+    this.selectedRequestId.set(null);
+    this.requestPanelMode.set('create');
+    this.resetSubjectForm();
+  }
+
+  protected openCreateRetentionPanel(): void {
+    this.selectedRetentionId.set(null);
+    this.retentionPanelMode.set('create');
+    this.resetRetentionForm();
   }
 
   protected createSubjectRequest(): void {
@@ -380,20 +427,10 @@ export class GdprPageComponent {
       notes: raw.notes,
     };
     this.api.createSubjectRequest(payload).subscribe({
-      next: () => {
+      next: (item) => {
+        this.selectedRequestId.set(item.id);
+        this.requestPanelMode.set('details');
         this.snackBar.open(this.transloco.translate('gdpr.messages.requestCreated'), this.transloco.translate('common.close'), { duration: 3000 });
-        const dueDate = this.defaultDueDate();
-        this.subjectForm.reset({
-          subject_name: '',
-          request_type: 'access',
-          status: 'received',
-          submitted_on: new Date(),
-          due_on: dueDate,
-          handled_by: '',
-          source_module: 'education',
-          anonymization_required: false,
-          notes: '',
-        });
         this.requestState.update((state) => ({ ...state, page: 1, refreshToken: state.refreshToken + 1 }));
       },
       error: () => {
@@ -419,19 +456,10 @@ export class GdprPageComponent {
       notes: raw.notes,
     };
     this.api.createRetentionPolicy(payload).subscribe({
-      next: () => {
+      next: (item) => {
+        this.selectedRetentionId.set(item.id);
+        this.retentionPanelMode.set('details');
         this.snackBar.open(this.transloco.translate('gdpr.messages.policyCreated'), this.transloco.translate('common.close'), { duration: 3000 });
-        const reviewDate = this.defaultReviewDate();
-        this.retentionForm.reset({
-          domain_code: 'education',
-          record_category: '',
-          retention_years: 3,
-          legal_basis: '',
-          status: 'draft',
-          review_due_on: reviewDate,
-          owner_name: '',
-          notes: '',
-        });
         this.retentionState.update((state) => ({ ...state, page: 1, refreshToken: state.refreshToken + 1 }));
       },
       error: () => {
@@ -457,6 +485,37 @@ export class GdprPageComponent {
 
   private formatDate(value: Date): string {
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+  }
+
+  private countActiveFilters(filters: Record<string, string>): number {
+    return Object.values(filters).filter((value) => value.trim().length > 0).length;
+  }
+
+  protected resetSubjectForm(): void {
+    this.subjectForm.reset({
+      subject_name: '',
+      request_type: 'access',
+      status: 'received',
+      submitted_on: new Date(),
+      due_on: this.defaultDueDate(),
+      handled_by: '',
+      source_module: 'education',
+      anonymization_required: false,
+      notes: '',
+    });
+  }
+
+  protected resetRetentionForm(): void {
+    this.retentionForm.reset({
+      domain_code: 'education',
+      record_category: '',
+      retention_years: 3,
+      legal_basis: '',
+      status: 'draft',
+      review_due_on: this.defaultReviewDate(),
+      owner_name: '',
+      notes: '',
+    });
   }
 
   protected defaultDueDate(): Date {

@@ -5,10 +5,6 @@
 .logout-card {
   display: grid;
   gap: 1rem;
-  padding: 1.25rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgb(148 163 184 / 0.18);
-  background: rgb(255 255 255 / 0.58);
 }
 
 .logout-card__icon {
@@ -34,6 +30,7 @@
 .logout-card__actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.75rem;
 }
 

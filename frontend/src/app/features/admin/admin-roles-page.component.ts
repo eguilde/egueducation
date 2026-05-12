@@ -9,10 +9,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatInputModule } from '@angular/material/input';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import {
@@ -27,6 +29,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -40,9 +43,11 @@ import {
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -75,6 +80,9 @@ export class AdminRolesPageComponent {
 
   protected readonly selectedRoleCode = signal<string | null>(null);
   protected readonly selectedAssignmentId = signal<string | null>(null);
+  protected readonly activePanel = signal<'role-create' | 'role-details' | 'assignment-create' | 'assignment-details'>(
+    'role-create',
+  );
 
   protected readonly roleForm = this.fb.group({
     code: this.fb.nonNullable.control('', [Validators.required]),
@@ -118,6 +126,12 @@ export class AdminRolesPageComponent {
 
   protected readonly roleRows = computed(() => this.rolesResponse().items);
   protected readonly assignmentRows = computed(() => this.assignmentsResponse().items);
+  protected readonly selectedRole = computed(
+    () => this.roleRows().find((role) => role.code === this.selectedRoleCode()) ?? null,
+  );
+  protected readonly selectedAssignment = computed(
+    () => this.assignmentRows().find((assignment) => assignment.id === this.selectedAssignmentId()) ?? null,
+  );
   protected readonly roleOptions = computed(() =>
     this.rolesResponse().items.map((role) => ({
       value: role.code,
@@ -130,6 +144,12 @@ export class AdminRolesPageComponent {
       label: `${user.name} (${user.email})`,
     })),
   );
+  protected readonly roleRowActions = computed<ServerTableRowAction<AdminRole>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
+  protected readonly assignmentRowActions = computed<ServerTableRowAction<AdminUserRoleAssignment>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly roleColumns = computed<ServerTableColumn<AdminRole>[]>(() => [
     {
@@ -211,6 +231,7 @@ export class AdminRolesPageComponent {
 
   protected selectRole(role: AdminRole): void {
     this.selectedRoleCode.set(role.code);
+    this.activePanel.set('role-details');
     this.roleForm.reset({ code: role.code, label: role.label });
     this.assignmentForm.patchValue({ role_code: role.code });
     this.assignmentTableState.update((state) => ({
@@ -222,6 +243,7 @@ export class AdminRolesPageComponent {
 
   protected selectAssignment(assignment: AdminUserRoleAssignment): void {
     this.selectedAssignmentId.set(assignment.id);
+    this.activePanel.set('assignment-details');
     this.assignmentForm.reset({
       user_id: assignment.user_id,
       role_code: assignment.role_code,
@@ -231,16 +253,42 @@ export class AdminRolesPageComponent {
 
   protected resetRoleForm(): void {
     this.selectedRoleCode.set(null);
+    this.activePanel.set('role-create');
     this.roleForm.reset({ code: '', label: '' });
   }
 
   protected resetAssignmentForm(): void {
     this.selectedAssignmentId.set(null);
+    this.activePanel.set('assignment-create');
     this.assignmentForm.reset({
       user_id: '',
       role_code: this.selectedRoleCode() ?? '',
       assigned: true,
     });
+  }
+
+  protected openRoleCreatePanel(): void {
+    this.activePanel.set('role-create');
+  }
+
+  protected openAssignmentCreatePanel(): void {
+    this.activePanel.set('assignment-create');
+    const selectedRoleCode = this.selectedRoleCode();
+    if (selectedRoleCode) {
+      this.assignmentForm.patchValue({ role_code: selectedRoleCode });
+    }
+  }
+
+  protected onRoleActionClick(event: { action: string; row: AdminRole }): void {
+    if (event.action === 'open') {
+      this.selectRole(event.row);
+    }
+  }
+
+  protected onAssignmentActionClick(event: { action: string; row: AdminUserRoleAssignment }): void {
+    if (event.action === 'open') {
+      this.selectAssignment(event.row);
+    }
   }
 
   protected saveRole(): void {
@@ -256,6 +304,7 @@ export class AdminRolesPageComponent {
     this.adminApi.saveRole(payload).subscribe({
       next: (saved) => {
         this.selectedRoleCode.set(saved.code);
+        this.activePanel.set('role-details');
         this.snackBar.open(this.transloco.translate('admin.roles.messages.saved'), this.transloco.translate('common.close'), { duration: 3000 });
         this.roleTableState.update((state) => ({ ...state, refreshToken: state.refreshToken + 1 }));
       },
@@ -279,6 +328,7 @@ export class AdminRolesPageComponent {
     this.adminApi.saveRoleAssignment(payload).subscribe({
       next: (saved) => {
         this.selectedAssignmentId.set(saved.id);
+        this.activePanel.set('assignment-details');
         this.snackBar.open(
           this.transloco.translate(`admin.roles.messages.${payload.assigned ? 'assigned' : 'removed'}`),
           this.transloco.translate('common.close'),

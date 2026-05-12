@@ -318,6 +318,61 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
+	authorization := strings.TrimSpace(r.Header.Get("Authorization"))
+	if authorization == "" {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "missing_authorization"})
+		return
+	}
+
+	parts := strings.Fields(authorization)
+	if len(parts) != 2 {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_authorization"})
+		return
+	}
+
+	token := strings.TrimSpace(parts[1])
+	claims, err := s.verifyToken(token)
+	if err != nil {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+		return
+	}
+
+	subject, _ := claims["sub"].(string)
+	subject = strings.TrimSpace(subject)
+	if subject == "" {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+		return
+	}
+
+	session, err := s.loadSessionContext(r.Context(), subject)
+	if err != nil {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    subject,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   s.cfg.Environment == "production",
+		MaxAge:   60 * 60 * 8,
+	})
+
+	s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC session exchanged for backend cookie session.", map[string]any{
+		"channel":        "oidc_redirect",
+		"user_id":        session.User.ID,
+		"institution_id": session.InstitutionID,
+	})
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"status":  "established",
+		"session": session,
+	})
+}
+
 func (s *Service) loadSessionContext(ctx context.Context, subject string) (SessionContext, error) {
 	var session SessionContext
 	err := s.db.QueryRow(ctx, `

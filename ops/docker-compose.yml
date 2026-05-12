@@ -13,7 +13,7 @@ services:
   web:
     image: node:24
     working_dir: /workspace/frontend
-    command: sh -lc "npm install && npm start -- --host 0.0.0.0"
+    command: sh -lc "npm install && npm start -- --host 0.0.0.0 --proxy-config proxy.docker.conf.json"
     ports:
       - "4200:4200"
     volumes:

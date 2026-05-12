@@ -1,0 +1,50 @@
+<section class="workspace-shell">
+  <header class="workspace-shell__header rounded-[1.75rem] border border-slate-200/70 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-slate-700/60 dark:bg-slate-900/60">
+    <div class="flex flex-col gap-5">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div class="space-y-2">
+          <p class="workspace-shell__eyebrow">{{ 'nav.admin' | transloco }}</p>
+          <h1 class="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+            {{ (activeTab().labelKey || 'adminWorkspace.title') | transloco }}
+          </h1>
+          <p class="max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {{ (activeGroup().descriptionKey || 'adminWorkspace.subtitle') | transloco }}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          @for (group of groupNavItems(); track group.key) {
+            <a
+              class="workspace-shell__group-link"
+              [class.workspace-shell__group-link--active]="group.active"
+              [routerLink]="group.route"
+            >
+              <mat-icon>{{ group.icon }}</mat-icon>
+              <span>{{ group.labelKey | transloco }}</span>
+            </a>
+          }
+        </div>
+      </div>
+
+      @if (secondaryTabs().length > 1) {
+        <nav class="flex flex-wrap gap-2">
+          @for (tab of secondaryTabs(); track tab.route) {
+            <a
+              class="workspace-shell__section-link"
+              [routerLink]="tab.route"
+              routerLinkActive="workspace-shell__section-link--active"
+              [routerLinkActiveOptions]="{ exact: false }"
+            >
+              <mat-icon>{{ tab.icon }}</mat-icon>
+              <span>{{ tab.labelKey | transloco }}</span>
+            </a>
+          }
+        </nav>
+      }
+    </div>
+  </header>
+
+  <section class="workspace-shell__content">
+    <router-outlet />
+  </section>
+</section>

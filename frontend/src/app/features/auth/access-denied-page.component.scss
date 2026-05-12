@@ -5,10 +5,6 @@
 .access-denied-card {
   display: grid;
   gap: 1rem;
-  padding: 1.25rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgb(148 163 184 / 0.18);
-  background: rgb(255 255 255 / 0.58);
 }
 
 .access-denied-card__icon {
@@ -29,6 +25,7 @@
 .access-denied-card__actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.75rem;
 }
 

@@ -9,10 +9,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import { AdminOrgUnit, UpsertAdminOrgUnitRequest } from '../../core/api/api.types';
@@ -21,6 +23,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -34,9 +37,11 @@ import {
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -59,6 +64,7 @@ export class AdminOrgUnitsPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedCode = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly response = toSignal(
     combineLatest([toObservable(this.tableState), this.transloco.langChanges$]).pipe(
@@ -81,6 +87,12 @@ export class AdminOrgUnitsPageComponent {
       .filter((row) => row.code !== this.selectedCode())
       .map((row) => ({ value: row.code, label: row.name })),
   );
+  protected readonly selectedOrgUnit = computed(
+    () => this.rows().find((row) => row.code === this.selectedCode()) ?? null,
+  );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminOrgUnit>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly form = this.fb.group({
     code: this.fb.nonNullable.control('', [Validators.required]),
@@ -155,6 +167,7 @@ export class AdminOrgUnitsPageComponent {
 
   protected selectOrgUnit(item: AdminOrgUnit): void {
     this.selectedCode.set(item.code);
+    this.activePanel.set('details');
     this.form.reset({
       code: item.code,
       name: item.name,
@@ -164,8 +177,19 @@ export class AdminOrgUnitsPageComponent {
     });
   }
 
+  protected onActionClick(event: { action: string; row: AdminOrgUnit }): void {
+    if (event.action === 'open') {
+      this.selectOrgUnit(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
   protected resetForm(): void {
     this.selectedCode.set(null);
+    this.activePanel.set('create');
     this.form.reset({
       code: '',
       name: '',
@@ -193,6 +217,7 @@ export class AdminOrgUnitsPageComponent {
     this.adminApi.saveOrgUnit(payload).subscribe({
       next: (saved) => {
         this.selectedCode.set(saved.code);
+        this.activePanel.set('details');
         this.snackBar.open(
           this.transloco.translate('admin.orgUnits.messages.saved'),
           this.transloco.translate('common.close'),

@@ -9,15 +9,17 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import { AdminMembership, AdminOrgUnit, AdminPosition, AdminUser, UpsertAdminMembershipRequest } from '../../core/api/api.types';
 import { HasPermissionDirective } from '../../shared/authz/has-permission.directive';
-import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, ServerTableSortState } from '../../shared/server-table/server-table.component';
+import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, ServerTableRowAction, ServerTableSortState } from '../../shared/server-table/server-table.component';
 
 @Component({
   selector: 'app-admin-memberships-page',
@@ -29,9 +31,11 @@ import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, Server
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -54,6 +58,7 @@ export class AdminMembershipsPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedMembershipId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     id: this.fb.control<string | null>(null),
@@ -154,6 +159,12 @@ export class AdminMembershipsPageComponent {
       },
     },
   ]);
+  protected readonly selectedMembership = computed(
+    () => this.rows().find((row) => row.id === this.selectedMembershipId()) ?? null,
+  );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminMembership>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected onPageChange(event: PageEvent): void {
     this.tableState.update((state) => ({ ...state, page: event.pageIndex + 1, pageSize: event.pageSize }));
@@ -169,6 +180,7 @@ export class AdminMembershipsPageComponent {
 
   protected onSelectMembership(record: AdminMembership): void {
     this.selectedMembershipId.set(record.id);
+    this.activePanel.set('details');
     this.form.reset({
       id: record.id,
       user_id: record.user_id,
@@ -181,8 +193,19 @@ export class AdminMembershipsPageComponent {
     });
   }
 
+  protected onActionClick(event: { action: string; row: AdminMembership }): void {
+    if (event.action === 'open') {
+      this.onSelectMembership(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
   protected resetForm(): void {
     this.selectedMembershipId.set(null);
+    this.activePanel.set('create');
     this.form.reset({
       id: null,
       user_id: '',
@@ -217,6 +240,7 @@ export class AdminMembershipsPageComponent {
     this.adminApi.saveMembership(payload).subscribe({
       next: (saved) => {
         this.selectedMembershipId.set(saved.id);
+        this.activePanel.set('details');
         this.form.patchValue({ id: saved.id, user_id: saved.user_id });
         this.snackBar.open(
           this.transloco.translate('admin.memberships.messages.saved'),

@@ -1,72 +1,256 @@
-<div class="feature-page">
-  <div class="feature-page__hero">
-    <div>
-      <p class="feature-page__eyebrow">{{ 'nav.gdprPublication' | transloco }}</p>
-      <h1>{{ 'gdprPublication.title' | transloco }}</h1>
-      <p>{{ 'gdprPublication.subtitle' | transloco }}</p>
-    </div>
-    <div class="feature-page__stats">
-      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.total_reviews }}</span><span class="feature-page__stat-label">{{ 'gdprPublication.stats.totalReviews' | transloco }}</span></mat-card>
-      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.pending_anonymization }}</span><span class="feature-page__stat-label">{{ 'gdprPublication.stats.pendingAnonymization' | transloco }}</span></mat-card>
-      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.ready_for_publication }}</span><span class="feature-page__stat-label">{{ 'gdprPublication.stats.readyForPublication' | transloco }}</span></mat-card>
-      <mat-card appearance="outlined"><span class="feature-page__stat-value">{{ dashboard().stats.published_items }}</span><span class="feature-page__stat-label">{{ 'gdprPublication.stats.publishedItems' | transloco }}</span></mat-card>
-    </div>
-  </div>
+<section class="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(22rem,30rem)]">
+  <mat-card appearance="outlined" class="border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/65">
+    <div class="grid gap-4">
+      <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div class="space-y-1">
+          <h2 class="text-xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+            {{ 'gdprPublication.list.title' | transloco }}
+          </h2>
+          <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {{ 'gdprPublication.list.subtitle' | transloco }}
+          </p>
+        </div>
 
-  <div class="feature-page__grid">
-    <div class="feature-page__sidebar">
-      <mat-card appearance="outlined" class="feature-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'gdprPublication.create.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'gdprPublication.create.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <form class="feature-form" [formGroup]="form">
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.sourceModule' | transloco }}</mat-label><mat-select formControlName="source_module">@for (value of filters().source_modules; track value) {<mat-option [value]="value">{{ ('gdpr.publicationSourceModule.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.sourceRecordId' | transloco }}</mat-label><input matInput formControlName="source_record_id" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.sourceLabel' | transloco }}</mat-label><input matInput formControlName="source_label" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.anonymizationStatus' | transloco }}</mat-label><mat-select formControlName="anonymization_status">@for (value of filters().anonymization_statuses; track value) {<mat-option [value]="value">{{ ('gdpr.anonymizationStatus.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.publicationStatus' | transloco }}</mat-label><mat-select formControlName="publication_status">@for (value of filters().publication_statuses; track value) {<mat-option [value]="value">{{ ('gdpr.publicationStatus.' + value) | transloco }}</mat-option>}</mat-select></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.reviewedBy' | transloco }}</mat-label><input matInput formControlName="reviewed_by" /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.reviewedOn' | transloco }}</mat-label><input matInput [matDatepicker]="reviewedPicker" formControlName="reviewed_on" /><mat-datepicker-toggle matIconSuffix [for]="reviewedPicker" /><mat-datepicker #reviewedPicker /></mat-form-field>
-            <mat-form-field appearance="outline"><mat-label>{{ 'gdprPublication.form.legalBasis' | transloco }}</mat-label><input matInput formControlName="legal_basis" /></mat-form-field>
-            <mat-form-field appearance="outline" class="feature-form__summary"><mat-label>{{ 'gdprPublication.form.notes' | transloco }}</mat-label><textarea matInput rows="3" formControlName="notes"></textarea></mat-form-field>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end"><button mat-flat-button type="button" (click)="createRecord()"><mat-icon>visibility_lock</mat-icon>{{ 'gdprPublication.create.submit' | transloco }}</button></mat-card-actions>
-      </mat-card>
+        <div class="grid gap-2 sm:grid-cols-4 lg:grid-cols-2">
+          <div class="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/70 px-4 py-3 dark:border-slate-700/60 dark:bg-slate-950/25">
+            <div class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+              {{ 'gdprPublication.stats.totalReviews' | transloco }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+              {{ dashboard().stats.total_reviews }}
+            </div>
+          </div>
+          <div class="rounded-[1.25rem] border border-amber-200/70 bg-amber-50/70 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+            <div class="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+              {{ 'gdprPublication.stats.pendingAnonymization' | transloco }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+              {{ dashboard().stats.pending_anonymization }}
+            </div>
+          </div>
+          <div class="rounded-[1.25rem] border border-emerald-200/70 bg-emerald-50/70 px-4 py-3 dark:border-emerald-800/50 dark:bg-emerald-950/20">
+            <div class="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+              {{ 'gdprPublication.stats.readyForPublication' | transloco }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+              {{ dashboard().stats.ready_for_publication }}
+            </div>
+          </div>
+          <div class="rounded-[1.25rem] border border-sky-200/70 bg-sky-50/70 px-4 py-3 dark:border-sky-800/50 dark:bg-sky-950/20">
+            <div class="text-xs font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
+              {{ 'gdprPublication.stats.publishedItems' | transloco }}
+            </div>
+            <div class="mt-1 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+              {{ dashboard().stats.published_items }}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <mat-card appearance="outlined" class="feature-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'gdprPublication.details.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'gdprPublication.details.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
+      <app-server-table
+        [columns]="columns()"
+        [rows]="rows()"
+        [rowActions]="rowActions()"
+        [actionColumnLabel]="'Open'"
+        [total]="response().total"
+        [pageIndex]="response().page - 1"
+        [pageSize]="response().pageSize"
+        [emptyMessage]="'gdprPublication.list.empty' | transloco"
+        [sortActive]="tableState().sort || ''"
+        [sortDirection]="tableState().direction || ''"
+        [rowClickable]="true"
+        [selectedRowId]="selectedRecordId()"
+        (pageChange)="onPageChange($event)"
+        (filterChange)="onFilterChange($event)"
+        (sortChange)="onSortChange($event)"
+        (rowClick)="onSelectRecord($event)"
+        (actionClick)="onActionClick($event)"
+      >
+        <ng-template #serverTableToolbar>
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="grid gap-1">
+              <strong>{{ 'gdprPublication.list.title' | transloco }}</strong>
+              <span class="text-sm text-slate-500 dark:text-slate-400">
+                {{ 'gdprPublication.list.subtitle' | transloco }}
+              </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
+                {{ response().total }}
+              </span>
+              <button mat-flat-button type="button" (click)="showCreatePanel()">
+                {{ 'gdprPublication.create.submit' | transloco }}
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </app-server-table>
+    </div>
+  </mat-card>
+
+  <div class="grid gap-4">
+    <mat-card appearance="outlined" class="border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/65">
+      <div class="grid gap-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div class="space-y-1">
+            <h2 class="text-xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+              @if (selectedRecord(); as item) {
+                {{ item.review_code }}
+              } @else {
+                {{ 'gdprPublication.details.title' | transloco }}
+              }
+            </h2>
+            <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+              {{ 'gdprPublication.details.subtitle' | transloco }}
+            </p>
+          </div>
+
+          <mat-button-toggle-group [value]="panelMode()" (change)="panelMode.set($event.value)">
+            <mat-button-toggle value="details">
+              {{ 'gdprPublication.details.title' | transloco }}
+            </mat-button-toggle>
+            <mat-button-toggle value="create">
+              {{ 'gdprPublication.create.title' | transloco }}
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+
+        @if (panelMode() === 'details') {
           @if (selectedRecord(); as item) {
-            <div class="feature-details">
-              <div class="feature-details__row"><span>{{ 'gdprPublication.columns.anonymizationStatus' | transloco }}</span><strong>{{ ('gdpr.anonymizationStatus.' + item.anonymization_status) | transloco }}</strong></div>
-              <div class="feature-details__row"><span>{{ 'gdprPublication.columns.publicationStatus' | transloco }}</span><strong>{{ ('gdpr.publicationStatus.' + item.publication_status) | transloco }}</strong></div>
-              <div class="feature-details__row"><span>{{ 'gdprPublication.form.reviewedBy' | transloco }}</span><strong>{{ item.reviewed_by || '—' }}</strong></div>
-              <p class="feature-details__summary">{{ item.legal_basis || '—' }}</p>
-              <button mat-flat-button type="button" (click)="startWorkflow()"><mat-icon>account_tree</mat-icon>{{ 'gdprPublication.workflow.start' | transloco }}</button>
+            <div class="grid gap-3 rounded-[1.25rem] border border-slate-200/70 bg-slate-50/70 p-4 dark:border-slate-700/60 dark:bg-slate-950/30">
+              <div class="grid gap-1">
+                <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  {{ 'gdprPublication.columns.sourceModule' | transloco }}
+                </span>
+                <strong class="text-sm text-slate-900 dark:text-slate-100">
+                  {{ ('gdpr.publicationSourceModule.' + item.source_module) | transloco }}
+                </strong>
+              </div>
+              <div class="grid gap-1">
+                <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  {{ 'gdprPublication.columns.anonymizationStatus' | transloco }}
+                </span>
+                <strong class="text-sm text-slate-900 dark:text-slate-100">
+                  {{ ('gdpr.anonymizationStatus.' + item.anonymization_status) | transloco }}
+                </strong>
+              </div>
+              <div class="grid gap-1">
+                <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  {{ 'gdprPublication.columns.publicationStatus' | transloco }}
+                </span>
+                <strong class="text-sm text-slate-900 dark:text-slate-100">
+                  {{ ('gdpr.publicationStatus.' + item.publication_status) | transloco }}
+                </strong>
+              </div>
+              <div class="grid gap-1">
+                <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  {{ 'gdprPublication.form.reviewedBy' | transloco }}
+                </span>
+                <span class="text-sm text-slate-700 dark:text-slate-200">{{ item.reviewed_by || '—' }}</span>
+              </div>
+              <div class="grid gap-1">
+                <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+                  {{ 'gdprPublication.form.legalBasis' | transloco }}
+                </span>
+                <p class="m-0 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  {{ item.legal_basis || '—' }}
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button mat-flat-button type="button" (click)="startWorkflow()">
+                <mat-icon>account_tree</mat-icon>
+                {{ 'gdprPublication.workflow.start' | transloco }}
+              </button>
+              <button mat-stroked-button type="button" (click)="showCreatePanel()">
+                {{ 'gdprPublication.create.title' | transloco }}
+              </button>
             </div>
           } @else {
-            <p class="feature-details__empty">{{ 'gdprPublication.details.empty' | transloco }}</p>
+            <div class="rounded-[1.25rem] border border-dashed border-slate-300/70 bg-slate-50/70 p-5 text-sm leading-6 text-slate-600 dark:border-slate-700/60 dark:bg-slate-950/20 dark:text-slate-300">
+              {{ 'gdprPublication.details.empty' | transloco }}
+            </div>
           }
-        </mat-card-content>
-      </mat-card>
+        } @else {
+          <form class="grid gap-4" [formGroup]="form" (ngSubmit)="createRecord()">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.sourceModule' | transloco }}</mat-label>
+              <mat-select formControlName="source_module">
+                @for (value of filters().source_modules; track value) {
+                  <mat-option [value]="value">{{ ('gdpr.publicationSourceModule.' + value) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
 
-      <app-linked-documents-card [sourceModule]="'gdpr.publication'" [sourceRecordId]="selectedRecordId()" />
-    </div>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.sourceRecordId' | transloco }}</mat-label>
+              <input matInput formControlName="source_record_id" />
+            </mat-form-field>
 
-    <mat-card appearance="outlined" class="feature-page__card">
-      <mat-card-header>
-        <mat-card-title>{{ 'gdprPublication.list.title' | transloco }}</mat-card-title>
-        <mat-card-subtitle>{{ 'gdprPublication.list.subtitle' | transloco }}</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <app-server-table [columns]="columns()" [rows]="rows()" [total]="response().total" [pageIndex]="response().page - 1" [pageSize]="response().pageSize" [emptyMessage]="'gdprPublication.list.empty' | transloco" [sortActive]="tableState().sort || ''" [sortDirection]="tableState().direction || ''" [rowClickable]="true" [selectedRowId]="selectedRecordId()" (pageChange)="onPageChange($event)" (filterChange)="onFilterChange($event)" (sortChange)="onSortChange($event)" (rowClick)="onSelectRecord($event)" />
-      </mat-card-content>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.sourceLabel' | transloco }}</mat-label>
+              <input matInput formControlName="source_label" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.anonymizationStatus' | transloco }}</mat-label>
+              <mat-select formControlName="anonymization_status">
+                @for (value of filters().anonymization_statuses; track value) {
+                  <mat-option [value]="value">{{ ('gdpr.anonymizationStatus.' + value) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.publicationStatus' | transloco }}</mat-label>
+              <mat-select formControlName="publication_status">
+                @for (value of filters().publication_statuses; track value) {
+                  <mat-option [value]="value">{{ ('gdpr.publicationStatus.' + value) | transloco }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.reviewedBy' | transloco }}</mat-label>
+              <input matInput formControlName="reviewed_by" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.reviewedOn' | transloco }}</mat-label>
+              <input matInput [matDatepicker]="reviewedPicker" formControlName="reviewed_on" />
+              <mat-datepicker-toggle matIconSuffix [for]="reviewedPicker" />
+              <mat-datepicker #reviewedPicker />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.legalBasis' | transloco }}</mat-label>
+              <input matInput formControlName="legal_basis" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'gdprPublication.form.notes' | transloco }}</mat-label>
+              <textarea matInput rows="3" formControlName="notes"></textarea>
+            </mat-form-field>
+
+            <div class="flex flex-wrap justify-end gap-2">
+              <button mat-stroked-button type="button" (click)="showDetailsPanel()">
+                {{ 'common.close' | transloco }}
+              </button>
+              <button mat-flat-button type="submit">
+                <mat-icon>visibility_lock</mat-icon>
+                {{ 'gdprPublication.create.submit' | transloco }}
+              </button>
+            </div>
+          </form>
+        }
+      </div>
     </mat-card>
+
+    <app-linked-documents-card
+      [sourceModule]="'gdpr.publication'"
+      [sourceRecordId]="selectedRecordId()"
+    />
   </div>
-</div>
+</section>

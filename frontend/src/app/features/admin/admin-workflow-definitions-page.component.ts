@@ -9,10 +9,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import {
@@ -23,6 +25,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -36,9 +39,11 @@ import {
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
   ],
   templateUrl: './admin-workflow-definitions-page.component.html',
@@ -75,6 +80,8 @@ export class AdminWorkflowDefinitionsPageComponent {
     sla_hours: this.fb.nonNullable.control(48, [Validators.required, Validators.min(1)]),
     active: this.fb.nonNullable.control(true),
   });
+  protected readonly selectedCode = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly filters = toSignal(this.adminApi.workflowDefinitionFilters(), {
     initialValue: { categories: [] },
@@ -96,6 +103,12 @@ export class AdminWorkflowDefinitionsPageComponent {
   );
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly selectedDefinition = computed(
+    () => this.rows().find((row) => row.code === this.selectedCode()) ?? null,
+  );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminWorkflowDefinition>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<AdminWorkflowDefinition>[]>(() => [
     {
@@ -156,6 +169,8 @@ export class AdminWorkflowDefinitionsPageComponent {
   }
 
   protected onSelectWorkflowDefinition(record: AdminWorkflowDefinition): void {
+    this.selectedCode.set(record.code);
+    this.activePanel.set('details');
     this.form.reset({
       code: record.code,
       name: record.name,
@@ -163,6 +178,29 @@ export class AdminWorkflowDefinitionsPageComponent {
       initial_step: record.initial_step,
       sla_hours: record.sla_hours,
       active: record.active,
+    });
+  }
+
+  protected onActionClick(event: { action: string; row: AdminWorkflowDefinition }): void {
+    if (event.action === 'open') {
+      this.onSelectWorkflowDefinition(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
+  protected resetForm(): void {
+    this.selectedCode.set(null);
+    this.activePanel.set('create');
+    this.form.reset({
+      code: '',
+      name: '',
+      category: 'education',
+      initial_step: '',
+      sla_hours: 48,
+      active: true,
     });
   }
 
@@ -184,6 +222,8 @@ export class AdminWorkflowDefinitionsPageComponent {
 
     this.adminApi.saveWorkflowDefinition(payload).subscribe({
       next: () => {
+        this.selectedCode.set(payload.code);
+        this.activePanel.set('details');
         this.snackBar.open(
           this.transloco.translate('admin.workflowDefinitions.messages.saved'),
           this.transloco.translate('common.close'),

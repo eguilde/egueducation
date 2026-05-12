@@ -9,14 +9,16 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PageEvent } from '@angular/material/paginator';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import { AdminPermission, AdminPermissionAssignment, UpsertAdminPermissionAssignmentRequest } from '../../core/api/api.types';
 import { HasPermissionDirective } from '../../shared/authz/has-permission.directive';
-import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, ServerTableSortState } from '../../shared/server-table/server-table.component';
+import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, ServerTableRowAction, ServerTableSortState } from '../../shared/server-table/server-table.component';
 
 @Component({
   selector: 'app-admin-permissions-page',
@@ -28,8 +30,10 @@ import { ServerTableColumn, ServerTableComponent, ServerTableFilterState, Server
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -62,6 +66,7 @@ export class AdminPermissionsPageComponent {
 
   protected readonly selectedPermissionCode = signal<string | null>(null);
   protected readonly selectedAssignmentId = signal<string | null>(null);
+  protected readonly activePanel = signal<'assign' | 'details'>('assign');
 
   protected readonly form = this.fb.group({
     permission_code: this.fb.nonNullable.control('', [Validators.required]),
@@ -95,6 +100,18 @@ export class AdminPermissionsPageComponent {
     { key: 'label', label: this.transloco.translate('admin.permissions.columns.label'), sortable: true, filter: { type: 'text', placeholder: this.transloco.translate('table.filters.contains') } },
     { key: 'user_count', label: this.transloco.translate('admin.permissions.columns.userCount'), sortable: true },
     { key: 'role_count', label: this.transloco.translate('admin.permissions.columns.roleCount'), sortable: true },
+  ]);
+  protected readonly selectedPermission = computed(
+    () => this.permissionRows().find((row) => row.code === this.selectedPermissionCode()) ?? null,
+  );
+  protected readonly selectedAssignment = computed(
+    () => this.assignmentRows().find((row) => row.id === this.selectedAssignmentId()) ?? null,
+  );
+  protected readonly permissionRowActions = computed<ServerTableRowAction<AdminPermission>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
+  protected readonly assignmentRowActions = computed<ServerTableRowAction<AdminPermissionAssignment>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
   ]);
 
   protected readonly assignmentColumns = computed<ServerTableColumn<AdminPermissionAssignment>[]>(() => [
@@ -149,6 +166,7 @@ export class AdminPermissionsPageComponent {
 
   protected onSelectPermission(permission: AdminPermission): void {
     this.selectedPermissionCode.set(permission.code);
+    this.activePanel.set('details');
     this.form.patchValue({ permission_code: permission.code });
     this.assignmentState.update((state) => ({
       ...state,
@@ -157,8 +175,19 @@ export class AdminPermissionsPageComponent {
     }));
   }
 
+  protected onPermissionActionClick(event: { action: string; row: AdminPermission }): void {
+    if (event.action === 'open') {
+      this.onSelectPermission(event.row);
+    }
+  }
+
+  protected openAssignPanel(): void {
+    this.activePanel.set('assign');
+  }
+
   protected onSelectAssignment(assignment: AdminPermissionAssignment): void {
     this.selectedAssignmentId.set(assignment.id);
+    this.activePanel.set('details');
     this.form.patchValue({
       permission_code: assignment.permission_code,
       position_code: assignment.position_code,
@@ -166,8 +195,15 @@ export class AdminPermissionsPageComponent {
     });
   }
 
+  protected onAssignmentActionClick(event: { action: string; row: AdminPermissionAssignment }): void {
+    if (event.action === 'open') {
+      this.onSelectAssignment(event.row);
+    }
+  }
+
   protected resetForm(): void {
     this.selectedAssignmentId.set(null);
+    this.activePanel.set('assign');
     this.form.reset({
       permission_code: this.selectedPermissionCode() || '',
       position_code: '',

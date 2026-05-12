@@ -1,24 +1,71 @@
-<section class="admin-page__header">
-  <div>
-    <h1>{{ 'admin.audit.title' | transloco }}</h1>
-    <p>{{ 'admin.audit.subtitle' | transloco }}</p>
-  </div>
-</section>
+<section class="grid gap-4">
+  <div class="grid gap-3 rounded-[1.25rem] border border-slate-200/70 bg-white/80 p-5 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/65 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+    <div class="grid gap-2">
+      <div class="inline-flex w-max items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
+        <span>{{ 'admin.audit.title' | transloco }}</span>
+      </div>
+      <p class="m-0 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+        {{ 'admin.audit.subtitle' | transloco }}
+      </p>
+    </div>
 
-<section class="admin-page__grid">
-  <mat-card appearance="outlined">
-    <app-server-table
-      [columns]="columns()"
-      [rows]="rows()"
-      [total]="response().total"
-      [pageIndex]="response().page - 1"
-      [pageSize]="response().pageSize"
-      [sortActive]="tableState().sort ?? ''"
-      [sortDirection]="tableState().direction ?? ''"
-      [emptyMessage]="'admin.audit.empty' | transloco"
-      (pageChange)="onPageChange($event)"
-      (filterChange)="onFilterChange($event)"
-      (sortChange)="onSortChange($event)"
-    />
+    <div class="flex flex-wrap gap-2">
+      @for (card of summaryCards(); track card.labelKey) {
+        <div class="grid min-w-[7rem] gap-1 rounded-2xl bg-slate-50 px-4 py-3 text-right dark:bg-slate-800/80">
+          <span class="text-lg font-semibold text-slate-900 dark:text-slate-50">{{ card.value }}</span>
+          <span class="text-xs uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
+            {{ card.labelKey | transloco }}
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <mat-card appearance="outlined" class="overflow-hidden rounded-[1.25rem] border border-slate-200/70 bg-white/80 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/65">
+    <mat-card-content class="p-0">
+      <app-server-table
+        [columns]="columns()"
+        [rows]="rows()"
+        [total]="response().total"
+        [pageIndex]="response().page - 1"
+        [pageSize]="response().pageSize"
+        [sortActive]="tableState().sort ?? ''"
+        [sortDirection]="tableState().direction ?? ''"
+        [emptyMessage]="'admin.audit.empty' | transloco"
+        [filterToggleLabel]="'table.filters.any' | transloco"
+        (pageChange)="onPageChange($event)"
+        (filterChange)="onFilterChange($event)"
+        (sortChange)="onSortChange($event)"
+      >
+        <ng-template #serverTableToolbar>
+          <div class="flex flex-col gap-3 border-b border-slate-200/70 px-4 py-4 dark:border-slate-700/60 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {{ response().total }}
+              </span>
+              <span class="text-sm text-slate-600 dark:text-slate-300">
+                {{ 'admin.audit.title' | transloco }}
+              </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]"
+                [class.bg-rose-50]="activeFilterCount() > 0"
+                [class.text-rose-700]="activeFilterCount() > 0"
+                [class.dark:bg-rose-950/40]="activeFilterCount() > 0"
+                [class.dark:text-rose-200]="activeFilterCount() > 0"
+                [class.bg-slate-100]="activeFilterCount() === 0"
+                [class.text-slate-600]="activeFilterCount() === 0"
+                [class.dark:bg-slate-800]="activeFilterCount() === 0"
+                [class.dark:text-slate-300]="activeFilterCount() === 0"
+              >
+                <mat-icon class="mr-1 !text-[1rem]">filter_alt</mat-icon>
+                {{ activeFilterCount() }}
+              </span>
+            </div>
+          </div>
+        </ng-template>
+      </app-server-table>
+    </mat-card-content>
   </mat-card>
 </section>

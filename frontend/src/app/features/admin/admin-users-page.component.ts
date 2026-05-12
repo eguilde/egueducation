@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import { AdminUser, UpsertAdminUserRequest } from '../../core/api/api.types';
@@ -22,6 +23,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -39,6 +41,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -68,6 +71,7 @@ export class AdminUsersPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedUserId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     id: this.fb.control<string | null>(null),
@@ -177,6 +181,12 @@ export class AdminUsersPageComponent {
   ]);
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly selectedUser = computed(
+    () => this.rows().find((row) => row.id === this.selectedUserId()) ?? null,
+  );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminUser>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected onPageChange(event: PageEvent): void {
     this.tableState.update((state) => ({
@@ -205,6 +215,7 @@ export class AdminUsersPageComponent {
 
   protected onSelectUser(user: AdminUser): void {
     this.selectedUserId.set(user.id);
+    this.activePanel.set('details');
     this.form.reset({
       id: user.id,
       name: user.name,
@@ -218,8 +229,19 @@ export class AdminUsersPageComponent {
     });
   }
 
+  protected onActionClick(event: { action: string; row: AdminUser }): void {
+    if (event.action === 'open') {
+      this.onSelectUser(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
   protected resetForm(): void {
     this.selectedUserId.set(null);
+    this.activePanel.set('create');
     this.form.reset({
       id: null,
       name: '',
@@ -255,6 +277,7 @@ export class AdminUsersPageComponent {
     this.adminApi.saveUser(payload).subscribe({
       next: (saved) => {
         this.selectedUserId.set(saved.id);
+        this.activePanel.set('details');
         this.form.patchValue({ id: saved.id });
         this.snackBar.open(
           this.transloco.translate('admin.users.messages.saved'),

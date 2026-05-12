@@ -25,10 +25,6 @@
 .client-card {
   grid-template-columns: auto 1fr;
   align-items: start;
-  padding: 1rem 1.125rem;
-  border-radius: 1.5rem;
-  background: rgb(255 255 255 / 0.58);
-  border: 1px solid rgb(148 163 184 / 0.18);
 }
 
 .client-card__icon {
@@ -66,13 +62,6 @@
   color: var(--text-soft);
 }
 
-.consent-card {
-  padding: 1rem 1.125rem;
-  border-radius: 1.5rem;
-  background: rgb(255 255 255 / 0.58);
-  border: 1px solid rgb(148 163 184 / 0.18);
-}
-
 .scope-list {
   display: grid;
   gap: 0.75rem;
@@ -91,6 +80,8 @@
 .action-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.75rem;
 }
 

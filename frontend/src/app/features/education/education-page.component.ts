@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import {
   CreateGovernanceMeetingRequest,
@@ -27,6 +28,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -44,6 +46,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -74,6 +77,7 @@ export class EducationPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedMeetingId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     school_year: this.fb.nonNullable.control('2025-2026', [Validators.required]),
@@ -145,6 +149,9 @@ export class EducationPageComponent {
   protected readonly selectedMeeting = computed(
     () => this.rows().find((row) => row.id === this.selectedMeetingId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<GovernanceMeeting>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<GovernanceMeeting>[]>(() => [
     {
@@ -250,6 +257,36 @@ export class EducationPageComponent {
 
   protected onSelectMeeting(record: GovernanceMeeting): void {
     this.selectedMeetingId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: GovernanceMeeting }): void {
+    if (event.action === 'open') {
+      this.onSelectMeeting(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
+  protected resetForm(): void {
+    this.selectedMeetingId.set(null);
+    this.activePanel.set('create');
+    this.form.reset({
+      school_year: '2025-2026',
+      organism: 'ca',
+      title: '',
+      meeting_type: 'ordinary',
+      status: 'draft',
+      quorum_required: 7,
+      participants_count: 0,
+      meeting_date: new Date(),
+      location: '',
+      chairperson: '',
+      secretary_name: '',
+      summary: '',
+    });
   }
 
   protected createMeeting(): void {
@@ -281,20 +318,7 @@ export class EducationPageComponent {
           this.transloco.translate('common.close'),
           { duration: 3000 },
         );
-        this.form.reset({
-          school_year: '2025-2026',
-          organism: 'ca',
-          title: '',
-          meeting_type: 'ordinary',
-          status: 'draft',
-          quorum_required: 7,
-          participants_count: 0,
-          meeting_date: new Date(),
-          location: '',
-          chairperson: '',
-          secretary_name: '',
-          summary: '',
-        });
+        this.resetForm();
         this.refreshData();
       },
       error: () => {

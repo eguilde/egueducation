@@ -5,6 +5,7 @@ import { combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { PageEvent } from '@angular/material/paginator';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
@@ -19,7 +20,7 @@ import {
 @Component({
   selector: 'app-admin-audit-page',
   standalone: true,
-  imports: [TranslocoPipe, MatCardModule, ServerTableComponent],
+  imports: [TranslocoPipe, MatCardModule, MatIconModule, ServerTableComponent],
   templateUrl: './admin-audit-page.component.html',
   styleUrl: './admin-audit-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,6 +55,23 @@ export class AdminAuditPageComponent {
   );
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly activeFilterCount = computed(
+    () => Object.values(this.tableState().filters).filter((value) => !!value).length,
+  );
+  protected readonly summaryCards = computed(() => [
+    {
+      labelKey: 'admin.audit.columns.domain',
+      value: this.filtersResponse().domains.length,
+    },
+    {
+      labelKey: 'admin.audit.columns.targetType',
+      value: this.filtersResponse().target_types.length,
+    },
+    {
+      labelKey: 'admin.audit.columns.status',
+      value: this.filtersResponse().statuses.length,
+    },
+  ]);
   protected readonly columns = computed<ServerTableColumn<AdminAuditEvent>[]>(() => [
     {
       key: 'created_at',

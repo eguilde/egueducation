@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { CreateMobilityCaseRequest, MobilityCase } from '../../core/api/api.types';
 import { EducationMobilityApiService } from '../../core/api/education-mobility-api.service';
@@ -23,6 +24,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -40,6 +42,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -70,6 +73,7 @@ export class MobilityPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedCaseId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     employee_code: this.fb.nonNullable.control('', [Validators.required]),
@@ -124,6 +128,13 @@ export class MobilityPageComponent {
   protected readonly selectedCase = computed(
     () => this.rows().find((row) => row.id === this.selectedCaseId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<MobilityCase>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('common.open'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<MobilityCase>[]>(() => [
     {
@@ -220,6 +231,17 @@ export class MobilityPageComponent {
 
   protected onSelectCase(record: MobilityCase): void {
     this.selectedCaseId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: MobilityCase }): void {
+    if (event.action === 'open') {
+      this.onSelectCase(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createRecord(): void {

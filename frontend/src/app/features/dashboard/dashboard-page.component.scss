@@ -52,6 +52,7 @@
   display: grid;
   gap: 0.65rem;
   background: var(--surface-card);
+  align-content: start;
 }
 
 .cards__item mat-icon {

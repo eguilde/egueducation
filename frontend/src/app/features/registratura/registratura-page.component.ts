@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 import { PageEvent } from '@angular/material/paginator';
 
 import {
@@ -26,6 +27,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -43,6 +45,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
   ],
   templateUrl: './registratura-page.component.html',
@@ -74,6 +77,7 @@ export class RegistraturaPageComponent {
   });
 
   protected readonly selectedDocumentId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details' | 'versions' | 'attachments'>('create');
 
   protected readonly form = this.fb.group({
     subject: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(5)]),
@@ -253,6 +257,28 @@ export class RegistraturaPageComponent {
 
   protected readonly rows = computed(() => this.response().items);
 
+  protected readonly selectedDocumentSummary = computed(
+    () => this.rows().find((row) => row.id === this.selectedDocumentId()) ?? this.selectedDocument(),
+  );
+
+  protected readonly rowActions = computed<ServerTableRowAction<RegistraturaDocument>[]>(() => [
+    {
+      key: 'details',
+      icon: 'visibility',
+      label: this.transloco.translate('registratura.details.title'),
+    },
+    {
+      key: 'versions',
+      icon: 'history',
+      label: this.transloco.translate('registratura.versions.title'),
+    },
+    {
+      key: 'attachments',
+      icon: 'attach_file',
+      label: this.transloco.translate('registratura.attachments.title'),
+    },
+  ]);
+
   constructor() {
     effect(() => {
       const document = this.selectedDocument();
@@ -308,7 +334,24 @@ export class RegistraturaPageComponent {
 
   protected onSelectDocument(document: RegistraturaDocument): void {
     this.selectedDocumentId.set(document.id);
+    this.activePanel.set('details');
     this.detailRefresh.update((value) => value + 1);
+  }
+
+  protected onActionClick(event: { action: string; row: RegistraturaDocument }): void {
+    this.selectedDocumentId.set(event.row.id);
+    if (
+      event.action === 'details' ||
+      event.action === 'versions' ||
+      event.action === 'attachments'
+    ) {
+      this.activePanel.set(event.action);
+    }
+    this.detailRefresh.update((value) => value + 1);
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createDocument(): void {

@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import {
   CreateRegulationRecordRequest,
@@ -27,6 +28,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -43,6 +45,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -71,6 +74,7 @@ export class RegulationsPageComponent {
     filters: {},
   });
   protected readonly selectedRecordId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     school_year: this.fb.nonNullable.control('2025-2026', [Validators.required]),
@@ -133,6 +137,13 @@ export class RegulationsPageComponent {
   protected readonly selectedRecord = computed(
     () => this.rows().find((row) => row.id === this.selectedRecordId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<RegulationRecord>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('common.open'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<RegulationRecord>[]>(() => [
     {
@@ -221,6 +232,17 @@ export class RegulationsPageComponent {
 
   protected onSelectRecord(record: RegulationRecord): void {
     this.selectedRecordId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: RegulationRecord }): void {
+    if (event.action === 'open') {
+      this.onSelectRecord(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createRecord(): void {

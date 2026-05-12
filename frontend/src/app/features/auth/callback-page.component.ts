@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthzService } from '../../core/authz/authz.service';
 import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component';
 
 @Component({
@@ -20,7 +21,7 @@ import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component
       [visualKicker]="'auth.visual.kicker' | transloco"
       [visualTitle]="'auth.visual.title' | transloco"
       [visualBody]="'auth.visual.body' | transloco">
-      <div class="callback-page__card">
+      <div class="callback-page__card rounded-[1.5rem] border border-slate-200/70 bg-white/70 p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/35">
         <mat-progress-spinner diameter="44" mode="indeterminate" />
         @if (error()) {
           <div class="callback-page__error">
@@ -39,10 +40,6 @@ import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component
       gap: 1rem;
       place-items: center;
       text-align: center;
-      padding: 1.5rem;
-      border-radius: 1.5rem;
-      border: 1px solid rgb(148 163 184 / 0.18);
-      background: rgb(255 255 255 / 0.58);
     }
 
     .callback-page__card p {
@@ -66,6 +63,7 @@ import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component
 })
 export class CallbackPageComponent {
   private readonly auth = inject(AuthService);
+  private readonly authz = inject(AuthzService);
   private readonly router = inject(Router);
 
   protected readonly error = signal<string | null>(null);
@@ -77,7 +75,8 @@ export class CallbackPageComponent {
   private async finish(): Promise<void> {
     try {
       await this.auth.handleCallback(new URLSearchParams(window.location.search));
-      await this.router.navigateByUrl('/dashboard');
+      await this.authz.reload();
+      await this.router.navigateByUrl(this.auth.consumeReturnUrl());
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Authentication failed');
     }

@@ -43,4 +43,8 @@ export class AuthzService {
   hasModule(moduleCode: string): boolean {
     return this.modules().some((module) => module.code === moduleCode && module.active);
   }
+
+  hasAnyModule(moduleCodes: string[]): boolean {
+    return moduleCodes.some((moduleCode) => this.hasModule(moduleCode));
+  }
 }

@@ -1,287 +1,6 @@
-<div class="registratura-page">
-  <div class="registratura-page__hero">
-    <div>
-      <p class="registratura-page__eyebrow">{{ 'nav.registratura' | transloco }}</p>
-      <h1>{{ 'registratura.title' | transloco }}</h1>
-      <p>{{ 'registratura.subtitle' | transloco }}</p>
-    </div>
-    <div class="registratura-page__stats">
-      <mat-card appearance="outlined">
-        <span class="registratura-page__stat-value">{{ response().total }}</span>
-        <span class="registratura-page__stat-label">{{ 'registratura.stats.totalDocuments' | transloco }}</span>
-      </mat-card>
-      <mat-card appearance="outlined">
-        <span class="registratura-page__stat-value">{{ filters().document_types.length }}</span>
-        <span class="registratura-page__stat-label">{{ 'registratura.stats.documentTypes' | transloco }}</span>
-      </mat-card>
-      <mat-card appearance="outlined">
-        <span class="registratura-page__stat-value">{{ versions().length }}</span>
-        <span class="registratura-page__stat-label">{{ 'registratura.stats.versions' | transloco }}</span>
-      </mat-card>
-      <mat-card appearance="outlined">
-        <span class="registratura-page__stat-value">{{ attachments().length }}</span>
-        <span class="registratura-page__stat-label">{{ 'registratura.stats.attachments' | transloco }}</span>
-      </mat-card>
-    </div>
-  </div>
-
-  <div class="registratura-page__grid">
-    <div class="registratura-page__sidebar">
-      <mat-card appearance="outlined" class="registratura-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'registratura.create.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'registratura.create.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <form class="registratura-form" [formGroup]="form">
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.subject' | transloco }}</mat-label>
-              <input matInput formControlName="subject" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.documentType' | transloco }}</mat-label>
-              <mat-select formControlName="document_type">
-                @for (option of filters().document_types; track option) {
-                  <mat-option [value]="option">{{ option }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.direction' | transloco }}</mat-label>
-              <mat-select formControlName="direction">
-                @for (option of filters().directions; track option) {
-                  <mat-option [value]="option">{{ ('registratura.direction.' + option) | transloco }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.status' | transloco }}</mat-label>
-              <mat-select formControlName="status">
-                @for (option of filters().statuses; track option) {
-                  <mat-option [value]="option">{{ ('registratura.status.' + option) | transloco }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.correspondent' | transloco }}</mat-label>
-              <input matInput formControlName="correspondent" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.assignedTo' | transloco }}</mat-label>
-              <input matInput formControlName="assigned_to" />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.confidentiality' | transloco }}</mat-label>
-              <mat-select formControlName="confidentiality">
-                @for (option of filters().confidentialities; track option) {
-                  <mat-option [value]="option">{{ ('registratura.confidentiality.' + option) | transloco }}</mat-option>
-                }
-              </mat-select>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>{{ 'registratura.form.dueDate' | transloco }}</mat-label>
-              <input matInput [matDatepicker]="duePicker" formControlName="due_date" />
-              <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
-              <mat-datepicker #duePicker />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" class="registratura-form__summary">
-              <mat-label>{{ 'registratura.form.summary' | transloco }}</mat-label>
-              <textarea matInput rows="4" formControlName="summary"></textarea>
-            </mat-form-field>
-          </form>
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-flat-button type="button" (click)="createDocument()">
-            <mat-icon>post_add</mat-icon>
-            {{ 'registratura.create.submit' | transloco }}
-          </button>
-        </mat-card-actions>
-      </mat-card>
-
-      <mat-card appearance="outlined" class="registratura-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'registratura.details.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'registratura.details.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          @if (selectedDocument(); as item) {
-            <div class="registratura-details">
-              <div class="registratura-details__row"><span>{{ 'registratura.columns.registryNumber' | transloco }}</span><strong>{{ item.registry_number }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.columns.subject' | transloco }}</span><strong>{{ item.subject }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.columns.status' | transloco }}</span><strong>{{ ('registratura.status.' + item.status) | transloco }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.columns.direction' | transloco }}</span><strong>{{ ('registratura.direction.' + item.direction) | transloco }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.form.confidentiality' | transloco }}</span><strong>{{ ('registratura.confidentiality.' + item.confidentiality) | transloco }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.form.assignedTo' | transloco }}</span><strong>{{ item.assigned_to || '—' }}</strong></div>
-              <div class="registratura-details__row"><span>{{ 'registratura.columns.dueDate' | transloco }}</span><strong>{{ item.due_date || '—' }}</strong></div>
-            </div>
-          } @else {
-            <p class="registratura-details__empty">{{ 'registratura.details.empty' | transloco }}</p>
-          }
-        </mat-card-content>
-      </mat-card>
-
-      <mat-card appearance="outlined" class="registratura-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'registratura.versions.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'registratura.versions.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          @if (selectedDocument()) {
-            <form class="registratura-form" [formGroup]="versionForm">
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.form.subject' | transloco }}</mat-label>
-                <input matInput formControlName="subject" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.form.status' | transloco }}</mat-label>
-                <mat-select formControlName="status">
-                  @for (option of filters().statuses; track option) {
-                    <mat-option [value]="option">{{ ('registratura.status.' + option) | transloco }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.form.assignedTo' | transloco }}</mat-label>
-                <input matInput formControlName="assigned_to" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.form.confidentiality' | transloco }}</mat-label>
-                <mat-select formControlName="confidentiality">
-                  @for (option of filters().confidentialities; track option) {
-                    <mat-option [value]="option">{{ ('registratura.confidentiality.' + option) | transloco }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.form.dueDate' | transloco }}</mat-label>
-                <input matInput [matDatepicker]="versionDuePicker" formControlName="due_date" />
-                <mat-datepicker-toggle matIconSuffix [for]="versionDuePicker" />
-                <mat-datepicker #versionDuePicker />
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="registratura-form__summary">
-                <mat-label>{{ 'registratura.form.summary' | transloco }}</mat-label>
-                <textarea matInput rows="3" formControlName="summary"></textarea>
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="registratura-form__summary">
-                <mat-label>{{ 'registratura.versions.form.changeNotes' | transloco }}</mat-label>
-                <textarea matInput rows="3" formControlName="change_notes"></textarea>
-              </mat-form-field>
-            </form>
-
-            <div class="registratura-history">
-              @for (item of versions(); track item.id) {
-                <div class="registratura-history__item">
-                  <div class="registratura-history__heading">
-                    <strong>{{ 'registratura.versions.versionLabel' | transloco:{ version: item.version_no } }}</strong>
-                    <span>{{ item.created_at }}</span>
-                  </div>
-                  <p>{{ item.change_notes }}</p>
-                </div>
-              } @empty {
-                <p class="registratura-details__empty">{{ 'registratura.versions.empty' | transloco }}</p>
-              }
-            </div>
-          } @else {
-            <p class="registratura-details__empty">{{ 'registratura.versions.emptySelection' | transloco }}</p>
-          }
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-flat-button type="button" [disabled]="!selectedDocument()" (click)="createVersion()">
-            <mat-icon>history</mat-icon>
-            {{ 'registratura.versions.submit' | transloco }}
-          </button>
-        </mat-card-actions>
-      </mat-card>
-
-      <mat-card appearance="outlined" class="registratura-page__card">
-        <mat-card-header>
-          <mat-card-title>{{ 'registratura.attachments.title' | transloco }}</mat-card-title>
-          <mat-card-subtitle>{{ 'registratura.attachments.subtitle' | transloco }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          @if (selectedDocument()) {
-            <form class="registratura-form" [formGroup]="attachmentForm">
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.title' | transloco }}</mat-label>
-                <input matInput formControlName="title" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.fileName' | transloco }}</mat-label>
-                <input matInput formControlName="file_name" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.mimeType' | transloco }}</mat-label>
-                <input matInput formControlName="mime_type" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.storageKey' | transloco }}</mat-label>
-                <input matInput formControlName="storage_key" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.sizeBytes' | transloco }}</mat-label>
-                <input matInput type="number" formControlName="size_bytes" />
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.category' | transloco }}</mat-label>
-                <mat-select formControlName="category">
-                  @for (option of attachmentCategories; track option) {
-                    <mat-option [value]="option">{{ ('registratura.attachments.category.' + option) | transloco }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.status' | transloco }}</mat-label>
-                <mat-select formControlName="status">
-                  @for (option of attachmentStatuses; track option) {
-                    <mat-option [value]="option">{{ ('registratura.attachments.status.' + option) | transloco }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-              <mat-form-field appearance="outline">
-                <mat-label>{{ 'registratura.attachments.form.uploadedBy' | transloco }}</mat-label>
-                <input matInput formControlName="uploaded_by" />
-              </mat-form-field>
-            </form>
-
-            <div class="registratura-history">
-              @for (item of attachments(); track item.id) {
-                <div class="registratura-history__item">
-                  <div class="registratura-history__heading">
-                    <strong>{{ item.title }}</strong>
-                    <span>{{ formatBytes(item.size_bytes) }}</span>
-                  </div>
-                  <p>{{ item.file_name }} · {{ item.storage_key }}</p>
-                </div>
-              } @empty {
-                <p class="registratura-details__empty">{{ 'registratura.attachments.empty' | transloco }}</p>
-              }
-            </div>
-          } @else {
-            <p class="registratura-details__empty">{{ 'registratura.attachments.emptySelection' | transloco }}</p>
-          }
-        </mat-card-content>
-        <mat-card-actions align="end">
-          <button mat-flat-button type="button" [disabled]="!selectedDocument()" (click)="createAttachment()">
-            <mat-icon>attach_file</mat-icon>
-            {{ 'registratura.attachments.submit' | transloco }}
-          </button>
-        </mat-card-actions>
-      </mat-card>
-    </div>
-
-    <mat-card appearance="outlined" class="registratura-page__card registratura-page__table-card">
-      <mat-card-header>
-        <mat-card-title>{{ 'registratura.list.title' | transloco }}</mat-card-title>
-        <mat-card-subtitle>{{ 'registratura.list.subtitle' | transloco }}</mat-card-subtitle>
-      </mat-card-header>
+<section class="registratura-page">
+  <div class="grid gap-4 xl:grid-cols-12 xl:items-start">
+    <mat-card appearance="outlined" class="registratura-page__table-card xl:col-span-8 2xl:col-span-9">
       <mat-card-content>
         <app-server-table
           [columns]="columns()"
@@ -294,12 +13,289 @@
           [sortDirection]="tableState().direction || ''"
           [rowClickable]="true"
           [selectedRowId]="selectedDocumentId()"
+          [rowActions]="rowActions()"
+          [actionColumnLabel]="'common.open' | transloco"
           (pageChange)="onPageChange($event)"
           (filterChange)="onFilterChange($event)"
           (sortChange)="onSortChange($event)"
           (rowClick)="onSelectDocument($event)"
-        />
+          (actionClick)="onActionClick($event)"
+        >
+          <ng-template #serverTableToolbar>
+            <div class="registratura-page__table-toolbar">
+              <div class="registratura-page__table-toolbar-copy">
+                <strong>{{ 'registratura.title' | transloco }}</strong>
+                <span>{{ 'registratura.list.subtitle' | transloco }}</span>
+              </div>
+              <button mat-flat-button type="button" (click)="openCreatePanel()">
+                <mat-icon>post_add</mat-icon>
+                {{ 'registratura.create.submit' | transloco }}
+              </button>
+            </div>
+          </ng-template>
+        </app-server-table>
       </mat-card-content>
     </mat-card>
+
+    <aside class="registratura-page__panel xl:col-span-4 2xl:col-span-3">
+      <mat-card appearance="outlined" class="registratura-page__panel-card">
+        <mat-card-header>
+          <mat-card-title>{{ 'nav.registratura' | transloco }}</mat-card-title>
+          <mat-card-subtitle>
+            @if (selectedDocumentSummary(); as item) {
+              {{ item.registry_number }} · {{ item.subject }}
+            } @else {
+              {{ 'registratura.details.empty' | transloco }}
+            }
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content>
+          <mat-tab-group
+            [selectedIndex]="activePanel() === 'create' ? 0 : activePanel() === 'details' ? 1 : activePanel() === 'versions' ? 2 : 3"
+          >
+            <mat-tab [label]="'registratura.create.title' | transloco">
+              <div class="registratura-page__tab-body">
+                <form class="registratura-form" [formGroup]="form">
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.subject' | transloco }}</mat-label>
+                    <input matInput formControlName="subject" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.documentType' | transloco }}</mat-label>
+                    <mat-select formControlName="document_type">
+                      @for (option of filters().document_types; track option) {
+                        <mat-option [value]="option">{{ option }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.direction' | transloco }}</mat-label>
+                    <mat-select formControlName="direction">
+                      @for (option of filters().directions; track option) {
+                        <mat-option [value]="option">{{ ('registratura.direction.' + option) | transloco }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.status' | transloco }}</mat-label>
+                    <mat-select formControlName="status">
+                      @for (option of filters().statuses; track option) {
+                        <mat-option [value]="option">{{ ('registratura.status.' + option) | transloco }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.correspondent' | transloco }}</mat-label>
+                    <input matInput formControlName="correspondent" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.assignedTo' | transloco }}</mat-label>
+                    <input matInput formControlName="assigned_to" />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.confidentiality' | transloco }}</mat-label>
+                    <mat-select formControlName="confidentiality">
+                      @for (option of filters().confidentialities; track option) {
+                        <mat-option [value]="option">{{ ('registratura.confidentiality.' + option) | transloco }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>{{ 'registratura.form.dueDate' | transloco }}</mat-label>
+                    <input matInput [matDatepicker]="duePicker" formControlName="due_date" />
+                    <mat-datepicker-toggle matIconSuffix [for]="duePicker" />
+                    <mat-datepicker #duePicker />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="registratura-form__summary">
+                    <mat-label>{{ 'registratura.form.summary' | transloco }}</mat-label>
+                    <textarea matInput rows="4" formControlName="summary"></textarea>
+                  </mat-form-field>
+                </form>
+
+                <div class="registratura-page__actions">
+                  <button mat-flat-button type="button" (click)="createDocument()">
+                    <mat-icon>post_add</mat-icon>
+                    {{ 'registratura.create.submit' | transloco }}
+                  </button>
+                </div>
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'registratura.details.title' | transloco">
+              <div class="registratura-page__tab-body">
+                @if (selectedDocument(); as item) {
+                  <div class="registratura-details">
+                    <div class="registratura-details__row"><span>{{ 'registratura.columns.registryNumber' | transloco }}</span><strong>{{ item.registry_number }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.columns.subject' | transloco }}</span><strong>{{ item.subject }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.columns.status' | transloco }}</span><strong>{{ ('registratura.status.' + item.status) | transloco }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.columns.direction' | transloco }}</span><strong>{{ ('registratura.direction.' + item.direction) | transloco }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.form.confidentiality' | transloco }}</span><strong>{{ ('registratura.confidentiality.' + item.confidentiality) | transloco }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.form.assignedTo' | transloco }}</span><strong>{{ item.assigned_to || '—' }}</strong></div>
+                    <div class="registratura-details__row"><span>{{ 'registratura.columns.dueDate' | transloco }}</span><strong>{{ item.due_date || '—' }}</strong></div>
+                    <div class="registratura-details__row registratura-details__row--stacked">
+                      <span>{{ 'registratura.form.summary' | transloco }}</span>
+                      <p>{{ item.summary || '—' }}</p>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="registratura-details__empty">{{ 'registratura.details.empty' | transloco }}</p>
+                }
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'registratura.versions.title' | transloco">
+              <div class="registratura-page__tab-body">
+                @if (selectedDocument()) {
+                  <form class="registratura-form" [formGroup]="versionForm">
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.form.subject' | transloco }}</mat-label>
+                      <input matInput formControlName="subject" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.form.status' | transloco }}</mat-label>
+                      <mat-select formControlName="status">
+                        @for (option of filters().statuses; track option) {
+                          <mat-option [value]="option">{{ ('registratura.status.' + option) | transloco }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.form.assignedTo' | transloco }}</mat-label>
+                      <input matInput formControlName="assigned_to" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.form.confidentiality' | transloco }}</mat-label>
+                      <mat-select formControlName="confidentiality">
+                        @for (option of filters().confidentialities; track option) {
+                          <mat-option [value]="option">{{ ('registratura.confidentiality.' + option) | transloco }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.form.dueDate' | transloco }}</mat-label>
+                      <input matInput [matDatepicker]="versionDuePicker" formControlName="due_date" />
+                      <mat-datepicker-toggle matIconSuffix [for]="versionDuePicker" />
+                      <mat-datepicker #versionDuePicker />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="registratura-form__summary">
+                      <mat-label>{{ 'registratura.form.summary' | transloco }}</mat-label>
+                      <textarea matInput rows="3" formControlName="summary"></textarea>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" class="registratura-form__summary">
+                      <mat-label>{{ 'registratura.versions.form.changeNotes' | transloco }}</mat-label>
+                      <textarea matInput rows="3" formControlName="change_notes"></textarea>
+                    </mat-form-field>
+                  </form>
+
+                  <div class="registratura-page__actions">
+                    <button mat-flat-button type="button" (click)="createVersion()">
+                      <mat-icon>history</mat-icon>
+                      {{ 'registratura.versions.submit' | transloco }}
+                    </button>
+                  </div>
+
+                  <div class="registratura-history">
+                    @for (item of versions(); track item.id) {
+                      <div class="registratura-history__item">
+                        <div class="registratura-history__heading">
+                          <strong>{{ 'registratura.versions.versionLabel' | transloco:{ version: item.version_no } }}</strong>
+                          <span>{{ item.created_at }}</span>
+                        </div>
+                        <p>{{ item.change_notes }}</p>
+                      </div>
+                    } @empty {
+                      <p class="registratura-details__empty">{{ 'registratura.versions.empty' | transloco }}</p>
+                    }
+                  </div>
+                } @else {
+                  <p class="registratura-details__empty">{{ 'registratura.versions.emptySelection' | transloco }}</p>
+                }
+              </div>
+            </mat-tab>
+
+            <mat-tab [label]="'registratura.attachments.title' | transloco">
+              <div class="registratura-page__tab-body">
+                @if (selectedDocument()) {
+                  <form class="registratura-form" [formGroup]="attachmentForm">
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.title' | transloco }}</mat-label>
+                      <input matInput formControlName="title" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.fileName' | transloco }}</mat-label>
+                      <input matInput formControlName="file_name" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.mimeType' | transloco }}</mat-label>
+                      <input matInput formControlName="mime_type" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.storageKey' | transloco }}</mat-label>
+                      <input matInput formControlName="storage_key" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.sizeBytes' | transloco }}</mat-label>
+                      <input matInput type="number" formControlName="size_bytes" />
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.category' | transloco }}</mat-label>
+                      <mat-select formControlName="category">
+                        @for (option of attachmentCategories; track option) {
+                          <mat-option [value]="option">{{ ('registratura.attachments.category.' + option) | transloco }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.status' | transloco }}</mat-label>
+                      <mat-select formControlName="status">
+                        @for (option of attachmentStatuses; track option) {
+                          <mat-option [value]="option">{{ ('registratura.attachments.status.' + option) | transloco }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>{{ 'registratura.attachments.form.uploadedBy' | transloco }}</mat-label>
+                      <input matInput formControlName="uploaded_by" />
+                    </mat-form-field>
+                  </form>
+
+                  <div class="registratura-page__actions">
+                    <button mat-flat-button type="button" (click)="createAttachment()">
+                      <mat-icon>attach_file</mat-icon>
+                      {{ 'registratura.attachments.submit' | transloco }}
+                    </button>
+                  </div>
+
+                  <div class="registratura-history">
+                    @for (item of attachments(); track item.id) {
+                      <div class="registratura-history__item">
+                        <div class="registratura-history__heading">
+                          <strong>{{ item.title }}</strong>
+                          <span>{{ formatBytes(item.size_bytes) }}</span>
+                        </div>
+                        <p>{{ item.file_name }} · {{ item.storage_key }}</p>
+                      </div>
+                    } @empty {
+                      <p class="registratura-details__empty">{{ 'registratura.attachments.empty' | transloco }}</p>
+                    }
+                  </div>
+                } @else {
+                  <p class="registratura-details__empty">{{ 'registratura.attachments.emptySelection' | transloco }}</p>
+                }
+              </div>
+            </mat-tab>
+          </mat-tab-group>
+        </mat-card-content>
+      </mat-card>
+    </aside>
   </div>
-</div>
+</section>

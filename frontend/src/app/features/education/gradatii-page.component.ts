@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { CreateMeritGrantRequest, MeritGrant } from '../../core/api/api.types';
 import { EducationGradatiiApiService } from '../../core/api/education-gradatii-api.service';
@@ -25,6 +26,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -44,6 +46,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -74,6 +77,7 @@ export class GradatiiPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedGrantId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     full_name: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(5)]),
@@ -126,6 +130,13 @@ export class GradatiiPageComponent {
   protected readonly selectedGrant = computed(
     () => this.rows().find((row) => row.id === this.selectedGrantId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<MeritGrant>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('common.open'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<MeritGrant>[]>(() => [
     {
@@ -224,6 +235,17 @@ export class GradatiiPageComponent {
 
   protected onSelectGrant(record: MeritGrant): void {
     this.selectedGrantId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: MeritGrant }): void {
+    if (event.action === 'open') {
+      this.onSelectGrant(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createRecord(): void {

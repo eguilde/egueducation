@@ -9,9 +9,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import {
@@ -25,6 +27,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -38,9 +41,11 @@ import {
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatPaginatorModule,
     MatSnackBarModule,
+    MatTabsModule,
     HasPermissionDirective,
     ServerTableComponent,
   ],
@@ -82,6 +87,10 @@ export class AdminIdentityPageComponent {
   protected readonly selectedClientId = signal<string | null>(null);
   protected readonly selectedConsentId = signal<string | null>(null);
   protected readonly selectedSessionId = signal<string | null>(null);
+  protected readonly activeRegister = signal<'clients' | 'consents' | 'sessions'>('clients');
+  protected readonly activePanel = signal<'client-create' | 'client-details' | 'consent-details' | 'session-details'>(
+    'client-create',
+  );
 
   protected readonly clientForm = this.fb.group({
     client_id: this.fb.nonNullable.control('', [Validators.required]),
@@ -140,6 +149,24 @@ export class AdminIdentityPageComponent {
   protected readonly clientRows = computed(() => this.clientsResponse().items);
   protected readonly consentRows = computed(() => this.consentsResponse().items);
   protected readonly sessionRows = computed(() => this.sessionsResponse().items);
+  protected readonly selectedClient = computed(
+    () => this.clientRows().find((row) => row.client_id === this.selectedClientId()) ?? null,
+  );
+  protected readonly selectedConsent = computed(
+    () => this.consentRows().find((row) => row.id === this.selectedConsentId()) ?? null,
+  );
+  protected readonly selectedSession = computed(
+    () => this.sessionRows().find((row) => row.token_id === this.selectedSessionId()) ?? null,
+  );
+  protected readonly clientRowActions = computed<ServerTableRowAction<AdminOIDCClient>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
+  protected readonly consentRowActions = computed<ServerTableRowAction<AdminOIDCConsentGrant>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
+  protected readonly sessionRowActions = computed<ServerTableRowAction<AdminOIDCSession>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly clientColumns = computed<ServerTableColumn<AdminOIDCClient>[]>(() => [
     {
@@ -255,6 +282,8 @@ export class AdminIdentityPageComponent {
 
   protected selectClient(item: AdminOIDCClient): void {
     this.selectedClientId.set(item.client_id);
+    this.activeRegister.set('clients');
+    this.activePanel.set('client-details');
     this.clientForm.reset({
       client_id: item.client_id,
       client_name: item.client_name,
@@ -267,6 +296,7 @@ export class AdminIdentityPageComponent {
 
   protected resetClientForm(): void {
     this.selectedClientId.set(null);
+    this.activePanel.set('client-create');
     this.clientForm.reset({
       client_id: '',
       client_name: '',
@@ -297,6 +327,7 @@ export class AdminIdentityPageComponent {
     this.adminApi.saveOidcClient(payload).subscribe({
       next: (saved) => {
         this.selectedClientId.set(saved.client_id);
+        this.activePanel.set('client-details');
         this.snackBar.open(
           this.transloco.translate('admin.identity.messages.clientSaved'),
           this.transloco.translate('common.close'),
@@ -315,6 +346,8 @@ export class AdminIdentityPageComponent {
   }
 
   protected selectConsent(item: AdminOIDCConsentGrant): void {
+    this.activeRegister.set('consents');
+    this.activePanel.set('consent-details');
     this.selectedConsentId.set(item.id);
   }
 
@@ -344,7 +377,32 @@ export class AdminIdentityPageComponent {
   }
 
   protected selectSession(item: AdminOIDCSession): void {
+    this.activeRegister.set('sessions');
+    this.activePanel.set('session-details');
     this.selectedSessionId.set(item.token_id);
+  }
+
+  protected openClientCreatePanel(): void {
+    this.activeRegister.set('clients');
+    this.activePanel.set('client-create');
+  }
+
+  protected onClientActionClick(event: { action: string; row: AdminOIDCClient }): void {
+    if (event.action === 'open') {
+      this.selectClient(event.row);
+    }
+  }
+
+  protected onConsentActionClick(event: { action: string; row: AdminOIDCConsentGrant }): void {
+    if (event.action === 'open') {
+      this.selectConsent(event.row);
+    }
+  }
+
+  protected onSessionActionClick(event: { action: string; row: AdminOIDCSession }): void {
+    if (event.action === 'open') {
+      this.selectSession(event.row);
+    }
   }
 
   protected revokeSelectedSession(): void {

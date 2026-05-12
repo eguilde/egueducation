@@ -38,7 +38,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         if (error.status === 401 && !isAuthScreen && !isBootstrapRequest) {
           auth.clearLocalSession();
           authz.clearSession();
-          void router.navigate(['/login'], { queryParams: { redirect: currentUrl } });
+          auth.storeReturnUrl(currentUrl);
+          void router.navigate(['/login']);
         }
 
         if (error.status === 403 && !currentUrl.startsWith('/auth/access-denied')) {

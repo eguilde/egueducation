@@ -1,4 +1,67 @@
 <div class="server-table">
+  @if (toolbarTemplate(); as toolbar) {
+    <div class="server-table__toolbar">
+      <ng-container [ngTemplateOutlet]="toolbar" />
+    </div>
+  }
+
+  @if (hasFilterableColumns()) {
+    <div class="server-table__controls">
+      <button mat-stroked-button type="button" class="server-table__filter-toggle" (click)="toggleFilters()">
+        <mat-icon>{{ filtersExpanded() ? 'filter_alt_off' : 'filter_alt' }}</mat-icon>
+        <span>{{ filterToggleLabel }}</span>
+      </button>
+    </div>
+  }
+
+  @if (hasFilterableColumns() && filtersExpanded()) {
+    <div class="server-table__mobile-filters">
+      @for (column of columns; track column.key) {
+        @if (column.filter; as filter) {
+          <mat-form-field
+            [appearance]="filterFieldAppearance"
+            subscriptSizing="dynamic"
+            class="server-table__filter-field"
+          >
+            <mat-label>{{ column.label }}</mat-label>
+            @switch (filter.type) {
+              @case ('text') {
+                <input
+                  matInput
+                  [placeholder]="filter.placeholder || ''"
+                  [value]="filters()[columnFilterKey(column)] || ''"
+                  (input)="onFilterChange(columnFilterKey(column), $any($event.target).value)"
+                />
+              }
+              @case ('select') {
+                <mat-select
+                  [value]="filters()[columnFilterKey(column)] || ''"
+                  [placeholder]="filter.placeholder || ''"
+                  (selectionChange)="onFilterChange(columnFilterKey(column), $event.value || '')"
+                >
+                  <mat-option value="">{{ filter.placeholder || '' }}</mat-option>
+                  @for (option of filter.options || []; track option.value) {
+                    <mat-option [value]="option.value">{{ option.label }}</mat-option>
+                  }
+                </mat-select>
+              }
+              @case ('date') {
+                <input
+                  matInput
+                  [matDatepicker]="mobilePicker"
+                  [placeholder]="filter.placeholder || ''"
+                  (dateChange)="onDateFilterChange(columnFilterKey(column), $event.value || null)"
+                />
+                <mat-datepicker-toggle [for]="mobilePicker" />
+                <mat-datepicker #mobilePicker />
+              }
+            }
+          </mat-form-field>
+        }
+      }
+    </div>
+  }
+
   <div class="server-table__scroll">
     <table
       mat-table
@@ -72,8 +135,66 @@
         </ng-container>
       }
 
+      @if (rowActions.length) {
+        <ng-container matColumnDef="__actions">
+          <th mat-header-cell *matHeaderCellDef class="server-table__actions-header">
+            {{ actionColumnLabel }}
+          </th>
+          <td mat-cell *matCellDef="let row" class="server-table__actions-cell">
+            <div class="server-table__action-buttons">
+              @for (action of visibleRowActions(row); track action.key) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  [disabled]="action.disabled?.(row)"
+                  [matTooltip]="action.label"
+                  (click)="onActionClick(action, row, $event)"
+                >
+                  <mat-icon>{{ action.icon }}</mat-icon>
+                </button>
+              }
+            </div>
+
+            <button
+              mat-icon-button
+              type="button"
+              class="server-table__action-menu-trigger"
+              [matMenuTriggerFor]="actionMenu"
+              (click)="$event.stopPropagation()"
+            >
+              <mat-icon>more_vert</mat-icon>
+            </button>
+
+            <mat-menu #actionMenu="matMenu">
+              @for (action of visibleRowActions(row); track action.key) {
+                <button
+                  mat-menu-item
+                  type="button"
+                  [disabled]="action.disabled?.(row)"
+                  (click)="onActionClick(action, row, $event)"
+                >
+                  <mat-icon>{{ action.icon }}</mat-icon>
+                  <span>{{ action.label }}</span>
+                </button>
+              }
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="__actions-filter">
+          <th mat-header-cell *matHeaderCellDef class="server-table__filter-cell server-table__actions-header">
+            <span class="server-table__filter-spacer"></span>
+          </th>
+        </ng-container>
+      }
+
       <tr mat-header-row *matHeaderRowDef="trackColumns(); sticky: true"></tr>
-      <tr mat-header-row *matHeaderRowDef="trackFilterColumns(); sticky: true" class="server-table__filters"></tr>
+      <tr
+        mat-header-row
+        *matHeaderRowDef="trackFilterColumns(); sticky: true"
+        class="server-table__filters"
+        [class.is-collapsed]="!filtersExpanded()"
+      ></tr>
       <tr
         mat-row
         *matRowDef="let row; columns: trackColumns()"
@@ -82,6 +203,79 @@
         (click)="onRowClick(row)"
       ></tr>
     </table>
+  </div>
+
+  <div class="server-table__cards">
+    @for (row of rows; track rowIdentifier(row) || $index) {
+      <section
+        class="server-table__card"
+        [class.is-clickable]="rowClickable"
+        [class.is-selected]="selectedRowId && rowIdentifier(row) === selectedRowId"
+        (click)="onRowClick(row)"
+      >
+        <div class="server-table__card-header">
+          <div class="server-table__card-copy">
+            @if (primaryMobileColumn(); as primaryColumn) {
+              <strong>{{ cellValue(row, primaryColumn) }}</strong>
+            }
+            @if (selectedRowId && rowIdentifier(row) === selectedRowId) {
+              <span class="server-table__card-state">Selected</span>
+            }
+          </div>
+
+          @if (rowActions.length) {
+            <div class="server-table__card-actions">
+              @if (visibleRowActions(row)[0]; as primaryAction) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  class="server-table__card-primary-action"
+                  [disabled]="primaryAction.disabled?.(row)"
+                  (click)="onActionClick(primaryAction, row, $event)"
+                >
+                  <mat-icon>{{ primaryAction.icon }}</mat-icon>
+                  <span>{{ primaryAction.label }}</span>
+                </button>
+              }
+
+              @if (visibleRowActions(row).length > 1) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matMenuTriggerFor]="cardActionMenu"
+                  (click)="$event.stopPropagation()"
+                >
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+
+                <mat-menu #cardActionMenu="matMenu">
+                  @for (action of visibleRowActions(row).slice(1); track action.key) {
+                    <button
+                      mat-menu-item
+                      type="button"
+                      [disabled]="action.disabled?.(row)"
+                      (click)="onActionClick(action, row, $event)"
+                    >
+                      <mat-icon>{{ action.icon }}</mat-icon>
+                      <span>{{ action.label }}</span>
+                    </button>
+                  }
+                </mat-menu>
+              }
+            </div>
+          }
+        </div>
+
+        <dl class="server-table__card-meta">
+          @for (column of secondaryMobileColumns(); track column.key) {
+            <div class="server-table__card-meta-row">
+              <dt>{{ column.label }}</dt>
+              <dd>{{ cellValue(row, column) }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+    }
   </div>
 
   @if (!rows.length) {

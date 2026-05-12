@@ -2,22 +2,20 @@
   display: block;
 }
 
-.auth-method-cards,
-.sms-grid,
-.sms-form {
+.method-card,
+.sms-form,
+.auth-section {
   display: grid;
 }
 
-.auth-method-cards,
+.method-card,
 .sms-form {
   gap: 1rem;
 }
 
 .method-card {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 1rem;
   width: 100%;
   padding: 1rem 1.125rem;
   border: 1px solid rgb(148 163 184 / 0.2);
@@ -27,6 +25,7 @@
 }
 
 .method-card--primary {
+  max-width: 21rem;
   justify-content: start;
   border-color: rgb(225 29 72 / 0.18);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.55);
@@ -59,7 +58,6 @@
 }
 
 .auth-section {
-  display: grid;
   gap: 1.25rem;
   padding: 1.25rem;
   border-radius: 1.5rem;
@@ -92,12 +90,14 @@
 }
 
 .sms-grid {
+  display: grid;
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
 :host-context(.dark-theme) .method-card,
-:host-context(.dark-theme) .auth-section {
+:host-context(.dark-theme) .auth-section,
+:host-context(.dark-theme) .sms-form {
   background: rgb(15 23 42 / 0.58);
   border-color: rgb(148 163 184 / 0.2);
 }
@@ -108,16 +108,11 @@
 }
 
 @media (max-width: 640px) {
-  .method-card {
-    grid-template-columns: auto 1fr;
-  }
-
-  .method-card mat-chip {
-    grid-column: 1 / -1;
-    justify-self: start;
-  }
-
   .section-heading {
     flex-direction: column;
+  }
+
+  .method-card--primary {
+    max-width: none;
   }
 }

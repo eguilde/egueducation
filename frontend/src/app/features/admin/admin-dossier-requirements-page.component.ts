@@ -14,16 +14,19 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import {
   AdminDossierRequirement,
   CreateAdminDossierRequirementRequest,
 } from '../../core/api/api.types';
+import { HasPermissionDirective } from '../../shared/authz/has-permission.directive';
 import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -41,6 +44,8 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
+    HasPermissionDirective,
     ServerTableComponent,
   ],
   templateUrl: './admin-dossier-requirements-page.component.html',
@@ -69,6 +74,7 @@ export class AdminDossierRequirementsPageComponent {
     refreshToken: 0,
   });
   protected readonly selectedRequirementId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     source_module: this.fb.nonNullable.control('education.governance', [Validators.required]),
@@ -102,6 +108,9 @@ export class AdminDossierRequirementsPageComponent {
   protected readonly selectedRequirement = computed(
     () => this.rows().find((row) => row.id === this.selectedRequirementId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminDossierRequirement>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<AdminDossierRequirement>[]>(() => [
     {
@@ -201,6 +210,7 @@ export class AdminDossierRequirementsPageComponent {
 
   protected onSelectRequirement(record: AdminDossierRequirement): void {
     this.selectedRequirementId.set(record.id);
+    this.activePanel.set('details');
     this.form.reset({
       source_module: record.source_module,
       relation_type: record.relation_type,
@@ -208,6 +218,29 @@ export class AdminDossierRequirementsPageComponent {
       required_for_readiness: record.required_for_readiness,
       required_for_submit: record.required_for_submit,
       required_for_approve: record.required_for_approve,
+    });
+  }
+
+  protected onActionClick(event: { action: string; row: AdminDossierRequirement }): void {
+    if (event.action === 'open') {
+      this.onSelectRequirement(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
+  protected resetForm(): void {
+    this.selectedRequirementId.set(null);
+    this.activePanel.set('create');
+    this.form.reset({
+      source_module: 'education.governance',
+      relation_type: 'decision',
+      min_count: 1,
+      required_for_readiness: true,
+      required_for_submit: true,
+      required_for_approve: true,
     });
   }
 
@@ -230,6 +263,7 @@ export class AdminDossierRequirementsPageComponent {
     this.adminApi.saveDossierRequirement(payload).subscribe({
       next: (saved) => {
         this.selectedRequirementId.set(saved.id);
+        this.activePanel.set('details');
         this.snackBar.open(
           this.transloco.translate('admin.dossierRequirements.messages.saved'),
           this.transloco.translate('common.close'),

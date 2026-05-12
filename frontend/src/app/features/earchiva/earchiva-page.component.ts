@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { CreateArchiveRecordRequest, ArchiveRecord } from '../../core/api/api.types';
 import { EarchivaApiService } from '../../core/api/earchiva-api.service';
@@ -21,6 +22,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -38,6 +40,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
   ],
   templateUrl: './earchiva-page.component.html',
@@ -65,6 +68,8 @@ export class EarchivaPageComponent {
     filters: {},
     refreshToken: 0,
   });
+  protected readonly selectedRecordId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('details');
 
   protected readonly form = this.fb.group({
     title: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(5)]),
@@ -125,6 +130,17 @@ export class EarchivaPageComponent {
   );
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly selectedRecord = computed(
+    () => this.rows().find((row) => row.id === this.selectedRecordId()) ?? null,
+  );
+
+  protected readonly rowActions = computed<ServerTableRowAction<ArchiveRecord>[]>(() => [
+    {
+      key: 'details',
+      icon: 'visibility',
+      label: this.transloco.translate('earchiva.list.title'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<ArchiveRecord>[]>(() => [
     {
@@ -227,6 +243,16 @@ export class EarchivaPageComponent {
     }));
   }
 
+  protected onSelectRecord(record: ArchiveRecord): void {
+    this.selectedRecordId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: ArchiveRecord }): void {
+    this.selectedRecordId.set(event.row.id);
+    this.activePanel.set('details');
+  }
+
   protected createRecord(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -280,6 +306,10 @@ export class EarchivaPageComponent {
         );
       },
     });
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   private refreshData(): void {

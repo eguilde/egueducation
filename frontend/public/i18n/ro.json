@@ -4,6 +4,8 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "documente": "Documente",
+    "documentFlow": "Flux documente",
     "registratura": "Registratură",
     "workflow": "Fluxuri",
     "earchiva": "eArhivă",
@@ -22,10 +24,68 @@
     "gdprPublication": "Publicare și anonimizare",
     "admin": "Administrare"
   },
+  "documenteWorkspace": {
+    "title": "Documente și arhivare",
+    "subtitle": "Registratura, fluxurile documentare și eArhiva stau în același spațiu de lucru, cu overview separat de operațiunile zilnice.",
+    "open": "Deschide modulul",
+    "stats": {
+      "registratura": "Documente în registratură",
+      "workflow": "Taskuri active în flux",
+      "blocked": "Dosare blocate",
+      "archive": "Unități arhivate"
+    },
+    "cards": {
+      "registratura": "Înregistrare, căutare, clasificare și urmărire documente curente.",
+      "workflow": "Fluxuri operaționale, sarcini, tranziții și blocaje de dosar.",
+      "earchiva": "Evidență arhivistică, retenție și predare în arhivă."
+    }
+  },
+  "educationWorkspace": {
+    "title": "Educație și guvernanță școlară",
+    "subtitle": "Guvernanță, personal, dosare manageriale și portofolii sunt grupate într-un spațiu operațional comun, structurat pe zone logice.",
+    "open": "Deschide zona",
+    "tabs": {
+      "governance": "Guvernanță"
+    },
+    "stats": {
+      "meetings": "Ședințe înregistrate",
+      "scheduled": "Ședințe programate",
+      "decisions": "Decizii",
+      "dossiers": "Dosare manageriale"
+    },
+    "cards": {
+      "governanceTitle": "Guvernanță și decizii",
+      "governanceBody": "CA, CP, regulamente și decizii urmărite într-o zonă unitară.",
+      "personnelTitle": "Personal și evaluări",
+      "personnelBody": "Evidență personal, evaluări, mobilitate, gradații și declarații.",
+      "portfolioTitle": "Portofolii și transfer",
+      "portfolioBody": "Portofolii CD, retenție, transfer și conformitate operațională."
+    }
+  },
+  "adminWorkspace": {
+    "title": "Administrare platformă",
+    "subtitle": "Utilizatorii, structura organizațională, identitatea, fluxurile și conformitatea sunt reunite într-un centru administrativ unic.",
+    "tabs": {
+      "users": "Utilizatori",
+      "roles": "Roluri",
+      "structure": "Structură",
+      "memberships": "Membri",
+      "positions": "Poziții",
+      "permissions": "Permisiuni",
+      "workflows": "Fluxuri",
+      "taxonomies": "Taxonomii",
+      "nomenclatures": "Nomenclatoare",
+      "platform": "Platformă",
+      "identity": "Identitate",
+      "gdpr": "GDPR",
+      "audit": "Audit"
+    }
+  },
   "common": {
     "close": "Închide",
     "yes": "Da",
-    "no": "Nu"
+    "no": "Nu",
+    "open": "Deschide"
   },
   "auth": {
     "login": "Autentificare",

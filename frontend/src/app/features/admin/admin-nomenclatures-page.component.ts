@@ -9,17 +9,21 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import { AdminNomenclature, CreateAdminNomenclatureRequest } from '../../core/api/api.types';
+import { HasPermissionDirective } from '../../shared/authz/has-permission.directive';
 import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -33,9 +37,12 @@ import {
     MatCardModule,
     MatCheckboxModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
+    HasPermissionDirective,
     ServerTableComponent,
   ],
   templateUrl: './admin-nomenclatures-page.component.html',
@@ -63,6 +70,8 @@ export class AdminNomenclaturesPageComponent {
     filters: {},
     refreshToken: 0,
   });
+  protected readonly selectedNomenclatureId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     domain: this.fb.nonNullable.control('registratura_document_type', [Validators.required]),
@@ -93,6 +102,12 @@ export class AdminNomenclaturesPageComponent {
   );
 
   protected readonly rows = computed(() => this.response().items);
+  protected readonly selectedNomenclature = computed(
+    () => this.rows().find((row) => row.id === this.selectedNomenclatureId()) ?? null,
+  );
+  protected readonly rowActions = computed<ServerTableRowAction<AdminNomenclature>[]>(() => [
+    { key: 'open', icon: 'open_in_new', label: this.transloco.translate('common.open') },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<AdminNomenclature>[]>(() => [
     {
@@ -148,6 +163,8 @@ export class AdminNomenclaturesPageComponent {
   }
 
   protected onSelectNomenclature(record: AdminNomenclature): void {
+    this.selectedNomenclatureId.set(record.id);
+    this.activePanel.set('details');
     this.form.reset({
       domain: record.domain,
       code: record.code,
@@ -155,6 +172,29 @@ export class AdminNomenclaturesPageComponent {
       label_en: record.label_en,
       active: record.active,
       sort_order: record.sort_order,
+    });
+  }
+
+  protected onActionClick(event: { action: string; row: AdminNomenclature }): void {
+    if (event.action === 'open') {
+      this.onSelectNomenclature(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
+  }
+
+  protected resetForm(): void {
+    this.selectedNomenclatureId.set(null);
+    this.activePanel.set('create');
+    this.form.reset({
+      domain: 'registratura_document_type',
+      code: '',
+      label_ro: '',
+      label_en: '',
+      active: true,
+      sort_order: 10,
     });
   }
 
@@ -175,7 +215,9 @@ export class AdminNomenclaturesPageComponent {
     };
 
     this.adminApi.saveNomenclature(payload).subscribe({
-      next: () => {
+      next: (saved) => {
+        this.selectedNomenclatureId.set(saved.id);
+        this.activePanel.set('details');
         this.snackBar.open(
           this.transloco.translate('admin.nomenclatures.messages.saved'),
           this.transloco.translate('common.close'),

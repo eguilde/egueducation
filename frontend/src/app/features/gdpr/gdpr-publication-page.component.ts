@@ -6,6 +6,7 @@ import { combineLatest } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,6 +24,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -32,6 +34,7 @@ import {
     ReactiveFormsModule,
     TranslocoPipe,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCardModule,
     MatDatepickerModule,
     MatFormFieldModule,
@@ -67,6 +70,7 @@ export class GdprPublicationPageComponent {
     filters: {},
   });
   protected readonly selectedRecordId = signal<string | null>(null);
+  protected readonly panelMode = signal<'details' | 'create'>('details');
 
   protected readonly form = this.fb.group({
     source_module: this.fb.nonNullable.control('education.decisions', [Validators.required]),
@@ -118,6 +122,13 @@ export class GdprPublicationPageComponent {
   protected readonly selectedRecord = computed(
     () => this.rows().find((row) => row.id === this.selectedRecordId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<GdprPublicationReview>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('gdprPublication.details.title'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<GdprPublicationReview>[]>(() => [
     {
@@ -203,6 +214,33 @@ export class GdprPublicationPageComponent {
 
   protected onSelectRecord(record: GdprPublicationReview): void {
     this.selectedRecordId.set(record.id);
+    this.panelMode.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: GdprPublicationReview }): void {
+    if (event.action === 'open') {
+      this.onSelectRecord(event.row);
+    }
+  }
+
+  protected showCreatePanel(): void {
+    this.selectedRecordId.set(null);
+    this.panelMode.set('create');
+    this.form.reset({
+      source_module: this.filters().source_modules[0] ?? 'education.decisions',
+      source_record_id: '',
+      source_label: '',
+      anonymization_status: this.filters().anonymization_statuses[0] ?? 'pending',
+      publication_status: this.filters().publication_statuses[0] ?? 'blocked',
+      reviewed_by: '',
+      reviewed_on: null,
+      legal_basis: '',
+      notes: '',
+    });
+  }
+
+  protected showDetailsPanel(): void {
+    this.panelMode.set('details');
   }
 
   protected createRecord(): void {
@@ -227,6 +265,7 @@ export class GdprPublicationPageComponent {
     this.api.createPublicationReview(payload).subscribe({
       next: (item) => {
         this.selectedRecordId.set(item.id);
+        this.panelMode.set('details');
         this.snackBar.open(
           this.transloco.translate('gdprPublication.messages.created'),
           this.transloco.translate('common.close'),

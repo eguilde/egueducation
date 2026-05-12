@@ -21,6 +21,7 @@ import {
 const TOKENS_KEY = 'egueducation.tokens';
 const CODE_VERIFIER_KEY = 'egueducation.pkce.verifier';
 const STATE_KEY = 'egueducation.pkce.state';
+const RETURN_URL_KEY = 'egueducation.auth.return_url';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -40,11 +41,14 @@ export class AuthService {
   readonly isAuthenticated = computed(() => !!this.profileSignal());
 
   async init(): Promise<void> {
-    this.server = await discover(this.absoluteAuthority(this.config.authority));
-    this.dpopHandle = oauth.DPoP(
-      createClient(this.resolvedConfig()),
-      await oauth.generateKeyPair('ES256'),
-    );
+    try {
+      await this.ensureAuthRuntime();
+    } catch {
+      this.server = null;
+      this.dpopHandle = null;
+      this.clearLocalSession();
+      return;
+    }
     const stored = localStorage.getItem(TOKENS_KEY);
     if (!stored) {
       return;
@@ -57,15 +61,16 @@ export class AuthService {
     this.setSession(tokens);
   }
 
-  async login(): Promise<void> {
+  async login(returnUrl?: string): Promise<void> {
+    await this.ensureAuthRuntime();
     const verifier = oauth.generateRandomCodeVerifier();
     const { url, state } = await buildAuthorizationUrl(this.server!, this.resolvedConfig(), verifier);
-    sessionStorage.setItem(CODE_VERIFIER_KEY, verifier);
-    sessionStorage.setItem(STATE_KEY, state);
+    this.storeRedirectLogin(state, verifier, returnUrl);
     this.document.location.href = url.toString();
   }
 
   async handleCallback(query: URLSearchParams): Promise<void> {
+    await this.ensureAuthRuntime();
     const verifier = sessionStorage.getItem(CODE_VERIFIER_KEY);
     const state = sessionStorage.getItem(STATE_KEY);
     if (!verifier || !state) {
@@ -77,20 +82,42 @@ export class AuthService {
     sessionStorage.removeItem(CODE_VERIFIER_KEY);
     sessionStorage.removeItem(STATE_KEY);
     this.setSession(tokens);
+    await firstValueFrom(this.http.post<{ status: string }>('/api/auth/session/exchange', {}));
   }
 
   async logout(): Promise<void> {
+    if (this.server === null) {
+      try {
+        await this.ensureAuthRuntime();
+      } catch {
+        this.server = null;
+        this.dpopHandle = null;
+      }
+    }
     const tokens = this.tokensSignal();
-    if (tokens?.refresh_token) {
-      await revokeToken(this.server!, this.resolvedConfig(), tokens.refresh_token, this.dpopHandle ?? undefined);
+    this.clearLocalSession();
+
+    if (tokens?.refresh_token && this.server) {
+      try {
+        await revokeToken(this.server!, this.resolvedConfig(), tokens.refresh_token, this.dpopHandle ?? undefined);
+      } catch {
+        // Best-effort token revocation must not block logout UX.
+      }
     }
-    if (tokens?.access_token) {
-      await revokeToken(this.server!, this.resolvedConfig(), tokens.access_token, this.dpopHandle ?? undefined);
+    if (tokens?.access_token && this.server) {
+      try {
+        await revokeToken(this.server!, this.resolvedConfig(), tokens.access_token, this.dpopHandle ?? undefined);
+      } catch {
+        // Best-effort token revocation must not block logout UX.
+      }
     }
-    localStorage.removeItem(TOKENS_KEY);
-    this.profileSignal.set(null);
-    this.tokensSignal.set(null);
-    await firstValueFrom(this.http.post<{ status: string }>('/api/auth/logout', {}));
+
+    try {
+      await firstValueFrom(this.http.post<{ status: string }>('/api/auth/logout', {}));
+    } catch {
+      // The browser should still leave the authenticated area even if backend logout fails.
+    }
+
     this.document.location.href = this.config.postLogoutRedirectUri;
   }
 
@@ -101,6 +128,7 @@ export class AuthService {
   }
 
   async refresh(): Promise<void> {
+    await this.ensureAuthRuntime();
     const tokens = this.tokensSignal() ?? (JSON.parse(localStorage.getItem(TOKENS_KEY) ?? 'null') as StoredTokens | null);
     if (!tokens?.refresh_token) {
       return;
@@ -137,6 +165,40 @@ export class AuthService {
 
   private absoluteAuthority(authority: string): string {
     return new URL(authority, window.location.origin).toString();
+  }
+
+  storeReturnUrl(returnUrl?: string): void {
+    if (returnUrl && returnUrl.startsWith('/')) {
+      sessionStorage.setItem(RETURN_URL_KEY, returnUrl);
+      return;
+    }
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (!currentPath.startsWith('/login') && !currentPath.startsWith('/auth/')) {
+      sessionStorage.setItem(RETURN_URL_KEY, currentPath || '/dashboard');
+    }
+  }
+
+  consumeReturnUrl(): string {
+    const returnUrl = sessionStorage.getItem(RETURN_URL_KEY) || '/dashboard';
+    sessionStorage.removeItem(RETURN_URL_KEY);
+    return returnUrl.startsWith('/') ? returnUrl : '/dashboard';
+  }
+
+  private async ensureAuthRuntime(): Promise<void> {
+    if (this.server && this.dpopHandle) {
+      return;
+    }
+    this.server = await discover(this.absoluteAuthority(this.config.authority));
+    this.dpopHandle = oauth.DPoP(
+      createClient(this.resolvedConfig()),
+      await oauth.generateKeyPair('ES256'),
+    );
+  }
+
+  private storeRedirectLogin(state: string, verifier: string, explicitReturnUrl?: string): void {
+    this.storeReturnUrl(explicitReturnUrl);
+    sessionStorage.setItem(CODE_VERIFIER_KEY, verifier);
+    sessionStorage.setItem(STATE_KEY, state);
   }
 
   private resolvedConfig(): AuthConfig {

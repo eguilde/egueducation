@@ -14,6 +14,7 @@ import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
 
 import {
   CreateGovernanceDecisionRequest,
@@ -27,6 +28,7 @@ import {
   ServerTableColumn,
   ServerTableComponent,
   ServerTableFilterState,
+  ServerTableRowAction,
   ServerTableSortState,
 } from '../../shared/server-table/server-table.component';
 
@@ -44,6 +46,7 @@ import {
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
+    MatTabsModule,
     ServerTableComponent,
     LinkedDocumentsCardComponent,
   ],
@@ -72,6 +75,7 @@ export class DecisionsPageComponent {
     filters: {},
   });
   protected readonly selectedDecisionId = signal<string | null>(null);
+  protected readonly activePanel = signal<'create' | 'details'>('create');
 
   protected readonly form = this.fb.group({
     school_year: this.fb.nonNullable.control('2025-2026', [Validators.required]),
@@ -134,6 +138,13 @@ export class DecisionsPageComponent {
   protected readonly selectedDecision = computed(
     () => this.rows().find((row) => row.id === this.selectedDecisionId()) ?? null,
   );
+  protected readonly rowActions = computed<ServerTableRowAction<GovernanceDecision>[]>(() => [
+    {
+      key: 'open',
+      icon: 'open_in_new',
+      label: this.transloco.translate('common.open'),
+    },
+  ]);
 
   protected readonly columns = computed<ServerTableColumn<GovernanceDecision>[]>(() => [
     {
@@ -211,6 +222,17 @@ export class DecisionsPageComponent {
 
   protected onSelectDecision(record: GovernanceDecision): void {
     this.selectedDecisionId.set(record.id);
+    this.activePanel.set('details');
+  }
+
+  protected onActionClick(event: { action: string; row: GovernanceDecision }): void {
+    if (event.action === 'open') {
+      this.onSelectDecision(event.row);
+    }
+  }
+
+  protected openCreatePanel(): void {
+    this.activePanel.set('create');
   }
 
   protected createDecision(): void {
