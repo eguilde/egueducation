@@ -5,11 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      gitops_ref:
-        description: GitOps branch to update
-        required: true
-        default: main
 
 concurrency:
   group: egueducation-backend-build-deploy
@@ -23,9 +18,6 @@ jobs:
   build-and-deploy:
     runs-on: lan-builder
     env:
-      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-      SCM_PASSWORD: ${{ secrets.SCM_PASSWORD }}
-      SCM_USERNAME: ${{ secrets.SCM_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
@@ -45,6 +37,14 @@ jobs:
             --tag egueducation-backend-ci:${GITHUB_SHA} \
             egueducation/backend
 
+      - name: Prepare multi-platform builder
+        run: |
+          set -euo pipefail
+          docker run --privileged --rm tonistiigi/binfmt --install amd64,arm64
+          docker buildx inspect egueducation-multiarch >/dev/null 2>&1 || docker buildx create --name egueducation-multiarch --driver docker-container
+          docker buildx use egueducation-multiarch
+          docker buildx inspect --bootstrap
+
       - name: Build and push backend image
         run: |
           set -euo pipefail
@@ -54,52 +54,7 @@ jobs:
             --file egueducation/backend/Dockerfile \
             --tag "${IMAGE}:${GITHUB_SHA}" \
             --tag "${IMAGE}:latest" \
+            --provenance=false \
+            --sbom=false \
             --push \
             egueducation/backend
-
-      - name: Update backend GitOps image tag
-        run: |
-          set -euo pipefail
-          if [ "${GITHUB_EVENT_NAME:-}" = "push" ]; then
-            echo "Skipping GitOps update for push-triggered build; use workflow_dispatch for deployment."
-            exit 0
-          fi
-
-          gitops_ref="${INPUT_GITOPS_REF:-main}"
-          if [ -n "${GITOPS_TOKEN:-}" ]; then
-            gitops_url="https://oauth2:${GITOPS_TOKEN}@forge.eguilde.cloud/eguilde/gitops.git"
-          else
-            test -n "${SCM_USERNAME:-}" || { echo "SCM_USERNAME secret is missing"; exit 1; }
-            test -n "${SCM_PASSWORD:-}" || { echo "SCM_PASSWORD secret is missing"; exit 1; }
-            gitops_url="https://${SCM_USERNAME}:${SCM_PASSWORD}@forge.eguilde.cloud/eguilde/gitops.git"
-          fi
-
-          git clone "${gitops_url}" gitops
-          cd gitops
-          git checkout "${gitops_ref}"
-          git config user.name "forgejo-actions"
-          git config user.email "forgejo-actions@eguilde.cloud"
-
-          file="namespaces/education/egueducation/backend/kustomization.yaml"
-          awk -v source_image="registry.eguilde.cloud/eguilde/egueducation-backend" -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
-            $0 ~ "^[[:space:]]*- name: " source_image "$" || $0 ~ "^[[:space:]]*- name: " target_image "$" {
-              print "- name: " source_image
-              print "  newName: " target_image
-              print "  newTag: " tag
-              in_image=1
-              next
-            }
-            in_image && $0 ~ "^[[:space:]]+newName:" { next }
-            in_image && $0 ~ "^[[:space:]]+newTag:" { next }
-            in_image && $0 ~ "^- name:" { in_image=0; print; next }
-            { print }
-          ' "$file" > "$file.tmp"
-          mv "$file.tmp" "$file"
-
-          git add "$file"
-          git diff --cached --quiet && exit 0
-          git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
-          git pull --rebase origin "${gitops_ref}"
-          git push origin "HEAD:${gitops_ref}"
-        env:
-          INPUT_GITOPS_REF: ${{ inputs.gitops_ref }}
