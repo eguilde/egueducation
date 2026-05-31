@@ -111,6 +111,7 @@ jobs:
     env:
       DOCKER_HOST: tcp://172.17.0.1:2375
       GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
+      GITOPS_USERNAME: ${{ secrets.GITOPS_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
@@ -137,13 +138,13 @@ jobs:
       - name: Update GitOps image tag
         run: |
           set -euo pipefail
-          git -c http.extraHeader="Authorization: token ${GITOPS_TOKEN}" \
+          GITOPS_AUTH_HEADER="$(printf '%s:%s' "${GITOPS_USERNAME}" "${GITOPS_TOKEN}" | base64 | tr -d '\n')"
+          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" \
             clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
           cd gitops
           git checkout main
           git config user.name "forgejo-actions"
           git config user.email "forgejo-actions@eguilde.cloud"
-          git config http.https://forge.eguilde.cloud/.extraheader "Authorization: token ${GITOPS_TOKEN}"
 
           file="namespaces/education/egueducation/backend/kustomization.yaml"
           awk -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
@@ -164,5 +165,5 @@ jobs:
           git add "$file"
           git diff --cached --quiet && exit 0
           git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" pull --rebase origin main
+          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" push origin HEAD:main
