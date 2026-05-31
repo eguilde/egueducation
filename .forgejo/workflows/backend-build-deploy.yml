@@ -26,8 +26,8 @@ jobs:
     env:
       DOCKER_HOST: tcp://172.17.0.1:2375
       FORGEJO_TOKEN: ${{ github.token }}
-      REGISTRY_PASSWORD: ${{ secrets.GITOPS_TOKEN }}
-      REGISTRY_USERNAME: forgeadmin
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
       - name: Prepare workspace
         run: |
@@ -68,8 +68,8 @@ jobs:
     env:
       DOCKER_HOST: tcp://172.17.0.1:2375
       FORGEJO_TOKEN: ${{ github.token }}
-      REGISTRY_PASSWORD: ${{ secrets.GITOPS_TOKEN }}
-      REGISTRY_USERNAME: forgeadmin
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
       - name: Prepare workspace
         run: |
@@ -111,8 +111,8 @@ jobs:
     env:
       DOCKER_HOST: tcp://172.17.0.1:2375
       GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-      REGISTRY_PASSWORD: ${{ secrets.GITOPS_TOKEN }}
-      REGISTRY_USERNAME: forgeadmin
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
       - name: Publish multi-arch backend manifest
         run: |
