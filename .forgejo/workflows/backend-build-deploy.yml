@@ -41,6 +41,13 @@ jobs:
       - name: Build and push backend amd64 image
         run: |
           set -euo pipefail
+          for i in $(seq 1 60); do
+            if docker info >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
           docker buildx build \
             --platform linux/amd64 \
@@ -76,6 +83,13 @@ jobs:
       - name: Build and push backend arm64 image
         run: |
           set -euo pipefail
+          for i in $(seq 1 60); do
+            if docker info >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
           docker buildx build \
             --platform linux/arm64 \
@@ -103,6 +117,13 @@ jobs:
       - name: Publish multi-arch backend manifest
         run: |
           set -euo pipefail
+          for i in $(seq 1 60); do
+            if docker info >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
           docker buildx imagetools create \
             --tag "${IMAGE}:${GITHUB_SHA}" \
