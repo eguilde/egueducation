@@ -14,6 +14,7 @@ concurrency:
 
 env:
   IMAGE: forge.eguilde.cloud/eguilde/egueducation-frontend
+  FORGEJO_CLONE_BASE_URL: https://forge.eguilde.cloud
 
 jobs:
   build-amd64:
@@ -30,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf egueducation
-          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          git clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
@@ -62,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf egueducation
-          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          git clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
