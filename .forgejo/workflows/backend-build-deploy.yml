@@ -41,6 +41,10 @@ jobs:
       - name: Build and push backend amd64 image
         run: |
           set -euo pipefail
+          cache_dir="/var/cache/eguilde/buildx/egueducation-backend-amd64"
+          cache_next="${cache_dir}.next"
+          cache_ref="forge.eguilde.cloud/eguilde/egueducation-backend-buildcache:amd64"
+          mkdir -p "${cache_dir}"
           for i in $(seq 1 60); do
             if docker info >/dev/null 2>&1; then
               break
@@ -49,7 +53,15 @@ jobs:
           done
           docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
+          if [ -f "${cache_dir}/index.json" ]; then
+            cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
+          fi
+          rm -rf "${cache_next}"
           docker buildx build \
+            "${cache_from_args[@]}" \
+            --cache-to "type=local,dest=${cache_next},mode=max" \
+            --cache-to "type=registry,ref=${cache_ref},mode=max" \
             --platform linux/amd64 \
             --file egueducation/backend/Dockerfile \
             --tag "${IMAGE}:${GITHUB_SHA}-amd64" \
@@ -58,6 +70,8 @@ jobs:
             --sbom=false \
             --push \
             egueducation/backend
+          rm -rf "${cache_dir}"
+          mv "${cache_next}" "${cache_dir}"
 
   build-arm64:
     name: Build backend arm64
@@ -83,6 +97,10 @@ jobs:
       - name: Build and push backend arm64 image
         run: |
           set -euo pipefail
+          cache_dir="/var/cache/eguilde/buildx/egueducation-backend-arm64"
+          cache_next="${cache_dir}.next"
+          cache_ref="forge.eguilde.cloud/eguilde/egueducation-backend-buildcache:arm64"
+          mkdir -p "${cache_dir}"
           for i in $(seq 1 60); do
             if docker info >/dev/null 2>&1; then
               break
@@ -91,7 +109,15 @@ jobs:
           done
           docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
+          if [ -f "${cache_dir}/index.json" ]; then
+            cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
+          fi
+          rm -rf "${cache_next}"
           docker buildx build \
+            "${cache_from_args[@]}" \
+            --cache-to "type=local,dest=${cache_next},mode=max" \
+            --cache-to "type=registry,ref=${cache_ref},mode=max" \
             --platform linux/arm64 \
             --file egueducation/backend/Dockerfile \
             --tag "${IMAGE}:${GITHUB_SHA}-arm64" \
@@ -100,6 +126,8 @@ jobs:
             --sbom=false \
             --push \
             egueducation/backend
+          rm -rf "${cache_dir}"
+          mv "${cache_next}" "${cache_dir}"
 
   publish-manifest:
     name: Publish backend manifest
