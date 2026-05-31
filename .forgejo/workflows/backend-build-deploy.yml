@@ -88,6 +88,7 @@ jobs:
       run:
         shell: bash
     env:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
       REGISTRY_PASSWORD: ${{ github.token }}
       REGISTRY_USERNAME: ${{ github.actor }}
     steps:
@@ -103,3 +104,36 @@ jobs:
             --tag "${IMAGE}:latest" \
             "${IMAGE}:latest-amd64" \
             "${IMAGE}:latest-arm64"
+
+      - name: Update GitOps image tag
+        run: |
+          set -euo pipefail
+          git -c http.extraHeader="Authorization: token ${GITOPS_TOKEN}" \
+            clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
+          cd gitops
+          git checkout main
+          git config user.name "forgejo-actions"
+          git config user.email "forgejo-actions@eguilde.cloud"
+          git config http.https://forge.eguilde.cloud/.extraheader "Authorization: token ${GITOPS_TOKEN}"
+
+          file="namespaces/education/egueducation/backend/kustomization.yaml"
+          awk -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
+            $0 ~ "^- name: " target_image "$" || $0 ~ "^[[:space:]]+- name: " target_image "$" {
+              print "  - name: " target_image
+              print "    newName: " target_image
+              print "    newTag: " tag
+              in_image=1
+              next
+            }
+            in_image && $0 ~ "^[[:space:]]+newName:" { next }
+            in_image && $0 ~ "^[[:space:]]+newTag:" { next }
+            in_image && $0 ~ "^[[:space:]]*- name:" { in_image=0; print; next }
+            { print }
+          ' "$file" > "$file.tmp"
+          mv "$file.tmp" "$file"
+
+          git add "$file"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
+          git pull --rebase origin main
+          git push origin HEAD:main
