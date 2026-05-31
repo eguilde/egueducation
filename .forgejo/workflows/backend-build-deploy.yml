@@ -24,6 +24,8 @@ jobs:
       run:
         shell: bash
     env:
+      DOCKER_HOST: tcp://127.0.0.1:2375
+      FORGEJO_TOKEN: ${{ github.token }}
       REGISTRY_PASSWORD: ${{ github.token }}
       REGISTRY_USERNAME: ${{ github.actor }}
     steps:
@@ -31,7 +33,8 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf egueducation
-          git clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          git -c http.extraHeader="Authorization: token ${FORGEJO_TOKEN}" \
+            clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
@@ -56,6 +59,8 @@ jobs:
       run:
         shell: bash
     env:
+      DOCKER_HOST: tcp://127.0.0.1:2375
+      FORGEJO_TOKEN: ${{ github.token }}
       REGISTRY_PASSWORD: ${{ github.token }}
       REGISTRY_USERNAME: ${{ github.actor }}
     steps:
@@ -63,7 +68,8 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf egueducation
-          git clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          git -c http.extraHeader="Authorization: token ${FORGEJO_TOKEN}" \
+            clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
@@ -89,6 +95,7 @@ jobs:
       run:
         shell: bash
     env:
+      DOCKER_HOST: tcp://127.0.0.1:2375
       GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
       REGISTRY_PASSWORD: ${{ github.token }}
       REGISTRY_USERNAME: ${{ github.actor }}
