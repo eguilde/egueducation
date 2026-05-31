@@ -2,8 +2,10 @@ name: Backend Build And Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.forgejo/workflows/backend-build-deploy.yml'
   workflow_dispatch:
 
 concurrency:
@@ -11,53 +13,93 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: registry.eguilde.cloud/eguilde/egueducation-backend
-  PLATFORMS: linux/amd64,linux/arm64
+  IMAGE: forge.eguilde.cloud/eguilde/egueducation-backend
 
 jobs:
-  build-and-deploy:
-    runs-on: lan-builder
+  build-amd64:
+    name: Build backend amd64
+    runs-on: lan-builder-amd64
     defaults:
       run:
         shell: bash
     env:
-      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ github.token }}
+      REGISTRY_USERNAME: ${{ github.actor }}
     steps:
       - name: Prepare workspace
         run: |
           set -euo pipefail
-          rm -rf egueducation gitops
+          rm -rf egueducation
           git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
 
-      - name: Validate backend image build
+      - name: Build and push backend amd64 image
         run: |
           set -euo pipefail
-          docker build \
-            --file egueducation/backend/Dockerfile \
-            --tag egueducation-backend-ci:${GITHUB_SHA} \
-            egueducation/backend
-
-      - name: Prepare multi-platform builder
-        run: |
-          set -euo pipefail
-          docker run --privileged --rm tonistiigi/binfmt --install amd64,arm64
-          docker buildx inspect egueducation-multiarch >/dev/null 2>&1 || docker buildx create --name egueducation-multiarch --driver docker-container
-          docker buildx use egueducation-multiarch
-          docker buildx inspect --bootstrap
-
-      - name: Build and push backend image
-        run: |
-          set -euo pipefail
-          echo "${REGISTRY_PASSWORD}" | docker login registry.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
           docker buildx build \
-            --platform "${PLATFORMS}" \
+            --platform linux/amd64 \
             --file egueducation/backend/Dockerfile \
-            --tag "${IMAGE}:${GITHUB_SHA}" \
-            --tag "${IMAGE}:latest" \
+            --tag "${IMAGE}:${GITHUB_SHA}-amd64" \
+            --tag "${IMAGE}:latest-amd64" \
             --provenance=false \
             --sbom=false \
             --push \
             egueducation/backend
+
+  build-arm64:
+    name: Build backend arm64
+    runs-on: lan-builder-arm64
+    defaults:
+      run:
+        shell: bash
+    env:
+      REGISTRY_PASSWORD: ${{ github.token }}
+      REGISTRY_USERNAME: ${{ github.actor }}
+    steps:
+      - name: Prepare workspace
+        run: |
+          set -euo pipefail
+          rm -rf egueducation
+          git clone "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          cd egueducation
+          git checkout "${GITHUB_SHA}"
+
+      - name: Build and push backend arm64 image
+        run: |
+          set -euo pipefail
+          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          docker buildx build \
+            --platform linux/arm64 \
+            --file egueducation/backend/Dockerfile \
+            --tag "${IMAGE}:${GITHUB_SHA}-arm64" \
+            --tag "${IMAGE}:latest-arm64" \
+            --provenance=false \
+            --sbom=false \
+            --push \
+            egueducation/backend
+
+  publish-manifest:
+    name: Publish backend manifest
+    runs-on: lan-builder-amd64
+    needs: [build-amd64, build-arm64]
+    defaults:
+      run:
+        shell: bash
+    env:
+      REGISTRY_PASSWORD: ${{ github.token }}
+      REGISTRY_USERNAME: ${{ github.actor }}
+    steps:
+      - name: Publish multi-arch backend manifest
+        run: |
+          set -euo pipefail
+          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          docker buildx imagetools create \
+            --tag "${IMAGE}:${GITHUB_SHA}" \
+            "${IMAGE}:${GITHUB_SHA}-amd64" \
+            "${IMAGE}:${GITHUB_SHA}-arm64"
+          docker buildx imagetools create \
+            --tag "${IMAGE}:latest" \
+            "${IMAGE}:latest-amd64" \
+            "${IMAGE}:latest-arm64"
