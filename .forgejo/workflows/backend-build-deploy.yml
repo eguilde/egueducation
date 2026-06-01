@@ -195,3 +195,4 @@ jobs:
           git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
           git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" pull --rebase origin main
           git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" push origin HEAD:main
+
