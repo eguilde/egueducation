@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -77,6 +79,10 @@ func main() {
 	})
 
 	router.Route("/api", func(r chi.Router) {
+		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
+			httpx.JSON(w, http.StatusOK, buildBootstrapConfig(cfg, r))
+		})
+
 		r.Get("/meta/app", func(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusOK, map[string]any{
 				"name":              "EguEducation",
@@ -266,6 +272,91 @@ func main() {
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", zap.Error(err))
+	}
+}
+
+func buildBootstrapConfig(cfg config.Config, r *http.Request) map[string]any {
+	modules := []string{"registratura", "workflow", "earchiva", "education", "admin"}
+	if cfg.EnableGDPRFeatures {
+		modules = append(modules, "gdpr")
+	}
+
+	frontendOrigin := strings.TrimSpace(cfg.FrontendOrigin)
+	if frontendOrigin == "" && r != nil {
+		scheme := "https"
+		if r.TLS == nil {
+			scheme = "http"
+		}
+		frontendOrigin = scheme + "://" + r.Host
+	}
+
+	customerName := "Școala Bălotești"
+	customerShortName := "Bălotești"
+	customerWebsite := frontendOrigin
+	if parsed, err := url.Parse(frontendOrigin); err == nil && parsed.Hostname() != "" {
+		host := parsed.Hostname()
+		switch {
+		case strings.Contains(host, "scoalabalotesti"):
+			customerName = "Școala Bălotești"
+			customerShortName = "Bălotești"
+		default:
+			customerName = "EguEducation"
+			customerShortName = "EguEducation"
+		}
+	}
+
+	return map[string]any{
+		"version":             "1.0.0",
+		"environment":         cfg.Environment,
+		"apiBaseUrl":          "/api",
+		"oidcAuthority":       "/api/oidc",
+		"oidcIssuer":          cfg.OIDCIssuer,
+		"oidcClientId":        cfg.OIDCClientID,
+		"oidcDesktopClientId": cfg.OIDCDesktopClient,
+		"authScope":           "openid profile email phone offline_access",
+		"defaultLocale":       "ro",
+		"availableLocales":    []string{"ro", "en"},
+		"theme": map[string]string{
+			"family": "material3-expressive",
+			"brand":  "red-rose",
+		},
+		"features": map[string]any{
+			"offlineMode":       false,
+			"pushNotifications": false,
+			"passkeys":          cfg.EnablePasskeys,
+			"wallet":            cfg.EnableWallet,
+			"smsOtp":            cfg.EnableSMSOTP,
+			"gdpr":              cfg.EnableGDPRFeatures,
+		},
+		"license": map[string]any{
+			"licenseType":     "education",
+			"uatId":           nil,
+			"uatName":         nil,
+			"uatSiruta":       nil,
+			"enabledFeatures": modules,
+			"isActive":        true,
+		},
+		"customer": map[string]any{
+			"name":            customerName,
+			"shortName":       customerShortName,
+			"logoUrl":         nil,
+			"defaultLanguage": "ro",
+			"websiteUrl":      customerWebsite,
+			"websiteLabel":    customerName,
+		},
+		"map": map[string]any{
+			"defaultCenter": []float64{26.0765, 44.6204},
+			"defaultZoom":   13,
+		},
+		"modules": map[string]any{
+			"enabled": modules,
+		},
+		"institutionTypes": []string{"scoala", "liceu", "gradinita", "other"},
+		"isMaster":         false,
+		"service": map[string]any{
+			"id":    "egueducation",
+			"title": customerName,
+		},
 	}
 }
 
