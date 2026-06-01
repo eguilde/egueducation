@@ -53,6 +53,12 @@ jobs:
           done
           docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          if docker buildx inspect egueducation-frontend-amd64 >/dev/null 2>&1; then
+            docker buildx use egueducation-frontend-amd64
+          else
+            docker buildx create --name egueducation-frontend-amd64 --driver docker-container --use
+          fi
+          docker buildx inspect egueducation-frontend-amd64 --bootstrap >/dev/null
           cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
           if [ -f "${cache_dir}/index.json" ]; then
             cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
@@ -109,6 +115,12 @@ jobs:
           done
           docker info >/dev/null
           echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
+          if docker buildx inspect egueducation-frontend-arm64 >/dev/null 2>&1; then
+            docker buildx use egueducation-frontend-arm64
+          else
+            docker buildx create --name egueducation-frontend-arm64 --driver docker-container --use
+          fi
+          docker buildx inspect egueducation-frontend-arm64 --bootstrap >/dev/null
           cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
           if [ -f "${cache_dir}/index.json" ]; then
             cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
