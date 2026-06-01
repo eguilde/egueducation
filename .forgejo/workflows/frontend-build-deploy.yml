@@ -6,6 +6,7 @@ on:
     paths:
       - 'frontend/**'
       - '.forgejo/workflows/frontend-build-deploy.yml'
+      - '.forgejo/workflows/sync-education-registry-secret.yml'
   workflow_dispatch:
 
 concurrency:
