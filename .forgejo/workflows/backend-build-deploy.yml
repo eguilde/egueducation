@@ -5,8 +5,8 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
+      - '.forgejo/scripts/**'
       - '.forgejo/workflows/backend-build-deploy.yml'
-      - '.forgejo/workflows/sync-education-registry-secret.yml'
   workflow_dispatch:
 
 concurrency:
@@ -14,7 +14,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: forge.eguilde.cloud/eguilde/egueducation-backend
+  IMAGE: registry.eguilde.cloud/eguilde/egueducation-backend
+  LEGACY_IMAGE: forge.eguilde.cloud/eguilde/egueducation-backend
+  CONTEXT_DIR: egueducation/backend
+  DOCKERFILE: Dockerfile
+  SERVICE_NAME: backend
+  GITOPS_FILE: namespaces/education/egueducation/backend/kustomization.yaml
   FORGEJO_CLONE_BASE_URL: https://forge.eguilde.cloud
 
 jobs:
@@ -25,12 +30,13 @@ jobs:
       run:
         shell: bash
     env:
-      DOCKER_HOST: tcp://172.17.0.1:2375
+      ARCH: amd64
+      BUILDKIT_HOST: tcp://10.152.183.50:1234
       FORGEJO_TOKEN: ${{ github.token }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
-      - name: Prepare workspace
+      - name: Build amd64 image
         run: |
           set -euo pipefail
           rm -rf egueducation
@@ -38,47 +44,8 @@ jobs:
             clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
-
-      - name: Build and push backend amd64 image
-        run: |
-          set -euo pipefail
-          cache_dir="/var/cache/eguilde/buildx/egueducation-backend-amd64"
-          cache_next="${cache_dir}.next"
-          cache_ref="forge.eguilde.cloud/eguilde/egueducation-backend-buildcache:amd64"
-          mkdir -p "${cache_dir}"
-          for i in $(seq 1 60); do
-            if docker info >/dev/null 2>&1; then
-              break
-            fi
-            sleep 2
-          done
-          docker info >/dev/null
-          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
-          if docker buildx inspect egueducation-backend-amd64 >/dev/null 2>&1; then
-            docker buildx use egueducation-backend-amd64
-          else
-            docker buildx create --name egueducation-backend-amd64 --driver docker-container --use
-          fi
-          docker buildx inspect egueducation-backend-amd64 --bootstrap >/dev/null
-          cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
-          if [ -f "${cache_dir}/index.json" ]; then
-            cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
-          fi
-          rm -rf "${cache_next}"
-          docker buildx build \
-            "${cache_from_args[@]}" \
-            --cache-to "type=local,dest=${cache_next},mode=max" \
-            --cache-to "type=registry,ref=${cache_ref},mode=max" \
-            --platform linux/amd64 \
-            --file egueducation/backend/Dockerfile \
-            --tag "${IMAGE}:${GITHUB_SHA}-amd64" \
-            --tag "${IMAGE}:latest-amd64" \
-            --provenance=false \
-            --sbom=false \
-            --push \
-            egueducation/backend
-          rm -rf "${cache_dir}"
-          mv "${cache_next}" "${cache_dir}"
+          cd ..
+          bash egueducation/.forgejo/scripts/build-image.sh
 
   build-arm64:
     name: Build backend arm64
@@ -87,12 +54,13 @@ jobs:
       run:
         shell: bash
     env:
-      DOCKER_HOST: tcp://172.17.0.1:2375
+      ARCH: arm64
+      BUILDKIT_HOST: tcp://10.152.183.217:1234
       FORGEJO_TOKEN: ${{ github.token }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
-      - name: Prepare workspace
+      - name: Build arm64 image
         run: |
           set -euo pipefail
           rm -rf egueducation
@@ -100,113 +68,30 @@ jobs:
             clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
           cd egueducation
           git checkout "${GITHUB_SHA}"
-
-      - name: Build and push backend arm64 image
-        run: |
-          set -euo pipefail
-          cache_dir="/var/cache/eguilde/buildx/egueducation-backend-arm64"
-          cache_next="${cache_dir}.next"
-          cache_ref="forge.eguilde.cloud/eguilde/egueducation-backend-buildcache:arm64"
-          mkdir -p "${cache_dir}"
-          for i in $(seq 1 60); do
-            if docker info >/dev/null 2>&1; then
-              break
-            fi
-            sleep 2
-          done
-          docker info >/dev/null
-          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
-          if docker buildx inspect egueducation-backend-arm64 >/dev/null 2>&1; then
-            docker buildx use egueducation-backend-arm64
-          else
-            docker buildx create --name egueducation-backend-arm64 --driver docker-container --use
-          fi
-          docker buildx inspect egueducation-backend-arm64 --bootstrap >/dev/null
-          cache_from_args=(--cache-from "type=registry,ref=${cache_ref}")
-          if [ -f "${cache_dir}/index.json" ]; then
-            cache_from_args+=(--cache-from "type=local,src=${cache_dir}")
-          fi
-          rm -rf "${cache_next}"
-          docker buildx build \
-            "${cache_from_args[@]}" \
-            --cache-to "type=local,dest=${cache_next},mode=max" \
-            --cache-to "type=registry,ref=${cache_ref},mode=max" \
-            --platform linux/arm64 \
-            --file egueducation/backend/Dockerfile \
-            --tag "${IMAGE}:${GITHUB_SHA}-arm64" \
-            --tag "${IMAGE}:latest-arm64" \
-            --provenance=false \
-            --sbom=false \
-            --push \
-            egueducation/backend
-          rm -rf "${cache_dir}"
-          mv "${cache_next}" "${cache_dir}"
+          cd ..
+          bash egueducation/.forgejo/scripts/build-image.sh
 
   publish-manifest:
-    name: Publish backend manifest
+    name: Publish backend OCI index
     runs-on: lan-builder-amd64
     needs: [build-amd64, build-arm64]
     defaults:
       run:
         shell: bash
     env:
-      DOCKER_HOST: tcp://172.17.0.1:2375
       GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
       GITOPS_USERNAME: ${{ secrets.GITOPS_USERNAME }}
+      FORGEJO_TOKEN: ${{ github.token }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
     steps:
-      - name: Publish multi-arch backend manifest
+      - name: Publish OCI index and update GitOps
         run: |
           set -euo pipefail
-          for i in $(seq 1 60); do
-            if docker info >/dev/null 2>&1; then
-              break
-            fi
-            sleep 2
-          done
-          docker info >/dev/null
-          echo "${REGISTRY_PASSWORD}" | docker login forge.eguilde.cloud --username "${REGISTRY_USERNAME}" --password-stdin
-          docker buildx imagetools create \
-            --tag "${IMAGE}:${GITHUB_SHA}" \
-            "${IMAGE}:${GITHUB_SHA}-amd64" \
-            "${IMAGE}:${GITHUB_SHA}-arm64"
-          docker buildx imagetools create \
-            --tag "${IMAGE}:latest" \
-            "${IMAGE}:latest-amd64" \
-            "${IMAGE}:latest-arm64"
-
-      - name: Update GitOps image tag
-        run: |
-          set -euo pipefail
-          GITOPS_AUTH_HEADER="$(printf '%s:%s' "${GITOPS_USERNAME}" "${GITOPS_TOKEN}" | base64 | tr -d '\n')"
-          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" \
-            clone "https://forge.eguilde.cloud/eguilde/gitops.git" gitops
-          cd gitops
-          git checkout main
-          git config user.name "forgejo-actions"
-          git config user.email "forgejo-actions@eguilde.cloud"
-
-          file="namespaces/education/egueducation/backend/kustomization.yaml"
-          awk -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
-            $0 ~ "^- name: " target_image "$" || $0 ~ "^[[:space:]]+- name: " target_image "$" {
-              print "  - name: " target_image
-              print "    newName: " target_image
-              print "    newTag: " tag
-              in_image=1
-              next
-            }
-            in_image && $0 ~ "^[[:space:]]+newName:" { next }
-            in_image && $0 ~ "^[[:space:]]+newTag:" { next }
-            in_image && $0 ~ "^[[:space:]]*- name:" { in_image=0; print; next }
-            { print }
-          ' "$file" > "$file.tmp"
-          mv "$file.tmp" "$file"
-
-          git add "$file"
-          git diff --cached --quiet && exit 0
-          git commit -m "chore(egueducation-backend): deploy ${GITHUB_SHA}"
-          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" pull --rebase origin main
-          git -c http.extraHeader="Authorization: Basic ${GITOPS_AUTH_HEADER}" push origin HEAD:main
-
-
+          rm -rf egueducation
+          git -c http.extraHeader="Authorization: token ${FORGEJO_TOKEN}" \
+            clone "${FORGEJO_CLONE_BASE_URL}/${GITHUB_REPOSITORY}.git" egueducation
+          cd egueducation
+          git checkout "${GITHUB_SHA}"
+          cd ..
+          bash egueducation/.forgejo/scripts/publish-image.sh
