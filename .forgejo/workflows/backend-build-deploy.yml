@@ -15,7 +15,6 @@ concurrency:
 
 env:
   IMAGE: registry.eguilde.cloud/eguilde/egueducation-backend
-  LEGACY_IMAGE: forge.eguilde.cloud/eguilde/egueducation-backend
   CONTEXT_DIR: egueducation/backend
   DOCKERFILE: Dockerfile
   SERVICE_NAME: backend

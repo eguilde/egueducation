@@ -2,7 +2,6 @@
 set -euo pipefail
 
 test -n "${IMAGE:?IMAGE is required}"
-test -n "${LEGACY_IMAGE:?LEGACY_IMAGE is required}"
 test -n "${GITHUB_SHA:?GITHUB_SHA is required}"
 test -n "${REGISTRY_USERNAME:?REGISTRY_USERNAME is required}"
 test -n "${REGISTRY_PASSWORD:?REGISTRY_PASSWORD is required}"
@@ -64,9 +63,10 @@ cd gitops
 git config user.name "forgejo-actions"
 git config user.email "forgejo-actions@eguilde.cloud"
 
-awk -v legacy_image="${LEGACY_IMAGE}" -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
+legacy_image="${IMAGE/registry.eguilde.cloud/forge.eguilde.cloud}"
+awk -v legacy_image="${legacy_image}" -v target_image="${IMAGE}" -v tag="${GITHUB_SHA}" '
   $0 ~ "^- name: " legacy_image "$" || $0 ~ "^[[:space:]]+- name: " legacy_image "$" || $0 ~ "^- name: " target_image "$" || $0 ~ "^[[:space:]]+- name: " target_image "$" {
-    print "  - name: " legacy_image
+    print "  - name: " target_image
     print "    newName: " target_image
     print "    newTag: " tag
     in_image=1
