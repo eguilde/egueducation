@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"slices"
@@ -25,6 +26,8 @@ const (
 	accessTokenTTL       = 15 * time.Minute
 	idTokenTTL           = 15 * time.Minute
 )
+
+const zeroTenantID = "00000000-0000-0000-0000-000000000000"
 
 func (s *Service) Discovery(w http.ResponseWriter, _ *http.Request) {
 	issuer := s.cfg.OIDCIssuer
@@ -101,6 +104,19 @@ func (s *Service) Authorize(w http.ResponseWriter, r *http.Request) {
 
 	subject := s.currentSubject(r)
 	if subject == "" {
+		if _, err := s.storeOIDCAuthnSession(r.Context(), map[string]any{
+			"client_id":            clientID,
+			"redirect_uri":         redirectURI,
+			"scope":                scope,
+			"state":                state,
+			"nonce":                nonce,
+			"code_challenge":       codeChallenge,
+			"code_challenge_method": codeChallengeMethod,
+			"return_url":           s.cfg.OIDCIssuer + "/authorize?" + r.URL.RawQuery,
+		}, time.Now().Add(authorizationCodeTTL)); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "authn_session_store_failed"})
+			return
+		}
 		loginURL, err := url.Parse(s.cfg.OIDCIssuer + "/login")
 		if err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "login_redirect_failed"})
@@ -334,6 +350,16 @@ func (s *Service) buildAuthorizationRedirect(ctx context.Context, clientID, subj
 		) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`, code, clientID, subject, redirectURI, scope, nullableString(nonce), codeChallenge, "S256", time.Now().Add(authorizationCodeTTL))
 	if err != nil {
+		return "", err
+	}
+	if _, err := s.storeOIDCModel(ctx, "authorization_code", code, map[string]any{
+		"client_id":    clientID,
+		"subject":      subject,
+		"redirect_uri": redirectURI,
+		"scope":        scope,
+		"nonce":        nonce,
+		"state":        state,
+	}, time.Now().Add(authorizationCodeTTL), ""); err != nil {
 		return "", err
 	}
 
@@ -584,6 +610,15 @@ func (s *Service) issueTokenSet(ctx context.Context, clientID, subject, scope, n
 	`, refreshToken, clientID, subject, scope, nullableString(cnfJKT), refreshExpiresAt); err != nil {
 		return nil, errors.New("refresh_token_store_failed")
 	}
+	if _, err := s.storeOIDCGrantSession(ctx, refreshToken, map[string]any{
+		"client_id": clientID,
+		"subject":   subject,
+		"scope":     scope,
+		"cnf_jkt":   cnfJKT,
+		"issued_at": now.Unix(),
+	}, refreshExpiresAt); err != nil {
+		return nil, errors.New("grant_session_store_failed")
+	}
 
 	tokenType := "Bearer"
 	if cnfJKT != "" {
@@ -615,6 +650,55 @@ func (s *Service) issueTokenSet(ctx context.Context, clientID, subject, scope, n
 		"id_token":      idToken,
 		"scope":         scope,
 	}, nil
+}
+
+func (s *Service) storeOIDCAuthnSession(ctx context.Context, payload map[string]any, expiresAt time.Time) (string, error) {
+	id := "authn-" + mustRandomToken(16)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal authn session: %w", err)
+	}
+	if _, err := s.db.Exec(ctx, `
+		insert into oidc_authn_sessions (tenant_id, id, data, expires_at)
+		values ($1::uuid, $2, $3, $4)
+		on conflict (tenant_id, id) do update
+		set data = excluded.data,
+			expires_at = excluded.expires_at
+	`, zeroTenantID, id, data, expiresAt); err != nil {
+		return "", fmt.Errorf("store authn session: %w", err)
+	}
+	return id, nil
+}
+
+func (s *Service) storeOIDCGrantSession(ctx context.Context, id string, payload map[string]any, expiresAt time.Time) (string, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal grant session: %w", err)
+	}
+	if _, err := s.db.Exec(ctx, `
+		insert into oidc_grant_sessions (tenant_id, id, data, expires_at)
+		values ($1::uuid, $2, $3, $4)
+		on conflict (tenant_id, id) do update
+		set data = excluded.data,
+			expires_at = excluded.expires_at
+	`, zeroTenantID, id, data, expiresAt); err != nil {
+		return "", fmt.Errorf("store grant session: %w", err)
+	}
+	return id, nil
+}
+
+func (s *Service) storeOIDCModel(ctx context.Context, modelName, modelID string, payload map[string]any, expiresAt time.Time, grantID string) (string, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("marshal oidc model: %w", err)
+	}
+	if _, err := s.db.Exec(ctx, `
+		insert into oidc_models (tenant_id, model_id, model_name, payload, grant_id, expires_at, consumed_at)
+		values ($1::uuid, $2, $3, $4, $5, $6, null)
+	`, zeroTenantID, modelID, modelName, data, nullableString(grantID), expiresAt); err != nil {
+		return "", fmt.Errorf("store oidc model: %w", err)
+	}
+	return modelID, nil
 }
 
 func (s *Service) validateClientRedirect(ctx context.Context, clientID, redirectURI string) (bool, error) {
