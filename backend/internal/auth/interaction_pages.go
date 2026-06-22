@@ -307,11 +307,12 @@ const oidcLoginHTML = `<!DOCTYPE html>
             <div id="error" class="error" hidden role="alert" aria-live="polite"></div>
             <div id="success" class="success" hidden role="status" aria-live="polite"></div>
             <div class="grid" id="methodGrid">
-              <button class="method active" type="button" onclick="showSms(this)" {{if not .SMSAvailable}}disabled{{end}}><span class="method-icon">✉</span><span class="method-body"><span class="method-kicker">Recomandat</span><strong>SMS OTP</strong><span>Introdu numele de utilizator, apoi confirmă codul primit prin SMS.</span></span></button>
+              <button class="method" type="button" onclick="showSms(this)" {{if not .SMSAvailable}}disabled{{end}}><span class="method-icon">✉</span><span class="method-body"><span class="method-kicker">Recomandat</span><strong>SMS OTP</strong><span>Introdu numele de utilizator, apoi confirmă codul primit prin SMS.</span></span></button>
               <button class="method" type="button" onclick="loginPasskey(this)" {{if not .PasskeyAvailable}}disabled{{end}}><span class="method-icon">◈</span><span class="method-body"><span class="method-kicker">Fără cod</span><strong>Passkey</strong><span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă și sigură.</span></span></button>
               <button class="method" type="button" onclick="showWalletMessage(this)" {{if not .WalletAvailable}}disabled{{end}}><span class="method-icon">⌁</span><span class="method-body"><span class="method-kicker">Identitate digitală</span><strong>EUDI Wallet</strong><span>{{if .WalletAvailable}}Continuă cu wallet-ul digital compatibil eIDAS.{{else}}Fluxul de wallet digital nu este încă activ în această instanță.{{end}}</span></span></button>
             </div>
             <div class="step">
+              <div id="methodIntro" class="helper-card">Alege una dintre cele 3 metode de autentificare pentru a continua fluxul OIDC.</div>
               <form id="smsForm" class="grid" onsubmit="return requestSms(event)" hidden>
                 <div class="step-header"><strong>Autentificare SMS</strong><span>Pasul 1 din 2</span></div>
                 <div class="field"><label for="identifier">Nume de utilizator</label><input id="identifier" name="identifier" autocomplete="username" inputmode="text" placeholder="thomasgalambos" /><span class="field-help">Introdu numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span></div>
@@ -344,6 +345,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     const errorBox = document.getElementById('error');
     const successBox = document.getElementById('success');
     const methodGrid = document.getElementById('methodGrid');
+    const methodIntro = document.getElementById('methodIntro');
     const smsForm = document.getElementById('smsForm');
     const codeForm = document.getElementById('codeForm');
     const smsNotice = document.getElementById('smsNotice');
@@ -355,10 +357,10 @@ const oidcLoginHTML = `<!DOCTYPE html>
     function showError(message){errorBox.hidden=!message;errorBox.textContent=message||'';if(message){successBox.hidden=true;successBox.textContent='';}}
     function showSuccess(message){successBox.hidden=!message;successBox.textContent=message||'';if(message){errorBox.hidden=true;errorBox.textContent='';}}
     function setActiveMethod(button){for(const item of methodGrid.querySelectorAll('.method')){item.classList.remove('active');}if(button){button.classList.add('active');}}
-    function showSms(button){setActiveMethod(button);showError('');showSuccess('');smsForm.hidden=false;codeForm.hidden=true;identifierInput.focus();}
-    function resetToMethods(){smsForm.hidden=true;codeForm.hidden=true;showError('');showSuccess('');const firstMethod=methodGrid.querySelector('.method');if(firstMethod){setActiveMethod(firstMethod);}}
+    function showSms(button){setActiveMethod(button);showError('');showSuccess('');methodIntro.hidden=true;smsForm.hidden=false;codeForm.hidden=true;identifierInput.focus();}
+    function resetToMethods(){smsForm.hidden=true;codeForm.hidden=true;methodIntro.hidden=false;showError('');showSuccess('');for(const item of methodGrid.querySelectorAll('.method')){item.classList.remove('active');}}
     function hideCode(){resetToMethods();identifierValue='';codeInput.value='';otpBoxes.forEach((box)=>{box.value='';box.classList.remove('filled');});verifyBtn.disabled=true;}
-    function showWalletMessage(button){setActiveMethod(button);smsForm.hidden=true;codeForm.hidden=true;showSuccess('EUDI wallet nu este încă activat pentru acest tenant.');showError('');}
+    function showWalletMessage(button){setActiveMethod(button);smsForm.hidden=true;codeForm.hidden=true;methodIntro.hidden=false;showSuccess('Continuă cu EUDI Wallet după activarea fluxului dedicat pentru acest tenant.');showError('');}
     function syncOtp(){const code=otpBoxes.map((box)=>box.value.replace(/\D/g,'').slice(0,1)).join('');codeInput.value=code;verifyBtn.disabled=code.length!==6;otpBoxes.forEach((box)=>box.classList.toggle('filled',box.value!=='');)}
     async function requestSms(event){event.preventDefault();showError('');showSuccess('');identifierValue=document.getElementById('identifier').value.trim();if(!identifierValue){showError('Introdu numele de utilizator.');return false;}if(!{{if .SMSAvailable}}true{{else}}false{{end}}){showError('Autentificarea SMS nu este activată în această instanță.');return false;}const response=await fetch('/api/auth/request-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifierValue})});if(!response.ok){showError('Nu am putut trimite codul. Încearcă din nou.');return false;}smsNotice.textContent='Am trimis codul SMS către contul asociat identificatorului introdus.';smsForm.hidden=true;codeForm.hidden=false;otpBoxes[0].focus();showSuccess('Codul a fost trimis. Verifică mesajul SMS și continuă.');return false;}
     async function verifySms(event){event.preventDefault();showError('');showSuccess('');const code=document.getElementById('code').value.trim();if(!identifierValue||!code){showError('Completează identificatorul și codul.');return false;}const response=await fetch('/api/auth/verify-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifierValue,code:code})});if(!response.ok){showError('Cod invalid sau expirat.');return false;}showSuccess('Autentificare reușită. Se redirecționează către aplicație...');window.location.assign(returnUrl);return false;}
@@ -367,7 +369,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
     function bufToB64url(buffer){const bytes=new Uint8Array(buffer);let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
     otpBoxes.forEach((box,index)=>{box.addEventListener('input',(event)=>{const value=event.target.value.replace(/\D/g,'').slice(0,1);event.target.value=value;if(value&&index<otpBoxes.length-1){otpBoxes[index+1].focus();}syncOtp();});box.addEventListener('keydown',(event)=>{if(event.key==='Backspace'&&!box.value&&index>0){otpBoxes[index-1].value='';otpBoxes[index-1].focus();syncOtp();}if(event.key==='ArrowLeft'&&index>0){otpBoxes[index-1].focus();}if(event.key==='ArrowRight'&&index<otpBoxes.length-1){otpBoxes[index+1].focus();}if(event.key==='Enter'&&codeInput.value.length===6){codeForm.requestSubmit();}});box.addEventListener('paste',(event)=>{event.preventDefault();const paste=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);if(!paste){return;}paste.split('').forEach((digit,digitIndex)=>{if(otpBoxes[digitIndex]){otpBoxes[digitIndex].value=digit;}});otpBoxes[Math.min(paste.length,otpBoxes.length-1)].focus();syncOtp();});});
     syncOtp();
-    showSms(methodGrid.querySelector('.method'));
   </script>
 </body>
 </html>`
