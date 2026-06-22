@@ -517,6 +517,8 @@ func buildLoginPolicy(
 			switch step {
 			case "":
 				return renderMethodStep(w, r, sess, db, cfg, smsService, tmpl, formAction, otp, passkeyRedeemNonce)
+			case "otp_identifier":
+				return renderOTPIdentifierStep(w, r, sess, db, cfg, smsService, tmpl, formAction, otp)
 			case "otp":
 				return renderOTPStep(w, r, sess, cfg, tmpl, formAction, otp)
 			case "consent":
@@ -542,9 +544,11 @@ func renderMethodStep(
 ) (goidc.Status, error) {
 	data := oidcLoginData{
 		Step:           "methods",
+		StepLabel:      "Pasul 1",
 		CustomerName:   cfg.CustomerName,
 		FormAction:     formAction,
 		FrontendOrigin: cfg.FrontendOrigin,
+		WalletEnabled:  cfg.EnableWallet,
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -552,44 +556,17 @@ func renderMethodStep(
 
 	switch r.FormValue("method") {
 	case "otp":
-		identifier := strings.TrimSpace(r.FormValue("identifier"))
-		if identifier == "" {
-			data.Error = "Introduceți utilizatorul, emailul sau numărul de telefon."
-			return renderOIDCStep(w, tmpl, data)
-		}
-		user, err := findLoginUser(r.Context(), db, identifier)
-		if err != nil {
-			data.Error = "Contul nu a putut fi localizat pentru autentificare."
-			data.Identifier = identifier
-			return renderOIDCStep(w, tmpl, data)
-		}
-		if smsService == nil || !smsService.Configured() {
-			data.Error = "Fluxul OTP nu este configurat pe acest mediu."
-			data.Identifier = identifier
-			return renderOIDCStep(w, tmpl, data)
-		}
-		code, err := otp.Generate(r.Context(), user.ID, otpPurposeLogin)
-		if err != nil {
-			data.Error = "Nu am putut genera codul OTP."
-			data.Identifier = identifier
-			return renderOIDCStep(w, tmpl, data)
-		}
-		message := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
-		if _, err := smsService.Send(r.Context(), user.PhoneNumber, message); err != nil {
-			data.Error = "Nu am putut trimite codul OTP prin SMS."
-			data.Identifier = identifier
-			return renderOIDCStep(w, tmpl, data)
-		}
-		sess.StoreParameter("step", "otp")
-		sess.StoreParameter("otp_user_id", user.ID.String())
-		sess.StoreParameter("identifier", identifier)
 		return renderOIDCStep(w, tmpl, oidcLoginData{
-			Step:         "otp",
-			CustomerName: cfg.CustomerName,
-			FormAction:   formAction,
-			Identifier:   identifier,
-			Message:      "Am trimis un cod de verificare către telefonul asociat contului.",
+			Step:           "otp_identifier",
+			StepLabel:      "Pasul 2",
+			CustomerName:   cfg.CustomerName,
+			FormAction:     formAction,
+			FrontendOrigin: cfg.FrontendOrigin,
+			WalletEnabled:  cfg.EnableWallet,
 		})
+	case "eudi_wallet":
+		data.Error = "Autentificarea cu EUDI Wallet nu este disponibilă încă în acest flux."
+		return renderOIDCStep(w, tmpl, data)
 	case "passkey_done":
 		if passkeyRedeemNonce == nil {
 			data.Error = "Autentificarea cu passkey nu este disponibilă."
@@ -608,6 +585,84 @@ func renderMethodStep(
 	}
 }
 
+func renderOTPIdentifierStep(
+	w http.ResponseWriter,
+	r *http.Request,
+	sess *goidc.AuthnSession,
+	db *pgxpool.Pool,
+	cfg *config.Config,
+	smsService *notification.SMSService,
+	tmpl *template.Template,
+	formAction string,
+	otp *otpService,
+) (goidc.Status, error) {
+	identifier, _ := sess.StoredParameter("identifier").(string)
+	data := oidcLoginData{
+		Step:           "otp_identifier",
+		StepLabel:      "Pasul 2",
+		CustomerName:   cfg.CustomerName,
+		FormAction:     formAction,
+		FrontendOrigin: cfg.FrontendOrigin,
+		Identifier:     identifier,
+		WalletEnabled:  cfg.EnableWallet,
+	}
+	if r.Method == http.MethodGet {
+		return renderOIDCStep(w, tmpl, data)
+	}
+	if r.FormValue("action") == "back" {
+		sess.StoreParameter("step", "")
+		return renderOIDCStep(w, tmpl, oidcLoginData{
+			Step:           "methods",
+			StepLabel:      "Pasul 1",
+			CustomerName:   cfg.CustomerName,
+			FormAction:     formAction,
+			FrontendOrigin: cfg.FrontendOrigin,
+			WalletEnabled:  cfg.EnableWallet,
+		})
+	}
+
+	identifier = strings.TrimSpace(r.FormValue("identifier"))
+	if identifier == "" {
+		data.Error = "Introduceți utilizatorul, emailul sau numărul de telefon."
+		return renderOIDCStep(w, tmpl, data)
+	}
+	user, err := findLoginUser(r.Context(), db, identifier)
+	if err != nil {
+		data.Error = "Contul nu a putut fi localizat pentru autentificare."
+		data.Identifier = identifier
+		return renderOIDCStep(w, tmpl, data)
+	}
+	if smsService == nil || !smsService.Configured() {
+		data.Error = "Fluxul OTP nu este configurat pe acest mediu."
+		data.Identifier = identifier
+		return renderOIDCStep(w, tmpl, data)
+	}
+	code, err := otp.Generate(r.Context(), user.ID, otpPurposeLogin)
+	if err != nil {
+		data.Error = "Nu am putut genera codul OTP."
+		data.Identifier = identifier
+		return renderOIDCStep(w, tmpl, data)
+	}
+	message := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
+	if _, err := smsService.Send(r.Context(), user.PhoneNumber, message); err != nil {
+		data.Error = "Nu am putut trimite codul OTP prin SMS."
+		data.Identifier = identifier
+		return renderOIDCStep(w, tmpl, data)
+	}
+
+	sess.StoreParameter("step", "otp")
+	sess.StoreParameter("otp_user_id", user.ID.String())
+	sess.StoreParameter("identifier", identifier)
+	return renderOIDCStep(w, tmpl, oidcLoginData{
+		Step:         "otp",
+		StepLabel:    "Pasul 3",
+		CustomerName: cfg.CustomerName,
+		FormAction:   formAction,
+		Identifier:   identifier,
+		Message:      "Am trimis un cod de verificare către telefonul asociat contului.",
+	})
+}
+
 func renderOTPStep(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -620,6 +675,7 @@ func renderOTPStep(
 	identifier, _ := sess.StoredParameter("identifier").(string)
 	data := oidcLoginData{
 		Step:         "otp",
+		StepLabel:    "Pasul 3",
 		CustomerName: cfg.CustomerName,
 		FormAction:   formAction,
 		Identifier:   identifier,
@@ -629,13 +685,15 @@ func renderOTPStep(
 		return renderOIDCStep(w, tmpl, data)
 	}
 	if r.FormValue("action") == "back" {
-		sess.StoreParameter("step", "")
+		sess.StoreParameter("step", "otp_identifier")
 		return renderOIDCStep(w, tmpl, oidcLoginData{
-			Step:           "methods",
+			Step:           "otp_identifier",
+			StepLabel:      "Pasul 2",
 			CustomerName:   cfg.CustomerName,
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			Identifier:     identifier,
+			WalletEnabled:  cfg.EnableWallet,
 		})
 	}
 
@@ -669,6 +727,7 @@ func renderConsentStep(
 ) (goidc.Status, error) {
 	data := oidcLoginData{
 		Step:         "consent",
+		StepLabel:    "Pasul 4",
 		CustomerName: cfg.CustomerName,
 		FormAction:   formAction,
 		ClientName:   cfg.CustomerName,
@@ -802,6 +861,7 @@ func buildScopeItems(scopes string) []scopeItem {
 
 type oidcLoginData struct {
 	Step           string
+	StepLabel      string
 	CustomerName   string
 	FormAction     string
 	FrontendOrigin string
@@ -809,6 +869,7 @@ type oidcLoginData struct {
 	Identifier     string
 	Message        string
 	Error          string
+	WalletEnabled  bool
 	Scopes         []scopeItem
 }
 
@@ -897,10 +958,10 @@ const oidcLoginHTML = `<!DOCTYPE html>
       <div class="card">
         <div class="card-shell">
           <aside class="card-hero">
-            <div class="brand-line">
-              <div class="brand-pill">Autentificare</div>
-              <span class="status-pill">{{if eq .Step "methods"}}Pasul 1{{else if eq .Step "otp"}}Pasul 2{{else}}Pasul 3{{end}}</span>
-            </div>
+              <div class="brand-line">
+                <div class="brand-pill">Autentificare</div>
+                <span class="status-pill">{{.StepLabel}}</span>
+              </div>
             <h1 class="title">{{.CustomerName}}</h1>
             <p class="subtitle">Experiența OIDC trebuie să rămână coerentă, modernă și aliniată cu platforma principală.</p>
             <div class="summary">
@@ -914,28 +975,31 @@ const oidcLoginHTML = `<!DOCTYPE html>
             {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
             {{if eq .Step "methods"}}
               <h2 class="title" style="margin-top:0">Alege metoda de autentificare</h2>
-              <p class="sub">Continuă cu OTP prin telefonul asociat contului sau cu passkey.</p>
+              <p class="sub">Selectează metoda cu care vrei să continui autentificarea.</p>
               <form method="POST" action="{{.FormAction}}" class="grid">
-                <div class="field">
-                  <label for="identifier">Utilizator, email sau telefon</label>
-                  <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="thomas.admin / email / telefon">
-                  <span class="field-help">Identificatorul este folosit pentru localizarea contului înainte de trimiterea codului OTP.</span>
-                </div>
-                <div class="grid methods">
+                <div class="grid">
                   <button class="method" type="submit" name="method" value="otp">
                     <span class="method-icon">✉</span>
                     <span class="method-body">
                       <span class="method-kicker">Recomandat</span>
-                      <strong>Continuă cu OTP</strong>
-                      <span>Primești codul prin SMS și continui imediat în sesiunea OIDC.</span>
+                      <strong>SMS</strong>
+                      <span>Continuă cu identificarea contului și primește codul de 6 cifre prin SMS.</span>
                     </span>
                   </button>
                   <button class="method" id="biometricBtn" type="button">
                     <span class="method-icon">◈</span>
                     <span class="method-body">
                       <span class="method-kicker">Fără cod</span>
-                      <strong>Continuă cu passkey</strong>
+                      <strong>Passkey</strong>
                       <span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă.</span>
+                    </span>
+                  </button>
+                  <button class="method" type="submit" name="method" value="eudi_wallet" {{if not .WalletEnabled}}disabled aria-disabled="true"{{end}}>
+                    <span class="method-icon">▣</span>
+                    <span class="method-body">
+                      <span class="method-kicker">{{if .WalletEnabled}}Identitate digitală{{else}}Indisponibil{{end}}</span>
+                      <strong>EUDI Wallet</strong>
+                      <span>{{if .WalletEnabled}}Continuă cu identitatea digitală din portofelul european.{{else}}Fluxul EUDI Wallet nu este activ încă pe acest mediu.{{end}}</span>
                     </span>
                   </button>
                 </div>
@@ -971,8 +1035,22 @@ const oidcLoginHTML = `<!DOCTYPE html>
                 });
                 function b64u(value){var base64=value.replace(/-/g,'+').replace(/_/g,'/');base64=base64.padEnd(Math.ceil(base64.length/4)*4,'=');var binary=atob(base64);var out=new Uint8Array(binary.length);for(var i=0;i<binary.length;i++){out[i]=binary.charCodeAt(i);}return out;}
                 function u8b64(bytes){var binary='';bytes.forEach(function(byte){binary+=String.fromCharCode(byte);});return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
-              })();
+                })();
               </script>
+            {{else if eq .Step "otp_identifier"}}
+              <h2 class="title" style="margin-top:0">Identificare pentru SMS</h2>
+              <p class="sub">Introdu utilizatorul, adresa de email sau numărul de telefon pentru a trimite codul OTP.</p>
+              <form method="POST" action="{{.FormAction}}" class="grid">
+                <div class="field">
+                  <label for="identifier">Utilizator, email sau telefon</label>
+                  <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="utilizator / email / telefon">
+                  <span class="field-help">După identificare, sistemul trimite codul de 6 cifre către telefonul asociat contului.</span>
+                </div>
+                <div class="actions">
+                  <button class="btn" type="submit">Trimite codul prin SMS</button>
+                  <button class="btn secondary" type="submit" name="action" value="back">Înapoi</button>
+                </div>
+              </form>
             {{else if eq .Step "otp"}}
               <h2 class="title" style="margin-top:0">Confirmă codul OTP</h2>
               <p class="sub">{{.Message}}</p>
