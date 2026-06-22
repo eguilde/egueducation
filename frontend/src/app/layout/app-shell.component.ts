@@ -2,12 +2,10 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { map } from 'rxjs/operators';
 
-import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -15,7 +13,6 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { AuthService } from '../core/auth/auth.service';
 import { AppBrandingService } from '../core/branding/app-branding.service';
 import { AuthzService } from '../core/authz/authz.service';
-import { ThemePanelComponent } from './theme-panel.component';
 
 interface NavItem {
   icon: string;
@@ -32,15 +29,12 @@ interface NavItem {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
     TranslocoPipe,
-    AvatarModule,
     ButtonModule,
     DrawerModule,
-    ThemePanelComponent,
     ToolbarModule,
   ],
   templateUrl: './app-shell.component.html',
@@ -119,8 +113,8 @@ export class AppShellComponent {
     ),
   );
 
-  protected readonly drawerVisible = signal(true);
-  protected readonly appearanceOpen = signal(false);
+  protected readonly drawerVisible = signal(false);
+  protected readonly authenticated = computed(() => this.auth.isAuthenticated() || !!this.authz.user());
   private readonly handset = toSignal(
     this.breakpoints.observe('(max-width: 1024px)').pipe(map((state) => state.matches)),
     { initialValue: false },
@@ -129,16 +123,16 @@ export class AppShellComponent {
 
   constructor() {
     effect(() => {
+      if (!this.authenticated()) {
+        this.drawerVisible.set(false);
+        return;
+      }
       this.drawerVisible.set(!this.isHandset());
     });
   }
 
   protected toggleDrawer(): void {
     this.drawerVisible.update((open) => !open);
-  }
-
-  protected toggleAppearance(): void {
-    this.appearanceOpen.update((open) => !open);
   }
 
   protected closeMobileNav(): void {
@@ -153,21 +147,6 @@ export class AppShellComponent {
 
   protected async signOut(): Promise<void> {
     await this.auth.logout();
-  }
-
-  protected async openAdmin(): Promise<void> {
-    await this.router.navigate(['/admin']);
-    this.closeMobileNav();
-  }
-
-  protected async openProfile(): Promise<void> {
-    await this.router.navigate(['/profile']);
-    this.closeMobileNav();
-  }
-
-  protected userInitial(): string {
-    const user = this.authz.user();
-    return (user?.name || user?.email || user?.sub || 'U').slice(0, 1).toUpperCase();
   }
 
   protected canAccess(

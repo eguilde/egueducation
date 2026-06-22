@@ -7,12 +7,6 @@ const featureAccess = (feature: string) => FEATURE_ACCESS_RULES.find((rule) => r
 
 export const routes: Routes = [
   {
-    path: '',
-    pathMatch: 'full',
-    loadComponent: () =>
-      import('./features/home/home-page.component').then((m) => m.HomePageComponent),
-  },
-  {
     path: 'login',
     redirectTo: '',
     pathMatch: 'full',
@@ -212,8 +206,13 @@ export const routes: Routes = [
           import('./features/prime-workspaces/gdpr-workspace.component').then((m) => m.GdprWorkspaceComponent),
       },
       { path: 'registratura', redirectTo: 'documente', pathMatch: 'full' },
-      { path: '', redirectTo: 'documente', pathMatch: 'full' },
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./features/home/home-page.component').then((m) => m.HomePageComponent),
+      },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  { path: '**', redirectTo: '' },
 ];

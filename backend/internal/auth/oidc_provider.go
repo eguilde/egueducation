@@ -61,6 +61,7 @@ func newOIDCProviderHandler(
 		}),
 		provider.WithTokenAuthnMethods(goidc.ClientAuthnNone, goidc.ClientAuthnSecretBasic),
 		provider.WithScopes(goidc.ScopeOpenID, goidc.ScopeProfile, goidc.ScopeEmail, goidc.ScopePhone, goidc.ScopeOfflineAccess),
+		provider.WithPathPrefix("/api/oidc"),
 		provider.WithClientStorage(clientStore),
 		provider.WithAuthnSessionStorage(authnStore),
 		provider.WithGrantSessionStorage(grantStore),
@@ -104,7 +105,7 @@ func seedOIDCClients(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) 
 		if origin == "" {
 			continue
 		}
-		redirect := origin + "/callback"
+		redirect := origin + "/auth/callback"
 		if _, ok := seen[redirect]; ok {
 			continue
 		}

@@ -1,35 +1,47 @@
 <div class="shell min-h-dvh bg-surface-50 text-color dark:bg-surface-950">
   <p-toolbar styleClass="shell__toolbar">
     <ng-template pTemplate="start">
-      <div class="flex items-center gap-3">
+      <span class="shell__toolbar-spacer"></span>
+    </ng-template>
+
+    <ng-template pTemplate="center">
+      <div class="flex min-w-0 items-center justify-center px-3 text-center">
+        <span class="truncate text-base font-black tracking-[-0.02em] sm:text-lg">
+          {{ branding.projectTitle() }}
+        </span>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="end">
+      <div class="flex items-center gap-2">
+        @if (authenticated()) {
+          <p-button
+            type="button"
+            [label]="'auth.logout' | transloco"
+            icon="pi pi-sign-out"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="signOut()"
+          />
+        } @else {
+          <p-button
+            type="button"
+            [label]="'auth.login' | transloco"
+            icon="pi pi-sign-in"
+            (onClick)="signIn()"
+          />
+        }
+
         <p-button
           type="button"
           icon="pi pi-bars"
           [rounded]="true"
           [text]="true"
           severity="secondary"
-          ariaLabel="Toggle navigation"
+          ariaLabel="Deschide meniul"
           (onClick)="toggleDrawer()"
         />
-        <div class="grid leading-tight">
-          <span class="text-base font-black tracking-[-0.02em]">{{ branding.projectTitle() }}</span>
-          <span class="hidden text-xs text-surface-500 sm:block">
-            {{ authz.institutionName() || ('app.subtitle' | transloco) }}
-          </span>
-        </div>
       </div>
-    </ng-template>
-
-    <ng-template pTemplate="end">
-      @if (authz.user(); as user) {
-        <div class="hidden items-center gap-2 rounded-full border border-surface bg-surface-0 px-3 py-1 shadow-sm lg:flex dark:bg-surface-900">
-          <p-avatar [label]="userInitial()" shape="circle" styleClass="bg-primary text-primary-contrast" />
-          <div class="grid max-w-52 leading-tight">
-            <span class="truncate text-sm font-bold">{{ user.name || user.email || user.sub }}</span>
-            <span class="truncate text-xs text-surface-500">{{ user.email || user.sub }}</span>
-          </div>
-        </div>
-      }
     </ng-template>
   </p-toolbar>
 
@@ -44,8 +56,8 @@
   >
     <ng-template pTemplate="headless">
       <aside class="flex h-full min-h-0 flex-col bg-surface-0 dark:bg-surface-950">
-        <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
-          @if (authz.user()) {
+        @if (authenticated()) {
+          <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
             <nav class="grid gap-1">
               @for (item of visibleNavItems(); track item.route) {
                 <a
@@ -59,74 +71,15 @@
                 </a>
               }
             </nav>
-          }
-        </div>
-
-        <footer class="grid gap-3 border-t border-surface p-3">
-          <section class="rounded-2xl border border-surface bg-surface-50 p-3 dark:bg-surface-900">
-            @if (authz.user(); as user) {
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border-0 bg-transparent p-1 text-left text-color transition hover:bg-surface-100 dark:hover:bg-surface-800"
-                  (click)="openProfile()"
-                >
-                  <p-avatar [label]="userInitial()" shape="circle" styleClass="bg-primary text-primary-contrast" />
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-bold">{{ user.name || user.email || user.sub }}</span>
-                    <span class="block truncate text-xs text-surface-500">{{ user.email || user.sub }}</span>
-                  </span>
-                </button>
-                <p-button
-                  type="button"
-                  icon="pi pi-sign-out"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="danger"
-                  [attr.aria-label]="'auth.logout' | transloco"
-                  (onClick)="signOut()"
-                />
-              </div>
-            } @else {
-              <p-button
-                type="button"
-                [label]="'auth.login' | transloco"
-                icon="pi pi-sign-in"
-                styleClass="w-full justify-center"
-                (onClick)="signIn()"
-              />
-            }
-          </section>
-
-          <section class="rounded-2xl border border-surface bg-surface-50 dark:bg-surface-900">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left text-sm font-black text-color transition hover:bg-surface-100 dark:hover:bg-surface-800"
-              [attr.aria-expanded]="appearanceOpen()"
-              aria-controls="shell-appearance-panel"
-              (click)="toggleAppearance()"
-            >
-              <span class="flex items-center gap-2">
-                <i class="pi pi-palette text-primary"></i>
-                {{ 'appearance.title' | transloco }}
-              </span>
-              <i class="pi text-surface-500" [class.pi-chevron-down]="!appearanceOpen()" [class.pi-chevron-up]="appearanceOpen()"></i>
-            </button>
-
-            @if (appearanceOpen()) {
-              <div id="shell-appearance-panel" class="border-t border-surface p-3">
-                <app-theme-panel />
-              </div>
-            }
-          </section>
-        </footer>
+          </div>
+        }
       </aside>
     </ng-template>
   </p-drawer>
 
   <main
-    class="shell__main min-h-[calc(100dvh-4rem)] p-3 transition-[padding] duration-200 sm:p-4 lg:p-5"
-    [class.lg:pl-[22rem]]="drawerVisible()"
+    class="shell__main min-h-[calc(100dvh-4rem)] transition-[padding] duration-200"
+    [class.lg:pl-[22rem]]="authenticated() && drawerVisible()"
   >
     <router-outlet />
   </main>

@@ -3,6 +3,10 @@
   min-height: 100dvh;
 }
 
+:host ::ng-deep .shell__toolbar .p-toolbar {
+  padding-inline: 0.75rem;
+}
+
 :host ::ng-deep .shell__toolbar {
   position: sticky;
   top: 0;
@@ -24,6 +28,16 @@
   width: min(21rem, calc(100vw - 2rem));
   height: calc(100dvh - 4rem);
   border-right: 1px solid var(--p-content-border-color);
+}
+
+.shell__toolbar-spacer {
+  display: block;
+  width: 2.75rem;
+  height: 1px;
+}
+
+.shell__main {
+  min-height: calc(100dvh - 4rem);
 }
 
 .shell__nav-link {
