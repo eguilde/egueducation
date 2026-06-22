@@ -2,11 +2,11 @@ package registratura
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -87,18 +87,23 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"registry_number": {},
-			"subject":         {},
-			"document_type":   {},
-			"direction":       {},
-			"status":          {},
-			"correspondent":   {},
-			"assigned_to":     {},
-			"confidentiality": {},
-			"registered_at":   {},
-			"due_date":        {},
+			"registru_id":        {},
+			"registry_number":    {},
+			"subject":            {},
+			"document_type":      {},
+			"direction":          {},
+			"status":             {},
+			"correspondent":      {},
+			"assigned_to":        {},
+			"confidentiality":    {},
+			"registered_at":      {},
+			"registered_at_from": {},
+			"registered_at_to":   {},
+			"due_date":           {},
+			"due_date_from":      {},
+			"due_date_to":        {},
 		},
-		[]string{"registry_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_on"},
+		[]string{"registry_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at"},
 	)
 
 	whereClause, args := buildDocumentFilters(query.Filters)
@@ -117,9 +122,10 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	offset := (query.Page - 1) * query.PageSize
 	args = append(args, query.PageSize, offset)
 
-	sql := fmt.Sprintf(`
+	querySQL := fmt.Sprintf(`
 		select
 			d.id::text,
+			d.registru_id,
 			d.registry_number,
 			d.subject,
 			d.document_type,
@@ -138,7 +144,7 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 		limit $%d offset $%d
 	`, whereClause, sortColumn, strings.ToUpper(query.Direction), len(args)-1, len(args))
 
-	rows, err := s.pool.Query(r.Context(), sql, args...)
+	rows, err := s.pool.Query(r.Context(), querySQL, args...)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{
 			"code":    "registratura_list_failed",
@@ -151,8 +157,10 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	documents := make([]Document, 0, query.PageSize)
 	for rows.Next() {
 		var document Document
+		var registruID sql.NullInt64
 		if err := rows.Scan(
 			&document.ID,
+			&registruID,
 			&document.RegistryNumber,
 			&document.Subject,
 			&document.DocumentType,
@@ -171,6 +179,10 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 				"message": "Nu s-au putut incarca documentele.",
 			})
 			return
+		}
+		if registruID.Valid {
+			value := registruID.Int64
+			document.RegistruID = &value
 		}
 		documents = append(documents, document)
 	}
@@ -228,109 +240,13 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	registryNumber, err := nextRegistryNumber(ctx, tx)
+	document, err := s.createDocumentTx(ctx, tx, req, authruntime.CurrentSubjectFromRequest(r))
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_registry_number_failed"})
-		return
-	}
-
-	var dueDate any
-	if req.DueDate != nil && strings.TrimSpace(*req.DueDate) != "" {
-		dueDate = strings.TrimSpace(*req.DueDate)
-	}
-
-	var document Document
-	err = tx.QueryRow(ctx, `
-		insert into registratura_documents (
-			registry_number,
-			subject,
-			document_type,
-			direction,
-			status,
-			correspondent,
-			assigned_to,
-			institution_id,
-			confidentiality,
-			summary,
-			due_date
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-		returning
-			id::text,
-			registry_number,
-			subject,
-			document_type,
-			direction,
-			status,
-			correspondent,
-			assigned_to,
-			institution_id,
-			confidentiality,
-			summary,
-			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end
-	`,
-		registryNumber,
-		req.Subject,
-		req.DocumentType,
-		req.Direction,
-		req.Status,
-		req.Correspondent,
-		req.AssignedTo,
-		"inst-001",
-		req.Confidentiality,
-		req.Summary,
-		dueDate,
-	).Scan(
-		&document.ID,
-		&document.RegistryNumber,
-		&document.Subject,
-		&document.DocumentType,
-		&document.Direction,
-		&document.Status,
-		&document.Correspondent,
-		&document.AssignedTo,
-		&document.InstitutionID,
-		&document.Confidentiality,
-		&document.Summary,
-		&document.RegisteredAt,
-		&document.DueDate,
-	)
-	if err != nil {
+		if err == pgx.ErrNoRows {
+			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "registry_not_found"})
+			return
+		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_create_failed"})
-		return
-	}
-
-	if _, err := tx.Exec(ctx, `
-		insert into registratura_document_versions (
-			document_id,
-			version_no,
-			subject,
-			document_type,
-			direction,
-			status,
-			correspondent,
-			assigned_to,
-			confidentiality,
-			summary,
-			due_date,
-			change_notes,
-			created_by
-		) values ($1::uuid, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10::date, $11, $12)
-	`,
-		document.ID,
-		document.Subject,
-		document.DocumentType,
-		document.Direction,
-		document.Status,
-		document.Correspondent,
-		document.AssignedTo,
-		document.Confidentiality,
-		document.Summary,
-		document.DueDate,
-		"Inițializare document",
-		authruntime.CurrentSubjectFromRequest(r),
-	); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_version_init_failed"})
 		return
 	}
 
@@ -351,6 +267,251 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	})
 
 	httpx.JSON(w, http.StatusCreated, document)
+}
+
+func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
+	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
+	if documentID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
+		return
+	}
+
+	var req UpdateDocumentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_document_payload"})
+		return
+	}
+
+	req.Subject = strings.TrimSpace(req.Subject)
+	req.DocumentType = strings.TrimSpace(req.DocumentType)
+	req.Direction = strings.TrimSpace(req.Direction)
+	req.Status = strings.TrimSpace(req.Status)
+	req.Correspondent = strings.TrimSpace(req.Correspondent)
+	req.AssignedTo = strings.TrimSpace(req.AssignedTo)
+	req.Confidentiality = strings.TrimSpace(req.Confidentiality)
+	req.Summary = strings.TrimSpace(req.Summary)
+	req.ChangeNotes = strings.TrimSpace(req.ChangeNotes)
+
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Correspondent == "" || req.Confidentiality == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_fields"})
+		return
+	}
+
+	if !s.isNomenclatureAllowed(r.Context(), "registratura_direction", req.Direction) ||
+		!s.isNomenclatureAllowed(r.Context(), "registratura_status", req.Status) ||
+		!s.isNomenclatureAllowed(r.Context(), "registratura_confidentiality", req.Confidentiality) ||
+		!s.isNomenclatureAllowed(r.Context(), "registratura_document_type", req.DocumentType) {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_document_fields"})
+		return
+	}
+
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	current, err := s.loadDocumentTx(r.Context(), tx, documentID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
+			return
+		}
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+
+	registruID := current.RegistruID
+	if req.RegistruID != nil {
+		registruID = req.RegistruID
+	}
+	resolvedRegistruID, err := s.resolveRegistryID(r.Context(), tx, registruID)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "registry_not_found"})
+		return
+	}
+
+	var dueDate any
+	if req.DueDate != nil && strings.TrimSpace(*req.DueDate) != "" {
+		dueDate = strings.TrimSpace(*req.DueDate)
+	}
+
+	if _, err := tx.Exec(r.Context(), `
+		update registratura_documents
+		set registru_id = $1,
+			subject = $2,
+			document_type = $3,
+			direction = $4,
+			status = $5,
+			correspondent = $6,
+			assigned_to = $7,
+			confidentiality = $8,
+			summary = $9,
+			due_date = $10,
+			updated_at = now()
+		where id::text = $11
+	`,
+		resolvedRegistruID,
+		req.Subject,
+		req.DocumentType,
+		req.Direction,
+		req.Status,
+		req.Correspondent,
+		req.AssignedTo,
+		req.Confidentiality,
+		req.Summary,
+		dueDate,
+		documentID,
+	); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+
+	if _, err := tx.Exec(r.Context(), `
+		insert into registratura_document_versions (
+			document_id,
+			version_no,
+			subject,
+			document_type,
+			direction,
+			status,
+			correspondent,
+			assigned_to,
+			confidentiality,
+			summary,
+			due_date,
+			change_notes,
+			created_by
+		) values (
+			$1::uuid,
+			(select coalesce(max(version_no), 0) + 1 from registratura_document_versions where document_id = $1::uuid),
+			$2, $3, $4, $5, $6, $7, $8, $9, $10::date, $11, $12
+		)
+	`,
+		documentID,
+		req.Subject,
+		req.DocumentType,
+		req.Direction,
+		req.Status,
+		req.Correspondent,
+		req.AssignedTo,
+		req.Confidentiality,
+		req.Summary,
+		dueDate,
+		func() string {
+			if req.ChangeNotes != "" {
+				return req.ChangeNotes
+			}
+			return "Actualizare document"
+		}(),
+		authruntime.CurrentSubjectFromRequest(r),
+	); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_version_init_failed"})
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+
+	updated, err := s.loadDocument(r.Context(), documentID)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, updated)
+}
+
+func (s *Service) CancelDocument(w http.ResponseWriter, r *http.Request) {
+	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
+	if documentID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
+		return
+	}
+
+	var req CancelDocumentRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	req.Reason = strings.TrimSpace(req.Reason)
+	if req.Reason == "" {
+		req.Reason = "Anulare document"
+	}
+
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	var exists bool
+	if err := tx.QueryRow(r.Context(), `select exists(select 1 from registratura_documents where id::text = $1)`, documentID).Scan(&exists); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+		return
+	}
+	if !exists {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
+		return
+	}
+
+	if _, err := tx.Exec(r.Context(), `
+		update registratura_documents
+		set status = 'archived',
+			summary = case when summary = '' then $1 else summary || ' | ' || $1 end,
+			updated_at = now()
+		where id::text = $2
+	`, req.Reason, documentID); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+		return
+	}
+
+	if _, err := tx.Exec(r.Context(), `
+		insert into registratura_document_versions (
+			document_id,
+			version_no,
+			subject,
+			document_type,
+			direction,
+			status,
+			correspondent,
+			assigned_to,
+			confidentiality,
+			summary,
+			change_notes,
+			created_by
+		)
+		select
+			d.id,
+			(select coalesce(max(version_no), 0) + 1 from registratura_document_versions where document_id = d.id),
+			d.subject,
+			d.document_type,
+			d.direction,
+			'archived',
+			d.correspondent,
+			d.assigned_to,
+			d.confidentiality,
+			d.summary,
+			$1,
+			$2
+		from registratura_documents d
+		where d.id::text = $3
+	`, req.Reason, authruntime.CurrentSubjectFromRequest(r), documentID); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_version_init_failed"})
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+		return
+	}
+
+	updated, err := s.loadDocument(r.Context(), documentID)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, updated)
 }
 
 func (s *Service) GetDocument(w http.ResponseWriter, r *http.Request) {
@@ -1017,6 +1178,9 @@ func buildDocumentFilters(filters map[string]string) (string, []any) {
 	if value := filters["registry_number"]; value != "" {
 		addContains("d.registry_number", value)
 	}
+	if value := filters["registru_id"]; value != "" {
+		addEqual("d.registru_id::text", value)
+	}
 	if value := filters["subject"]; value != "" {
 		addContains("d.subject", value)
 	}
@@ -1041,6 +1205,22 @@ func buildDocumentFilters(filters map[string]string) (string, []any) {
 	if value := filters["registered_on"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("d.registered_at::date = $%d::date", len(args)))
+	}
+	if value := filters["registered_at_from"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.registered_at::date >= $%d::date", len(args)))
+	}
+	if value := filters["registered_at_to"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.registered_at::date <= $%d::date", len(args)))
+	}
+	if value := filters["due_date_from"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.due_date >= $%d::date", len(args)))
+	}
+	if value := filters["due_date_to"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.due_date <= $%d::date", len(args)))
 	}
 
 	if len(clauses) == 0 {
@@ -1076,9 +1256,11 @@ func sortColumn(field string) string {
 
 func (s *Service) loadDocument(ctx context.Context, documentID string) (Document, error) {
 	var document Document
+	var registruID sql.NullInt64
 	err := s.pool.QueryRow(ctx, `
 		select
 			id::text,
+			registru_id,
 			registry_number,
 			subject,
 			document_type,
@@ -1095,6 +1277,7 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 		where id::text = $1
 	`, documentID).Scan(
 		&document.ID,
+		&registruID,
 		&document.RegistryNumber,
 		&document.Subject,
 		&document.DocumentType,
@@ -1108,16 +1291,55 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 		&document.RegisteredAt,
 		&document.DueDate,
 	)
+	if err == nil && registruID.Valid {
+		value := registruID.Int64
+		document.RegistruID = &value
+	}
 	return document, err
 }
 
-func nextRegistryNumber(ctx context.Context, tx pgx.Tx) (string, error) {
-	year := time.Now().UTC().Year()
-	var count int
-	if err := tx.QueryRow(ctx, "select count(*) from registratura_documents where extract(year from registered_at) = $1", year).Scan(&count); err != nil {
-		return "", err
+func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID string) (Document, error) {
+	var document Document
+	var registruID sql.NullInt64
+	err := tx.QueryRow(ctx, `
+		select
+			id::text,
+			registru_id,
+			registry_number,
+			subject,
+			document_type,
+			direction,
+			status,
+			correspondent,
+			assigned_to,
+			institution_id,
+			confidentiality,
+			summary,
+			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
+			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
+		from registratura_documents
+		where id::text = $1
+	`, documentID).Scan(
+		&document.ID,
+		&registruID,
+		&document.RegistryNumber,
+		&document.Subject,
+		&document.DocumentType,
+		&document.Direction,
+		&document.Status,
+		&document.Correspondent,
+		&document.AssignedTo,
+		&document.InstitutionID,
+		&document.Confidentiality,
+		&document.Summary,
+		&document.RegisteredAt,
+		&document.DueDate,
+	)
+	if err == nil && registruID.Valid {
+		value := registruID.Int64
+		document.RegistruID = &value
 	}
-	return fmt.Sprintf("REG-%d-%04d", year, count+1), nil
+	return document, err
 }
 
 func contains(values []string, candidate string) bool {

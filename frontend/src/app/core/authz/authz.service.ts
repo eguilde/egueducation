@@ -2,14 +2,21 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
+import { AppApiService } from '../api/app-api.service';
 import { SessionContext } from './authz.types';
+import { RoleCatalogItem, RolePositionItem } from '../api/api.types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthzService {
   private readonly http = inject(HttpClient);
+  private readonly api = inject(AppApiService);
   private readonly sessionSignal = signal<SessionContext | null>(null);
+  private readonly roleCatalogSignal = signal<RoleCatalogItem[]>([]);
+  private readonly rolePositionsSignal = signal<RolePositionItem[]>([]);
 
   readonly session = this.sessionSignal.asReadonly();
+  readonly roleCatalog = this.roleCatalogSignal.asReadonly();
+  readonly rolePositions = this.rolePositionsSignal.asReadonly();
   readonly permissions = computed(() => this.sessionSignal()?.permissions ?? []);
   readonly modules = computed(() => this.sessionSignal()?.modules ?? []);
   readonly user = computed(() => this.sessionSignal()?.user ?? null);
@@ -18,6 +25,8 @@ export class AuthzService {
 
   async init(): Promise<void> {
     await this.reload();
+    await this.loadRoleCatalog();
+    await this.loadRolePositions();
   }
 
   async reload(): Promise<void> {
@@ -31,6 +40,14 @@ export class AuthzService {
 
   clearSession(): void {
     this.sessionSignal.set(null);
+  }
+
+  roleLabel(roleCode: string): string {
+    return this.roleCatalog().find((role) => role.code === roleCode)?.label ?? roleCode;
+  }
+
+  rolePermissions(roleCode: string): string[] {
+    return this.roleCatalog().find((role) => role.code === roleCode)?.permissions ?? [];
   }
 
   hasPermission(permission: string): boolean {
@@ -55,5 +72,23 @@ export class AuthzService {
 
   hasAnyModule(moduleCodes: string[]): boolean {
     return moduleCodes.some((moduleCode) => this.hasModule(moduleCode));
+  }
+
+  private async loadRoleCatalog(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.api.roleCatalog());
+      this.roleCatalogSignal.set(response?.roles ?? []);
+    } catch {
+      this.roleCatalogSignal.set([]);
+    }
+  }
+
+  private async loadRolePositions(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.api.rolePositions());
+      this.rolePositionsSignal.set(response?.items ?? []);
+    } catch {
+      this.rolePositionsSignal.set([]);
+    }
   }
 }

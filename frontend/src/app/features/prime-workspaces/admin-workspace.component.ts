@@ -29,6 +29,7 @@ import {
   UpsertAdminUserRoleAssignmentRequest,
 } from '../../core/api/api.types';
 import { AuthzService } from '../../core/authz/authz.service';
+import { FEATURE_ACCESS_RULES } from '../../core/authz/role-catalog';
 
 interface AdminTab {
   value: string;
@@ -283,7 +284,7 @@ interface AdminPositionRoleAssignmentFilterState {
                           <div class="font-medium">{{ assignment.user_name }}</div>
                           <div class="text-xs text-muted-color">{{ assignment.user_email }}</div>
                         </td>
-                        <td><p-tag [value]="assignment.role_code" severity="secondary" /></td>
+                        <td><p-tag [value]="assignment.role_label" severity="secondary" /></td>
                         <td class="text-center">
                           <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openUserRoleDialog(assignment)" />
                           <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removeUserRoleAssignment(assignment)" />
@@ -294,6 +295,95 @@ interface AdminPositionRoleAssignmentFilterState {
                       <tr><td colspan="3" class="py-8 text-center text-muted-color">Nu există atribuiri pentru filtrele curente.</td></tr>
                     </ng-template>
                   </p-table>
+                </section>
+
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                  <div class="mb-3">
+                    <h2 class="m-0 text-lg font-semibold">Matrice roluri și funcționalități</h2>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Maparea explicită care guvernează accesul la modulele principale.</p>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    @for (rule of featureAccessRules; track rule.feature) {
+                      <article class="rounded-2xl border border-surface-200 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                          <div>
+                            <div class="font-semibold">{{ rule.feature }}</div>
+                            <div class="text-xs text-muted-color">{{ rule.description }}</div>
+                          </div>
+                          <p-tag [value]="rule.permissions.length ? 'Permisiuni' : 'Roluri'" severity="secondary" />
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          @for (role of rule.roles; track role) {
+                            <p-tag [value]="authz.roleLabel(role)" severity="info" [pTooltip]="role" />
+                          }
+                        </div>
+                      </article>
+                    }
+                  </div>
+                </section>
+
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                  <div class="mb-3">
+                    <h2 class="m-0 text-lg font-semibold">Catalog roluri și permisiuni</h2>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Sursa de adevăr servită din backend pentru label-uri și permisiuni.</p>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    @for (role of authz.roleCatalog(); track role.code) {
+                      <article class="rounded-2xl border border-surface-200 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                          <div>
+                            <div class="font-semibold">{{ role.label }}</div>
+                            <div class="text-xs text-muted-color">{{ role.code }}</div>
+                          </div>
+                          <p-tag [value]="role.permissions?.length?.toString() ?? '0'" severity="info" />
+                        </div>
+                        <div class="mt-3 grid gap-3">
+                          <div>
+                            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color">Poziții</div>
+                            <div class="flex flex-wrap gap-2">
+                              @for (position of role.positions ?? []; track position) {
+                                <p-tag [value]="position" severity="success" />
+                              } @empty {
+                                <span class="text-xs text-muted-color">Nu are poziții asociate.</span>
+                              }
+                            </div>
+                          </div>
+                          <div>
+                            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color">Permisiuni</div>
+                            <div class="flex flex-wrap gap-2">
+                              @for (permission of role.permissions ?? []; track permission) {
+                                <p-tag [value]="permission" severity="secondary" />
+                              } @empty {
+                                <span class="text-xs text-muted-color">Nu are permisiuni explicite.</span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    }
+                  </div>
+                </section>
+
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                  <div class="mb-3">
+                    <h2 class="m-0 text-lg font-semibold">Mapare poziții și roluri</h2>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Expusă direct din backend pentru a păstra paritatea dintre pozițiile operaționale și RBAC.</p>
+                  </div>
+                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    @for (mapping of authz.rolePositions(); track mapping.position_code + ':' + mapping.role_code) {
+                      <article class="rounded-2xl border border-surface-200 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                          <div>
+                            <div class="font-semibold">{{ mapping.position_name }}</div>
+                            <div class="text-xs text-muted-color">{{ mapping.position_code }}</div>
+                          </div>
+                          <p-tag [value]="mapping.role_label" severity="info" [pTooltip]="mapping.role_code" />
+                        </div>
+                      </article>
+                    } @empty {
+                      <div class="text-sm text-muted-color">Nu există mapări poziție-rol în catalogul backend.</div>
+                    }
+                  </div>
                 </section>
 
                 <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
@@ -352,7 +442,7 @@ interface AdminPositionRoleAssignmentFilterState {
                     <ng-template pTemplate="body" let-assignment>
                       <tr>
                         <td>
-                          <div class="font-medium">{{ assignment.role_code }}</div>
+                          <div class="font-medium">{{ assignment.role_label }}</div>
                           <div class="text-xs text-muted-color">{{ assignment.role_label }}</div>
                         </td>
                         <td>
@@ -431,7 +521,7 @@ interface AdminPositionRoleAssignmentFilterState {
                           <div class="text-xs text-muted-color">{{ assignment.position_name }}</div>
                         </td>
                         <td>
-                          <div class="font-medium">{{ assignment.role_code }}</div>
+                          <div class="font-medium">{{ assignment.role_label }}</div>
                           <div class="text-xs text-muted-color">{{ assignment.role_label }}</div>
                         </td>
                         <td class="text-center">
@@ -705,6 +795,7 @@ interface AdminPositionRoleAssignmentFilterState {
 export class AdminWorkspaceComponent {
   private readonly api = inject(AdminApiService);
   protected readonly authz = inject(AuthzService);
+  protected readonly featureAccessRules = FEATURE_ACCESS_RULES;
 
   protected readonly tabs: AdminTab[] = [
     { value: 'users', label: 'Utilizatori', icon: 'pi pi-users', status: 'wired', description: 'Gestionare utilizatori.' },

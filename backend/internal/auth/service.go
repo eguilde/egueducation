@@ -103,6 +103,78 @@ func (s *Service) UIConfig(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
+func (s *Service) RoleCatalog(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.db.Query(r.Context(), `
+		select
+			r.code,
+			r.label,
+			coalesce(array_remove(array_agg(distinct rp.permission_code order by rp.permission_code), null), '{}') as permissions,
+			coalesce(array_remove(array_agg(distinct pr.position_code order by pr.position_code), null), '{}') as positions
+		from app_roles r
+		left join app_role_permissions rp on rp.role_code = r.code
+		left join app_position_roles pr on pr.role_code = r.code
+		group by r.code, r.label
+		order by r.code
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_catalog_failed"})
+		return
+	}
+	defer rows.Close()
+
+	roles := make([]RoleCatalogItem, 0, 16)
+	for rows.Next() {
+		var role RoleCatalogItem
+		if err := rows.Scan(&role.Code, &role.Label, &role.Permissions, &role.Positions); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_catalog_failed"})
+			return
+		}
+		role.Description = role.Label
+		roles = append(roles, role)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_catalog_failed"})
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, RoleCatalogResponse{Roles: roles})
+}
+
+func (s *Service) RolePositions(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.db.Query(r.Context(), `
+		select
+			p.code,
+			p.name,
+			r.code,
+			r.label
+		from app_position_roles pr
+		join app_positions p on p.code = pr.position_code
+		join app_roles r on r.code = pr.role_code
+		order by p.code, r.code
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_positions_failed"})
+		return
+	}
+	defer rows.Close()
+
+	items := make([]RolePositionItem, 0, 16)
+	for rows.Next() {
+		var item RolePositionItem
+		if err := rows.Scan(&item.PositionCode, &item.PositionName, &item.RoleCode, &item.RoleLabel); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_positions_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "role_positions_failed"})
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, RolePositionResponse{Items: items})
+}
+
 func (s *Service) SessionContext(w http.ResponseWriter, r *http.Request) {
 	subject := s.currentSubject(r)
 	if subject == "" {

@@ -28,6 +28,29 @@ type SessionContext struct {
 	GDPRCapabilities []string        `json:"gdpr_capabilities"`
 }
 
+type RoleCatalogItem struct {
+	Code        string `json:"code"`
+	Label       string `json:"label"`
+	Description string `json:"description"`
+	Permissions []string `json:"permissions,omitempty"`
+	Positions   []string `json:"positions,omitempty"`
+}
+
+type RoleCatalogResponse struct {
+	Roles []RoleCatalogItem `json:"roles"`
+}
+
+type RolePositionItem struct {
+	PositionCode string `json:"position_code"`
+	PositionName string `json:"position_name"`
+	RoleCode     string `json:"role_code"`
+	RoleLabel    string `json:"role_label"`
+}
+
+type RolePositionResponse struct {
+	Items []RolePositionItem `json:"items"`
+}
+
 type RequestSMSOTPRequest struct {
 	PhoneNumber string `json:"phone_number"`
 	Identifier  string `json:"identifier,omitempty"`

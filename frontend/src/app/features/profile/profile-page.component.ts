@@ -10,6 +10,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 
 import { AuthzService } from '../../core/authz/authz.service';
 
@@ -55,6 +56,7 @@ interface FinishPasskeyRegistrationRequest {
     MessageModule,
     SelectModule,
     TagModule,
+    TooltipModule,
   ],
   template: `
     <section class="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -117,7 +119,7 @@ interface FinishPasskeyRegistrationRequest {
             <h3 class="m-0 mb-2 text-base font-bold">Roluri și context</h3>
             <div class="flex flex-wrap gap-2">
               @for (role of authz.user()?.roles ?? []; track role) {
-                <p-tag [value]="role" severity="secondary" />
+                <p-tag [value]="authz.roleLabel(role)" severity="secondary" [pTooltip]="role" />
               } @empty {
                 <span class="text-sm text-muted-color">Nu există roluri expuse în sesiune.</span>
               }

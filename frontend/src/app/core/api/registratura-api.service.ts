@@ -2,14 +2,21 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
 import {
+  CancelRegistraturaDocumentRequest,
+  BatchCreateRegistraturaDocumentRequest,
+  CreateRegistraturaRegistryRequest,
   CreateRegistraturaDocumentAttachmentRequest,
   CreateRegistraturaDocumentRequest,
   CreateRegistraturaDocumentVersionRequest,
+  ExportRegistraturaDocumentsRequest,
   PagedResponse,
   RegistraturaDocumentAttachment,
   RegistraturaDocument,
   RegistraturaDocumentFilters,
   RegistraturaDocumentVersion,
+  RegistraturaRegistry,
+  UpdateRegistraturaDocumentRequest,
+  UpdateRegistraturaRegistryRequest,
   TableQuery,
 } from './api.types';
 
@@ -43,6 +50,50 @@ export class RegistraturaApiService {
 
   createDocument(payload: CreateRegistraturaDocumentRequest) {
     return this.http.post<RegistraturaDocument>('/api/registratura/documents', payload);
+  }
+
+  updateDocument(documentId: string, payload: UpdateRegistraturaDocumentRequest) {
+    return this.http.patch<RegistraturaDocument>(`/api/registratura/documents/${documentId}`, payload);
+  }
+
+  cancelDocument(documentId: string, payload: CancelRegistraturaDocumentRequest) {
+    return this.http.post<RegistraturaDocument>(`/api/registratura/documents/${documentId}/cancel`, payload);
+  }
+
+  batchCreateDocuments(payload: BatchCreateRegistraturaDocumentRequest) {
+    return this.http.post<RegistraturaDocument[]>('/api/registratura/documents/batch', payload);
+  }
+
+  exportDocuments(payload: ExportRegistraturaDocumentsRequest) {
+    return this.http.post('/api/registratura/documents/export-pdf', payload, { responseType: 'blob' as const });
+  }
+
+  registries() {
+    return this.http.get<RegistraturaRegistry[]>('/api/registratura/registre');
+  }
+
+  registry(registryId: number) {
+    return this.http.get<RegistraturaRegistry>(`/api/registratura/registre/${registryId}`);
+  }
+
+  defaultRegistry() {
+    return this.http.get<RegistraturaRegistry>('/api/registratura/registre/default');
+  }
+
+  createRegistry(payload: CreateRegistraturaRegistryRequest) {
+    return this.http.post<RegistraturaRegistry>('/api/registratura/registre', payload);
+  }
+
+  updateRegistry(registryId: number, payload: UpdateRegistraturaRegistryRequest) {
+    return this.http.patch<RegistraturaRegistry>(`/api/registratura/registre/${registryId}`, payload);
+  }
+
+  deleteRegistry(registryId: number) {
+    return this.http.delete<void>(`/api/registratura/registre/${registryId}`);
+  }
+
+  setDefaultRegistry(registryId: number) {
+    return this.http.patch<RegistraturaRegistry>(`/api/registratura/registre/${registryId}/set-default`, {});
   }
 
   document(documentId: string) {

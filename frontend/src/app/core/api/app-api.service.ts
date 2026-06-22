@@ -10,6 +10,8 @@ import {
   AuthUiConfig,
   BeginPasskeyAuthenticationResponse,
   FinishPasskeyAuthenticationRequest,
+  RoleCatalogResponse,
+  RolePositionResponse,
   RequestSMSOTPRequest,
   SessionContext,
   SMSOTPRequestResponse,
@@ -31,6 +33,14 @@ export class AppApiService {
 
   authUiConfig() {
     return this.http.get<AuthUiConfig>('/api/auth/ui-config');
+  }
+
+  roleCatalog() {
+    return this.http.get<RoleCatalogResponse>('/api/auth/role-catalog');
+  }
+
+  rolePositions() {
+    return this.http.get<RolePositionResponse>('/api/auth/role-positions');
   }
 
   session() {

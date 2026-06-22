@@ -70,6 +70,27 @@ export class AppShellComponent {
       moduleMode: 'any',
     },
     {
+      icon: 'pi pi-book',
+      labelKey: 'nav.registre',
+      route: '/registre',
+      permission: 'registratura.read',
+      module: 'registratura',
+    },
+    {
+      icon: 'pi pi-sitemap',
+      labelKey: 'nav.workflow',
+      route: '/workflow',
+      permission: 'workflow.read',
+      module: 'workflow',
+    },
+    {
+      icon: 'pi pi-inbox',
+      labelKey: 'nav.earchiva',
+      route: '/earchiva',
+      permission: 'earchiva.read',
+      module: 'earchiva',
+    },
+    {
       icon: 'pi pi-graduation-cap',
       labelKey: 'nav.education',
       route: '/education',

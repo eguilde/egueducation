@@ -1,6 +1,9 @@
 import { Routes } from '@angular/router';
 
 import { permissionGuard } from './core/authz/authz.guard';
+import { FEATURE_ACCESS_RULES } from './core/authz/role-catalog';
+
+const featureAccess = (feature: string) => FEATURE_ACCESS_RULES.find((rule) => rule.feature === feature);
 
 export const routes: Routes = [
   {
@@ -78,15 +81,99 @@ export const routes: Routes = [
         path: 'documente',
         canActivate: [permissionGuard],
         data: {
-          roles: ['admin', 'super_admin', 'director', 'secretar', 'registrator'],
+          roles: featureAccess('documente')?.roles ?? [],
           rolesMode: 'any',
-          permissions: ['registratura.read', 'workflow.read', 'earchiva.read'],
+          permissions: featureAccess('documente')?.permissions ?? [],
           permissionsMode: 'any',
           modules: ['registratura', 'workflow', 'earchiva'],
           modulesMode: 'any',
         },
         loadComponent: () =>
           import('./features/prime-workspaces/documente-workspace.component').then((m) => m.DocumenteWorkspaceComponent),
+      },
+      {
+        path: 'documente/new',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('documente_create_edit')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('documente_create_edit')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['registratura'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/document-form-workspace.component').then((m) => m.DocumentFormWorkspaceComponent),
+      },
+      {
+        path: 'documente/:id/edit',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('documente_create_edit')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('documente_create_edit')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['registratura'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/document-form-workspace.component').then((m) => m.DocumentFormWorkspaceComponent),
+      },
+      {
+        path: 'documente/:id',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('documente')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('documente')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['registratura'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/document-detail-workspace.component').then((m) => m.DocumentDetailWorkspaceComponent),
+      },
+      {
+        path: 'registre',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('registre')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('registre')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['registratura'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/registre-workspace.component').then((m) => m.RegistreWorkspaceComponent),
+      },
+      {
+        path: 'workflow',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('workflow')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('workflow')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['workflow'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/workflow-workspace.component').then((m) => m.WorkflowWorkspaceComponent),
+      },
+      {
+        path: 'earchiva',
+        canActivate: [permissionGuard],
+        data: {
+          roles: featureAccess('earchiva')?.roles ?? [],
+          rolesMode: 'any',
+          permissions: featureAccess('earchiva')?.permissions ?? [],
+          permissionsMode: 'any',
+          modules: ['earchiva'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/earchiva-workspace.component').then((m) => m.EarchivaWorkspaceComponent),
       },
       {
         path: 'profile',
@@ -97,7 +184,7 @@ export const routes: Routes = [
         path: 'education',
         canActivate: [permissionGuard],
         data: {
-          roles: ['admin', 'super_admin', 'director', 'profesor', 'inspector'],
+          roles: featureAccess('education')?.roles ?? [],
           rolesMode: 'any',
           module: 'education',
         },
@@ -108,9 +195,9 @@ export const routes: Routes = [
         path: 'admin',
         canActivate: [permissionGuard],
         data: {
-          roles: ['admin', 'super_admin', 'director'],
+          roles: featureAccess('admin')?.roles ?? [],
           rolesMode: 'any',
-          permission: 'admin.read',
+          permission: featureAccess('admin')?.permissions?.[0] ?? 'admin.read',
           module: 'admin',
         },
         loadComponent: () =>
@@ -120,7 +207,7 @@ export const routes: Routes = [
         path: 'gdpr',
         canActivate: [permissionGuard],
         data: {
-          roles: ['admin', 'super_admin', 'director', 'gdpr_officer'],
+          roles: featureAccess('gdpr')?.roles ?? [],
           rolesMode: 'any',
           module: 'gdpr',
         },
@@ -128,8 +215,6 @@ export const routes: Routes = [
           import('./features/prime-workspaces/gdpr-workspace.component').then((m) => m.GdprWorkspaceComponent),
       },
       { path: 'registratura', redirectTo: 'documente', pathMatch: 'full' },
-      { path: 'workflow', redirectTo: 'documente', pathMatch: 'full' },
-      { path: 'earchiva', redirectTo: 'documente', pathMatch: 'full' },
       { path: '', redirectTo: 'documente', pathMatch: 'full' },
     ],
   },

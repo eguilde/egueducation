@@ -40,6 +40,29 @@ export interface AuthUiConfig {
   gdpr_features_enabled: boolean;
 }
 
+export interface RoleCatalogItem {
+  code: string;
+  label: string;
+  description: string;
+  permissions?: string[];
+  positions?: string[];
+}
+
+export interface RoleCatalogResponse {
+  roles: RoleCatalogItem[];
+}
+
+export interface RolePositionItem {
+  position_code: string;
+  position_name: string;
+  role_code: string;
+  role_label: string;
+}
+
+export interface RolePositionResponse {
+  items: RolePositionItem[];
+}
+
 export interface RequestSMSOTPRequest {
   phone_number: string;
   identifier?: string;
@@ -521,6 +544,7 @@ export interface UpdateAdminGdprSettingRequest {
 
 export interface RegistraturaDocument {
   id: string;
+  registru_id?: number | null;
   registry_number: string;
   subject: string;
   document_type: string;
@@ -533,6 +557,42 @@ export interface RegistraturaDocument {
   summary: string;
   registered_at: string;
   due_date?: string | null;
+}
+
+export interface RegistraturaRegistry {
+  id: number;
+  nume: string;
+  prefix_nr: string;
+  nr_inceput: number;
+  nr_curent: string;
+  nr_urmator: string;
+  data_resetare?: string | null;
+  tip_registru: string;
+  isDefault: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRegistraturaRegistryRequest {
+  nume: string;
+  prefix_nr: string;
+  nr_inceput: number;
+  nr_curent?: string;
+  nr_urmator?: string;
+  data_resetare?: string | null;
+  tip_registru: string;
+  isDefault: boolean;
+}
+
+export interface UpdateRegistraturaRegistryRequest {
+  nume?: string;
+  prefix_nr?: string;
+  nr_inceput?: number;
+  nr_curent?: string;
+  nr_urmator?: string;
+  data_resetare?: string | null;
+  tip_registru?: string;
+  isDefault?: boolean;
 }
 
 export interface RegistraturaDocumentVersion {
@@ -575,6 +635,7 @@ export interface RegistraturaDocumentFilters {
 }
 
 export interface CreateRegistraturaDocumentRequest {
+  registru_id?: number | null;
   subject: string;
   document_type: string;
   direction: string;
@@ -584,6 +645,44 @@ export interface CreateRegistraturaDocumentRequest {
   confidentiality: string;
   summary: string;
   due_date?: string | null;
+}
+
+export interface UpdateRegistraturaDocumentRequest {
+  registru_id?: number | null;
+  subject: string;
+  document_type: string;
+  direction: string;
+  status: string;
+  correspondent: string;
+  assigned_to: string;
+  confidentiality: string;
+  summary: string;
+  due_date?: string | null;
+  change_notes?: string;
+}
+
+export interface CancelRegistraturaDocumentRequest {
+  reason: string;
+}
+
+export interface BatchCreateRegistraturaDocumentRequest {
+  registru_id: number;
+  count: number;
+  subject: string;
+  document_type: string;
+  direction: string;
+  status: string;
+  correspondent: string;
+  assigned_to: string;
+  confidentiality: string;
+  summary: string;
+  due_date?: string | null;
+}
+
+export interface ExportRegistraturaDocumentsRequest {
+  registru_id?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
 }
 
 export interface CreateRegistraturaDocumentVersionRequest {
