@@ -137,12 +137,12 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-2:#fb7185;--primary-contrast:#fff;--shadow:0 32px 80px rgba(15,23,42,.16);--shadow-2:0 20px 45px rgba(225,29,72,.18)}
-    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--soft:#1e293b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--muted-2:#94a3b8;--primary:#f43f5e;--primary-2:#fb7185;--primary-contrast:#fff;--shadow:0 32px 80px rgba(0,0,0,.40);--shadow-2:0 20px 45px rgba(244,63,94,.24)}
-    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.18),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 46%,#ffe4ec);color:var(--text);min-height:100%;overflow:hidden}
-    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,620px)}
-    .visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.82) 44%,rgba(8,47,73,.56));color:#fff;overflow:hidden}
-    .visual::before,.visual::after{content:"";position:absolute;border-radius:999px;filter:blur(6px);pointer-events:none}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
+    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--soft:#1e293b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--muted-2:#94a3b8;--primary:#f43f5e;--primary-contrast:#fff;--shadow:0 28px 72px rgba(0,0,0,.38);--shadow-2:0 18px 36px rgba(244,63,94,.18)}
+    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%;overflow:hidden}
+    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,680px)}
+    .visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.84) 42%,rgba(8,47,73,.56));color:#fff;overflow:hidden}
+    .visual::before,.visual::after{content:'';position:absolute;border-radius:999px;pointer-events:none}
     .visual::before{width:24rem;height:24rem;right:-6rem;top:-5rem;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 68%)}
     .visual::after{width:18rem;height:18rem;left:-4rem;bottom:-4rem;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%)}
     .visual-inner{position:relative;z-index:1;max-width:560px}
@@ -152,10 +152,10 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .feature-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
     .feature{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);font-size:13px;font-weight:700;color:#fff}
     .panel{display:flex;align-items:center;justify-content:center;padding:clamp(18px,3vw,48px);overflow-y:auto}
-    .card{width:100%;max-width:680px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
+    .card{width:100%;max-width:720px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
     .card-shell{display:grid;grid-template-columns:1.02fr .98fr;gap:18px;align-items:start}
     .card-hero{padding:22px;border-radius:22px;background:radial-gradient(circle at top right,rgba(225,29,72,.12),transparent 45%),linear-gradient(180deg,var(--card),var(--soft));border:1px solid var(--border)}
-    .card-header{display:flex;flex-direction:column;gap:10px}
+    .card-header{display:grid;gap:10px}
     .brand-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
     .brand-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
     .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.16);font-size:12px;font-weight:700;color:var(--primary)}
@@ -167,12 +167,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .summary-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--primary);flex:0 0 auto}
     .summary-item strong{display:block;font-size:13px;margin-bottom:3px}
     .summary-item span{display:block;font-size:12px;color:var(--muted)}
-    .summary-scopes{display:grid;gap:8px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
-    .summary-scope{display:flex;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid var(--border)}
-    html.dark .summary-scope,html.app-dark .summary-scope{background:rgba(15,23,42,.58)}
-    .summary-scope strong{display:block;font-size:13px;line-height:1.35}
-    .summary-scope span{display:block;font-size:12px;color:var(--muted);line-height:1.5}
-    .summary-scope code{display:block;margin-top:2px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);background:transparent}
+    .summary-item small{display:block;font-size:12px;color:var(--muted)}
     .card-form{padding:22px;border-radius:22px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow-2)}
     .section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
     .grid{display:grid;gap:12px}
@@ -195,7 +190,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--primary),#be123c);color:var(--primary-contrast);font:inherit;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 16px 26px rgba(225,29,72,.22);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
     .btn:hover{transform:translateY(-1px);filter:saturate(1.02)}
     .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary);box-shadow:none}
-    .btn.ghost{background:transparent;border:1px dashed var(--border);color:var(--muted)}
+    .btn:disabled{cursor:not-allowed;opacity:.55;transform:none;box-shadow:none}
     .row{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
     .helper-card{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
     .error{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;line-height:1.6}
@@ -211,9 +206,11 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .otp-box.filled{border-color:rgba(225,29,72,.35)}
     .footer-note{margin-top:14px;padding:12px 14px;border-radius:16px;background:rgba(2,6,23,.03);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
     .footer-note strong{color:var(--text)}
+    .method-state{display:none}
+    .method-state.is-active{display:grid}
     @media(max-width:1120px){.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}
     @media(max-width:860px){body{overflow-y:auto}.shell{display:block}.visual{display:none}.card-shell{grid-template-columns:1fr}.card{border-radius:24px}.card-form,.card-hero{padding:18px}}
-    @media(max-width:480px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.method{padding:13px}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{border-radius:20px}.otp-grid{gap:6px}.otp-box{padding:12px 8px;font-size:16px}}
+    @media(max-width:520px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.method{padding:13px}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{border-radius:20px}.otp-grid{gap:6px}.otp-box{padding:12px 8px;font-size:16px}}
   </style>
 </head>
 <body>
@@ -243,86 +240,30 @@ const oidcLoginHTML = `<!DOCTYPE html>
               <h1 class="title">{{.CustomerName}}</h1>
               <p class="subtitle">Alege metoda de autentificare și continuă în aplicație fără parolă.</p>
             </div>
-
             <div class="summary" aria-label="Avantaje autentificare">
-              <div class="summary-item">
-                <span class="summary-icon">1</span>
-                <div>
-                  <strong>SMS OTP și passkey</strong>
-                  <span>Metode moderne, simple și fără parolă.</span>
-                </div>
-              </div>
-              <div class="summary-item">
-                <span class="summary-icon">2</span>
-                <div>
-                  <strong>Consimțământ în OIDC</strong>
-                  <span>Fluxul de aprobare rămâne în providerul backend.</span>
-                </div>
-              </div>
-              <div class="summary-item">
-                <span class="summary-icon">3</span>
-                <div>
-                  <strong>Întoarcere sigură</strong>
-                  <span>Revii la exact cererea inițială după autentificare.</span>
-                </div>
-              </div>
+              <div class="summary-item"><span class="summary-icon">1</span><div><strong>SMS OTP și passkey</strong><span>Metode moderne, simple și fără parolă.</span></div></div>
+              <div class="summary-item"><span class="summary-icon">2</span><div><strong>Consimțământ în OIDC</strong><span>Fluxul de aprobare rămâne în providerul backend.</span></div></div>
+              <div class="summary-item"><span class="summary-icon">3</span><div><strong>Întoarcere sigură</strong><span>Revii la exact cererea inițială după autentificare.</span></div></div>
+              <div class="summary-item"><span class="summary-icon">4</span><div><strong>Canale disponibile</strong><span>SMS: {{if .SMSAvailable}}activ{{else}}indisponibil{{end}} · Passkey: {{if .PasskeyAvailable}}activ{{else}}indisponibil{{end}} · Wallet: {{if .WalletAvailable}}activ{{else}}indisponibil{{end}}</span></div></div>
             </div>
           </aside>
-
           <section class="card-form">
             <div class="section-title">Metode de acces</div>
             <div id="error" class="error" hidden role="alert" aria-live="polite"></div>
             <div id="success" class="success" hidden role="status" aria-live="polite"></div>
-
             <div class="grid" id="methodGrid">
-              <button class="method active" type="button" onclick="showSms(this)">
-                <span class="method-icon">✉</span>
-                <span class="method-body">
-                  <span class="method-kicker">Recomandat</span>
-                  <strong>SMS OTP</strong>
-                  <span>Trimite un cod pe telefonul verificat și finalizează autentificarea în câteva secunde.</span>
-                </span>
-              </button>
-              <button class="method" type="button" onclick="loginPasskey(this)">
-                <span class="method-icon">◈</span>
-                <span class="method-body">
-                  <span class="method-kicker">Fără cod</span>
-                  <strong>Passkey</strong>
-                  <span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă și sigură.</span>
-                </span>
-              </button>
-              <button class="method" type="button" onclick="showWalletMessage(this)">
-                <span class="method-icon">⌁</span>
-                <span class="method-body">
-                  <span class="method-kicker">Identitate digitală</span>
-                  <strong>EUDI Wallet</strong>
-                  <span>Fluxul de wallet digital este disponibil când providerul este configurat pentru acest canal.</span>
-                </span>
-              </button>
+              <button class="method active" type="button" onclick="showSms(this)" {{if not .SMSAvailable}}disabled{{end}}><span class="method-icon">✉</span><span class="method-body"><span class="method-kicker">Recomandat</span><strong>SMS OTP</strong><span>Introdu numele de utilizator, apoi confirmă codul primit prin SMS.</span></span></button>
+              <button class="method" type="button" onclick="loginPasskey(this)" {{if not .PasskeyAvailable}}disabled{{end}}><span class="method-icon">◈</span><span class="method-body"><span class="method-kicker">Fără cod</span><strong>Passkey</strong><span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă și sigură.</span></span></button>
+              <button class="method" type="button" onclick="showWalletMessage(this)" {{if not .WalletAvailable}}disabled{{end}}><span class="method-icon">⌁</span><span class="method-body"><span class="method-kicker">Identitate digitală</span><strong>EUDI Wallet</strong><span>{{if .WalletAvailable}}Continuă cu wallet-ul digital compatibil eIDAS.{{else}}Fluxul de wallet digital nu este încă activ în această instanță.{{end}}</span></span></button>
             </div>
-
             <div class="step">
               <form id="smsForm" class="grid" onsubmit="return requestSms(event)" hidden>
-                <div class="step-header">
-                  <strong>Autentificare SMS</strong>
-                  <span>Pasul 1 din 2</span>
-                </div>
-                <div class="field">
-                  <label for="identifier">Nume de utilizator</label>
-                  <input id="identifier" name="identifier" autocomplete="username" inputmode="text" placeholder="thomasgalambos" />
-                  <span class="field-help">Introdu numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span>
-                </div>
-                <div class="toolbar">
-                  <button class="btn secondary" type="button" onclick="resetToMethods()">Alege altă metodă</button>
-                  <button class="btn" type="submit">Trimite codul OTP</button>
-                </div>
+                <div class="step-header"><strong>Autentificare SMS</strong><span>Pasul 1 din 2</span></div>
+                <div class="field"><label for="identifier">Nume de utilizator</label><input id="identifier" name="identifier" autocomplete="username" inputmode="text" placeholder="thomasgalambos" /><span class="field-help">Introdu numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span></div>
+                <div class="toolbar"><button class="btn secondary" type="button" onclick="resetToMethods()">Alege altă metodă</button><button class="btn" type="submit">Trimite codul OTP</button></div>
               </form>
-
               <form id="codeForm" class="grid otp" onsubmit="return verifySms(event)" hidden>
-                <div class="step-header">
-                  <strong>Confirmă codul OTP</strong>
-                  <span>Pasul 2 din 2</span>
-                </div>
+                <div class="step-header"><strong>Confirmă codul OTP</strong><span>Pasul 2 din 2</span></div>
                 <div class="helper-card" id="smsNotice">Am trimis codul SMS către numărul verificat din cont.</div>
                 <input type="hidden" id="code" name="code" />
                 <div class="otp-grid" aria-label="Cod OTP">
@@ -334,16 +275,10 @@ const oidcLoginHTML = `<!DOCTYPE html>
                   <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
                 </div>
                 <span class="field-help">Introdu cele 6 cifre primite prin SMS.</span>
-                <div class="row">
-                  <button class="btn secondary" type="button" onclick="hideCode()">Schimbă identificatorul</button>
-                  <button class="btn" type="submit" id="verifyBtn" disabled>Verifică și continuă</button>
-                </div>
+                <div class="row"><button class="btn secondary" type="button" onclick="hideCode()">Schimbă identificatorul</button><button class="btn" type="submit" id="verifyBtn" disabled>Verifică și continuă</button></div>
               </form>
             </div>
-
-            <div class="footer-note">
-              {{if .ReturnURL}}După autentificare vei reveni automat la cererea OIDC inițială.{{else}}Sesiunea este gestionată exclusiv de providerul OIDC.{{end}}
-            </div>
+            <div class="footer-note">{{if .ReturnURL}}După autentificare vei reveni automat la cererea OIDC inițială.{{else}}Sesiunea este gestionată exclusiv de providerul OIDC.{{end}}</div>
           </section>
         </div>
       </div>
@@ -362,214 +297,25 @@ const oidcLoginHTML = `<!DOCTYPE html>
     const verifyBtn = document.getElementById('verifyBtn');
     const otpBoxes = Array.from(document.querySelectorAll('.otp-box'));
     let identifierValue = '';
-    function showError(message) {
-      errorBox.hidden = !message;
-      errorBox.textContent = message || '';
-      if (message) {
-        successBox.hidden = true;
-        successBox.textContent = '';
-      }
-    }
-    function showSuccess(message) {
-      successBox.hidden = !message;
-      successBox.textContent = message || '';
-      if (message) {
-        errorBox.hidden = true;
-        errorBox.textContent = '';
-      }
-    }
-    function setActiveMethod(button) {
-      for (const item of methodGrid.querySelectorAll('.method')) {
-        item.classList.remove('active');
-      }
-      if (button) {
-        button.classList.add('active');
-      }
-    }
-    function showSms(button) {
-      setActiveMethod(button);
-      showError('');
-      showSuccess('');
-      smsForm.hidden = false;
-      codeForm.hidden = true;
-      identifierInput.focus();
-    }
-    function resetToMethods() {
-      smsForm.hidden = true;
-      codeForm.hidden = true;
-      showError('');
-      showSuccess('');
-      const firstMethod = methodGrid.querySelector('.method');
-      if (firstMethod) {
-        setActiveMethod(firstMethod);
-      }
-    }
-    function hideSms() { resetToMethods(); }
-    function hideCode() {
-      resetToMethods();
-      identifierValue = '';
-      codeInput.value = '';
-      otpBoxes.forEach((box) => {
-        box.value = '';
-        box.classList.remove('filled');
-      });
-      verifyBtn.disabled = true;
-    }
-    function showWalletMessage(button) {
-      setActiveMethod(button);
-      smsForm.hidden = true;
-      codeForm.hidden = true;
-      showSuccess('EUDI wallet nu este încă activat pentru acest tenant.');
-      showError('');
-    }
-    function syncOtp() {
-      const code = otpBoxes.map((box) => box.value.replace(/\D/g, '').slice(0, 1)).join('');
-      codeInput.value = code;
-      verifyBtn.disabled = code.length !== 6;
-      otpBoxes.forEach((box) => box.classList.toggle('filled', box.value !== ''));
-    }
-    async function requestSms(event) {
-      event.preventDefault();
-      showError('');
-      showSuccess('');
-      identifierValue = document.getElementById('identifier').value.trim();
-      if (!identifierValue) { showError('Introdu numele de utilizator.'); return false; }
-      const response = await fetch('/api/auth/request-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifierValue })
-      });
-      if (!response.ok) {
-        showError('Nu am putut trimite codul. Încearcă din nou.');
-        return false;
-      }
-      smsNotice.textContent = 'Am trimis codul SMS către contul asociat identificatorului introdus.';
-      smsForm.hidden = true;
-      codeForm.hidden = false;
-      otpBoxes[0].focus();
-      showSuccess('Codul a fost trimis. Verifică mesajul SMS și continuă.');
-      return false;
-    }
-    async function verifySms(event) {
-      event.preventDefault();
-      showError('');
-      showSuccess('');
-      const code = document.getElementById('code').value.trim();
-      if (!identifierValue || !code) { showError('Completează identificatorul și codul.'); return false; }
-      const response = await fetch('/api/auth/verify-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifierValue, code: code })
-      });
-      if (!response.ok) {
-        showError('Cod invalid sau expirat.');
-        return false;
-      }
-      showSuccess('Autentificare reușită. Se redirecționează către aplicație...');
-      window.location.assign(returnUrl);
-      return false;
-    }
-    async function loginPasskey(button) {
-      setActiveMethod(button);
-      showError('');
-      showSuccess('');
-      if (!navigator.credentials || !window.PublicKeyCredential) {
-        showError('Browserul nu suportă passkey.');
-        return;
-      }
-      const response = await fetch('/api/passkeys/login-options', { method: 'POST' });
-      if (!response.ok) { showError('Backendul nu a putut genera challenge-ul passkey.'); return; }
-      const payload = await response.json();
-      const opts = payload.options;
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge: b64urlToBuf(opts.challenge),
-          rpId: opts.rp.id,
-          timeout: opts.timeout,
-          userVerification: opts.userVerification,
-          allowCredentials: (opts.allowCredentials || []).map((entry) => ({ type: entry.type, id: b64urlToBuf(entry.id) })),
-        }
-      });
-      if (!(credential instanceof PublicKeyCredential)) { showError('Autentificarea passkey a fost anulată.'); return; }
-      const assertion = credential.response;
-      const finish = await fetch('/api/passkeys/login-finish', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challenge: opts.challenge,
-          credential_id: credential.id,
-          response: {
-            clientDataJSON: bufToB64url(assertion.clientDataJSON),
-            authenticatorData: bufToB64url(assertion.authenticatorData),
-            signature: bufToB64url(assertion.signature),
-            userHandle: assertion.userHandle ? bufToB64url(assertion.userHandle) : '',
-            type: credential.type,
-          }
-        })
-      });
-      if (!finish.ok) { showError('Passkey respins sau invalid.'); return; }
-      showSuccess('Passkey verificat. Se redirecționează către aplicație...');
-      window.location.assign(returnUrl);
-    }
-    function b64urlToBuf(value) {
-      const base64 = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return bytes.buffer;
-    }
-    function bufToB64url(buffer) {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (const byte of bytes) binary += String.fromCharCode(byte);
-      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-    }
-    otpBoxes.forEach((box, index) => {
-      box.addEventListener('input', (event) => {
-        const value = event.target.value.replace(/\D/g, '').slice(0, 1);
-        event.target.value = value;
-        if (value && index < otpBoxes.length - 1) {
-          otpBoxes[index + 1].focus();
-        }
-        syncOtp();
-      });
-      box.addEventListener('keydown', (event) => {
-        if (event.key === 'Backspace' && !box.value && index > 0) {
-          otpBoxes[index - 1].value = '';
-          otpBoxes[index - 1].focus();
-          syncOtp();
-        }
-        if (event.key === 'ArrowLeft' && index > 0) {
-          otpBoxes[index - 1].focus();
-        }
-        if (event.key === 'ArrowRight' && index < otpBoxes.length - 1) {
-          otpBoxes[index + 1].focus();
-        }
-        if (event.key === 'Enter' && codeInput.value.length === 6) {
-          codeForm.requestSubmit();
-        }
-      });
-      box.addEventListener('paste', (event) => {
-        event.preventDefault();
-        const paste = (event.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-        if (!paste) {
-          return;
-        }
-        paste.split('').forEach((digit, digitIndex) => {
-          if (otpBoxes[digitIndex]) {
-            otpBoxes[digitIndex].value = digit;
-          }
-        });
-        otpBoxes[Math.min(paste.length, otpBoxes.length - 1)].focus();
-        syncOtp();
-      });
-    });
+    function showError(message){errorBox.hidden=!message;errorBox.textContent=message||'';if(message){successBox.hidden=true;successBox.textContent='';}}
+    function showSuccess(message){successBox.hidden=!message;successBox.textContent=message||'';if(message){errorBox.hidden=true;errorBox.textContent='';}}
+    function setActiveMethod(button){for(const item of methodGrid.querySelectorAll('.method')){item.classList.remove('active');}if(button){button.classList.add('active');}}
+    function showSms(button){setActiveMethod(button);showError('');showSuccess('');smsForm.hidden=false;codeForm.hidden=true;identifierInput.focus();}
+    function resetToMethods(){smsForm.hidden=true;codeForm.hidden=true;showError('');showSuccess('');const firstMethod=methodGrid.querySelector('.method');if(firstMethod){setActiveMethod(firstMethod);}}
+    function hideCode(){resetToMethods();identifierValue='';codeInput.value='';otpBoxes.forEach((box)=>{box.value='';box.classList.remove('filled');});verifyBtn.disabled=true;}
+    function showWalletMessage(button){setActiveMethod(button);smsForm.hidden=true;codeForm.hidden=true;showSuccess('EUDI wallet nu este încă activat pentru acest tenant.');showError('');}
+    function syncOtp(){const code=otpBoxes.map((box)=>box.value.replace(/\D/g,'').slice(0,1)).join('');codeInput.value=code;verifyBtn.disabled=code.length!==6;otpBoxes.forEach((box)=>box.classList.toggle('filled',box.value!=='');)}
+    async function requestSms(event){event.preventDefault();showError('');showSuccess('');identifierValue=document.getElementById('identifier').value.trim();if(!identifierValue){showError('Introdu numele de utilizator.');return false;}if(!{{if .SMSAvailable}}true{{else}}false{{end}}){showError('Autentificarea SMS nu este activată în această instanță.');return false;}const response=await fetch('/api/auth/request-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifierValue})});if(!response.ok){showError('Nu am putut trimite codul. Încearcă din nou.');return false;}smsNotice.textContent='Am trimis codul SMS către contul asociat identificatorului introdus.';smsForm.hidden=true;codeForm.hidden=false;otpBoxes[0].focus();showSuccess('Codul a fost trimis. Verifică mesajul SMS și continuă.');return false;}
+    async function verifySms(event){event.preventDefault();showError('');showSuccess('');const code=document.getElementById('code').value.trim();if(!identifierValue||!code){showError('Completează identificatorul și codul.');return false;}const response=await fetch('/api/auth/verify-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifierValue,code:code})});if(!response.ok){showError('Cod invalid sau expirat.');return false;}showSuccess('Autentificare reușită. Se redirecționează către aplicație...');window.location.assign(returnUrl);return false;}
+    async function loginPasskey(button){setActiveMethod(button);showError('');showSuccess('');if(!{{if .PasskeyAvailable}}true{{else}}false{{end}}){showError('Autentificarea cu passkey nu este activată în această instanță.');return;}if(!navigator.credentials||!window.PublicKeyCredential){showError('Browserul nu suportă passkey.');return;}const response=await fetch('/api/passkeys/login-options',{method:'POST'});if(!response.ok){showError('Backendul nu a putut genera challenge-ul passkey.');return;}const payload=await response.json();const opts=payload.options;const credential=await navigator.credentials.get({publicKey:{challenge:b64urlToBuf(opts.challenge),rpId:opts.rp.id,timeout:opts.timeout,userVerification:opts.userVerification,allowCredentials:(opts.allowCredentials||[]).map((entry)=>({type:entry.type,id:b64urlToBuf(entry.id)}))}});if(!(credential instanceof PublicKeyCredential)){showError('Autentificarea passkey a fost anulată.');return;}const assertion=credential.response;const finish=await fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challenge:opts.challenge,credential_id:credential.id,response:{clientDataJSON:bufToB64url(assertion.clientDataJSON),authenticatorData:bufToB64url(assertion.authenticatorData),signature:bufToB64url(assertion.signature),userHandle:assertion.userHandle?bufToB64url(assertion.userHandle):'',type:credential.type}})});if(!finish.ok){showError('Passkey respins sau invalid.');return;}showSuccess('Passkey verificat. Se redirecționează către aplicație...');window.location.assign(returnUrl);}
+    function b64urlToBuf(value){const base64=value.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(value.length/4)*4,'=');const binary=atob(base64);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return bytes.buffer;}
+    function bufToB64url(buffer){const bytes=new Uint8Array(buffer);let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
+    otpBoxes.forEach((box,index)=>{box.addEventListener('input',(event)=>{const value=event.target.value.replace(/\D/g,'').slice(0,1);event.target.value=value;if(value&&index<otpBoxes.length-1){otpBoxes[index+1].focus();}syncOtp();});box.addEventListener('keydown',(event)=>{if(event.key==='Backspace'&&!box.value&&index>0){otpBoxes[index-1].value='';otpBoxes[index-1].focus();syncOtp();}if(event.key==='ArrowLeft'&&index>0){otpBoxes[index-1].focus();}if(event.key==='ArrowRight'&&index<otpBoxes.length-1){otpBoxes[index+1].focus();}if(event.key==='Enter'&&codeInput.value.length===6){codeForm.requestSubmit();}});box.addEventListener('paste',(event)=>{event.preventDefault();const paste=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);if(!paste){return;}paste.split('').forEach((digit,digitIndex)=>{if(otpBoxes[digitIndex]){otpBoxes[digitIndex].value=digit;}});otpBoxes[Math.min(paste.length,otpBoxes.length-1)].focus();syncOtp();});});
     syncOtp();
     showSms(methodGrid.querySelector('.method'));
   </script>
 </body>
 </html>`
-
 const oidcConsentHTML = `<!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -746,59 +492,40 @@ const oidcLogoutHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.CustomerName}} - Deconectare</title>
+  <title>{{.CustomerName}} — Deconectare</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
-    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--primary:#f43f5e;--shadow:0 28px 72px rgba(0,0,0,.38);--shadow-2:0 18px 36px rgba(244,63,94,.18)}
-    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:560px;padding:24px;border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow);text-align:center}
-    .badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--primary);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-    .icon{width:72px;height:72px;border-radius:50%;margin:16px auto;background:color-mix(in srgb,var(--primary) 12%,var(--card));display:flex;align-items:center;justify-content:center;color:var(--primary);box-shadow:var(--shadow-2)}
-    h1{font-size:24px;margin:10px 0 8px;letter-spacing:-.03em}
-    p{font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:20px}
-    .summary{display:grid;gap:10px;text-align:left;margin:18px 0 22px}
-    .summary-item{display:flex;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.58)}
-    html.dark .summary-item,html.app-dark .summary-item{background:rgba(15,23,42,.58)}
-    .summary-step{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;flex:0 0 auto}
-    .summary-item strong{display:block;font-size:13px;margin-bottom:2px}
-    .summary-item small{display:block;font-size:12px;color:var(--muted);line-height:1.5}
+    :root{color-scheme:light;--oidc-primary-50:#fff1f2;--oidc-primary-100:#ffe4e6;--oidc-primary-500:#f43f5e;--oidc-primary-600:#e11d48;--oidc-surface-0:#fff;--oidc-surface-50:#f8fafc;--oidc-surface-200:#e2e8f0;--oidc-surface-300:#cbd5e1;--oidc-surface-500:#64748b;--oidc-surface-700:#334155;--oidc-surface-800:#1e293b;--oidc-surface-900:#0f172a;--oidc-surface-950:#020617;--oidc-bg:var(--oidc-surface-50);--oidc-card:var(--oidc-surface-0);--oidc-card-soft:var(--oidc-surface-50);--oidc-border:var(--oidc-surface-200);--oidc-text:var(--oidc-surface-900);--oidc-muted:var(--oidc-surface-500);--oidc-soft:color-mix(in srgb,var(--oidc-primary-500) 12%,var(--oidc-surface-0));--oidc-shadow:0 24px 60px rgba(15,23,42,.14)}
+    html.dark,html.app-dark{color-scheme:dark;--oidc-bg:var(--oidc-surface-950);--oidc-card:var(--oidc-surface-900);--oidc-card-soft:var(--oidc-surface-800);--oidc-border:var(--oidc-surface-700);--oidc-text:var(--oidc-surface-50);--oidc-muted:var(--oidc-surface-300);--oidc-soft:color-mix(in srgb,var(--oidc-primary-500) 18%,var(--oidc-surface-900));--oidc-shadow:0 24px 60px rgba(0,0,0,.35)}
+    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--oidc-bg);color:var(--oidc-text);display:flex;align-items:center;justify-content:center;min-height:100%;padding:20px}
+    .card{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--oidc-border);border-radius:18px;background:var(--oidc-card);box-shadow:var(--oidc-shadow);text-align:center}
+    .icon{width:64px;height:64px;border-radius:50%;background:var(--oidc-soft);color:var(--oidc-primary-600);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+    h1{font-size:20px;font-weight:700;color:var(--oidc-text);margin-bottom:8px}
+    p{font-size:14px;line-height:1.6;color:var(--oidc-muted);margin-bottom:20px}
     .actions{display:grid;gap:10px}
-    .btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px 16px;border:none;border-radius:14px;background:var(--primary);color:#fff;font:inherit;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 16px 26px rgba(225,29,72,.22);transition:transform .18s ease,filter .18s ease}
-    .btn:hover{transform:translateY(-1px);filter:saturate(1.02)}
-    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary);box-shadow:none}
-    .footer{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.6}
-    @media(max-width:520px){body{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}}
+    .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--oidc-primary-500);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
+    .btn:hover{background:var(--oidc-primary-600);box-shadow:0 10px 20px rgba(15,23,42,.16)}
+    .btn-secondary{background:transparent;border:1px solid var(--oidc-border);color:var(--oidc-primary-600)}
+    .btn-secondary:hover{background:var(--oidc-soft);box-shadow:none}
+    @media(prefers-color-scheme:dark){
+      :root:not(.light){color-scheme:dark;--oidc-bg:var(--oidc-surface-950);--oidc-card:var(--oidc-surface-900);--oidc-card-soft:var(--oidc-surface-800);--oidc-border:var(--oidc-surface-700);--oidc-text:var(--oidc-surface-50);--oidc-muted:var(--oidc-surface-300);--oidc-soft:color-mix(in srgb,var(--oidc-primary-500) 18%,var(--oidc-surface-900));--oidc-shadow:0 24px 60px rgba(0,0,0,.35)}
+    }
   </style>
+  <script>
+    (function(){function cookie(n){return document.cookie.split(';').map(function(c){return c.trim();}).filter(function(c){return c.indexOf(n+'=')===0;}).map(function(c){return decodeURIComponent(c.slice(n.length+1));})[0]||'';}function stored(k){try{return localStorage.getItem(k)||'';}catch(_){return '';}}var darkCookie=cookie('eguilde_dark'),savedDark=stored('app-dark-mode');var dark=darkCookie==='1'||savedDark==='true'||(!darkCookie&&!savedDark&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark);document.documentElement.classList.toggle('app-dark',dark);document.documentElement.classList.toggle('light',!dark);})();
+  </script>
 </head>
 <body>
   <div class="card">
-    <div class="badge">Logout OIDC</div>
     <div class="icon">⟲</div>
-    <h1>Sesiune închisă</h1>
-    <p>Te-ai deconectat din providerul OIDC. Poți reveni în aplicație sau poți închide această pagină.</p>
-    <div class="summary" aria-label="Ce s-a întâmplat">
-      <div class="summary-item">
-        <span class="summary-step">1</span>
-        <div>
-          <strong>Sesiunea backend a fost revocată</strong>
-          <small>Cookie-ul de sesiune și starea OIDC au fost curățate în backend.</small>
-        </div>
-      </div>
-      <div class="summary-item">
-        <span class="summary-step">2</span>
-        <div>
-          <strong>Fluxul s-a încheiat corect</strong>
-          <small>Poți reveni în aplicația inițială folosind butonul de mai jos.</small>
-        </div>
-      </div>
-    </div>
+    <h1>Deconectare finalizata</h1>
+    <p>Sesiunea curenta a fost inchisa. Puteti reveni in platforma sau inchide aceasta pagina.</p>
     <div class="actions">
-      <a class="btn" href="{{.ReturnTo}}">Înapoi în aplicație</a>
-      <button type="button" class="btn secondary" onclick="window.close()">Închide pagina</button>
+      <a class="btn" href="{{.ReturnTo}}">Inapoi in eGuilde</a>
+      <button type="button" class="btn btn-secondary" onclick="window.close()">Inchide pagina</button>
     </div>
-    <div class="footer">Logout-ul este gestionat exclusiv în providerul OIDC, nu în aplicația SPA.</div>
   </div>
 </body>
 </html>`
+
