@@ -47,6 +47,12 @@ export const appConfig: ApplicationConfig = {
       redirectUri: `${window.location.origin}/auth/callback`,
       postLogoutRedirectUri: `${window.location.origin}/auth/logged-out`,
       scope: environment.authScope,
+      secureRoutes: ['/api'],
+      useDPoP: true,
+      indexedDbName: 'egueducation_oidc_dpop',
+      oidcPathPrefix: '/api/oidc/',
+      renewBeforeExpirySec: 60,
+      storagePrefix: 'egueducation_auth',
     }),
   ],
 };

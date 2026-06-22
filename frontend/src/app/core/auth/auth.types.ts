@@ -4,8 +4,17 @@ export interface AuthConfig {
   authority: string;
   clientId: string;
   redirectUri: string;
-  postLogoutRedirectUri: string;
+  postLogoutRedirectUri?: string;
+  logoutRedirectRoute?: string;
   scope: string;
+  usePar?: boolean;
+  renewBeforeExpirySec?: number;
+  storagePrefix?: string;
+  secureRoutes: string[];
+  useDPoP?: boolean;
+  indexedDbName?: string;
+  oidcPathPrefix?: string;
+  loginHandler?: (authUrl: string) => Promise<URLSearchParams>;
 }
 
 export interface StoredTokens {
@@ -20,7 +29,9 @@ export interface UserProfile {
   email?: string;
   name?: string;
   phone_number?: string;
+  initials?: string;
   roles: string[];
+  [key: string]: unknown;
 }
 
 export const AUTH_CONFIG = new InjectionToken<AuthConfig>('AUTH_CONFIG');
