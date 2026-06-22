@@ -156,13 +156,14 @@ const oidcRegisterHTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.CustomerName}} - Cont nou</title>
   <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--accent:#e11d48;--accent-strong:#be123c;--text:#0f172a;--muted:#64748b;--border:#fecdd3;--shadow:0 28px 70px rgba(15,23,42,.14)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.14),transparent 32rem),linear-gradient(135deg,#fff7f8 0%,#ffffff 48%,#ffe4e9 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-    .shell{display:grid;gap:20px;grid-template-columns:1.05fr .95fr;width:min(980px,100%)}@media(max-width:860px){.shell{grid-template-columns:1fr}}
-    .hero,.panel{border:1px solid var(--border);border-radius:30px;background:rgba(255,255,255,.92);box-shadow:var(--shadow)}.hero{padding:32px}.panel{padding:28px}
-    h1{margin:0 0 14px;font-size:2.2rem;letter-spacing:-.04em}.eyebrow{display:inline-flex;padding:9px 14px;border-radius:999px;background:#fff1f2;color:var(--accent-strong);font-size:.76rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 28px 72px rgba(15,23,42,.16)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 48%,#ffe4ec 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
+    .shell{display:grid;gap:20px;grid-template-columns:1.05fr .95fr;width:min(1040px,100%)}@media(max-width:860px){.shell{grid-template-columns:1fr}}
+    .hero,.panel{border:1px solid var(--border);border-radius:30px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}.hero{padding:34px}.panel{padding:30px}
+    .eyebrow{display:inline-flex;padding:9px 14px;border-radius:999px;background:var(--soft);color:var(--primary);font-size:.76rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+    h1{margin:16px 0 14px;font-size:2.2rem;letter-spacing:-.04em}h2{margin:0 0 12px;font-size:1.5rem;letter-spacing:-.03em}
     p{color:var(--muted);line-height:1.8}.actions{display:grid;gap:14px;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 16px;border-radius:16px;text-decoration:none;font-weight:800}
-    .primary{background:var(--accent);color:#fff}.secondary{border:1px solid var(--border);color:var(--text);background:#fff}
+    .primary{background:linear-gradient(180deg,var(--primary),#be123c);color:#fff}.secondary{border:1px solid var(--border);color:var(--text);background:#fff}
   </style>
 </head>
 <body>
@@ -170,7 +171,7 @@ const oidcRegisterHTML = `<!DOCTYPE html>
     <section class="hero">
       <span class="eyebrow">Înregistrare</span>
       <h1>{{.CustomerName}}</h1>
-      <p>Fluxul de creare cont rămâne separat de providerul OIDC, iar autentificarea continuă prin PKCE și paginile de interacțiune ale backendului.</p>
+      <p>Crearea contului rămâne separată de providerul OIDC, dar experiența trebuie să rămână coerentă cu autentificarea principală și cu platforma de referință.</p>
     </section>
     <section class="panel">
       <h2>Continuă în aplicație</h2>
@@ -191,15 +192,17 @@ const oidcLogoutHTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.CustomerName}} - Logout</title>
   <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--accent:#e11d48;--accent-strong:#be123c;--text:#0f172a;--muted:#64748b;--border:#fecdd3;--shadow:0 28px 70px rgba(15,23,42,.14)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.14),transparent 32rem),var(--bg);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-    .card{width:min(420px,100%);border:1px solid var(--border);border-radius:28px;background:rgba(255,255,255,.94);box-shadow:var(--shadow);padding:28px;text-align:center}
-    h1{margin:0 0 12px;font-size:1.8rem}.msg{color:var(--muted);line-height:1.7;margin-bottom:18px}.actions{display:grid;gap:12px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 16px;border-radius:16px;text-decoration:none;font-weight:800}.primary{background:var(--accent);color:#fff}.secondary{border:1px solid var(--border);color:var(--text);background:#fff}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 28px 72px rgba(15,23,42,.16)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 48%,#ffe4ec 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
+    .card{width:min(440px,100%);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),#fff8fa);box-shadow:var(--shadow);padding:30px;text-align:center}
+    .eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    h1{margin:14px 0 12px;font-size:1.8rem;letter-spacing:-.03em}.msg{color:var(--muted);line-height:1.7;margin-bottom:18px}.actions{display:grid;gap:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 16px;border-radius:16px;text-decoration:none;font-weight:800}.primary{background:linear-gradient(180deg,var(--primary),#be123c);color:#fff}.secondary{border:1px solid var(--border);color:var(--text);background:#fff}
   </style>
 </head>
 <body>
   <main class="card">
+    <span class="eyebrow">OIDC Provider</span>
     <h1>Deconectare finalizată</h1>
     <p class="msg">Sesiunea OIDC a fost închisă și refresh token-ul din cookie a fost eliminat.</p>
     <div class="actions">

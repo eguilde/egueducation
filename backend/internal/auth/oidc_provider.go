@@ -819,19 +819,28 @@ const oidcErrorHTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.CustomerName}} - Eroare autentificare</title>
   <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--accent:#e11d48;--accent-strong:#be123c;--text:#0f172a;--muted:#64748b;--border:#fecdd3;--shadow:0 28px 70px rgba(15,23,42,.14)}
-    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.12),transparent 30rem),var(--bg);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-    .card{width:min(420px,100%);border:1px solid var(--border);border-radius:24px;background:var(--card);box-shadow:var(--shadow);padding:28px}
-    h1{margin:0 0 12px;font-size:22px}.msg{color:var(--muted);line-height:1.6}.err{margin-top:16px;padding:12px 14px;border-radius:14px;background:#fff1f2;color:var(--accent-strong)}
-    .btn{margin-top:18px;display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:14px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--danger:#b91c1c;--danger-bg:#fef2f2;--danger-border:#fecaca;--shadow:0 28px 72px rgba(15,23,42,.16)}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 48%,#ffe4ec 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
+    .card{width:min(520px,100%);padding:28px;border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),#fff8fa);box-shadow:var(--shadow)}
+    .eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    h1{margin:14px 0 10px;font-size:1.95rem;letter-spacing:-.04em}
+    p{margin:0;color:var(--muted);line-height:1.7}
+    .detail{margin-top:18px;padding:14px 16px;border-radius:16px;background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger);font-size:.95rem;line-height:1.6}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:13px 16px;border-radius:14px;text-decoration:none;font-weight:800}
+    .primary{background:linear-gradient(180deg,var(--primary),#be123c);color:#fff}
+    .secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
   </style>
 </head>
 <body>
   <main class="card">
+    <span class="eyebrow">OIDC Provider</span>
     <h1>{{.CustomerName}}</h1>
-    <p class="msg">{{.Error}}</p>
-    <div class="err">{{.Detail}}</div>
-    <a class="btn" href="/">Înapoi la autentificare</a>
+    <p>{{.Error}}</p>
+    <div class="detail">{{.Detail}}</div>
+    <div class="actions">
+      <a class="btn primary" href="/">Înapoi la autentificare</a>
+    </div>
   </main>
 </body>
 </html>`
@@ -843,117 +852,169 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.CustomerName}} - Autentificare</title>
   <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--soft:#fff1f2;--accent:#e11d48;--accent-strong:#be123c;--text:#0f172a;--muted:#64748b;--border:#fecdd3;--shadow:0 28px 70px rgba(15,23,42,.14)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top left,rgba(225,29,72,.14),transparent 32rem),linear-gradient(135deg,#fff7f8 0%,#ffffff 48%,#ffe4e9 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr)}@media(max-width:900px){.shell{grid-template-columns:1fr}}
-    .hero{padding:48px 40px;display:flex;align-items:center}.hero h1{font-size:clamp(2.5rem,5vw,4.5rem);line-height:.95;margin:0 0 16px;letter-spacing:-.05em}.hero p{max-width:42rem;color:var(--muted);font-size:1rem;line-height:1.8}
-    .panel-wrap{display:flex;align-items:center;justify-content:center;padding:24px}.panel{width:min(480px,100%);border:1px solid var(--border);border-radius:30px;background:rgba(255,255,255,.92);box-shadow:var(--shadow);padding:28px}
-    .kicker{display:inline-flex;align-items:center;border-radius:999px;padding:9px 14px;background:var(--soft);color:var(--accent-strong);font-size:.76rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
-    h2{margin:18px 0 8px;font-size:1.7rem;letter-spacing:-.03em}.sub{margin:0 0 18px;color:var(--muted);line-height:1.7}
-    form{display:grid;gap:16px}.field{display:grid;gap:8px}.field label{font-size:.88rem;font-weight:700;color:var(--muted)}input{width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:16px;background:#fff;color:var(--text);font:inherit}
-    .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:14px 16px;border:0;border-radius:16px;background:var(--accent);color:#fff;font:inherit;font-weight:800;cursor:pointer}.btn.secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
-    .grid{display:grid;gap:12px}.methods{grid-template-columns:1fr 1fr}.msg{padding:12px 14px;border-radius:14px;background:#f1f5f9;color:var(--text);font-size:.92rem;line-height:1.6}.err{padding:12px 14px;border-radius:14px;background:#fff1f2;color:var(--accent-strong);font-size:.92rem;line-height:1.6}
-    .checks{display:grid;gap:10px}.check{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:16px}.check input{width:18px;height:18px}
-    .minor{font-size:.85rem;color:var(--muted);text-align:center}.otp{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.otp input{text-align:center;font-size:1.2rem;font-weight:800}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
+    *{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:'Inter Variable','Inter',system-ui,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%}
+    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,680px)}
+    .visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.84) 42%,rgba(8,47,73,.56));color:#fff;overflow:hidden}
+    .visual:before,.visual:after{content:'';position:absolute;border-radius:999px;pointer-events:none}.visual:before{width:24rem;height:24rem;right:-6rem;top:-5rem;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 68%)}.visual:after{width:18rem;height:18rem;left:-4rem;bottom:-4rem;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%)}
+    .visual-inner{position:relative;z-index:1;max-width:560px}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);backdrop-filter:blur(14px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .hero-title{font-size:clamp(34px,4.8vw,64px);line-height:1.02;margin:18px 0 18px;letter-spacing:-.045em}.hero-copy{max-width:48ch;font-size:16px;line-height:1.7;color:rgba(255,255,255,.88)}
+    .feature-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}.feature{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);font-size:13px;font-weight:700;color:#fff}
+    .panel{display:flex;align-items:center;justify-content:center;padding:clamp(18px,3vw,48px);overflow-y:auto}.card{width:100%;max-width:720px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
+    .card-shell{display:grid;grid-template-columns:1.02fr .98fr;gap:18px;align-items:start}.card-hero{padding:22px;border-radius:22px;background:radial-gradient(circle at top right,rgba(225,29,72,.12),transparent 45%),linear-gradient(180deg,var(--card),var(--soft));border:1px solid var(--border)}
+    .brand-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.16);font-size:12px;font-weight:700;color:var(--primary)}
+    .title{font-size:22px;line-height:1.15;letter-spacing:-.03em;margin:12px 0 8px}.subtitle{font-size:14px;color:var(--muted);line-height:1.65}.summary{display:grid;gap:10px;margin-top:18px}
+    .summary-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.65);border:1px solid var(--border)}.summary-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--primary);flex:0 0 auto}.summary-item strong{display:block;font-size:13px;margin-bottom:3px}.summary-item span{display:block;font-size:12px;color:var(--muted)}
+    .card-form{padding:22px;border-radius:22px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow-2)}.section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
+    .field{display:grid;gap:6px}.field label{font-size:13px;font-weight:700}.field input{width:100%;padding:14px;border:1px solid var(--border);border-radius:14px;font:inherit;color:var(--text);background:var(--soft)}.field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(225,29,72,.14);background:var(--card)}
+    .field-help,.minor,.sub{font-size:12px;line-height:1.6;color:var(--muted)}.sub{font-size:14px;margin:0 0 14px}
+    .grid{display:grid;gap:12px}.methods{grid-template-columns:1fr 1fr}.method{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--card),var(--card-2));cursor:pointer;text-align:left}
+    .method-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:14px;background:var(--soft);color:var(--primary);flex:0 0 auto}.method-body{display:grid;gap:4px}.method-kicker{font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--primary)}.method strong{font-size:15px}.method span{font-size:12px;color:var(--muted)}
+    .helper-card,.msg{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}.err{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;line-height:1.6}
+    .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:13px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--primary),#be123c);color:var(--primary-contrast);font:inherit;font-weight:800;cursor:pointer;text-decoration:none}.btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary)}
+    .toolbar,.actions{display:flex;gap:10px;flex-wrap:wrap}.otp-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.otp-box{width:100%;padding:14px 10px;border:1px solid var(--border);border-radius:14px;font:inherit;font-size:18px;letter-spacing:.2em;text-align:center;color:var(--text);background:var(--soft)}
+    .checks{display:grid;gap:10px}.check{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:16px}.check input{margin-top:3px}.check span{font-size:13px;color:var(--text)}
+    @media(max-width:1120px){.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}@media(max-width:860px){body{overflow-y:auto}.visual{display:none}.card-shell{grid-template-columns:1fr}}@media(max-width:520px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.methods,.actions{grid-template-columns:1fr;display:grid}}
   </style>
 </head>
 <body>
   <div class="shell">
-    <section class="hero">
-      <div>
-        <span class="kicker">OIDC Provider</span>
-        <h1>{{.CustomerName}}</h1>
-        <p>Autentificare OIDC/OAuth2 cu cod de autorizare, PKCE, DPoP și pagini dedicate pentru login, consimțământ și logout.</p>
+    <section class="visual">
+      <div class="visual-inner">
+        <div class="eyebrow">OIDC Provider</div>
+        <h2 class="hero-title">Autentificare sigură pentru {{.CustomerName}}</h2>
+        <p class="hero-copy">Accesul este gestionat complet de providerul OIDC, cu PKCE, DPoP, passkey, OTP și consimțământ separat în backend.</p>
+        <div class="feature-row">
+          <span class="feature">SMS OTP</span>
+          <span class="feature">Passkey</span>
+          <span class="feature">Consent flow</span>
+          <span class="feature">Session security</span>
+        </div>
       </div>
     </section>
-    <section class="panel-wrap">
-      <main class="panel">
-        {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
-        {{if eq .Step "methods"}}
-          <span class="kicker">Pasul 1</span>
-          <h2>Alege autentificarea</h2>
-          <p class="sub">Continuă cu OTP prin telefonul asociat contului sau cu passkey.</p>
-          <form method="POST" action="{{.FormAction}}">
-            <div class="field">
-              <label for="identifier">Utilizator, email sau telefon</label>
-              <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="thomas.admin / email / telefon" />
+    <section class="panel">
+      <div class="card">
+        <div class="card-shell">
+          <aside class="card-hero">
+            <div class="brand-line">
+              <div class="brand-pill">Autentificare</div>
+              <span class="status-pill">{{if eq .Step "methods"}}Pasul 1{{else if eq .Step "otp"}}Pasul 2{{else}}Pasul 3{{end}}</span>
             </div>
-            <div class="grid methods">
-              <button class="btn" type="submit" name="method" value="otp">Continuă cu OTP</button>
-              <button class="btn secondary" id="biometricBtn" type="button">Passkey</button>
+            <h1 class="title">{{.CustomerName}}</h1>
+            <p class="subtitle">Experiența OIDC trebuie să rămână coerentă, modernă și aliniată cu platforma principală.</p>
+            <div class="summary">
+              <div class="summary-item"><span class="summary-icon">1</span><div><strong>Fără parole clasice</strong><span>Autentificare prin OTP și passkey, direct în provider.</span></div></div>
+              <div class="summary-item"><span class="summary-icon">2</span><div><strong>Flux OIDC complet</strong><span>Login, verificare și consimțământ în aceeași experiență.</span></div></div>
+              <div class="summary-item"><span class="summary-icon">3</span><div><strong>Întoarcere sigură</strong><span>După finalizare revii exact în aplicația care a inițiat cererea.</span></div></div>
             </div>
-          </form>
-          <p class="minor">Passkey folosește fluxul WebAuthn existent al aplicației și predă identitatea înapoi providerului OIDC.</p>
-          <script>
-          (function(){
-            var btn=document.getElementById('biometricBtn');
-            if(!btn||!window.PublicKeyCredential){if(btn){btn.disabled=true;}return;}
-            btn.addEventListener('click',function(){
-              fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
-                .then(function(r){if(!r.ok)throw new Error('options failed');return r.json();})
-                .then(function(payload){
-                  var opts=payload.options||payload;
-                  var challenge=opts.challenge;
-                  opts.challenge=b64u(opts.challenge);
-                  if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
-                  return navigator.credentials.get({publicKey:opts}).then(function(cred){return {cred:cred,challenge:challenge};});
-                })
-                .then(function(result){
-                  var cred=result.cred;
-                  var resp={clientDataJSON:u8b64(new Uint8Array(cred.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(cred.response.authenticatorData)),signature:u8b64(new Uint8Array(cred.response.signature)),type:cred.type};
-                  return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:cred.id,response:resp})});
-                })
-                .then(function(r){if(!r.ok){throw new Error('finish failed');}return r.json();})
-                .then(function(data){
-                  var f=document.createElement('form');f.method='POST';f.action='{{.FormAction}}';
-                  var method=document.createElement('input');method.type='hidden';method.name='method';method.value='passkey_done';
-                  var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
-                  f.appendChild(method);f.appendChild(nonce);document.body.appendChild(f);f.submit();
-                })
-                .catch(function(){window.location.reload();});
-            });
-            function b64u(value){var base64=value.replace(/-/g,'+').replace(/_/g,'/');base64=base64.padEnd(Math.ceil(base64.length/4)*4,'=');var binary=atob(base64);var out=new Uint8Array(binary.length);for(var i=0;i<binary.length;i++){out[i]=binary.charCodeAt(i);}return out;}
-            function u8b64(bytes){var binary='';bytes.forEach(function(byte){binary+=String.fromCharCode(byte);});return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
-          })();
-          </script>
-        {{else if eq .Step "otp"}}
-          <span class="kicker">Pasul 2</span>
-          <h2>Verificare OTP</h2>
-          <p class="sub">{{.Message}}</p>
-          <form method="POST" action="{{.FormAction}}">
-            <div class="otp">
-              <input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box">
-            </div>
-            <input type="hidden" id="code" name="code">
-            <button class="btn" type="submit">Verifică și continuă</button>
-            <button class="btn secondary" type="submit" name="action" value="back">Înapoi</button>
-          </form>
-          <script>
-          (function(){
-            var boxes=document.querySelectorAll('.otp-box');var hidden=document.getElementById('code');
-            function sync(){var value='';boxes.forEach(function(box){value+=box.value.replace(/\D/g,'');});hidden.value=value;}
-            boxes.forEach(function(box,index){
-              box.addEventListener('input',function(){box.value=box.value.replace(/\D/g,'').slice(0,1);if(box.value&&index<boxes.length-1){boxes[index+1].focus();}sync();});
-              box.addEventListener('keydown',function(event){if(event.key==='Backspace'&&!box.value&&index>0){boxes[index-1].focus();}sync();});
-              box.addEventListener('paste',function(event){event.preventDefault();var text=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);text.split('').forEach(function(char,i){if(boxes[i]){boxes[i].value=char;}});sync();});
-            });
-          })();
-          </script>
-        {{else}}
-          <span class="kicker">Pasul 3</span>
-          <h2>Consimțământ OIDC</h2>
-          <p class="sub">{{.ClientName}} solicită acces la datele selectate.</p>
-          <form method="POST" action="{{.FormAction}}">
-            <div class="checks">
-              {{range .Scopes}}
-                <label class="check"><input type="checkbox" name="granted_scope" value="{{.ID}}" checked><span>{{.Label}}</span></label>
-              {{end}}
-            </div>
-            <button class="btn" type="submit" name="action" value="allow">Acceptă și continuă</button>
-            <button class="btn secondary" type="submit" name="action" value="deny">Refuză</button>
-          </form>
-        {{end}}
-      </main>
+          </aside>
+          <section class="card-form">
+            <div class="section-title">Continuare sesiune</div>
+            {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
+            {{if eq .Step "methods"}}
+              <h2 class="title" style="margin-top:0">Alege metoda de autentificare</h2>
+              <p class="sub">Continuă cu OTP prin telefonul asociat contului sau cu passkey.</p>
+              <form method="POST" action="{{.FormAction}}" class="grid">
+                <div class="field">
+                  <label for="identifier">Utilizator, email sau telefon</label>
+                  <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="thomas.admin / email / telefon">
+                  <span class="field-help">Identificatorul este folosit pentru localizarea contului înainte de trimiterea codului OTP.</span>
+                </div>
+                <div class="grid methods">
+                  <button class="method" type="submit" name="method" value="otp">
+                    <span class="method-icon">✉</span>
+                    <span class="method-body">
+                      <span class="method-kicker">Recomandat</span>
+                      <strong>Continuă cu OTP</strong>
+                      <span>Primești codul prin SMS și continui imediat în sesiunea OIDC.</span>
+                    </span>
+                  </button>
+                  <button class="method" id="biometricBtn" type="button">
+                    <span class="method-icon">◈</span>
+                    <span class="method-body">
+                      <span class="method-kicker">Fără cod</span>
+                      <strong>Continuă cu passkey</strong>
+                      <span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă.</span>
+                    </span>
+                  </button>
+                </div>
+              </form>
+              <div class="helper-card">Passkey folosește fluxul WebAuthn existent și predă identitatea înapoi providerului OIDC după validare.</div>
+              <script>
+              (function(){
+                var btn=document.getElementById('biometricBtn');
+                if(!btn||!window.PublicKeyCredential){if(btn){btn.disabled=true;}return;}
+                btn.addEventListener('click',function(){
+                  fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+                    .then(function(r){if(!r.ok)throw new Error('options failed');return r.json();})
+                    .then(function(payload){
+                      var opts=payload.options||payload;
+                      var challenge=opts.challenge;
+                      opts.challenge=b64u(opts.challenge);
+                      if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
+                      return navigator.credentials.get({publicKey:opts}).then(function(cred){return {cred:cred,challenge:challenge};});
+                    })
+                    .then(function(result){
+                      var cred=result.cred;
+                      var resp={clientDataJSON:u8b64(new Uint8Array(cred.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(cred.response.authenticatorData)),signature:u8b64(new Uint8Array(cred.response.signature)),type:cred.type};
+                      return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:cred.id,response:resp})});
+                    })
+                    .then(function(r){if(!r.ok){throw new Error('finish failed');}return r.json();})
+                    .then(function(data){
+                      var f=document.createElement('form');f.method='POST';f.action='{{.FormAction}}';
+                      var method=document.createElement('input');method.type='hidden';method.name='method';method.value='passkey_done';
+                      var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
+                      f.appendChild(method);f.appendChild(nonce);document.body.appendChild(f);f.submit();
+                    })
+                    .catch(function(){window.location.reload();});
+                });
+                function b64u(value){var base64=value.replace(/-/g,'+').replace(/_/g,'/');base64=base64.padEnd(Math.ceil(base64.length/4)*4,'=');var binary=atob(base64);var out=new Uint8Array(binary.length);for(var i=0;i<binary.length;i++){out[i]=binary.charCodeAt(i);}return out;}
+                function u8b64(bytes){var binary='';bytes.forEach(function(byte){binary+=String.fromCharCode(byte);});return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
+              })();
+              </script>
+            {{else if eq .Step "otp"}}
+              <h2 class="title" style="margin-top:0">Confirmă codul OTP</h2>
+              <p class="sub">{{.Message}}</p>
+              <form method="POST" action="{{.FormAction}}" class="grid">
+                <div class="otp-grid">
+                  <input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box">
+                </div>
+                <input type="hidden" id="code" name="code">
+                <div class="actions">
+                  <button class="btn" type="submit">Verifică și continuă</button>
+                  <button class="btn secondary" type="submit" name="action" value="back">Înapoi</button>
+                </div>
+              </form>
+              <script>
+              (function(){
+                var boxes=document.querySelectorAll('.otp-box');var hidden=document.getElementById('code');
+                function sync(){var value='';boxes.forEach(function(box){value+=box.value.replace(/\D/g,'');});hidden.value=value;}
+                boxes.forEach(function(box,index){
+                  box.addEventListener('input',function(){box.value=box.value.replace(/\D/g,'').slice(0,1);if(box.value&&index<boxes.length-1){boxes[index+1].focus();}sync();});
+                  box.addEventListener('keydown',function(event){if(event.key==='Backspace'&&!box.value&&index>0){boxes[index-1].focus();}sync();});
+                  box.addEventListener('paste',function(event){event.preventDefault();var text=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);text.split('').forEach(function(char,i){if(boxes[i]){boxes[i].value=char;}});sync();});
+                });
+              })();
+              </script>
+            {{else}}
+              <h2 class="title" style="margin-top:0">Consimțământ OIDC</h2>
+              <p class="sub">{{.ClientName}} solicită acces la datele selectate pentru această sesiune.</p>
+              <form method="POST" action="{{.FormAction}}" class="grid">
+                <div class="checks">
+                  {{range .Scopes}}
+                    <label class="check"><input type="checkbox" name="granted_scope" value="{{.ID}}" checked><span>{{.Label}}</span></label>
+                  {{end}}
+                </div>
+                <div class="actions">
+                  <button class="btn" type="submit" name="action" value="allow">Acceptă și continuă</button>
+                  <button class="btn secondary" type="submit" name="action" value="deny">Refuză</button>
+                </div>
+              </form>
+            {{end}}
+          </section>
+        </div>
+      </div>
     </section>
   </div>
 </body>
