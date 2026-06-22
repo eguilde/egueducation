@@ -84,6 +84,8 @@ func main() {
 	router.HandleFunc("/logout", authService.HandleLogoutAlias)
 
 	router.Route("/api", func(r chi.Router) {
+		oidcHandler := http.StripPrefix("/api/oidc", authService.OIDCHandler())
+
 		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusOK, buildBootstrapConfig(cfg, r))
 		})
@@ -106,8 +108,8 @@ func main() {
 		r.Get("/auth/role-positions", authService.RolePositions)
 		r.Post("/auth/session/exchange", authService.ExchangeSession)
 		r.Post("/auth/logout", authService.Logout)
-		r.Handle("/oidc", authService.OIDCHandler())
-		r.Handle("/oidc/*", authService.OIDCHandler())
+		r.Handle("/oidc", oidcHandler)
+		r.Handle("/oidc/*", oidcHandler)
 		r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)
 		r.Post("/passkeys/login-finish", authService.FinishPasskeyAuthentication)
 
