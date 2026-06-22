@@ -64,6 +64,193 @@ type CreateGovernanceMeetingRequest struct {
 	Summary           string `json:"summary"`
 }
 
+type GovernanceMeetingParticipant struct {
+	ID               string `json:"id"`
+	MeetingID        string `json:"meeting_id"`
+	FullName         string `json:"full_name"`
+	RoleName         string `json:"role_name"`
+	MemberType       string `json:"member_type"`
+	AttendanceStatus string `json:"attendance_status"`
+	VotingRight      bool   `json:"voting_right"`
+	SignaturePresent bool   `json:"signature_present"`
+	InstitutionID    string `json:"institution_id"`
+	Notes            string `json:"notes"`
+}
+
+type CreateGovernanceMeetingParticipantRequest struct {
+	FullName         string `json:"full_name"`
+	RoleName         string `json:"role_name"`
+	MemberType       string `json:"member_type"`
+	AttendanceStatus string `json:"attendance_status"`
+	VotingRight      bool   `json:"voting_right"`
+	SignaturePresent bool   `json:"signature_present"`
+	Notes            string `json:"notes"`
+}
+
+type GovernanceMeetingDocument struct {
+	ID                string `json:"id"`
+	MeetingID         string `json:"meeting_id"`
+	DocumentType      string `json:"document_type"`
+	Title             string `json:"title"`
+	DocumentNumber    string `json:"document_number"`
+	RegistryNumber    string `json:"registry_number"`
+	PublicationStatus string `json:"publication_status"`
+	CustodyOwner      string `json:"custody_owner"`
+	SignedBy          string `json:"signed_by"`
+	IssuedOn          string `json:"issued_on"`
+	InstitutionID     string `json:"institution_id"`
+	Summary           string `json:"summary"`
+}
+
+type CreateGovernanceMeetingDocumentRequest struct {
+	DocumentType      string `json:"document_type"`
+	Title             string `json:"title"`
+	DocumentNumber    string `json:"document_number"`
+	RegistryNumber    string `json:"registry_number"`
+	PublicationStatus string `json:"publication_status"`
+	CustodyOwner      string `json:"custody_owner"`
+	SignedBy          string `json:"signed_by"`
+	IssuedOn          string `json:"issued_on"`
+	Summary           string `json:"summary"`
+}
+
+type GovernanceMeetingVote struct {
+	ID               string `json:"id"`
+	MeetingID        string `json:"meeting_id"`
+	SubjectTitle     string `json:"subject_title"`
+	AgendaOrder      int    `json:"agenda_order"`
+	DecisionType     string `json:"decision_type"`
+	VotesFor         int    `json:"votes_for"`
+	VotesAgainst     int    `json:"votes_against"`
+	Abstentions      int    `json:"abstentions"`
+	Outcome          string `json:"outcome"`
+	RequiresFollowUp bool   `json:"requires_follow_up"`
+	LegalBasis       string `json:"legal_basis"`
+	InstitutionID    string `json:"institution_id"`
+	Notes            string `json:"notes"`
+}
+
+type CreateGovernanceMeetingVoteRequest struct {
+	SubjectTitle     string `json:"subject_title"`
+	AgendaOrder      int    `json:"agenda_order"`
+	DecisionType     string `json:"decision_type"`
+	VotesFor         int    `json:"votes_for"`
+	VotesAgainst     int    `json:"votes_against"`
+	Abstentions      int    `json:"abstentions"`
+	Outcome          string `json:"outcome"`
+	RequiresFollowUp bool   `json:"requires_follow_up"`
+	LegalBasis       string `json:"legal_basis"`
+	Notes            string `json:"notes"`
+}
+
+type GovernanceMembership struct {
+	ID            string `json:"id"`
+	SchoolYear    string `json:"school_year"`
+	Organism      string `json:"organism"`
+	FullName      string `json:"full_name"`
+	RoleName      string `json:"role_name"`
+	MandateFrom   string `json:"mandate_from"`
+	MandateTo     string `json:"mandate_to"`
+	VotingRight   bool   `json:"voting_right"`
+	Status        string `json:"status"`
+	InstitutionID string `json:"institution_id"`
+	Notes         string `json:"notes"`
+}
+
+type CreateGovernanceMembershipRequest struct {
+	SchoolYear  string `json:"school_year"`
+	Organism    string `json:"organism"`
+	FullName    string `json:"full_name"`
+	RoleName    string `json:"role_name"`
+	MandateFrom string `json:"mandate_from"`
+	MandateTo   string `json:"mandate_to"`
+	VotingRight bool   `json:"voting_right"`
+	Status      string `json:"status"`
+	Notes       string `json:"notes"`
+}
+
+type GovernanceResolution struct {
+	ID                 string `json:"id"`
+	MeetingID          string `json:"meeting_id"`
+	VoteID             string `json:"vote_id"`
+	ResolutionCode     string `json:"resolution_code"`
+	Title              string `json:"title"`
+	ResolutionType     string `json:"resolution_type"`
+	PublicationStatus  string `json:"publication_status"`
+	AnonymizationState string `json:"anonymization_state"`
+	IssuedOn           string `json:"issued_on"`
+	SignedBy           string `json:"signed_by"`
+	InstitutionID      string `json:"institution_id"`
+	Notes              string `json:"notes"`
+}
+
+type CreateGovernanceResolutionRequest struct {
+	VoteID             string `json:"vote_id"`
+	Title              string `json:"title"`
+	ResolutionType     string `json:"resolution_type"`
+	PublicationStatus  string `json:"publication_status"`
+	AnonymizationState string `json:"anonymization_state"`
+	IssuedOn           string `json:"issued_on"`
+	SignedBy           string `json:"signed_by"`
+	Notes              string `json:"notes"`
+}
+
+type GovernanceMinuteItem struct {
+	ID                  string `json:"id"`
+	MeetingID           string `json:"meeting_id"`
+	AgendaOrder         int    `json:"agenda_order"`
+	TopicTitle          string `json:"topic_title"`
+	DiscussionSummary   string `json:"discussion_summary"`
+	DecisionSummary     string `json:"decision_summary"`
+	ResponsibleParty    string `json:"responsible_party"`
+	DueOn               string `json:"due_on"`
+	FollowUpStatus      string `json:"follow_up_status"`
+	RequiresPublication bool   `json:"requires_publication"`
+	InstitutionID       string `json:"institution_id"`
+	Notes               string `json:"notes"`
+}
+
+type CreateGovernanceMinuteItemRequest struct {
+	AgendaOrder         int    `json:"agenda_order"`
+	TopicTitle          string `json:"topic_title"`
+	DiscussionSummary   string `json:"discussion_summary"`
+	DecisionSummary     string `json:"decision_summary"`
+	ResponsibleParty    string `json:"responsible_party"`
+	DueOn               string `json:"due_on"`
+	FollowUpStatus      string `json:"follow_up_status"`
+	RequiresPublication bool   `json:"requires_publication"`
+	Notes               string `json:"notes"`
+}
+
+type PublicationRecord struct {
+	ID                  string `json:"id"`
+	PublicationCode     string `json:"publication_code"`
+	Domain              string `json:"domain"`
+	EntityType          string `json:"entity_type"`
+	EntityLabel         string `json:"entity_label"`
+	PublicationChannel  string `json:"publication_channel"`
+	PublicationStatus   string `json:"publication_status"`
+	AnonymizationStatus string `json:"anonymization_status"`
+	Mandatory           bool   `json:"mandatory"`
+	PublishedOn         string `json:"published_on"`
+	ReviewedBy          string `json:"reviewed_by"`
+	InstitutionID       string `json:"institution_id"`
+	Notes               string `json:"notes"`
+}
+
+type CreatePublicationRecordRequest struct {
+	Domain              string `json:"domain"`
+	EntityType          string `json:"entity_type"`
+	EntityLabel         string `json:"entity_label"`
+	PublicationChannel  string `json:"publication_channel"`
+	PublicationStatus   string `json:"publication_status"`
+	AnonymizationStatus string `json:"anonymization_status"`
+	Mandatory           bool   `json:"mandatory"`
+	PublishedOn         string `json:"published_on"`
+	ReviewedBy          string `json:"reviewed_by"`
+	Notes               string `json:"notes"`
+}
+
 type GovernanceDecision struct {
 	ID                string `json:"id"`
 	DecisionCode      string `json:"decision_code"`
@@ -109,6 +296,63 @@ type CreateGovernanceDecisionRequest struct {
 	Summary           string `json:"summary"`
 }
 
+type DecisionIssuance struct {
+	ID              string `json:"id"`
+	DecisionID      string `json:"decision_id"`
+	IssuanceCode    string `json:"issuance_code"`
+	DocumentType    string `json:"document_type"`
+	RecipientName   string `json:"recipient_name"`
+	RecipientRole   string `json:"recipient_role"`
+	DeliveryChannel string `json:"delivery_channel"`
+	DeliveryStatus  string `json:"delivery_status"`
+	SignedOn        string `json:"signed_on"`
+	DeliveredOn     string `json:"delivered_on"`
+	AcknowledgedOn  string `json:"acknowledged_on"`
+	FileReference   string `json:"file_reference"`
+	InstitutionID   string `json:"institution_id"`
+	Notes           string `json:"notes"`
+}
+
+type CreateDecisionIssuanceRequest struct {
+	DocumentType    string `json:"document_type"`
+	RecipientName   string `json:"recipient_name"`
+	RecipientRole   string `json:"recipient_role"`
+	DeliveryChannel string `json:"delivery_channel"`
+	DeliveryStatus  string `json:"delivery_status"`
+	SignedOn        string `json:"signed_on"`
+	DeliveredOn     string `json:"delivered_on"`
+	AcknowledgedOn  string `json:"acknowledged_on"`
+	FileReference   string `json:"file_reference"`
+	Notes           string `json:"notes"`
+}
+
+type DecisionPublicationStep struct {
+	ID                   string `json:"id"`
+	DecisionID           string `json:"decision_id"`
+	StepOrder            int    `json:"step_order"`
+	StepType             string `json:"step_type"`
+	Status               string `json:"status"`
+	ResponsibleName      string `json:"responsible_name"`
+	PublicationChannel   string `json:"publication_channel"`
+	DueOn                string `json:"due_on"`
+	CompletedOn          string `json:"completed_on"`
+	PublicationReference string `json:"publication_reference"`
+	InstitutionID        string `json:"institution_id"`
+	Notes                string `json:"notes"`
+}
+
+type CreateDecisionPublicationStepRequest struct {
+	StepOrder            int    `json:"step_order"`
+	StepType             string `json:"step_type"`
+	Status               string `json:"status"`
+	ResponsibleName      string `json:"responsible_name"`
+	PublicationChannel   string `json:"publication_channel"`
+	DueOn                string `json:"due_on"`
+	CompletedOn          string `json:"completed_on"`
+	PublicationReference string `json:"publication_reference"`
+	Notes                string `json:"notes"`
+}
+
 type ManagerialDossier struct {
 	ID                  string `json:"id"`
 	DossierCode         string `json:"dossier_code"`
@@ -149,6 +393,65 @@ type CreateManagerialDossierRequest struct {
 	DueOn               string `json:"due_on"`
 	PublicationRequired bool   `json:"publication_required"`
 	Summary             string `json:"summary"`
+}
+
+type ManagerialDocument struct {
+	ID                  string `json:"id"`
+	DossierID           string `json:"dossier_id"`
+	DocumentCode        string `json:"document_code"`
+	DocumentCategory    string `json:"document_category"`
+	Title               string `json:"title"`
+	DocumentStatus      string `json:"document_status"`
+	VersionLabel        string `json:"version_label"`
+	Mandatory           bool   `json:"mandatory"`
+	PublicationRequired bool   `json:"publication_required"`
+	RegisteredOn        string `json:"registered_on"`
+	ApprovedOn          string `json:"approved_on"`
+	OwnerName           string `json:"owner_name"`
+	FileReference       string `json:"file_reference"`
+	InstitutionID       string `json:"institution_id"`
+	Notes               string `json:"notes"`
+}
+
+type CreateManagerialDocumentRequest struct {
+	DocumentCategory    string `json:"document_category"`
+	Title               string `json:"title"`
+	DocumentStatus      string `json:"document_status"`
+	VersionLabel        string `json:"version_label"`
+	Mandatory           bool   `json:"mandatory"`
+	PublicationRequired bool   `json:"publication_required"`
+	RegisteredOn        string `json:"registered_on"`
+	ApprovedOn          string `json:"approved_on"`
+	OwnerName           string `json:"owner_name"`
+	FileReference       string `json:"file_reference"`
+	Notes               string `json:"notes"`
+}
+
+type ManagerialWorkflowStep struct {
+	ID                string `json:"id"`
+	DossierID         string `json:"dossier_id"`
+	StageOrder        int    `json:"stage_order"`
+	StageType         string `json:"stage_type"`
+	Status            string `json:"status"`
+	AssignedTo        string `json:"assigned_to"`
+	DueOn             string `json:"due_on"`
+	CompletedOn       string `json:"completed_on"`
+	RequiresSignature bool   `json:"requires_signature"`
+	DecisionReference string `json:"decision_reference"`
+	InstitutionID     string `json:"institution_id"`
+	OutcomeNote       string `json:"outcome_note"`
+}
+
+type CreateManagerialWorkflowStepRequest struct {
+	StageOrder        int    `json:"stage_order"`
+	StageType         string `json:"stage_type"`
+	Status            string `json:"status"`
+	AssignedTo        string `json:"assigned_to"`
+	DueOn             string `json:"due_on"`
+	CompletedOn       string `json:"completed_on"`
+	RequiresSignature bool   `json:"requires_signature"`
+	DecisionReference string `json:"decision_reference"`
+	OutcomeNote       string `json:"outcome_note"`
 }
 
 type RegulationRecord struct {
@@ -194,4 +497,60 @@ type CreateRegulationRecordRequest struct {
 	ReviewDueOn    string `json:"review_due_on"`
 	ApprovedOn     string `json:"approved_on"`
 	Summary        string `json:"summary"`
+}
+
+type RegulationVersion struct {
+	ID            string `json:"id"`
+	RegulationID  string `json:"regulation_id"`
+	VersionLabel  string `json:"version_label"`
+	VersionStatus string `json:"version_status"`
+	ChangeSummary string `json:"change_summary"`
+	ApprovedOn    string `json:"approved_on"`
+	EffectiveFrom string `json:"effective_from"`
+	PublishedOn   string `json:"published_on"`
+	PreparedBy    string `json:"prepared_by"`
+	FileReference string `json:"file_reference"`
+	InstitutionID string `json:"institution_id"`
+	Notes         string `json:"notes"`
+}
+
+type CreateRegulationVersionRequest struct {
+	VersionLabel  string `json:"version_label"`
+	VersionStatus string `json:"version_status"`
+	ChangeSummary string `json:"change_summary"`
+	ApprovedOn    string `json:"approved_on"`
+	EffectiveFrom string `json:"effective_from"`
+	PublishedOn   string `json:"published_on"`
+	PreparedBy    string `json:"prepared_by"`
+	FileReference string `json:"file_reference"`
+	Notes         string `json:"notes"`
+}
+
+type RegulationWorkflowStep struct {
+	ID                string `json:"id"`
+	RegulationID      string `json:"regulation_id"`
+	PhaseOrder        int    `json:"phase_order"`
+	PhaseType         string `json:"phase_type"`
+	Status            string `json:"status"`
+	Audience          string `json:"audience"`
+	StartedOn         string `json:"started_on"`
+	DueOn             string `json:"due_on"`
+	CompletedOn       string `json:"completed_on"`
+	FeedbackCount     int    `json:"feedback_count"`
+	DecisionReference string `json:"decision_reference"`
+	InstitutionID     string `json:"institution_id"`
+	Notes             string `json:"notes"`
+}
+
+type CreateRegulationWorkflowStepRequest struct {
+	PhaseOrder        int    `json:"phase_order"`
+	PhaseType         string `json:"phase_type"`
+	Status            string `json:"status"`
+	Audience          string `json:"audience"`
+	StartedOn         string `json:"started_on"`
+	DueOn             string `json:"due_on"`
+	CompletedOn       string `json:"completed_on"`
+	FeedbackCount     int    `json:"feedback_count"`
+	DecisionReference string `json:"decision_reference"`
+	Notes             string `json:"notes"`
 }

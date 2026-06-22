@@ -92,6 +92,7 @@
             <th
               [pSortableColumn]="column.sortable ? columnSortKey(column) : undefined"
               [style.minWidth]="column.mobileHidden ? '10rem' : '8rem'"
+              [style.width]="column.width || null"
             >
               <div class="flex items-center gap-2">
                 <span>{{ column.label }}</span>
@@ -102,7 +103,14 @@
             </th>
           }
           @if (rowActions.length) {
-            <th class="w-36 text-center">{{ actionColumnLabel }}</th>
+            <th class="w-36 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <span>{{ actionColumnLabel }}</span>
+                @if (actionHeaderTemplate(); as actionHeader) {
+                  <ng-container [ngTemplateOutlet]="actionHeader" />
+                }
+              </div>
+            </th>
           }
         </tr>
         @if (hasFilterableColumns() && filtersExpanded()) {
@@ -161,8 +169,21 @@
           (click)="onRowClick(row)"
         >
           @for (column of visibleColumns(); track column.key) {
-            <td>
-              <span class="line-clamp-2">{{ cellValue(row, column) }}</span>
+            <td [style.width]="column.width || null">
+              @switch (column.kind || 'text') {
+                @case ('tag') {
+                  <p-tag [value]="cellValue(row, column)" [severity]="columnSeverity(row, column)" />
+                }
+                @case ('boolean') {
+                  <p-tag [value]="cellValue(row, column)" [severity]="columnSeverity(row, column)" />
+                }
+                @case ('number') {
+                  <span class="font-semibold">{{ cellValue(row, column) }}</span>
+                }
+                @default {
+                  <span class="line-clamp-2">{{ cellValue(row, column) }}</span>
+                }
+              }
             </td>
           }
           @if (rowActions.length) {
@@ -215,7 +236,22 @@
               @for (column of secondaryMobileColumns(); track column.key) {
                 <div class="grid grid-cols-[7rem_1fr] gap-2">
                   <dt class="font-semibold text-surface-500">{{ column.label }}</dt>
-                  <dd class="text-surface-800 dark:text-surface-100">{{ cellValue(row, column) }}</dd>
+                  <dd class="text-surface-800 dark:text-surface-100">
+                    @switch (column.kind || 'text') {
+                      @case ('tag') {
+                        <p-tag [value]="cellValue(row, column)" [severity]="columnSeverity(row, column)" />
+                      }
+                      @case ('boolean') {
+                        <p-tag [value]="cellValue(row, column)" [severity]="columnSeverity(row, column)" />
+                      }
+                      @case ('number') {
+                        <span class="font-semibold">{{ cellValue(row, column) }}</span>
+                      }
+                      @default {
+                        {{ cellValue(row, column) }}
+                      }
+                    }
+                  </dd>
                 </div>
               }
             </dl>

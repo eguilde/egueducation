@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,29 +15,29 @@ import (
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/eguilde/egueducation/internal/notification"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
-	cfg        config.Config
-	smsService *notification.SMSService
-	db         *pgxpool.Pool
-	oidc       *oidcKeyPair
+	cfg         config.Config
+	smsService  *notification.SMSService
+	db          *pgxpool.Pool
+	oidcHandler http.Handler
+	verifier    *JWTVerifier
 }
 
 func NewService(cfg config.Config, smsService *notification.SMSService, db *pgxpool.Pool) (*Service, error) {
-	keyPair, err := loadOrCreateOIDCKeyPair(context.Background(), db)
-	if err != nil {
-		return nil, fmt.Errorf("load oidc signing key: %w", err)
-	}
-	setActiveOIDCKeyPair(keyPair)
-
-	return &Service{
+	service := &Service{
 		cfg:        cfg,
 		smsService: smsService,
 		db:         db,
-		oidc:       keyPair,
-	}, nil
+	}
+	oidcHandler, verifier, err := newOIDCProviderHandler(db, &cfg, smsService, service.redeemPasskeyLoginNonce)
+	if err != nil {
+		return nil, fmt.Errorf("initialize oidc provider: %w", err)
+	}
+	service.oidcHandler = oidcHandler
+	service.verifier = verifier
+	return service, nil
 }
 
 func (s *Service) logAudit(ctx context.Context, actorSubject string, action string, targetType string, targetID string, status string, summary string, details map[string]any) {
@@ -52,13 +51,6 @@ func (s *Service) logAudit(ctx context.Context, actorSubject string, action stri
 		Details:      details,
 	})
 }
-
-const (
-	smsOTPExpiry      = 10 * time.Minute
-	smsOTPMaxAttempts = 5
-	smsOTPRateLimit   = 3
-	sessionCookieName = "egueducation_session"
-)
 
 func (s *Service) ListMethods(w http.ResponseWriter, _ *http.Request) {
 	methods, err := s.listConfiguredMethods(context.Background())
@@ -412,7 +404,7 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	payload, err := json.Marshal(map[string]any{
-		"challenge": req.Challenge,
+		"challenge":  req.Challenge,
 		"clientData": clientData,
 		"response":   req.Response,
 		"passkey": map[string]any{
@@ -567,31 +559,21 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 		where lower(sub) = lower($1)
 	`, subject)
 
-	session, err := s.loadSessionContext(r.Context(), subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "session_load_failed"})
-		return
-	}
-	sessionToken, err := s.issueLoginSession(r.Context(), subject)
+	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_login_challenges where challenge = $1`, req.Challenge)
+
+	nonce, err := s.storePasskeyLoginNonce(r.Context(), userID)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "passkey_login_failed"})
 		return
 	}
-	s.setLoginSessionCookie(w, sessionToken)
 
-	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_login_challenges where challenge = $1`, req.Challenge)
-
-	s.logAudit(r.Context(), subject, "auth.passkey.verify", "session", userID, "success", "Passkey verified and session established.", map[string]any{
+	s.logAudit(r.Context(), subject, "auth.passkey.verify", "session", userID, "success", "Passkey verified and nonce issued for OIDC login.", map[string]any{
 		"credential_id": req.CredentialID,
 		"device_name":   deviceName,
 		"user_id":       userID,
 	})
 
-	httpx.JSON(w, http.StatusOK, SMSOTPVerifyResponse{
-		Status:  "verified",
-		Channel: "passkey",
-		Session: session,
-	})
+	httpx.JSON(w, http.StatusOK, map[string]any{"nonce": nonce})
 }
 
 func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
@@ -618,215 +600,9 @@ func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"status": "active"})
 }
 
-func (s *Service) RequestSMSOTP(w http.ResponseWriter, r *http.Request) {
-	var req RequestSMSOTPRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_request"})
-		return
-	}
-
-	loginPhone, err := s.resolveSMSLoginPhone(r.Context(), req.PhoneNumber, req.Identifier)
-	if err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_request"})
-		return
-	}
-	if !s.cfg.EnableSMSOTP || !s.smsService.Configured() {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_not_available"})
-		return
-	}
-
-	var recentCount int
-	_ = s.db.QueryRow(r.Context(), `
-		select count(*)
-		from sms_otp_codes
-		where identifier = $1 and created_at > now() - interval '10 minutes'
-	`, loginPhone).Scan(&recentCount)
-	if recentCount >= smsOTPRateLimit {
-		s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "failed", "SMS OTP request rate limited.", map[string]any{
-			"channel":      "sms",
-			"identifier":    strings.TrimSpace(req.Identifier),
-			"phone_number":  loginPhone,
-		})
-		httpx.JSON(w, http.StatusTooManyRequests, map[string]any{"code": "sms_otp_rate_limited"})
-		return
-	}
-
-	code, err := generateOTP()
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_generation_failed"})
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(code), bcrypt.DefaultCost)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_generation_failed"})
-		return
-	}
-
-	_, err = s.db.Exec(r.Context(), `
-		insert into sms_otp_codes (identifier, code_hash, purpose, expires_at, created_at, updated_at)
-		values ($1, $2, 'sms_login', $3, now(), now())
-	`, loginPhone, string(hash), time.Now().Add(smsOTPExpiry))
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_store_failed"})
-		return
-	}
-
-	message := fmt.Sprintf("Codul dumneavoastra de autentificare EguEducation este: %s. Valabil 10 minute.", code)
-	if _, err := s.smsService.Send(r.Context(), loginPhone, message); err != nil {
-		s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "failed", "SMS OTP send failed.", map[string]any{
-			"channel":      "sms",
-			"identifier":    strings.TrimSpace(req.Identifier),
-			"phone_number":  loginPhone,
-			"masked_phone":  maskPhone(loginPhone),
-		})
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_send_failed"})
-		return
-	}
-
-	s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "success", "SMS OTP requested.", map[string]any{
-		"channel":      "sms",
-		"identifier":    strings.TrimSpace(req.Identifier),
-		"phone_number":  loginPhone,
-		"masked_phone":  maskPhone(loginPhone),
-	})
-
-	httpx.JSON(w, http.StatusOK, SMSOTPRequestResponse{
-		Status:      "sent",
-		Channel:     "sms",
-		PhoneNumber: maskPhone(loginPhone),
-		MaskedPhone: maskPhone(loginPhone),
-	})
-}
-
-func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
-	var req VerifySMSOTPRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_verify"})
-		return
-	}
-
-	loginTarget := strings.TrimSpace(req.Identifier)
-	if loginTarget == "" {
-		loginTarget = strings.TrimSpace(req.PhoneNumber)
-	}
-	code := strings.TrimSpace(req.Code)
-	if loginTarget == "" || code == "" {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_verify"})
-		return
-	}
-
-	loginPhone, err := s.resolveSMSLoginPhone(r.Context(), req.PhoneNumber, req.Identifier)
-	if err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
-		return
-	}
-
-	var (
-		otpID    int64
-		codeHash string
-		attempts int
-	)
-	err = s.db.QueryRow(r.Context(), `
-		select id, code_hash, attempts
-		from sms_otp_codes
-		where identifier = $1 and used = false and expires_at > now()
-		order by created_at desc
-		limit 1
-	`, loginPhone).Scan(&otpID, &codeHash, &attempts)
-	if err != nil {
-		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification failed.", map[string]any{
-			"channel":      "sms",
-			"identifier":    loginTarget,
-			"phone_number":  loginPhone,
-			"reason":       "missing_or_expired_code",
-		})
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
-		return
-	}
-	if attempts >= smsOTPMaxAttempts {
-		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification blocked.", map[string]any{
-			"channel":      "sms",
-			"identifier":    loginTarget,
-			"phone_number":  loginPhone,
-			"reason":       "too_many_attempts",
-		})
-		httpx.JSON(w, http.StatusTooManyRequests, map[string]any{"code": "sms_otp_too_many_attempts"})
-		return
-	}
-	if err := bcrypt.CompareHashAndPassword([]byte(codeHash), []byte(code)); err != nil {
-		_, _ = s.db.Exec(r.Context(), `update sms_otp_codes set attempts = attempts + 1, updated_at = now() where id = $1`, otpID)
-		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification failed.", map[string]any{
-			"channel":      "sms",
-			"identifier":    loginTarget,
-			"phone_number":  loginPhone,
-			"reason":       "invalid_code",
-		})
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
-		return
-	}
-
-	_, _ = s.db.Exec(r.Context(), `update sms_otp_codes set used = true, updated_at = now() where id = $1`, otpID)
-
-	subject, err := s.lookupSubjectByPhoneNumber(r.Context(), loginPhone)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_login_failed"})
-		return
-	}
-	if _, err := s.db.Exec(r.Context(), `
-		update app_users
-		set last_login_at = now(),
-			updated_at = now()
-		where lower(sub) = lower($1)
-	`, subject); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_login_failed"})
-		return
-	}
-	session, err := s.loadSessionContext(r.Context(), subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "session_load_failed"})
-		return
-	}
-	sessionToken, err := s.issueLoginSession(r.Context(), subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_login_failed"})
-		return
-	}
-	s.setLoginSessionCookie(w, sessionToken)
-
-	s.logAudit(r.Context(), subject, "auth.sms_otp.verify", "session", session.User.ID, "success", "SMS OTP verified and session established.", map[string]any{
-		"channel":          "sms",
-		"identifier":       loginTarget,
-		"phone_number":     loginPhone,
-		"user_id":          session.User.ID,
-		"institution_id":   session.InstitutionID,
-		"preferred_locale": session.User.Locale,
-	})
-
-	httpx.JSON(w, http.StatusOK, SMSOTPVerifyResponse{
-		Status:  "verified",
-		Channel: "sms",
-		Session: session,
-	})
-}
-
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	subject := s.currentSubject(r)
-	if cookie, err := r.Cookie(sessionCookieName); err == nil {
-		_ = s.revokeLoginSession(r.Context(), strings.TrimSpace(cookie.Value))
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   s.cfg.Environment == "production",
-		MaxAge:   -1,
-		Expires:  time.Unix(0, 0),
-	})
-
-	s.logAudit(r.Context(), subject, "auth.session.logout", "session", subject, "success", "User session signed out.", nil)
+	s.logAudit(r.Context(), subject, "auth.session.logout", "session", subject, "success", "OIDC-backed API session signed out.", nil)
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"status": "signed_out",
@@ -834,27 +610,63 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
-	authorization := strings.TrimSpace(r.Header.Get("Authorization"))
-	if authorization == "" {
+	token, scheme, ok := ExtractAccessToken(r)
+	if !ok || token == "" {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "missing_authorization"})
 		return
 	}
-
-	parts := strings.Fields(authorization)
-	if len(parts) != 2 {
-		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_authorization"})
+	if scheme == AccessTokenDPoP {
+		proof, err := VerifyDPoPProof(r, token)
+		if err != nil {
+			WriteDPoPNonce(w)
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_proof"})
+			return
+		}
+		claims, err := s.verifier.Verify(r.Context(), token)
+		if err != nil {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+			return
+		}
+		if claims.Cnf.JKT != "" && claims.Cnf.JKT != proof.Thumbprint {
+			WriteDPoPNonce(w)
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_binding"})
+			return
+		}
+		subject := strings.TrimSpace(claims.Subject)
+		if subject == "" {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+			return
+		}
+		session, err := s.loadSessionContext(r.Context(), subject)
+		if err != nil {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
+			return
+		}
+		if _, err := s.db.Exec(r.Context(), `
+			update app_users
+			set last_login_at = now(),
+				updated_at = now()
+			where lower(sub) = lower($1)
+		`, subject); err == nil {
+			session.User.Sub = subject
+		}
+		s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC token exchange acknowledged.", map[string]any{
+			"channel":        "oidc_redirect",
+			"user_id":        session.User.ID,
+			"institution_id": session.InstitutionID,
+		})
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"status":  "established",
+			"session": session,
+		})
 		return
 	}
-
-	token := strings.TrimSpace(parts[1])
-	claims, err := s.verifyToken(token, "access_token")
+	claims, err := s.verifier.Verify(r.Context(), token)
 	if err != nil {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 		return
 	}
-
-	subject, _ := claims["sub"].(string)
-	subject = strings.TrimSpace(subject)
+	subject := strings.TrimSpace(claims.Subject)
 	if subject == "" {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 		return
@@ -866,17 +678,11 @@ func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC session exchanged for backend cookie session.", map[string]any{
+	s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC token exchange acknowledged.", map[string]any{
 		"channel":        "oidc_redirect",
 		"user_id":        session.User.ID,
 		"institution_id": session.InstitutionID,
 	})
-	sessionToken, err := s.issueLoginSession(r.Context(), subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "session_issue_failed"})
-		return
-	}
-	s.setLoginSessionCookie(w, sessionToken)
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"status":  "established",
@@ -1077,42 +883,6 @@ func (s *Service) runtimeCapability(code string) bool {
 	}
 }
 
-func (s *Service) lookupVerifiedPhoneNumber(ctx context.Context, phoneNumber string) (string, error) {
-	phoneCandidates := phoneNumberCandidates(phoneNumber)
-
-	var phone string
-	err := s.db.QueryRow(ctx, `
-		select phone_number
-		from app_users
-		where regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($1::text[])
-			and status = 'active'
-			and phone_number_verified = true
-			and preferred_otp_channel = 'sms'
-	`, phoneCandidates).Scan(&phone)
-	if err != nil {
-		return "", err
-	}
-	return notification.NormalizePhone(phone), nil
-}
-
-func (s *Service) lookupSubjectByPhoneNumber(ctx context.Context, phoneNumber string) (string, error) {
-	phoneCandidates := phoneNumberCandidates(phoneNumber)
-
-	var subject string
-	err := s.db.QueryRow(ctx, `
-		select sub
-		from app_users
-		where regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($1::text[])
-			and status = 'active'
-			and phone_number_verified = true
-			and preferred_otp_channel = 'sms'
-	`, phoneCandidates).Scan(&subject)
-	if err != nil {
-		return "", err
-	}
-	return subject, nil
-}
-
 func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, credentialID string) (string, string, string, *passkeyPublicKey, uint32, error) {
 	var (
 		subject    string
@@ -1138,81 +908,38 @@ func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, creden
 }
 
 func (s *Service) currentSubject(r *http.Request) string {
-	cookie, err := r.Cookie(sessionCookieName)
-	if err == nil {
-		sessionToken := strings.TrimSpace(cookie.Value)
-		if sessionToken != "" {
-			subject, err := s.resolveLoginSubject(r.Context(), sessionToken)
-			if err == nil && subject != "" {
-				return subject
-			}
-		}
+	if session, ok := sessionFromContext(r.Context()); ok && session.User.Sub != "" {
+		return session.User.Sub
+	}
+	if claims := accessTokenClaimsFromContext(r.Context()); claims != nil && claims.Subject != "" {
+		return claims.Subject
 	}
 	return ""
 }
 
 func CurrentSubjectFromRequest(r *http.Request) string {
-	cookie, err := r.Cookie(sessionCookieName)
-	if err == nil {
-		sessionToken := strings.TrimSpace(cookie.Value)
-		if sessionToken != "" {
-			claims, err := verifySessionClaims(sessionToken)
-			if err == nil && claims.Subject != "" {
-				return claims.Subject
-			}
-		}
+	if session, ok := sessionFromContext(r.Context()); ok && session.User.Sub != "" {
+		return session.User.Sub
+	}
+	if claims := accessTokenClaimsFromContext(r.Context()); claims != nil && claims.Subject != "" {
+		return claims.Subject
 	}
 	return ""
 }
 
-func normalizeSMSPhoneNumber(phoneNumber string, legacyIdentifier string) string {
-	value := strings.TrimSpace(phoneNumber)
-	if value == "" {
-		value = strings.TrimSpace(legacyIdentifier)
+func CurrentInstitutionIDFromRequest(r *http.Request) string {
+	if session, ok := sessionFromContext(r.Context()); ok && session.InstitutionID != "" {
+		return session.InstitutionID
 	}
-	if value == "" || strings.Contains(value, "@") {
-		return ""
+	if claims := accessTokenClaimsFromContext(r.Context()); claims != nil {
+		if claims.InstitutionID != "" {
+			return claims.InstitutionID
+		}
+		if claims.TenantID != "" {
+			return claims.TenantID
+		}
 	}
-
-	normalized := notification.NormalizePhone(value)
-	if phoneDigits(normalized) == "" {
-		return ""
-	}
-	return normalized
-}
-
-func (s *Service) resolveSMSLoginPhone(ctx context.Context, phoneNumber string, identifier string) (string, error) {
-	value := strings.TrimSpace(identifier)
-	if value == "" {
-		return "", errors.New("missing sms login identifier")
-	}
-	if phone := s.tryLookupVerifiedPhone(ctx, value); phone != "" {
-		return phone, nil
-	}
-	return "", errors.New("sms login target not found")
-}
-
-func (s *Service) tryLookupVerifiedPhone(ctx context.Context, value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return ""
-	}
-
-	var phone string
-	err := s.db.QueryRow(ctx, `
-		select phone_number
-		from app_users
-		where status = 'active'
-			and phone_number_verified = true
-			and preferred_otp_channel = 'sms'
-			and (
-				lower(sub) = lower($1)
-			)
-	`, trimmed).Scan(&phone)
-	if err != nil {
-		return ""
-	}
-	return notification.NormalizePhone(phone)
+	return ""
 }
 
 func phoneNumberCandidates(phoneNumber string) []string {
@@ -1247,28 +974,4 @@ func phoneDigits(value string) string {
 		}
 	}
 	return digits.String()
-}
-
-func generateOTP() (string, error) {
-	const digits = "0123456789"
-	bytes := make([]byte, 6)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	for index, value := range bytes {
-		bytes[index] = digits[int(value)%len(digits)]
-	}
-	return string(bytes), nil
-}
-
-func maskPhone(phone string) string {
-	value := notification.NormalizePhone(phone)
-	if len(value) <= 4 {
-		return value
-	}
-	middle := len(value) - 5
-	if middle < 0 {
-		middle = 0
-	}
-	return value[:3] + strings.Repeat("*", middle) + value[len(value)-2:]
 }

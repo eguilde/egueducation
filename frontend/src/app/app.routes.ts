@@ -169,12 +169,24 @@ export const routes: Routes = [
         path: 'education',
         canActivate: [permissionGuard],
         data: {
-          roles: featureAccess('education')?.roles ?? [],
-          rolesMode: 'any',
+          permissions: [
+            'education.read',
+            'education.governance.read',
+            'education.decisions.read',
+            'education.managerial.read',
+            'education.regulations.read',
+            'education.personnel.read',
+            'education.evaluations.read',
+            'education.declarations.read',
+            'education.mobility.read',
+            'education.gradatii.read',
+            'education.portfolios.read',
+          ],
+          permissionsMode: 'any',
           module: 'education',
         },
-        loadComponent: () =>
-          import('./features/prime-workspaces/education-workspace.component').then((m) => m.EducationWorkspaceComponent),
+        loadChildren: () =>
+          import('./features/education/education.routes').then((m) => m.educationRoutes),
       },
       {
         path: 'admin',

@@ -82,7 +82,7 @@ export async function exchangeCode(
   codeVerifier: string,
   dpop?: oauth.DPoPHandle,
 ): Promise<StoredTokens> {
-  const response = await oauth.authorizationCodeGrantRequest(
+const response = await oauth.authorizationCodeGrantRequest(
     server,
     client(config),
     oauth.None(),
@@ -93,9 +93,10 @@ export async function exchangeCode(
   );
   const result = await oauth.processAuthorizationCodeResponse(server, client(config), response);
   const now = Math.floor(Date.now() / 1000);
+  const refreshToken = result.refresh_token ?? 'cookie';
   return {
     access_token: result.access_token,
-    refresh_token: result.refresh_token ?? undefined,
+    refresh_token: refreshToken,
     id_token: result.id_token ?? undefined,
     expires_at: now + (result.expires_in ?? 900),
   };

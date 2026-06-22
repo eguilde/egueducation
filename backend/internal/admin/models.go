@@ -314,38 +314,6 @@ type UpsertOIDCClientRequest struct {
 	RedirectURIs []string `json:"redirect_uris"`
 }
 
-type OIDCConsentGrant struct {
-	ID           string `json:"id"`
-	ClientID     string `json:"client_id"`
-	ClientName   string `json:"client_name"`
-	Subject      string `json:"subject"`
-	SubjectName  string `json:"subject_name"`
-	SubjectEmail string `json:"subject_email"`
-	Scope        string `json:"scope"`
-	GrantedAt    string `json:"granted_at"`
-}
-
-type OIDCSession struct {
-	TokenID      string `json:"token_id"`
-	ClientID     string `json:"client_id"`
-	ClientName   string `json:"client_name"`
-	Subject      string `json:"subject"`
-	SubjectName  string `json:"subject_name"`
-	SubjectEmail string `json:"subject_email"`
-	Scope        string `json:"scope"`
-	CreatedAt    string `json:"created_at"`
-	ExpiresAt    string `json:"expires_at"`
-	Revoked      bool   `json:"revoked"`
-}
-
-type RevokeOIDCGrantRequest struct {
-	ID string `json:"id"`
-}
-
-type RevokeOIDCSessionRequest struct {
-	TokenID string `json:"token_id"`
-}
-
 type Role struct {
 	Code  string `json:"code"`
 	Label string `json:"label"`

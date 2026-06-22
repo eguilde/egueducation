@@ -76,3 +76,175 @@ type PortfolioSection struct {
 	SortOrder        int      `json:"sort_order"`
 	Active           bool     `json:"active"`
 }
+
+type PortfolioDocument struct {
+	ID                 string `json:"id"`
+	PortfolioID        string `json:"portfolio_id"`
+	SectionCode        string `json:"section_code"`
+	ComponentCode      string `json:"component_code"`
+	DocumentTitle      string `json:"document_title"`
+	SourceScope        string `json:"source_scope"`
+	EvidenceType       string `json:"evidence_type"`
+	IssuedOn           string `json:"issued_on"`
+	AddedOn            string `json:"added_on"`
+	ChronologicalIndex int    `json:"chronological_index"`
+	SensitiveData      bool   `json:"sensitive_data"`
+	AuthenticityStatus string `json:"authenticity_status"`
+	FileReference      string `json:"file_reference"`
+	InstitutionID      string `json:"institution_id"`
+	Notes              string `json:"notes"`
+}
+
+type CreatePortfolioDocumentRequest struct {
+	SectionCode        string `json:"section_code"`
+	ComponentCode      string `json:"component_code"`
+	DocumentTitle      string `json:"document_title"`
+	SourceScope        string `json:"source_scope"`
+	EvidenceType       string `json:"evidence_type"`
+	IssuedOn           string `json:"issued_on"`
+	AddedOn            string `json:"added_on"`
+	ChronologicalIndex int    `json:"chronological_index"`
+	SensitiveData      bool   `json:"sensitive_data"`
+	AuthenticityStatus string `json:"authenticity_status"`
+	FileReference      string `json:"file_reference"`
+	Notes              string `json:"notes"`
+}
+
+type PortfolioChecklistItem struct {
+	ID               string `json:"id"`
+	PortfolioID      string `json:"portfolio_id"`
+	RequirementCode  string `json:"requirement_code"`
+	RequirementLabel string `json:"requirement_label"`
+	SectionCode      string `json:"section_code"`
+	SourceScope      string `json:"source_scope"`
+	Mandatory        bool   `json:"mandatory"`
+	Status           string `json:"status"`
+	DocumentCount    int    `json:"document_count"`
+	LastCheckedOn    string `json:"last_checked_on"`
+	CheckedBy        string `json:"checked_by"`
+	InstitutionID    string `json:"institution_id"`
+	Notes            string `json:"notes"`
+}
+
+type CreatePortfolioChecklistItemRequest struct {
+	RequirementCode  string `json:"requirement_code"`
+	RequirementLabel string `json:"requirement_label"`
+	SectionCode      string `json:"section_code"`
+	SourceScope      string `json:"source_scope"`
+	Mandatory        bool   `json:"mandatory"`
+	Status           string `json:"status"`
+	DocumentCount    int    `json:"document_count"`
+	LastCheckedOn    string `json:"last_checked_on"`
+	CheckedBy        string `json:"checked_by"`
+	Notes            string `json:"notes"`
+}
+
+type PortfolioTransferEvent struct {
+	ID                     string `json:"id"`
+	PortfolioID            string `json:"portfolio_id"`
+	TransferCode           string `json:"transfer_code"`
+	TransferType           string `json:"transfer_type"`
+	SourceInstitution      string `json:"source_institution"`
+	DestinationInstitution string `json:"destination_institution"`
+	Status                 string `json:"status"`
+	HandoverOn             string `json:"handover_on"`
+	ReceivedOn             string `json:"received_on"`
+	HandoverBy             string `json:"handover_by"`
+	ReceivedBy             string `json:"received_by"`
+	InstitutionID          string `json:"institution_id"`
+	Notes                  string `json:"notes"`
+}
+
+type CreatePortfolioTransferEventRequest struct {
+	TransferType           string `json:"transfer_type"`
+	SourceInstitution      string `json:"source_institution"`
+	DestinationInstitution string `json:"destination_institution"`
+	Status                 string `json:"status"`
+	HandoverOn             string `json:"handover_on"`
+	ReceivedOn             string `json:"received_on"`
+	HandoverBy             string `json:"handover_by"`
+	ReceivedBy             string `json:"received_by"`
+	Notes                  string `json:"notes"`
+}
+
+type PortfolioReviewEvent struct {
+	ID               string `json:"id"`
+	PortfolioID      string `json:"portfolio_id"`
+	ReviewCode       string `json:"review_code"`
+	ReviewStage      string `json:"review_stage"`
+	Outcome          string `json:"outcome"`
+	ReviewerName     string `json:"reviewer_name"`
+	ReviewedOn       string `json:"reviewed_on"`
+	MissingDocuments int    `json:"missing_documents"`
+	ComplianceScore  int    `json:"compliance_score"`
+	InstitutionID    string `json:"institution_id"`
+	Notes            string `json:"notes"`
+}
+
+type CreatePortfolioReviewEventRequest struct {
+	ReviewStage      string `json:"review_stage"`
+	Outcome          string `json:"outcome"`
+	ReviewerName     string `json:"reviewer_name"`
+	ReviewedOn       string `json:"reviewed_on"`
+	MissingDocuments int    `json:"missing_documents"`
+	ComplianceScore  int    `json:"compliance_score"`
+	Notes            string `json:"notes"`
+}
+
+type PortfolioOpisEntry struct {
+	ID                 string `json:"id"`
+	PortfolioID        string `json:"portfolio_id"`
+	SectionCode        string `json:"section_code"`
+	ComponentCode      string `json:"component_code"`
+	EntryTitle         string `json:"entry_title"`
+	SourceScope        string `json:"source_scope"`
+	ChronologicalIndex int    `json:"chronological_index"`
+	DocumentReference  string `json:"document_reference"`
+	IncludedInTransfer bool   `json:"included_in_transfer"`
+	CheckedOn          string `json:"checked_on"`
+	CheckedBy          string `json:"checked_by"`
+	InstitutionID      string `json:"institution_id"`
+	Notes              string `json:"notes"`
+}
+
+type CreatePortfolioOpisEntryRequest struct {
+	SectionCode        string `json:"section_code"`
+	ComponentCode      string `json:"component_code"`
+	EntryTitle         string `json:"entry_title"`
+	SourceScope        string `json:"source_scope"`
+	ChronologicalIndex int    `json:"chronological_index"`
+	DocumentReference  string `json:"document_reference"`
+	IncludedInTransfer bool   `json:"included_in_transfer"`
+	CheckedOn          string `json:"checked_on"`
+	CheckedBy          string `json:"checked_by"`
+	Notes              string `json:"notes"`
+}
+
+type PortfolioCustodyEvent struct {
+	ID                  string `json:"id"`
+	PortfolioID         string `json:"portfolio_id"`
+	EventType           string `json:"event_type"`
+	HolderName          string `json:"holder_name"`
+	HolderRole          string `json:"holder_role"`
+	LocationLabel       string `json:"location_label"`
+	AccessReason        string `json:"access_reason"`
+	StartedOn           string `json:"started_on"`
+	EndedOn             string `json:"ended_on"`
+	AccessMode          string `json:"access_mode"`
+	SensitiveDataAccess bool   `json:"sensitive_data_access"`
+	InstitutionID       string `json:"institution_id"`
+	Notes               string `json:"notes"`
+}
+
+type CreatePortfolioCustodyEventRequest struct {
+	EventType           string `json:"event_type"`
+	HolderName          string `json:"holder_name"`
+	HolderRole          string `json:"holder_role"`
+	LocationLabel       string `json:"location_label"`
+	AccessReason        string `json:"access_reason"`
+	StartedOn           string `json:"started_on"`
+	EndedOn             string `json:"ended_on"`
+	AccessMode          string `json:"access_mode"`
+	SensitiveDataAccess bool   `json:"sensitive_data_access"`
+	Notes               string `json:"notes"`
+}

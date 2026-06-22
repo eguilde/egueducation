@@ -63,29 +63,6 @@ export interface RolePositionResponse {
   items: RolePositionItem[];
 }
 
-export interface RequestSMSOTPRequest {
-  phone_number: string;
-  identifier?: string;
-}
-
-export interface VerifySMSOTPRequest {
-  phone_number: string;
-  identifier?: string;
-  code: string;
-}
-
-export interface SMSOTPRequestResponse {
-  status: string;
-  channel: string;
-  masked_phone: string;
-}
-
-export interface SMSOTPVerifyResponse {
-  status: string;
-  channel: string;
-  session: SessionContext;
-}
-
 export interface PasskeyAuthenticationOptions {
   challenge: string;
   rp: {
@@ -110,32 +87,6 @@ export interface FinishPasskeyAuthenticationRequest {
   challenge: string;
   credential_id: string;
   response: Record<string, unknown>;
-}
-
-export interface AuthConsentScope {
-  code: string;
-  label: string;
-  description?: string;
-  required: boolean;
-}
-
-export interface AuthConsentRequestResponse {
-  request_id: string;
-  client_id: string;
-  client_name: string;
-  scopes: AuthConsentScope[];
-  expires_at: string;
-}
-
-export interface AuthConsentDecisionRequest {
-  request_id: string;
-  decision: 'allow' | 'deny';
-  granted_scopes: string[];
-}
-
-export interface AuthConsentDecisionResponse {
-  status: string;
-  redirect_to: string;
 }
 
 export interface ModuleStatus {
@@ -475,38 +426,6 @@ export interface UpsertAdminOIDCClientRequest {
   require_pkce: boolean;
   active: boolean;
   redirect_uris: string[];
-}
-
-export interface AdminOIDCConsentGrant {
-  id: string;
-  client_id: string;
-  client_name: string;
-  subject: string;
-  subject_name: string;
-  subject_email: string;
-  scope: string;
-  granted_at: string;
-}
-
-export interface RevokeAdminOIDCConsentRequest {
-  id: string;
-}
-
-export interface AdminOIDCSession {
-  token_id: string;
-  client_id: string;
-  client_name: string;
-  subject: string;
-  subject_name: string;
-  subject_email: string;
-  scope: string;
-  created_at: string;
-  expires_at: string;
-  revoked: boolean;
-}
-
-export interface RevokeAdminOIDCSessionRequest {
-  token_id: string;
 }
 
 export interface AdminAuditEvent {

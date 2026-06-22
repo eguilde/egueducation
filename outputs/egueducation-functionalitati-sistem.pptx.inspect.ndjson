@@ -1,0 +1,428 @@
+{"kind":"deck","id":"pr/9vpi7f","name":"Deck"}
+{"kind":"layout","layoutId":"33dc4949-cc1c-4b63-ac70-4418c366e0a8","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"65ec1d81-a281-4680-8fb1-909dd6ca2e65","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/zrbi22","slide":1,"title":"PREZENTARE FUNCȚIONALĂ","textShapes":10}
+{"kind":"shape","id":"sh/m94fu18j","slide":1,"bbox":[74,74,240,30]}
+{"kind":"textbox","id":"sh/fu18jqh0","slide":1,"text":"PREZENTARE FUNCȚIONALĂ","textPreview":"PREZENTARE FUNCȚIONALĂ","textChars":22,"textLines":1,"bbox":[88,81,212,16]}
+{"kind":"textbox","id":"sh/83itgfml","slide":1,"text":"EguEducation\nPlatformă integrată pentru educație\nși managementul documentelor","textPreview":"EguEducation | Platformă integrată pentru educație | și managementul documentelor","textChars":77,"textLines":3,"bbox":[74,140,520,190]}
+{"kind":"textbox","id":"sh/xobm58z2","slide":1,"text":"Prezentarea sintetizează funcționalitățile reale existente în platformă, rolurile utilizatorilor, fluxurile operaționale și paralela cu documentele normative care au ghidat designul.","textPreview":"Prezentarea sintetizează funcționalitățile reale existente în platformă, rolurile utilizatorilor, fluxurile operaționale și paralela cu d...","textChars":182,"textLines":1,"bbox":[74,338,500,112]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[80,476,16,18]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":1,"text":"Modul educațional complet, grupat pe procese, registre și dosare","textPreview":"Modul educațional complet, grupat pe procese, registre și dosare","textChars":64,"textLines":1,"bbox":[98,476,482,50]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[80,526,16,18]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":1,"text":"Registratură, flux documente și eArhivă în aceeași platformă","textPreview":"Registratură, flux documente și eArhivă în aceeași platformă","textChars":60,"textLines":1,"bbox":[98,526,482,50]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":1,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[80,576,16,18]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":1,"text":"RBAC, multi-tenant, audit, export PDF/CSV și UX PrimeNG modern","textPreview":"RBAC, multi-tenant, audit, export PDF/CSV și UX PrimeNG modern","textChars":62,"textLines":1,"bbox":[98,576,482,50]}
+{"kind":"shape","id":"sh/ji5snelo","slide":1,"bbox":[74,634,280,30]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":1,"text":"Iunie 2026 · stare actuală implementată","textPreview":"Iunie 2026 · stare actuală implementată","textChars":39,"textLines":1,"bbox":[88,641,252,16]}
+{"kind":"image","id":"im/g7adsji5","slide":1,"name":"","geometry":"roundRect","alt":"EguEducation platform illustration","bbox":[664,86,552,560]}
+{"kind":"notes","id":"nt/zrbi22","slide":1,"text":""}
+{"kind":"slide","id":"sl/djvz31","slide":2,"title":"EGUEDUCATION","textShapes":13}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":2,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":2,"text":"Ce este EguEducation","textPreview":"Ce este EguEducation","textChars":20,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":2,"text":"Platformă operațională unificată pentru procesele educaționale și cele documentare ale unei instituții școlare.","textPreview":"Platformă operațională unificată pentru procesele educaționale și cele documentare ale unei instituții școlare.","textChars":111,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/5o7qpg3e","slide":2,"bbox":[64,156,332,154]}
+{"kind":"shape","id":"sh/g3ex0nux","slide":2,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/nih4byhg","slide":2,"text":"1. Platformă unică","textPreview":"1. Platformă unică","textChars":18,"textLines":1,"bbox":[82,186,296,28]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":2,"text":"Unifică educația, registratura, workflow-ul, arhiva electronică, administrarea și profilul într-un singur shell aplicațional.","textPreview":"Unifică educația, registratura, workflow-ul, arhiva electronică, administrarea și profilul într-un singur shell aplicațional.","textChars":125,"textLines":1,"bbox":[82,224,296,72]}
+{"kind":"shape","id":"sh/9s36hcrm","slide":2,"bbox":[412,156,332,154]}
+{"kind":"shape","id":"sh/g7adsji5","slide":2,"bbox":[430,174,52,4]}
+{"kind":"textbox","id":"sh/y1kre1w7","slide":2,"text":"2. Procese reale","textPreview":"2. Procese reale","textChars":16,"textLines":1,"bbox":[430,186,296,28]}
+{"kind":"textbox","id":"sh/rmhk3q5o","slide":2,"text":"Modelează registre, dosare, documente, contestații, etape, publicare, acces la dosar personal și subfluxuri operaționale.","textPreview":"Modelează registre, dosare, documente, contestații, etape, publicare, acces la dosar personal și subfluxuri operaționale.","textChars":121,"textLines":1,"bbox":[430,224,296,72]}
+{"kind":"shape","id":"sh/g7adsji5","slide":2,"bbox":[760,156,456,154]}
+{"kind":"shape","id":"sh/9s36hcrm","slide":2,"bbox":[778,174,52,4]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":2,"text":"3. Fundamente de guvernanță","textPreview":"3. Fundamente de guvernanță","textChars":27,"textLines":1,"bbox":[778,186,420,28]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":2,"text":"Include RBAC, mapări poziție-rol, audit log, tenant scoping instituțional, exporturi și generare de documente PDF.","textPreview":"Include RBAC, mapări poziție-rol, audit log, tenant scoping instituțional, exporturi și generare de documente PDF.","textChars":114,"textLines":1,"bbox":[778,224,420,72]}
+{"kind":"shape","id":"sh/90je9cvi","slide":2,"bbox":[698,334,518,314]}
+{"kind":"shape","id":"sh/ylc7u54z","slide":2,"bbox":[716,352,52,4]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":2,"text":"Acoperire funcțională la nivel de produs","textPreview":"Acoperire funcțională la nivel de produs","textChars":40,"textLines":1,"bbox":[716,364,482,28]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":2,"text":"• Home și autentificare OIDC\n• Workspace Documente: Registratură, Flux documente, eArhivă\n• Workspace Education: guvernanță, personal, portofolii, conformitate\n• Workspace Admin: utilizatori, RBAC, mapări\n• Workspace GDPR și pagină de profil\n• Legături între module prin workflow și relații documentare","textPreview":"• Home și autentificare OIDC | • Workspace Documente: Registratură, Flux documente, eArhivă | • Workspace Education: guvernanță, personal...","textChars":302,"textLines":6,"bbox":[716,402,482,232]}
+{"kind":"shape","id":"sh/qpg3ex0n","slide":2,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":2,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"image","id":"im/za1gvy90","slide":2,"name":"","geometry":"roundRect","alt":"Document lifecycle and archive illustration","bbox":[64,334,610,314]}
+{"kind":"notes","id":"nt/djvz31","slide":2,"text":""}
+{"kind":"slide","id":"sl/rsk013","slide":3,"title":"EGUEDUCATION","textShapes":17}
+{"kind":"textbox","id":"sh/q1orytsv","slide":3,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":3,"text":"Arhitectura sistemului","textPreview":"Arhitectura sistemului","textChars":22,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/87ed8bat","slide":3,"text":"EguEducation este construit ca o platformă stratificată: identitate, shell UI, module operaționale, servicii backend și guvernanță a datelor.","textPreview":"EguEducation este construit ca o platformă stratificată: identitate, shell UI, module operaționale, servicii backend și guvernanță a date...","textChars":141,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/je9cvixc","slide":3,"bbox":[92,178,236,82]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":3,"text":"Identitate și securitate","textPreview":"Identitate și securitate","textChars":24,"textLines":1,"bbox":[108,192,204,22]}
+{"kind":"textbox","id":"sh/1gvy90je","slide":3,"text":"OIDC callback, profil, passkeys, EUDI wallet, sesiune și acces contextual","textPreview":"OIDC callback, profil, passkeys, EUDI wallet, sesiune și acces contextual","textChars":73,"textLines":1,"bbox":[106,216,208,32]}
+{"kind":"shape","id":"sh/8z25kb6x","slide":3,"bbox":[368,178,236,82]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":3,"text":"Shell și navigare","textPreview":"Shell și navigare","textChars":17,"textLines":1,"bbox":[384,192,204,22]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":3,"text":"Rute protejate, workspace-uri tematice, tabs, responsive layout","textPreview":"Rute protejate, workspace-uri tematice, tabs, responsive layout","textChars":63,"textLines":1,"bbox":[382,216,208,32]}
+{"kind":"shape","id":"sh/wjudg7ad","slide":3,"bbox":[644,178,236,82]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":3,"text":"Module operaționale","textPreview":"Module operaționale","textChars":19,"textLines":1,"bbox":[660,192,204,22]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":3,"text":"Documente, Education, Admin, GDPR și Profile","textPreview":"Documente, Education, Admin, GDPR și Profile","textChars":44,"textLines":1,"bbox":[658,216,208,32]}
+{"kind":"shape","id":"sh/7y1kre1w","slide":3,"bbox":[920,178,236,82]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":3,"text":"Servicii backend","textPreview":"Servicii backend","textChars":16,"textLines":1,"bbox":[936,192,204,22]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":3,"text":"Registratură, workflow, eArhivă, education, RBAC, audit, export","textPreview":"Registratură, workflow, eArhivă, education, RBAC, audit, export","textChars":63,"textLines":1,"bbox":[934,216,208,32]}
+{"kind":"shape","id":"sh/i5sneloj","slide":3,"bbox":[328,218,40,3]}
+{"kind":"shape","id":"sh/7qpg3ex0","slide":3,"bbox":[604,218,40,3]}
+{"kind":"shape","id":"sh/0z61032l","slide":3,"bbox":[880,218,40,3]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":3,"bbox":[92,312,514,262]}
+{"kind":"shape","id":"sh/donyd0z6","slide":3,"bbox":[110,330,52,4]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":3,"text":"Principii de implementare","textPreview":"Principii de implementare","textChars":25,"textLines":1,"bbox":[110,342,478,28]}
+{"kind":"textbox","id":"sh/vixczed8","slide":3,"text":"• Angular 21 standalone + PrimeNG + Tailwind\n• Tabele server-side: sortare, filtrare în header, paginare, sticky zones\n• CRUD prin dialoguri și acțiuni pe rând\n• Workspace generic reutilizabil pentru subdomeniile Education\n• Generare PDF și export CSV din fluxurile cheie","textPreview":"• Angular 21 standalone + PrimeNG + Tailwind | • Tabele server-side: sortare, filtrare în header, paginare, sticky zones | • CRUD prin di...","textChars":271,"textLines":5,"bbox":[110,380,478,180]}
+{"kind":"shape","id":"sh/2x4nap4r","slide":3,"bbox":[634,312,522,262]}
+{"kind":"shape","id":"sh/dcbulwva","slide":3,"bbox":[652,330,52,4]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":3,"text":"Capabilități transversale backend","textPreview":"Capabilități transversale backend","textChars":33,"textLines":1,"bbox":[652,342,486,28]}
+{"kind":"textbox","id":"sh/val87ed8","slide":3,"text":"• Scoping pe instituție pentru multi-tenant\n• Permisiuni fine pe fiecare subdomeniu\n• Workflow launcher pentru mai multe module\n• Audit trail pentru operațiuni importante\n• Endpoint-uri dedicate de PDF pentru evaluări, mobilitate, gradații și portofolii","textPreview":"• Scoping pe instituție pentru multi-tenant | • Permisiuni fine pe fiecare subdomeniu | • Workflow launcher pentru mai multe module | • A...","textChars":253,"textLines":5,"bbox":[652,380,486,180]}
+{"kind":"shape","id":"sh/6psfil0r","slide":3,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":3,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/knih4byh","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/rsk013","slide":3,"text":""}
+{"kind":"slide","id":"sl/5cd9oc","slide":4,"title":"EGUEDUCATION","textShapes":13}
+{"kind":"textbox","id":"sh/t47y1kre","slide":4,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":4,"text":"Roluri și model de acces","textPreview":"Roluri și model de acces","textChars":24,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":4,"text":"Platforma separă rolurile educaționale, cele documentare și cele de administrare, apoi le mapează în permisiuni și poziții.","textPreview":"Platforma separă rolurile educaționale, cele documentare și cele de administrare, apoi le mapează în permisiuni și poziții.","textChars":123,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/0rqd4vmt","slide":4,"bbox":[64,156,360,284]}
+{"kind":"shape","id":"sh/tcj6tova","slide":4,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":4,"text":"Roluri educaționale","textPreview":"Roluri educaționale","textChars":19,"textLines":1,"bbox":[82,186,324,28]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":4,"text":"• director\n• profesor\n• inspector\n• admin / super_admin pentru funcții de coordonare\n\nAccesă în principal workspace-ul Education și părțile necesare din Admin, GDPR sau Workflow.","textPreview":"• director | • profesor | • inspector | • admin / super_admin pentru funcții de coordonare |  | Accesă în principal workspace-ul Educatio...","textChars":178,"textLines":6,"bbox":[82,224,324,202]}
+{"kind":"shape","id":"sh/032lszqt","slide":4,"bbox":[460,156,360,284]}
+{"kind":"shape","id":"sh/tovahoza","slide":4,"bbox":[478,174,52,4]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":4,"text":"Roluri documentare și instituționale","textPreview":"Roluri documentare și instituționale","textChars":36,"textLines":1,"bbox":[478,186,324,28]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":4,"text":"• secretar\n• registrator\n• director\n• admin / super_admin\n\nAcoperă registratura, fluxul documentelor, registrele, eArhiva și operațiunile administrative.","textPreview":"• secretar | • registrator | • director | • admin / super_admin |  | Acoperă registratura, fluxul documentelor, registrele, eArhiva și op...","textChars":153,"textLines":6,"bbox":[478,224,324,202]}
+{"kind":"shape","id":"sh/32lszqtc","slide":4,"bbox":[856,156,360,284]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":4,"bbox":[874,174,52,4]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":4,"text":"Roluri de protecție și platformă","textPreview":"Roluri de protecție și platformă","textChars":32,"textLines":1,"bbox":[874,186,324,28]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":4,"text":"• gdpr_officer\n• workflow_admin\n• admin\n• super_admin\n\nGestionează politici, publicare controlată, configurări de platformă, mapări RBAC și taskuri workflow.","textPreview":"• gdpr_officer | • workflow_admin | • admin | • super_admin |  | Gestionează politici, publicare controlată, configurări de platformă, ma...","textChars":157,"textLines":6,"bbox":[874,224,324,202]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":4,"bbox":[64,468,1152,156]}
+{"kind":"shape","id":"sh/at47y1kr","slide":4,"bbox":[82,486,52,4]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":4,"text":"Cum funcționează controlul de acces","textPreview":"Cum funcționează controlul de acces","textChars":35,"textLines":1,"bbox":[82,498,1116,28]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":4,"text":"1. rutele frontend sunt protejate prin guards pe roluri, permisiuni și module\n2. backend-ul derivă accesul din roluri directe, permisiuni directe, poziții și mapări poziție-rol\n3. fiecare submodul Education are propriile permisiuni de citire și administrare\n4. aceeași identitate poate avea acces atât la educație, cât și la registratură sau arhivă, în funcție de contextul instituțional","textPreview":"1. rutele frontend sunt protejate prin guards pe roluri, permisiuni și module | 2. backend-ul derivă accesul din roluri directe, permisiu...","textChars":387,"textLines":4,"bbox":[82,536,1116,74]}
+{"kind":"shape","id":"sh/s72x4nap","slide":4,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":4,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":4,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/5cd9oc","slide":4,"text":""}
+{"kind":"slide","id":"sl/0w03ie","slide":5,"title":"EGUEDUCATION","textShapes":17}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":5,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":5,"text":"Workspace Documente · Registratură","textPreview":"Workspace Documente · Registratură","textChars":34,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":5,"text":"Registratura este punctul de intrare pentru documente, cu filtrare avansată, relații documentare, versiuni, atașamente și export PDF.","textPreview":"Registratura este punctul de intrare pentru documente, cu filtrare avansată, relații documentare, versiuni, atașamente și export PDF.","textChars":133,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/p4r65wju","slide":5,"bbox":[64,156,430,446]}
+{"kind":"shape","id":"sh/wjudg7ad","slide":5,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":5,"text":"Funcționalități cheie","textPreview":"Funcționalități cheie","textChars":21,"textLines":1,"bbox":[82,186,394,28]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":5,"text":"• registru activ selectabil\n• căutare și filtrare pe număr, tip, direcție, emitent, destinatar, confidențialitate și intervale de date\n• creare document nou intrare / ieșire\n• generare multiplă de documente\n• editare, anulare și export PDF\n• drawer de detaliu cu versiuni, atașamente și linkuri către alte documente\n• deschidere în pagină dedicată sau lansare în flux","textPreview":"• registru activ selectabil | • căutare și filtrare pe număr, tip, direcție, emitent, destinatar, confidențialitate și intervale de date ...","textChars":367,"textLines":7,"bbox":[82,224,394,364]}
+{"kind":"shape","id":"sh/p8nqxs72","slide":5,"bbox":[538,180,148,82]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":5,"text":"Intrare","textPreview":"Intrare","textChars":7,"textLines":1,"bbox":[554,194,116,22]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":5,"text":"Creare și clasificare","textPreview":"Creare și clasificare","textChars":21,"textLines":1,"bbox":[552,218,120,32]}
+{"kind":"shape","id":"sh/72x4nap4","slide":5,"bbox":[710,180,148,82]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":5,"text":"Procesare","textPreview":"Procesare","textChars":9,"textLines":1,"bbox":[726,194,116,22]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":5,"text":"Editare și routing","textPreview":"Editare și routing","textChars":18,"textLines":1,"bbox":[724,218,120,32]}
+{"kind":"shape","id":"sh/itgfmlkj","slide":5,"bbox":[882,180,148,82]}
+{"kind":"textbox","id":"sh/7ed8bat4","slide":5,"text":"Flux","textPreview":"Flux","textChars":4,"textLines":1,"bbox":[898,194,116,22]}
+{"kind":"textbox","id":"sh/0z61032l","slide":5,"text":"Task workflow","textPreview":"Task workflow","textChars":13,"textLines":1,"bbox":[896,218,120,32]}
+{"kind":"shape","id":"sh/pkzupwb2","slide":5,"bbox":[1054,180,148,82]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":5,"text":"Arhivare","textPreview":"Arhivare","textChars":8,"textLines":1,"bbox":[1070,194,116,22]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":5,"text":"Export și păstrare","textPreview":"Export și păstrare","textChars":18,"textLines":1,"bbox":[1068,218,120,32]}
+{"kind":"shape","id":"sh/zqtcj6to","slide":5,"bbox":[686,218,24,3]}
+{"kind":"shape","id":"sh/65wjudg7","slide":5,"bbox":[858,218,24,3]}
+{"kind":"shape","id":"sh/hwfyxobm","slide":5,"bbox":[1030,218,24,3]}
+{"kind":"shape","id":"sh/obm58z25","slide":5,"bbox":[538,292,664,310]}
+{"kind":"shape","id":"sh/zed8v6ps","slide":5,"bbox":[556,310,52,4]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":5,"text":"Date și obiecte gestionate","textPreview":"Date și obiecte gestionate","textChars":26,"textLines":1,"bbox":[556,322,628,28]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":5,"text":"• registratura_documents: documente cu număr, stare și context operațional\n• registratura_document_versions: istoricul schimbărilor\n• registratura_document_attachments: atașamente asociate\n• registratura_document_links: relații între documente și alte module\n• registre configurabile, numerotare și registru implicit\n• nomenclatoare pentru tip, direcție, status și confidențialitate","textPreview":"• registratura_documents: documente cu număr, stare și context operațional | • registratura_document_versions: istoricul schimbărilor | •...","textChars":382,"textLines":6,"bbox":[556,360,628,228]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":5,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/z61032ls","slide":5,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":5,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/0w03ie","slide":5,"text":""}
+{"kind":"slide","id":"sl/hgkoda","slide":6,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":6,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/94fu18jq","slide":6,"text":"Workspace Documente · Flux documente","textPreview":"Workspace Documente · Flux documente","textChars":36,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/kjm1cfa9","slide":6,"text":"Modulul workflow coordonează definițiile de flux, taskurile active, pașii curenți și tranzițiile de business.","textPreview":"Modulul workflow coordonează definițiile de flux, taskurile active, pașii curenți și tranzițiile de business.","textChars":109,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/ra5gbq1o","slide":6,"bbox":[64,156,368,452]}
+{"kind":"shape","id":"sh/2p8nqxs7","slide":6,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/9gr2p8nq","slide":6,"text":"Ce oferă utilizatorului","textPreview":"Ce oferă utilizatorului","textChars":23,"textLines":1,"bbox":[82,186,332,28]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":6,"text":"• dashboard cu taskuri active, întârzieri, aprobări și definiții active\n• listă de definiții selectabile pe categorii\n• listă de taskuri workflow filtrabilă pe definiție\n• creare task manual\n• tranziții controlate: submit, approve, return, archive\n• legare la documente și la surse education","textPreview":"• dashboard cu taskuri active, întârzieri, aprobări și definiții active | • listă de definiții selectabile pe categorii | • listă de task...","textChars":291,"textLines":6,"bbox":[82,224,332,370]}
+{"kind":"shape","id":"sh/re1w7mp0","slide":6,"bbox":[456,156,360,452]}
+{"kind":"shape","id":"sh/2t83itgf","slide":6,"bbox":[474,174,52,4]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":6,"text":"Cum conectează platforma","textPreview":"Cum conectează platforma","textChars":24,"textLines":1,"bbox":[474,186,324,28]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":6,"text":"Workflow launcher-ul poate porni taskuri pentru:\n• ședințe de guvernanță\n• decizii\n• dosare manageriale\n• regulamente\n• evaluări\n• declarații\n• mobilitate\n• gradații de merit\n• portofolii CD\n• cereri GDPR","textPreview":"Workflow launcher-ul poate porni taskuri pentru: | • ședințe de guvernanță | • decizii | • dosare manageriale | • regulamente | • evaluăr...","textChars":204,"textLines":11,"bbox":[474,224,324,370]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":6,"bbox":[840,156,376,452]}
+{"kind":"shape","id":"sh/32lszqtc","slide":6,"bbox":[858,174,52,4]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":6,"text":"Avantaj operațional","textPreview":"Avantaj operațional","textChars":19,"textLines":1,"bbox":[858,186,340,28]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":6,"text":"Același motor workflow devine liant între registratură și domeniul educațional. În practică, EguEducation poate porni un circuit de aprobare sau verificare pe baza unui document, a unei ședințe, a unei evaluări sau a unui portofoliu, fără a muta utilizatorul într-o aplicație separată.","textPreview":"Același motor workflow devine liant între registratură și domeniul educațional. În practică, EguEducation poate porni un circuit de aprob...","textChars":285,"textLines":1,"bbox":[858,224,340,370]}
+{"kind":"shape","id":"sh/at47y1kr","slide":6,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":6,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":6,"text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/hgkoda","slide":6,"text":""}
+{"kind":"slide","id":"sl/dcg5wr","slide":7,"title":"EGUEDUCATION","textShapes":17}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":7,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":7,"text":"Workspace Documente · eArhivă","textPreview":"Workspace Documente · eArhivă","textChars":29,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":7,"text":"eArhiva gestionează înregistrări arhivistice, fonduri, serii, locații și parametri de retenție pentru documentele finalizate.","textPreview":"eArhiva gestionează înregistrări arhivistice, fonduri, serii, locații și parametri de retenție pentru documentele finalizate.","textChars":125,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/judg7ads","slide":7,"bbox":[64,156,382,438]}
+{"kind":"shape","id":"sh/u9knih4b","slide":7,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/1032lszq","slide":7,"text":"Funcționalități disponibile","textPreview":"Funcționalități disponibile","textChars":27,"textLines":1,"bbox":[82,186,346,28]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":7,"text":"• dashboard cu total, validate, draft și fonduri distincte\n• listă paginată de înregistrări arhivistice\n• creare înregistrare nouă cu fond, serie, cutie, locație și arhivist\n• detaliu rapid pe fiecare înregistrare\n• statusuri precum archived, transferred, disposed, superseded","textPreview":"• dashboard cu total, validate, draft și fonduri distincte | • listă paginată de înregistrări arhivistice | • creare înregistrare nouă cu...","textChars":276,"textLines":5,"bbox":[82,224,346,356]}
+{"kind":"shape","id":"sh/nyd0z610","slide":7,"bbox":[470,156,746,192]}
+{"kind":"shape","id":"sh/udg7adsj","slide":7,"bbox":[488,174,52,4]}
+{"kind":"textbox","id":"sh/czed8v6p","slide":7,"text":"Rol în platformă","textPreview":"Rol în platformă","textChars":16,"textLines":1,"bbox":[488,186,710,28]}
+{"kind":"textbox","id":"sh/5kb6xkf6","slide":7,"text":"eArhiva este capătul de retenție și păstrare. Ea preia obiecte documentare sau rezultate finale după ce acestea trec prin registratură și, dacă este cazul, prin circuitul workflow sau prin fluxurile education care generează documente oficiale.","textPreview":"eArhiva este capătul de retenție și păstrare. Ea preia obiecte documentare sau rezultate finale după ce acestea trec prin registratură și...","textChars":243,"textLines":1,"bbox":[488,224,710,110]}
+{"kind":"shape","id":"sh/ytsvu9kn","slide":7,"bbox":[502,390,148,82]}
+{"kind":"textbox","id":"sh/neloj2t8","slide":7,"text":"Document","textPreview":"Document","textChars":8,"textLines":1,"bbox":[518,404,116,22]}
+{"kind":"textbox","id":"sh/cbulwval","slide":7,"text":"creat / înregistrat","textPreview":"creat / înregistrat","textChars":19,"textLines":1,"bbox":[516,428,120,32]}
+{"kind":"shape","id":"sh/5sneloj2","slide":7,"bbox":[680,390,148,82]}
+{"kind":"textbox","id":"sh/u54zidon","slide":7,"text":"Workflow","textPreview":"Workflow","textChars":8,"textLines":1,"bbox":[696,404,116,22]}
+{"kind":"textbox","id":"sh/nqxs72x4","slide":7,"text":"avizare / aprobare","textPreview":"avizare / aprobare","textChars":18,"textLines":1,"bbox":[694,428,120,32]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":7,"bbox":[858,390,148,82]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":7,"text":"PDF / dosar","textPreview":"PDF / dosar","textChars":11,"textLines":1,"bbox":[874,404,116,22]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":7,"text":"rezultat oficial","textPreview":"rezultat oficial","textChars":16,"textLines":1,"bbox":[872,428,120,32]}
+{"kind":"shape","id":"sh/0je9cvix","slide":7,"bbox":[1036,390,148,82]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":7,"text":"eArhivă","textPreview":"eArhivă","textChars":7,"textLines":1,"bbox":[1052,404,116,22]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":7,"text":"retenție / locație","textPreview":"retenție / locație","textChars":18,"textLines":1,"bbox":[1050,428,120,32]}
+{"kind":"shape","id":"sh/tcj6tova","slide":7,"bbox":[650,428,30,3]}
+{"kind":"shape","id":"sh/0rqd4vmt","slide":7,"bbox":[828,428,30,3]}
+{"kind":"shape","id":"sh/b6xkf6dc","slide":7,"bbox":[1006,428,30,3]}
+{"kind":"shape","id":"sh/il0rqd4v","slide":7,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/tovahoza","slide":7,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/032lszqt","slide":7,"text":"7","textPreview":"7","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/dcg5wr","slide":7,"text":""}
+{"kind":"slide","id":"sl/mduulp","slide":8,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":8,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/83itgfml","slide":8,"text":"Admin, profil și securitate operațională","textPreview":"Admin, profil și securitate operațională","textChars":40,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/xobm58z2","slide":8,"text":"Pe lângă modulele de business, EguEducation include administrare de utilizatori, catalog RBAC și profil modern bazat pe OIDC.","textPreview":"Pe lângă modulele de business, EguEducation include administrare de utilizatori, catalog RBAC și profil modern bazat pe OIDC.","textChars":125,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/m94fu18j","slide":8,"bbox":[64,156,360,420]}
+{"kind":"shape","id":"sh/fu18jqh0","slide":8,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/4fu18jqh","slide":8,"text":"Admin workspace","textPreview":"Admin workspace","textChars":15,"textLines":1,"bbox":[82,186,324,28]}
+{"kind":"textbox","id":"sh/x0nuxc3y","slide":8,"text":"• gestionare utilizatori\n• catalog de roluri\n• roluri pe utilizator\n• permisiuni pe rol\n• mapări poziții-roluri\n• matrice de acces pe funcționalități\n• zone marcate explicit drept contract-missing pentru extensii viitoare","textPreview":"• gestionare utilizatori | • catalog de roluri | • roluri pe utilizator | • permisiuni pe rol | • mapări poziții-roluri | • matrice de ac...","textChars":221,"textLines":7,"bbox":[82,224,324,338]}
+{"kind":"shape","id":"sh/mlkjm1cf","slide":8,"bbox":[456,156,360,420]}
+{"kind":"shape","id":"sh/f6dcbulw","slide":8,"bbox":[474,174,52,4]}
+{"kind":"textbox","id":"sh/vixczed8","slide":8,"text":"Profil utilizator","textPreview":"Profil utilizator","textChars":17,"textLines":1,"bbox":[474,186,324,28]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":8,"text":"• actualizare date personale și limbă\n• afișare roluri și context instituțional\n• administrare passkeys / WebAuthn\n• activare EUDI wallet\n• integrare cu identitatea OIDC și cu metodele moderne de autentificare","textPreview":"• actualizare date personale și limbă | • afișare roluri și context instituțional | • administrare passkeys / WebAuthn | • activare EUDI ...","textChars":209,"textLines":5,"bbox":[474,224,324,338]}
+{"kind":"shape","id":"sh/donyd0z6","slide":8,"bbox":[848,156,368,420]}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":8,"bbox":[866,174,52,4]}
+{"kind":"textbox","id":"sh/val87ed8","slide":8,"text":"Securitate și control","textPreview":"Securitate și control","textChars":21,"textLines":1,"bbox":[866,186,332,28]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":8,"text":"• guards pe rute și permisiuni\n• roluri standard: admin, super_admin, director, profesor, secretar, registrator, inspector, gdpr_officer, workflow_admin\n• audit log pentru operațiuni importante\n• acces derivat și din poziții instituționale, nu doar din roluri directe","textPreview":"• guards pe rute și permisiuni | • roluri standard: admin, super_admin, director, profesor, secretar, registrator, inspector, gdpr_office...","textChars":267,"textLines":4,"bbox":[866,224,332,338]}
+{"kind":"shape","id":"sh/dcbulwva","slide":8,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":8,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":8,"text":"8","textPreview":"8","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/mduulp","slide":8,"text":""}
+{"kind":"slide","id":"sl/xt7cxd","slide":9,"title":"EGUEDUCATION","textShapes":15}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":9,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":9,"text":"Workspace Education · hartă funcțională","textPreview":"Workspace Education · hartă funcțională","textChars":39,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":9,"text":"Modulul Education este împărțit pe zone operaționale clare, fiecare cu registre, subregistre și permisiuni dedicate.","textPreview":"Modulul Education este împărțit pe zone operaționale clare, fiecare cu registre, subregistre și permisiuni dedicate.","textChars":116,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/5wjudg7a","slide":9,"bbox":[64,156,262,230]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":9,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":9,"text":"Dashboard","textPreview":"Dashboard","textChars":9,"textLines":1,"bbox":[82,186,226,28]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":9,"text":"Intrare unificată cu carduri și statistici pentru subdomeniile educaționale.","textPreview":"Intrare unificată cu carduri și statistici pentru subdomeniile educaționale.","textChars":76,"textLines":1,"bbox":[82,224,226,148]}
+{"kind":"shape","id":"sh/5sneloj2","slide":9,"bbox":[346,156,262,230]}
+{"kind":"shape","id":"sh/cbulwval","slide":9,"bbox":[364,174,52,4]}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":9,"text":"Governance","textPreview":"Governance","textChars":10,"textLines":1,"bbox":[364,186,226,28]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":9,"text":"Guvernanță, decizii, dosare manageriale și regulamente.","textPreview":"Guvernanță, decizii, dosare manageriale și regulamente.","textChars":55,"textLines":1,"bbox":[364,224,226,148]}
+{"kind":"shape","id":"sh/wb2hwfyx","slide":9,"bbox":[628,156,262,230]}
+{"kind":"shape","id":"sh/lwval87e","slide":9,"bbox":[646,174,52,4]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":9,"text":"Personnel","textPreview":"Personnel","textChars":9,"textLines":1,"bbox":[646,186,226,28]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":9,"text":"Personal, evaluări, declarații, mobilitate și gradații.","textPreview":"Personal, evaluări, declarații, mobilitate și gradații.","textChars":55,"textLines":1,"bbox":[646,224,226,148]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":9,"bbox":[910,156,306,230]}
+{"kind":"shape","id":"sh/loj2t83i","slide":9,"bbox":[928,174,52,4]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":9,"text":"Portfolio și Compliance","textPreview":"Portfolio și Compliance","textChars":23,"textLines":1,"bbox":[928,186,270,28]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":9,"text":"Portofolii CD, structură de secțiuni, plus zonă separată pentru conformitate și publicare.","textPreview":"Portofolii CD, structură de secțiuni, plus zonă separată pentru conformitate și publicare.","textChars":90,"textLines":1,"bbox":[928,224,270,148]}
+{"kind":"shape","id":"sh/z25kb6xk","slide":9,"bbox":[64,420,1152,188]}
+{"kind":"shape","id":"sh/6hcrmhk3","slide":9,"bbox":[82,438,52,4]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":9,"text":"Pattern comun de UI în Education","textPreview":"Pattern comun de UI în Education","textChars":32,"textLines":1,"bbox":[82,450,1116,28]}
+{"kind":"textbox","id":"sh/onyd0z61","slide":9,"text":"• taburi și spații de lucru pe submodule\n• tabele PrimeNG server-side cu filtrare în header și paginare\n• acțiuni CRUD și acțiuni PDF pe rând\n• dialoguri și toasts pentru operațiuni rapide\n• children resources pentru fluxurile detaliate\n• permisiuni de read/manage per registru și subregistru","textPreview":"• taburi și spații de lucru pe submodule | • tabele PrimeNG server-side cu filtrare în header și paginare | • acțiuni CRUD și acțiuni PDF...","textChars":292,"textLines":6,"bbox":[82,488,1116,106]}
+{"kind":"shape","id":"sh/vahoza1g","slide":9,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/6tovahoz","slide":9,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":9,"text":"9","textPreview":"9","textChars":1,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/xt7cxd","slide":9,"text":""}
+{"kind":"slide","id":"sl/w7g7q0","slide":10,"title":"EGUEDUCATION","textShapes":13}
+{"kind":"textbox","id":"sh/xobm58z2","slide":10,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":10,"text":"Education · Guvernanță, decizii, managerial, regulamente","textPreview":"Education · Guvernanță, decizii, managerial, regulamente","textChars":56,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":10,"text":"Zona de governance acoperă nucleul instituțional: ședințe, organisme, decizii, dosare manageriale și regulamente.","textPreview":"Zona de governance acoperă nucleul instituțional: ședințe, organisme, decizii, dosare manageriale și regulamente.","textChars":113,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/4fu18jqh","slide":10,"bbox":[64,156,270,430]}
+{"kind":"shape","id":"sh/x0nuxc3y","slide":10,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/m94fu18j","slide":10,"text":"Guvernanță","textPreview":"Guvernanță","textChars":10,"textLines":1,"bbox":[82,186,234,28]}
+{"kind":"textbox","id":"sh/fu18jqh0","slide":10,"text":"• meetings\n• participants\n• meeting documents\n• votes\n• minute items\n• memberships\n• resolutions\n\nAcoperă arhitectura ședințelor și a organismelor de conducere.","textPreview":"• meetings | • participants | • meeting documents | • votes | • minute items | • memberships | • resolutions |  | Acoperă arhitectura șed...","textChars":160,"textLines":9,"bbox":[82,224,234,348]}
+{"kind":"shape","id":"sh/4r65wjud","slide":10,"bbox":[356,156,270,430]}
+{"kind":"shape","id":"sh/xc3ylc7u","slide":10,"bbox":[374,174,52,4]}
+{"kind":"textbox","id":"sh/9cvixcze","slide":10,"text":"Decizii și publicare","textPreview":"Decizii și publicare","textChars":20,"textLines":1,"bbox":[374,186,234,28]}
+{"kind":"textbox","id":"sh/gr2p8nqx","slide":10,"text":"• decision records\n• issuance details\n• publication steps\n• publication records\n• requirement mapping\n\nLeagă emiterea, publicarea și conformitatea deciziilor.","textPreview":"• decision records | • issuance details | • publication steps | • publication records | • requirement mapping |  | Leagă emiterea, public...","textChars":158,"textLines":7,"bbox":[374,224,234,348]}
+{"kind":"shape","id":"sh/r65wjudg","slide":10,"bbox":[648,156,270,430]}
+{"kind":"shape","id":"sh/ylc7u54z","slide":10,"bbox":[666,174,52,4]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":10,"text":"Documente manageriale","textPreview":"Documente manageriale","textChars":21,"textLines":1,"bbox":[666,186,234,28]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":10,"text":"• dosare manageriale\n• documente asociate\n• workflow steps\n\nPregătite pentru ROF, ROI, PDI/PAS, plan managerial, RAEI și alte documente de conducere.","textPreview":"• dosare manageriale | • documente asociate | • workflow steps |  | Pregătite pentru ROF, ROI, PDI/PAS, plan managerial, RAEI și alte doc...","textChars":149,"textLines":5,"bbox":[666,224,234,348]}
+{"kind":"shape","id":"sh/nih4byhg","slide":10,"bbox":[940,156,276,430]}
+{"kind":"shape","id":"sh/yxobm58z","slide":10,"bbox":[958,174,52,4]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":10,"text":"Regulamente","textPreview":"Regulamente","textChars":11,"textLines":1,"bbox":[958,186,240,28]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":10,"text":"• regulation records\n• versions\n• workflow steps\n• publicare și trasabilitate\n\nSusțin circuitul complet al regulamentelor și reviziilor instituționale.","textPreview":"• regulation records | • versions | • workflow steps | • publicare și trasabilitate |  | Susțin circuitul complet al regulamentelor și re...","textChars":151,"textLines":6,"bbox":[958,224,240,348]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":10,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":10,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/w7g7q0","slide":10,"text":""}
+{"kind":"slide","id":"sl/7z6oyx","slide":11,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/ji5snelo","slide":11,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":11,"text":"Education · Personal, dosar personal și declarații","textPreview":"Education · Personal, dosar personal și declarații","textChars":50,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":11,"text":"Acest grup concentrează datele instituționale despre cadre, roluri, cazuri sensibile și documente individuale.","textPreview":"Acest grup concentrează datele instituționale despre cadre, roluri, cazuri sensibile și documente individuale.","textChars":110,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/ulwval87","slide":11,"bbox":[64,156,380,416]}
+{"kind":"shape","id":"sh/j6tovaho","slide":11,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":11,"text":"Registru personal","textPreview":"Registru personal","textChars":17,"textLines":1,"bbox":[82,186,344,28]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":11,"text":"• fișe de personal\n• date profesionale și roluri\n• filtre și dashboard dedicat\n• punct de pornire pentru evaluări și mobilitate\n• workflow launchers pentru procese de personal","textPreview":"• fișe de personal | • date profesionale și roluri | • filtre și dashboard dedicat | • punct de pornire pentru evaluări și mobilitate | •...","textChars":175,"textLines":5,"bbox":[82,224,344,334]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":11,"bbox":[470,156,360,416]}
+{"kind":"shape","id":"sh/j2t83itg","slide":11,"bbox":[488,174,52,4]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":11,"text":"Subfluxuri instituționale","textPreview":"Subfluxuri instituționale","textChars":25,"textLines":1,"bbox":[488,186,324,28]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":11,"text":"• assignments / încadrare și responsabilități\n• disciplinary cases\n• personal file documents\n• personal file access events\n• declarations și adeverințe asociate","textPreview":"• assignments / încadrare și responsabilități | • disciplinary cases | • personal file documents | • personal file access events | • decl...","textChars":160,"textLines":5,"bbox":[488,224,324,334]}
+{"kind":"shape","id":"sh/t47y1kre","slide":11,"bbox":[856,156,360,416]}
+{"kind":"shape","id":"sh/0je9cvix","slide":11,"bbox":[874,174,52,4]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":11,"text":"Valoare operațională","textPreview":"Valoare operațională","textChars":20,"textLines":1,"bbox":[874,186,324,28]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":11,"text":"Modulul nu stochează doar o listă de angajați, ci și relații cu dosarul personal, evenimente de acces, responsabilități și trasee administrative sensibile care trebuie guvernate prin RBAC și audit.","textPreview":"Modulul nu stochează doar o listă de angajați, ci și relații cu dosarul personal, evenimente de acces, responsabilități și trasee adminis...","textChars":197,"textLines":1,"bbox":[874,224,324,334]}
+{"kind":"shape","id":"sh/tcj6tova","slide":11,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":11,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/7z6oyx","slide":11,"text":""}
+{"kind":"slide","id":"sl/9ebqsa","slide":12,"title":"EGUEDUCATION","textShapes":21}
+{"kind":"textbox","id":"sh/judg7ads","slide":12,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":12,"text":"Education · Evaluarea anuală","textPreview":"Education · Evaluarea anuală","textChars":28,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/1032lszq","slide":12,"text":"Fluxul de evaluare este unul dintre cele mai mature: include fișa principală, autoevaluări, criterii, contestații, comunicare rezultat și PDF-uri dedicate.","textPreview":"Fluxul de evaluare este unul dintre cele mai mature: include fișa principală, autoevaluări, criterii, contestații, comunicare rezultat și...","textChars":155,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":12,"bbox":[74,182,160,82]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":12,"text":"Fișă evaluare","textPreview":"Fișă evaluare","textChars":13,"textLines":1,"bbox":[90,196,128,22]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":12,"text":"cod, evaluator, scor, calificativ","textPreview":"cod, evaluator, scor, calificativ","textChars":33,"textLines":1,"bbox":[88,220,132,32]}
+{"kind":"shape","id":"sh/1orytsvu","slide":12,"bbox":[258,182,160,82]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":12,"text":"Autoevaluări","textPreview":"Autoevaluări","textChars":12,"textLines":1,"bbox":[274,196,128,22]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":12,"text":"secțiuni și narațiuni","textPreview":"secțiuni și narațiuni","textChars":21,"textLines":1,"bbox":[272,220,132,32]}
+{"kind":"shape","id":"sh/7u54zido","slide":12,"bbox":[442,182,160,82]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":12,"text":"Criterii","textPreview":"Criterii","textChars":8,"textLines":1,"bbox":[458,196,128,22]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":12,"text":"punctaj și validare","textPreview":"punctaj și validare","textChars":19,"textLines":1,"bbox":[456,220,132,32]}
+{"kind":"shape","id":"sh/wfyxobm5","slide":12,"bbox":[626,182,160,82]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":12,"text":"Contestații","textPreview":"Contestații","textChars":11,"textLines":1,"bbox":[642,196,128,22]}
+{"kind":"textbox","id":"sh/eloj2t83","slide":12,"text":"motive și soluționare","textPreview":"motive și soluționare","textChars":21,"textLines":1,"bbox":[640,220,132,32]}
+{"kind":"shape","id":"sh/lc7u54zi","slide":12,"bbox":[810,182,160,82]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":12,"text":"Comunicare","textPreview":"Comunicare","textChars":10,"textLines":1,"bbox":[826,196,128,22]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":12,"text":"emitere rezultat","textPreview":"emitere rezultat","textChars":16,"textLines":1,"bbox":[824,220,132,32]}
+{"kind":"shape","id":"sh/epkzupwb","slide":12,"bbox":[994,182,160,82]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":12,"text":"PDF","textPreview":"PDF","textChars":3,"textLines":1,"bbox":[1010,196,128,22]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":12,"text":"fișă, contestație, comunicare","textPreview":"fișă, contestație, comunicare","textChars":29,"textLines":1,"bbox":[1008,220,132,32]}
+{"kind":"shape","id":"sh/47y1kre1","slide":12,"bbox":[234,220,24,3]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":12,"bbox":[418,220,24,3]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":12,"bbox":[602,220,24,3]}
+{"kind":"shape","id":"sh/bat47y1k","slide":12,"bbox":[786,220,24,3]}
+{"kind":"shape","id":"sh/4vmtwra5","slide":12,"bbox":[970,220,24,3]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":12,"bbox":[74,316,520,250]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":12,"bbox":[92,334,52,4]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":12,"text":"Ce vede utilizatorul","textPreview":"Ce vede utilizatorul","textChars":20,"textLines":1,"bbox":[92,346,484,28]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":12,"text":"În UI, evaluările sunt organizate ca registru principal cu copii specializați. Fiecare copil are propriile coloane, formulare de creare, acțiuni de editare/ștergere și, acolo unde este cazul, buton PDF pe rând.","textPreview":"În UI, evaluările sunt organizate ca registru principal cu copii specializați. Fiecare copil are propriile coloane, formulare de creare, ...","textChars":210,"textLines":1,"bbox":[92,384,484,168]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":12,"bbox":[622,316,532,250]}
+{"kind":"shape","id":"sh/j2t83itg","slide":12,"bbox":[640,334,52,4]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":12,"text":"Ce produce sistemul","textPreview":"Ce produce sistemul","textChars":19,"textLines":1,"bbox":[640,346,496,28]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":12,"text":"Backend-ul poate genera documente PDF reale pentru:\n• fișa anuală de evaluare\n• contestația evaluării\n• comunicarea rezultatului\n\nAceste documente agregă contextul evaluării și datele operaționale deja înregistrate.","textPreview":"Backend-ul poate genera documente PDF reale pentru: | • fișa anuală de evaluare | • contestația evaluării | • comunicarea rezultatului | ...","textChars":215,"textLines":6,"bbox":[640,384,496,168]}
+{"kind":"shape","id":"sh/8bat47y1","slide":12,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":12,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/9ebqsa","slide":12,"text":""}
+{"kind":"slide","id":"sl/t9x48d","slide":13,"title":"EGUEDUCATION","textShapes":9}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":13,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":13,"text":"Education · Mobilitate și gradație de merit","textPreview":"Education · Mobilitate și gradație de merit","textChars":43,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":13,"text":"Ambele procese sunt modelate ca dosare principale cu documente, punctaje, contestații, decizie finală și comunicare oficială.","textPreview":"Ambele procese sunt modelate ca dosare principale cu documente, punctaje, contestații, decizie finală și comunicare oficială.","textChars":125,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":13,"bbox":[64,156,548,430]}
+{"kind":"shape","id":"sh/j2t83itg","slide":13,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":13,"text":"Mobilitate","textPreview":"Mobilitate","textChars":10,"textLines":1,"bbox":[82,186,512,28]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":13,"text":"• caz principal: tip solicitare, etapă, status, unitate sursă și destinație\n• documente de dosar\n• punctaje pe criterii\n• contestații\n• decizie finală\n• emitere rezultat\n• PDF principal de dosar și PDF-uri pentru contestație, decizie finală și comunicare","textPreview":"• caz principal: tip solicitare, etapă, status, unitate sursă și destinație | • documente de dosar | • punctaje pe criterii | • contestaț...","textChars":254,"textLines":7,"bbox":[82,224,512,348]}
+{"kind":"shape","id":"sh/ulwval87","slide":13,"bbox":[636,156,580,430]}
+{"kind":"shape","id":"sh/j6tovaho","slide":13,"bbox":[654,174,52,4]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":13,"text":"Gradație de merit","textPreview":"Gradație de merit","textChars":17,"textLines":1,"bbox":[654,186,544,28]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":13,"text":"• grant principal: categorie, status, punctaj, comisie, finanțare\n• documente ale dosarului\n• evaluare pe criterii și etape de panel\n• contestații\n• decizie finală\n• emitere rezultat\n• PDF principal și PDF-uri pentru contestație, decizie și comunicare rezultat","textPreview":"• grant principal: categorie, status, punctaj, comisie, finanțare | • documente ale dosarului | • evaluare pe criterii și etape de panel ...","textChars":260,"textLines":7,"bbox":[654,224,544,348]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":13,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":13,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/t9x48d","slide":13,"text":""}
+{"kind":"slide","id":"sl/57csm7","slide":14,"title":"EGUEDUCATION","textShapes":7}
+{"kind":"textbox","id":"sh/cbulwval","slide":14,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/nqxs72x4","slide":14,"text":"Education · Portofolii profesionale CD","textPreview":"Education · Portofolii profesionale CD","textChars":38,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/u54zidon","slide":14,"text":"Portofoliul profesional al cadrului didactic este modelat distinct și susține structură, opis, verificare, custodie și transfer.","textPreview":"Portofoliul profesional al cadrului didactic este modelat distinct și susține structură, opis, verificare, custodie și transfer.","textChars":128,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/czed8v6p","slide":14,"bbox":[64,156,658,430]}
+{"kind":"shape","id":"sh/neloj2t8","slide":14,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/ytsvu9kn","slide":14,"text":"Structură funcțională","textPreview":"Structură funcțională","textChars":21,"textLines":1,"bbox":[82,186,622,28]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":14,"text":"• registru principal de portofolii\n• catalog de secțiuni și componente\n• documente per secțiune\n• checklist de conformitate\n• opis și index cronologic\n• evenimente de custodie și acces\n• transferuri între instituții / responsabili\n• verificări și validări\n• PDF principal cu rezumat de documente, checklist, opis, custodie, transfer și review","textPreview":"• registru principal de portofolii | • catalog de secțiuni și componente | • documente per secțiune | • checklist de conformitate | • opi...","textChars":342,"textLines":9,"bbox":[82,224,622,348]}
+{"kind":"shape","id":"sh/gn29gr2p","slide":14,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/u54zidon","slide":14,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/nqxs72x4","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"image","id":"im/kzupwb2h","slide":14,"name":"","geometry":"roundRect","alt":"Education management illustration","bbox":[754,172,462,408]}
+{"kind":"notes","id":"nt/57csm7","slide":14,"text":""}
+{"kind":"slide","id":"sl/o3i6qm","slide":15,"title":"EGUEDUCATION","textShapes":15}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":15,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":15,"text":"Capabilități transversale ale sistemului","textPreview":"Capabilități transversale ale sistemului","textChars":40,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":15,"text":"Mai multe funcții nu aparțin unui singur modul, ci întregii platforme.","textPreview":"Mai multe funcții nu aparțin unui singur modul, ci întregii platforme.","textChars":70,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/ed8bat47","slide":15,"bbox":[64,156,264,374]}
+{"kind":"shape","id":"sh/7u54zido","slide":15,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":15,"text":"UX și tabele","textPreview":"UX și tabele","textChars":12,"textLines":1,"bbox":[82,186,228,28]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":15,"text":"PrimeNG tabs, tabele server-side, filtre în header, sticky header/footer, paginare, acțiuni CRUD și dialoguri profesioniste.","textPreview":"PrimeNG tabs, tabele server-side, filtre în header, sticky header/footer, paginare, acțiuni CRUD și dialoguri profesioniste.","textChars":124,"textLines":1,"bbox":[82,224,228,292]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":15,"bbox":[348,156,264,374]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":15,"bbox":[366,174,52,4]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":15,"text":"Documente generate","textPreview":"Documente generate","textChars":18,"textLines":1,"bbox":[366,186,228,28]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":15,"text":"PDF-uri dedicate pe fluxuri educaționale cheie și export generic CSV/PDF pentru liste operaționale.","textPreview":"PDF-uri dedicate pe fluxuri educaționale cheie și export generic CSV/PDF pentru liste operaționale.","textChars":99,"textLines":1,"bbox":[366,224,228,292]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":15,"bbox":[632,156,264,374]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":15,"bbox":[650,174,52,4]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":15,"text":"Guvernanță date","textPreview":"Guvernanță date","textChars":15,"textLines":1,"bbox":[650,186,228,28]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":15,"text":"Multi-tenant instituțional, RBAC pe domenii și subdomenii, audit log și separare între citire și administrare.","textPreview":"Multi-tenant instituțional, RBAC pe domenii și subdomenii, audit log și separare între citire și administrare.","textChars":110,"textLines":1,"bbox":[650,224,228,292]}
+{"kind":"shape","id":"sh/hwfyxobm","slide":15,"bbox":[916,156,300,374]}
+{"kind":"shape","id":"sh/obm58z25","slide":15,"bbox":[934,174,52,4]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":15,"text":"Integrare între module","textPreview":"Integrare între module","textChars":22,"textLines":1,"bbox":[934,186,264,28]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":15,"text":"Workflow launcher, linkuri documentare, relații între registratură și education, plus trasee de arhivare și retenție.","textPreview":"Workflow launcher, linkuri documentare, relații între registratură și education, plus trasee de arhivare și retenție.","textChars":117,"textLines":1,"bbox":[934,224,264,292]}
+{"kind":"shape","id":"sh/eloj2t83","slide":15,"bbox":[64,556,1152,82]}
+{"kind":"shape","id":"sh/36hcrmhk","slide":15,"bbox":[82,574,52,4]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":15,"text":"Concluzie tehnică","textPreview":"Concluzie tehnică","textChars":17,"textLines":1,"bbox":[82,586,1116,28]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":15,"text":"EguEducation nu este doar o colecție de ecrane. Este o platformă cu pattern-uri tehnice și de business repetabile, ceea ce permite extinderea coerentă a fluxurilor educaționale și documentare.","textPreview":"EguEducation nu este doar o colecție de ecrane. Este o platformă cu pattern-uri tehnice și de business repetabile, ceea ce permite extind...","textChars":192,"textLines":1,"bbox":[82,624,1116,0]}
+{"kind":"shape","id":"sh/ed8bat47","slide":15,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/7u54zido","slide":15,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/o3i6qm","slide":15,"text":""}
+{"kind":"slide","id":"sl/g0facu","slide":16,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/onyd0z61","slide":16,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":16,"text":"Paralelă cu Ghidul ISJ Timiș","textPreview":"Paralelă cu Ghidul ISJ Timiș","textChars":28,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/6hcrmhk3","slide":16,"text":"Ghidul operațional pentru unitățile de învățământ se reflectă în mai multe familii de funcționalități din EguEducation.","textPreview":"Ghidul operațional pentru unitățile de învățământ se reflectă în mai multe familii de funcționalități din EguEducation.","textChars":119,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/dg7adsji","slide":16,"bbox":[64,156,362,436]}
+{"kind":"shape","id":"sh/ovahoza1","slide":16,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/vahoza1g","slide":16,"text":"Teme din ghid","textPreview":"Teme din ghid","textChars":13,"textLines":1,"bbox":[82,186,326,28]}
+{"kind":"textbox","id":"sh/6tovahoz","slide":16,"text":"• guvernanță instituțională\n• consilii, ședințe și hotărâri\n• documente manageriale\n• regulamente\n• personal și responsabilități\n• evaluări și dosare administrative\n• conformitate și publicare","textPreview":"• guvernanță instituțională | • consilii, ședințe și hotărâri | • documente manageriale | • regulamente | • personal și responsabilități ...","textChars":192,"textLines":7,"bbox":[82,224,326,354]}
+{"kind":"shape","id":"sh/dsji5sne","slide":16,"bbox":[448,156,376,436]}
+{"kind":"shape","id":"sh/o7qpg3ex","slide":16,"bbox":[466,174,52,4]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":16,"text":"Reflectare în produs","textPreview":"Reflectare în produs","textChars":20,"textLines":1,"bbox":[466,186,340,28]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":16,"text":"• governance: meetings, memberships, resolutions, minute items, votes\n• decisions și publications\n• managerial dossiers și workflow steps\n• regulations cu versions și publicare\n• personnel, assignments, disciplinary, declarations\n• evaluations, mobility, merit","textPreview":"• governance: meetings, memberships, resolutions, minute items, votes | • decisions și publications | • managerial dossiers și workflow s...","textChars":260,"textLines":6,"bbox":[466,224,340,354]}
+{"kind":"shape","id":"sh/8bat47y1","slide":16,"bbox":[846,156,370,436]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":16,"bbox":[864,174,52,4]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":16,"text":"Interpretare practică","textPreview":"Interpretare practică","textChars":21,"textLines":1,"bbox":[864,186,334,28]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":16,"text":"EguEducation a fost proiectat să preia logica procedurală a conducerii școlare și să o transforme în registre, documente, subfluxuri și controale operaționale. Nu se limitează la o evidență generică, ci urmărește structura administrativă sugerată de ghid.","textPreview":"EguEducation a fost proiectat să preia logica procedurală a conducerii școlare și să o transforme în registre, documente, subfluxuri și c...","textChars":255,"textLines":1,"bbox":[864,224,334,354]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":16,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":16,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/ulwval87","slide":16,"text":"16","textPreview":"16","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/g0facu","slide":16,"text":""}
+{"kind":"slide","id":"sl/o3e54v","slide":17,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":17,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":17,"text":"Paralelă cu metodologia portofoliului profesional CD","textPreview":"Paralelă cu metodologia portofoliului profesional CD","textChars":52,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":17,"text":"Proiectul de metodologie privind portofoliul profesional al cadrului didactic are o corespondență directă în submodulul de portofolii.","textPreview":"Proiectul de metodologie privind portofoliul profesional al cadrului didactic are o corespondență directă în submodulul de portofolii.","textChars":134,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/xs72x4na","slide":17,"bbox":[64,156,360,436]}
+{"kind":"shape","id":"sh/87ed8bat","slide":17,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":17,"text":"Cerințe metodologice cheie","textPreview":"Cerințe metodologice cheie","textChars":26,"textLines":1,"bbox":[82,186,324,28]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":17,"text":"• portofoliu distinct de dosarul personal\n• structură pe secțiuni și componente\n• opis actualizat și criteriu cronologic\n• transfer între unități\n• retenție după încetarea activității\n• declarație de autenticitate\n• consimțământ și control acces","textPreview":"• portofoliu distinct de dosarul personal | • structură pe secțiuni și componente | • opis actualizat și criteriu cronologic | • transfer...","textChars":245,"textLines":7,"bbox":[82,224,324,354]}
+{"kind":"shape","id":"sh/x4nap4r6","slide":17,"bbox":[448,156,360,436]}
+{"kind":"shape","id":"sh/8jqh0fep","slide":17,"bbox":[466,174,52,4]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":17,"text":"Implementare existentă","textPreview":"Implementare existentă","textChars":22,"textLines":1,"bbox":[466,186,324,28]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":17,"text":"• portfolio records\n• portfolio sections\n• portfolio documents\n• checklist\n• opis entries\n• custody events\n• transfer events\n• review events\n• PDF principal de portofoliu","textPreview":"• portfolio records | • portfolio sections | • portfolio documents | • checklist | • opis entries | • custody events | • transfer events ...","textChars":170,"textLines":9,"bbox":[466,224,324,354]}
+{"kind":"shape","id":"sh/4vmtwra5","slide":17,"bbox":[832,156,384,436]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":17,"bbox":[850,174,52,4]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":17,"text":"Semnificație pentru produs","textPreview":"Semnificație pentru produs","textChars":26,"textLines":1,"bbox":[850,186,348,28]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":17,"text":"Această paralelă arată că EguEducation a fost gândit nu doar pentru procese administrative generale, ci și pentru un dosar profesional specializat, cu identitate proprie, trasabilitate, retenție și transfer — exact cerințele care diferențiază portofoliul de alte evidențe instituționale.","textPreview":"Această paralelă arată că EguEducation a fost gândit nu doar pentru procese administrative generale, ci și pentru un dosar profesional sp...","textChars":287,"textLines":1,"bbox":[850,224,348,354]}
+{"kind":"shape","id":"sh/47y1kre1","slide":17,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":17,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":17,"text":"17","textPreview":"17","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/o3e54v","slide":17,"text":""}
+{"kind":"slide","id":"sl/t642pa","slide":18,"title":"EGUEDUCATION","textShapes":11}
+{"kind":"textbox","id":"sh/j6tovaho","slide":18,"text":"EGUEDUCATION","textPreview":"EGUEDUCATION","textChars":12,"textLines":1,"bbox":[64,24,260,20]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":18,"text":"Mesaj final și stare actuală","textPreview":"Mesaj final și stare actuală","textChars":28,"textLines":1,"bbox":[64,48,860,44]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":18,"text":"EguEducation are deja o fundație funcțională extinsă și poate fi prezentat ca o platformă operațională reală, nu ca un mock.","textPreview":"EguEducation are deja o fundație funcțională extinsă și poate fi prezentat ca o platformă operațională reală, nu ca un mock.","textChars":124,"textLines":1,"bbox":[64,92,1020,44]}
+{"kind":"shape","id":"sh/uxc3ylc7","slide":18,"bbox":[64,156,356,410]}
+{"kind":"shape","id":"sh/ji5snelo","slide":18,"bbox":[82,174,52,4]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":18,"text":"Ce este deja solid","textPreview":"Ce este deja solid","textChars":18,"textLines":1,"bbox":[82,186,320,28]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":18,"text":"• module principale funcționale\n• RBAC și tenant scoping\n• registratură și workflow reale\n• education împărțit pe familii de business\n• documente PDF pe fluxurile majore\n• admin și profil modern","textPreview":"• module principale funcționale | • RBAC și tenant scoping | • registratură și workflow reale | • education împărțit pe familii de busine...","textChars":194,"textLines":6,"bbox":[82,224,320,328]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":18,"bbox":[450,156,356,410]}
+{"kind":"shape","id":"sh/jqh0fepk","slide":18,"bbox":[468,174,52,4]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":18,"text":"Unde se poate extinde","textPreview":"Unde se poate extinde","textChars":21,"textLines":1,"bbox":[468,186,320,28]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":18,"text":"• PDF-uri suplimentare pentru guvernanță și documente manageriale\n• UX mai specializat pe procese complexe\n• mai multe validări business pe etape și tranzacții\n• contracte și teste automate mai puternice","textPreview":"• PDF-uri suplimentare pentru guvernanță și documente manageriale | • UX mai specializat pe procese complexe | • mai multe validări busin...","textChars":203,"textLines":4,"bbox":[468,224,320,328]}
+{"kind":"shape","id":"sh/xs72x4na","slide":18,"bbox":[836,156,380,410]}
+{"kind":"shape","id":"sh/87ed8bat","slide":18,"bbox":[854,174,52,4]}
+{"kind":"textbox","id":"sh/je9cvixc","slide":18,"text":"Concluzie de business","textPreview":"Concluzie de business","textChars":21,"textLines":1,"bbox":[854,186,344,28]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":18,"text":"Platforma poate susține o prezentare completă pentru management educațional, registratură, flux documente și arhivă electronică, demonstrând că procesele operaționale și cele normative sunt deja reflectate într-o arhitectură coerentă.","textPreview":"Platforma poate susține o prezentare completă pentru management educațional, registratură, flux documente și arhivă electronică, demonstr...","textChars":234,"textLines":1,"bbox":[854,224,344,328]}
+{"kind":"shape","id":"sh/1gvy90je","slide":18,"bbox":[64,690,1152,1]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":18,"text":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textPreview":"EguEducation · platformă integrată pentru educație, registratură, workflow și arhivă electronică","textChars":96,"textLines":1,"bbox":[64,694,420,16]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":18,"text":"18","textPreview":"18","textChars":2,"textLines":1,"bbox":[1160,694,56,16]}
+{"kind":"notes","id":"nt/t642pa","slide":18,"text":""}

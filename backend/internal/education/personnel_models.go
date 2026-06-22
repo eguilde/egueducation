@@ -52,6 +52,117 @@ type CreatePersonnelRecordRequest struct {
 	Notes            string `json:"notes"`
 }
 
+type PersonnelPersonalFileDocument struct {
+	ID                   string `json:"id"`
+	PersonnelID          string `json:"personnel_id"`
+	DocumentCode         string `json:"document_code"`
+	DocumentCategory     string `json:"document_category"`
+	DocumentTitle        string `json:"document_title"`
+	FileScope            string `json:"file_scope"`
+	ConfidentialityLevel string `json:"confidentiality_level"`
+	IssuedOn             string `json:"issued_on"`
+	ExpiresOn            string `json:"expires_on"`
+	FileReference        string `json:"file_reference"`
+	SensitiveData        bool   `json:"sensitive_data"`
+	IncludedInPortfolio  bool   `json:"included_in_portfolio"`
+	InstitutionID        string `json:"institution_id"`
+	Notes                string `json:"notes"`
+}
+
+type CreatePersonnelPersonalFileDocumentRequest struct {
+	DocumentCategory     string `json:"document_category"`
+	DocumentTitle        string `json:"document_title"`
+	FileScope            string `json:"file_scope"`
+	ConfidentialityLevel string `json:"confidentiality_level"`
+	IssuedOn             string `json:"issued_on"`
+	ExpiresOn            string `json:"expires_on"`
+	FileReference        string `json:"file_reference"`
+	SensitiveData        bool   `json:"sensitive_data"`
+	IncludedInPortfolio  bool   `json:"included_in_portfolio"`
+	Notes                string `json:"notes"`
+}
+
+type PersonnelPersonalAccessEvent struct {
+	ID             string `json:"id"`
+	PersonnelID    string `json:"personnel_id"`
+	EventType      string `json:"event_type"`
+	ActorName      string `json:"actor_name"`
+	ActorRole      string `json:"actor_role"`
+	Purpose        string `json:"purpose"`
+	AccessChannel  string `json:"access_channel"`
+	AccessedOn     string `json:"accessed_on"`
+	ClosedOn       string `json:"closed_on"`
+	SensitiveScope bool   `json:"sensitive_scope"`
+	InstitutionID  string `json:"institution_id"`
+	Notes          string `json:"notes"`
+}
+
+type CreatePersonnelPersonalAccessEventRequest struct {
+	EventType      string `json:"event_type"`
+	ActorName      string `json:"actor_name"`
+	ActorRole      string `json:"actor_role"`
+	Purpose        string `json:"purpose"`
+	AccessChannel  string `json:"access_channel"`
+	AccessedOn     string `json:"accessed_on"`
+	ClosedOn       string `json:"closed_on"`
+	SensitiveScope bool   `json:"sensitive_scope"`
+	Notes          string `json:"notes"`
+}
+
+type PersonnelAssignment struct {
+	ID                string `json:"id"`
+	PersonnelID       string `json:"personnel_id"`
+	AssignmentCode    string `json:"assignment_code"`
+	AssignmentType    string `json:"assignment_type"`
+	AssignmentTitle   string `json:"assignment_title"`
+	Status            string `json:"status"`
+	AssignedOn        string `json:"assigned_on"`
+	EndedOn           string `json:"ended_on"`
+	WeeklyHours       int    `json:"weekly_hours"`
+	DecisionReference string `json:"decision_reference"`
+	InstitutionID     string `json:"institution_id"`
+	Notes             string `json:"notes"`
+}
+
+type CreatePersonnelAssignmentRequest struct {
+	AssignmentType    string `json:"assignment_type"`
+	AssignmentTitle   string `json:"assignment_title"`
+	Status            string `json:"status"`
+	AssignedOn        string `json:"assigned_on"`
+	EndedOn           string `json:"ended_on"`
+	WeeklyHours       int    `json:"weekly_hours"`
+	DecisionReference string `json:"decision_reference"`
+	Notes             string `json:"notes"`
+}
+
+type PersonnelDisciplinaryCase struct {
+	ID            string `json:"id"`
+	PersonnelID   string `json:"personnel_id"`
+	CaseCode      string `json:"case_code"`
+	CaseType      string `json:"case_type"`
+	Status        string `json:"status"`
+	ReportedOn    string `json:"reported_on"`
+	HearingOn     string `json:"hearing_on"`
+	ResolvedOn    string `json:"resolved_on"`
+	CommitteeName string `json:"committee_name"`
+	Sanction      string `json:"sanction"`
+	LegalBasis    string `json:"legal_basis"`
+	InstitutionID string `json:"institution_id"`
+	Notes         string `json:"notes"`
+}
+
+type CreatePersonnelDisciplinaryCaseRequest struct {
+	CaseType      string `json:"case_type"`
+	Status        string `json:"status"`
+	ReportedOn    string `json:"reported_on"`
+	HearingOn     string `json:"hearing_on"`
+	ResolvedOn    string `json:"resolved_on"`
+	CommitteeName string `json:"committee_name"`
+	Sanction      string `json:"sanction"`
+	LegalBasis    string `json:"legal_basis"`
+	Notes         string `json:"notes"`
+}
+
 type PersonnelEvaluation struct {
 	ID             string  `json:"id"`
 	EvaluationCode string  `json:"evaluation_code"`
@@ -61,6 +172,7 @@ type PersonnelEvaluation struct {
 	SchoolYear     string  `json:"school_year"`
 	Status         string  `json:"status"`
 	Score          float64 `json:"score"`
+	Qualification  string  `json:"qualification"`
 	EvaluatorName  string  `json:"evaluator_name"`
 	FinalizedOn    string  `json:"finalized_on"`
 	InstitutionID  string  `json:"institution_id"`
@@ -81,6 +193,7 @@ type PersonnelEvaluationStats struct {
 	SubmittedEvaluations int `json:"submitted_evaluations"`
 	ApprovedEvaluations  int `json:"approved_evaluations"`
 	ContestedEvaluations int `json:"contested_evaluations"`
+	CommunicatedResults  int `json:"communicated_results"`
 }
 
 type CreatePersonnelEvaluationRequest struct {
@@ -93,6 +206,122 @@ type CreatePersonnelEvaluationRequest struct {
 	EvaluatorName string  `json:"evaluator_name"`
 	FinalizedOn   string  `json:"finalized_on"`
 	Summary       string  `json:"summary"`
+}
+
+type PersonnelEvaluationSelfReview struct {
+	ID               string  `json:"id"`
+	EvaluationID     string  `json:"evaluation_id"`
+	ReviewCode       string  `json:"review_code"`
+	SectionTitle     string  `json:"section_title"`
+	NarrativeType    string  `json:"narrative_type"`
+	Status           string  `json:"status"`
+	CompletedOn      string  `json:"completed_on"`
+	EvidenceSummary  string  `json:"evidence_summary"`
+	Strengths        string  `json:"strengths"`
+	ImprovementNeeds string  `json:"improvement_needs"`
+	AssumedScore     float64 `json:"assumed_score"`
+	InstitutionID    string  `json:"institution_id"`
+	Notes            string  `json:"notes"`
+}
+
+type CreatePersonnelEvaluationSelfReviewRequest struct {
+	SectionTitle     string  `json:"section_title"`
+	NarrativeType    string  `json:"narrative_type"`
+	Status           string  `json:"status"`
+	CompletedOn      string  `json:"completed_on"`
+	EvidenceSummary  string  `json:"evidence_summary"`
+	Strengths        string  `json:"strengths"`
+	ImprovementNeeds string  `json:"improvement_needs"`
+	AssumedScore     float64 `json:"assumed_score"`
+	Notes            string  `json:"notes"`
+}
+
+type PersonnelEvaluationCriterion struct {
+	ID                string  `json:"id"`
+	EvaluationID      string  `json:"evaluation_id"`
+	CriterionCode     string  `json:"criterion_code"`
+	CriterionCategory string  `json:"criterion_category"`
+	CriterionLabel    string  `json:"criterion_label"`
+	MaxScore          float64 `json:"max_score"`
+	SelfScore         float64 `json:"self_score"`
+	ReviewerScore     float64 `json:"reviewer_score"`
+	FinalScore        float64 `json:"final_score"`
+	Status            string  `json:"status"`
+	EvidenceSummary   string  `json:"evidence_summary"`
+	InstitutionID     string  `json:"institution_id"`
+	Notes             string  `json:"notes"`
+}
+
+type CreatePersonnelEvaluationCriterionRequest struct {
+	CriterionCategory string  `json:"criterion_category"`
+	CriterionLabel    string  `json:"criterion_label"`
+	MaxScore          float64 `json:"max_score"`
+	SelfScore         float64 `json:"self_score"`
+	ReviewerScore     float64 `json:"reviewer_score"`
+	FinalScore        float64 `json:"final_score"`
+	Status            string  `json:"status"`
+	EvidenceSummary   string  `json:"evidence_summary"`
+	Notes             string  `json:"notes"`
+}
+
+type PersonnelEvaluationAppeal struct {
+	ID                      string `json:"id"`
+	EvaluationID            string `json:"evaluation_id"`
+	AppealCode              string `json:"appeal_code"`
+	SubmittedBy             string `json:"submitted_by"`
+	SubmittedOn             string `json:"submitted_on"`
+	Status                  string `json:"status"`
+	Grounds                 string `json:"grounds"`
+	HearingOn               string `json:"hearing_on"`
+	ResolvedOn              string `json:"resolved_on"`
+	DecisionSummary         string `json:"decision_summary"`
+	CommitteeNote           string `json:"committee_note"`
+	AttachedToPersonnelFile bool   `json:"attached_to_personnel_file"`
+	InstitutionID           string `json:"institution_id"`
+}
+
+type CreatePersonnelEvaluationAppealRequest struct {
+	SubmittedBy             string `json:"submitted_by"`
+	SubmittedOn             string `json:"submitted_on"`
+	Status                  string `json:"status"`
+	Grounds                 string `json:"grounds"`
+	HearingOn               string `json:"hearing_on"`
+	ResolvedOn              string `json:"resolved_on"`
+	DecisionSummary         string `json:"decision_summary"`
+	CommitteeNote           string `json:"committee_note"`
+	AttachedToPersonnelFile bool   `json:"attached_to_personnel_file"`
+}
+
+type PersonnelEvaluationResultIssue struct {
+	ID                      string `json:"id"`
+	EvaluationID            string `json:"evaluation_id"`
+	IssueCode               string `json:"issue_code"`
+	DocumentType            string `json:"document_type"`
+	RecipientName           string `json:"recipient_name"`
+	RecipientRole           string `json:"recipient_role"`
+	DeliveryChannel         string `json:"delivery_channel"`
+	DeliveryStatus          string `json:"delivery_status"`
+	IssuedOn                string `json:"issued_on"`
+	DeliveredOn             string `json:"delivered_on"`
+	AcknowledgedOn          string `json:"acknowledged_on"`
+	RegistryReference       string `json:"registry_reference"`
+	AttachedToPersonnelFile bool   `json:"attached_to_personnel_file"`
+	InstitutionID           string `json:"institution_id"`
+	Notes                   string `json:"notes"`
+}
+
+type CreatePersonnelEvaluationResultIssueRequest struct {
+	DocumentType            string `json:"document_type"`
+	RecipientName           string `json:"recipient_name"`
+	RecipientRole           string `json:"recipient_role"`
+	DeliveryChannel         string `json:"delivery_channel"`
+	DeliveryStatus          string `json:"delivery_status"`
+	IssuedOn                string `json:"issued_on"`
+	DeliveredOn             string `json:"delivered_on"`
+	AcknowledgedOn          string `json:"acknowledged_on"`
+	RegistryReference       string `json:"registry_reference"`
+	AttachedToPersonnelFile bool   `json:"attached_to_personnel_file"`
+	Notes                   string `json:"notes"`
 }
 
 type PersonnelDeclaration struct {

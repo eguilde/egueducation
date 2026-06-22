@@ -7,6 +7,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { MenuModule } from 'primeng/menu';
 import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -24,14 +25,17 @@ export interface ServerTableFilterConfig {
 export interface ServerTableColumn<T> {
   key: keyof T & string;
   label: string;
+  kind?: 'text' | 'tag' | 'boolean' | 'number';
   sortable?: boolean;
   sticky?: boolean;
   mobileHidden?: boolean;
   mobilePriority?: number;
   formatter?: (row: T) => string;
+  tagSeverity?: (row: T) => 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
   sortKey?: string;
   filterKey?: string;
   filter?: ServerTableFilterConfig;
+  width?: string;
 }
 
 export interface ServerTableRowAction<T> {
@@ -68,6 +72,7 @@ export type ServerTableSortState = Sort;
     InputTextModule,
     MenuModule,
     SelectModule,
+    TagModule,
     TableModule,
     TooltipModule,
   ],
@@ -102,6 +107,7 @@ export class ServerTableComponent {
   protected readonly filters = signal<ServerTableFilterState>({});
   protected readonly filtersExpanded = signal(true);
   protected readonly toolbarTemplate = contentChild<TemplateRef<unknown>>('serverTableToolbar');
+  protected readonly actionHeaderTemplate = contentChild<TemplateRef<unknown>>('serverTableActionHeader');
 
   protected hasFilterableColumns(): boolean {
     return this.columns.some((column) => !!column.filter);
@@ -221,6 +227,10 @@ export class ServerTableComponent {
 
   protected toggleFilters(): void {
     this.filtersExpanded.update((value) => !value);
+  }
+
+  protected columnSeverity(row: any, column: ServerTableColumn<any>): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    return column.tagSeverity?.(row) ?? 'secondary';
   }
 
   private formatDate(value: Date): string {

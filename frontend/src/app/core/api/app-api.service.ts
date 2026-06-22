@@ -3,20 +3,11 @@ import { Injectable, inject } from '@angular/core';
 
 import {
   AppMeta,
-  AuthConsentDecisionRequest,
-  AuthConsentDecisionResponse,
-  AuthConsentRequestResponse,
   AuthMethodsResponse,
   AuthUiConfig,
-  BeginPasskeyAuthenticationResponse,
-  FinishPasskeyAuthenticationRequest,
   RoleCatalogResponse,
   RolePositionResponse,
-  RequestSMSOTPRequest,
   SessionContext,
-  SMSOTPRequestResponse,
-  SMSOTPVerifyResponse,
-  VerifySMSOTPRequest,
 } from './api.types';
 import { AppBootstrapConfig } from '../branding/app-branding.types';
 
@@ -50,30 +41,6 @@ export class AppApiService {
 
   session() {
     return this.http.get<SessionContext>('/api/me');
-  }
-
-  requestSmsOtp(payload: RequestSMSOTPRequest) {
-    return this.http.post<SMSOTPRequestResponse>('/api/auth/request-sms', payload);
-  }
-
-  verifySmsOtp(payload: VerifySMSOTPRequest) {
-    return this.http.post<SMSOTPVerifyResponse>('/api/auth/verify-sms', payload);
-  }
-
-  beginPasskeyLogin() {
-    return this.http.post<BeginPasskeyAuthenticationResponse>('/api/passkeys/login-options', {});
-  }
-
-  finishPasskeyLogin(payload: FinishPasskeyAuthenticationRequest) {
-    return this.http.post<SMSOTPVerifyResponse>('/api/passkeys/login-finish', payload);
-  }
-
-  consentRequest(requestId: string) {
-    return this.http.get<AuthConsentRequestResponse>(`/api/oidc/consent/request?request=${encodeURIComponent(requestId)}`);
-  }
-
-  decideConsent(payload: AuthConsentDecisionRequest) {
-    return this.http.post<AuthConsentDecisionResponse>('/api/oidc/consent/decision', payload);
   }
 
   logout() {

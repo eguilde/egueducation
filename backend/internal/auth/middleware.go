@@ -8,24 +8,56 @@ import (
 )
 
 type sessionContextKey string
+type accessClaimsContextKey string
 
-const requestSessionContextKey sessionContextKey = "egueducation.session"
+const (
+	requestSessionContextKey sessionContextKey     = "egueducation.session"
+	requestClaimsContextKey  accessClaimsContextKey = "egueducation.access_claims"
+)
 
 func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		subject := s.currentSubject(r)
-		if subject == "" {
+		if s.verifier == nil {
+			httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "auth_unavailable"})
+			return
+		}
+
+		token, scheme, ok := ExtractAccessToken(r)
+		if !ok || token == "" {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 			return
 		}
 
-		session, err := s.loadSessionContext(r.Context(), subject)
+		var proof *DPoPProof
+		if scheme == AccessTokenDPoP {
+			var err error
+			proof, err = VerifyDPoPProof(r, token)
+			if err != nil {
+				WriteDPoPNonce(w)
+				httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_proof"})
+				return
+			}
+		}
+
+		claims, err := s.verifier.Verify(r.Context(), token)
+		if err != nil {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+			return
+		}
+		if scheme == AccessTokenDPoP && claims.Cnf.JKT != "" && (proof == nil || claims.Cnf.JKT != proof.Thumbprint) {
+			WriteDPoPNonce(w)
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_binding"})
+			return
+		}
+
+		session, err := s.loadSessionContext(r.Context(), claims.Subject)
 		if err != nil {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), requestSessionContextKey, session)
+		ctx := context.WithValue(r.Context(), requestClaimsContextKey, claims)
+		ctx = context.WithValue(ctx, requestSessionContextKey, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -39,18 +71,17 @@ func (s *Service) RequirePermissions(required ...string) func(http.Handler) http
 				return
 			}
 
-			missing := []string{}
 			available := make(map[string]struct{}, len(session.Permissions))
 			for _, permission := range session.Permissions {
 				available[permission] = struct{}{}
 			}
 
+			missing := make([]string, 0, len(required))
 			for _, permission := range required {
 				if _, ok := available[permission]; !ok {
 					missing = append(missing, permission)
 				}
 			}
-
 			if len(missing) > 0 {
 				httpx.JSON(w, http.StatusForbidden, map[string]any{
 					"code":                 "permission_denied",
@@ -98,4 +129,9 @@ func (s *Service) RequireAnyPermissions(required ...string) func(http.Handler) h
 func sessionFromContext(ctx context.Context) (SessionContext, bool) {
 	session, ok := ctx.Value(requestSessionContextKey).(SessionContext)
 	return session, ok
+}
+
+func accessTokenClaimsFromContext(ctx context.Context) *AccessTokenClaims {
+	claims, _ := ctx.Value(requestClaimsContextKey).(*AccessTokenClaims)
+	return claims
 }

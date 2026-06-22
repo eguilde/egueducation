@@ -24,8 +24,6 @@ import {
   AdminNomenclature,
   AdminNomenclatureFilters,
   AdminOIDCClient,
-  AdminOIDCConsentGrant,
-  AdminOIDCSession,
   AdminWorkflowDefinition,
   AdminWorkflowDefinitionFilters,
   AdminUser,
@@ -38,8 +36,6 @@ import {
   CreateAdminNomenclatureRequest,
   CreateAdminWorkflowDefinitionRequest,
   PagedResponse,
-  RevokeAdminOIDCConsentRequest,
-  RevokeAdminOIDCSessionRequest,
   TableQuery,
   UpsertAdminMembershipRequest,
   UpsertAdminOrgUnitRequest,
@@ -426,46 +422,6 @@ export class AdminApiService {
 
   saveOidcClient(payload: UpsertAdminOIDCClientRequest) {
     return this.http.post<AdminOIDCClient>('/api/admin/oidc/clients', payload);
-  }
-
-  oidcConsents(query: TableQuery) {
-    let params = new HttpParams().set('page', String(query.page)).set('pageSize', String(query.pageSize));
-    if (query.sort) {
-      params = params.set('sort', query.sort);
-    }
-    if (query.direction) {
-      params = params.set('direction', query.direction);
-    }
-    for (const [key, value] of Object.entries(query.filters ?? {})) {
-      if (value) {
-        params = params.set(`filter.${key}`, value);
-      }
-    }
-    return this.http.get<PagedResponse<AdminOIDCConsentGrant>>('/api/admin/oidc/consents', { params });
-  }
-
-  revokeOidcConsent(payload: RevokeAdminOIDCConsentRequest) {
-    return this.http.post<{ status: string }>('/api/admin/oidc/consents/revoke', payload);
-  }
-
-  oidcSessions(query: TableQuery) {
-    let params = new HttpParams().set('page', String(query.page)).set('pageSize', String(query.pageSize));
-    if (query.sort) {
-      params = params.set('sort', query.sort);
-    }
-    if (query.direction) {
-      params = params.set('direction', query.direction);
-    }
-    for (const [key, value] of Object.entries(query.filters ?? {})) {
-      if (value) {
-        params = params.set(`filter.${key}`, value);
-      }
-    }
-    return this.http.get<PagedResponse<AdminOIDCSession>>('/api/admin/oidc/sessions', { params });
-  }
-
-  revokeOidcSession(payload: RevokeAdminOIDCSessionRequest) {
-    return this.http.post<{ status: string }>('/api/admin/oidc/sessions/revoke', payload);
   }
 
   auditEvents(query: TableQuery) {

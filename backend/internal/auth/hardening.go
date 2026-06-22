@@ -2,48 +2,25 @@ package auth
 
 import (
 	"bytes"
-	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"math/big"
-	"net/http"
 	"net/url"
 	"strings"
-	"sync/atomic"
 	"time"
-
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
-	loginSessionTTL     = 8 * time.Hour
 	passkeyChallengeTTL = 5 * time.Minute
 )
-
-type oidcKeyPair struct {
-	privateKey *rsa.PrivateKey
-	keyID      string
-	modulus    string
-	exponent   string
-}
-
-type signedSessionClaims struct {
-	Subject   string `json:"sub"`
-	SessionID string `json:"sid"`
-	ExpiresAt int64  `json:"exp"`
-}
 
 type passkeyClientData struct {
 	Type        string `json:"type"`
@@ -71,7 +48,7 @@ type passkeyPublicKey struct {
 
 type passkeyStoredCredential struct {
 	Challenge string            `json:"challenge,omitempty"`
-	PublicKey *passkeyPublicKey  `json:"public_key,omitempty"`
+	PublicKey *passkeyPublicKey `json:"public_key,omitempty"`
 	SignCount uint32            `json:"sign_count,omitempty"`
 }
 
@@ -81,151 +58,6 @@ type passkeyRecord struct {
 	DeviceName string
 	PublicKey  *passkeyPublicKey
 	SignCount  uint32
-}
-
-var activeOIDCKeyPair atomic.Pointer[oidcKeyPair]
-
-func setActiveOIDCKeyPair(keyPair *oidcKeyPair) {
-	activeOIDCKeyPair.Store(keyPair)
-}
-
-func activeSessionKeyPair() *oidcKeyPair {
-	return activeOIDCKeyPair.Load()
-}
-
-func loadOrCreateOIDCKeyPair(ctx context.Context, db *pgxpool.Pool) (*oidcKeyPair, error) {
-	var (
-		keyID      string
-		privatePEM string
-	)
-	err := db.QueryRow(ctx, `
-		select key_id, private_key_pem
-		from oidc_signing_keys
-		where active = true
-		order by created_at desc
-		limit 1
-	`).Scan(&keyID, &privatePEM)
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("load oidc signing key: %w", err)
-		}
-
-		privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-		if err != nil {
-			return nil, fmt.Errorf("generate oidc signing key: %w", err)
-		}
-		keyID = keyIDFromPublicKey(&privateKey.PublicKey)
-		privatePEM, err = marshalPrivateKeyToPEM(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		if _, err := db.Exec(ctx, `
-			insert into oidc_signing_keys (key_id, private_key_pem, active, created_at, updated_at)
-			values ($1, $2, true, now(), now())
-			on conflict (key_id) do update
-			set private_key_pem = excluded.private_key_pem,
-				active = true,
-				updated_at = now()
-		`, keyID, privatePEM); err != nil {
-			return nil, fmt.Errorf("store oidc signing key: %w", err)
-		}
-		return newOIDCKeyPairFromPEM(keyID, privatePEM)
-	}
-
-	return newOIDCKeyPairFromPEM(keyID, privatePEM)
-}
-
-func newOIDCKeyPairFromPEM(keyID, privatePEM string) (*oidcKeyPair, error) {
-	block, _ := pem.Decode([]byte(privatePEM))
-	if block == nil {
-		return nil, errors.New("invalid oidc signing key pem")
-	}
-
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("parse oidc signing key: %w", err)
-	}
-
-	return newOIDCKeyPairFromPrivateKey(keyID, privateKey), nil
-}
-
-func newOIDCKeyPairFromPrivateKey(keyID string, privateKey *rsa.PrivateKey) *oidcKeyPair {
-	return &oidcKeyPair{
-		privateKey: privateKey,
-		keyID:      keyID,
-		modulus:    base64.RawURLEncoding.EncodeToString(privateKey.PublicKey.N.Bytes()),
-		exponent:   base64.RawURLEncoding.EncodeToString(bigIntToBytes(int64(privateKey.PublicKey.E))),
-	}
-}
-
-func keyIDFromPublicKey(publicKey *rsa.PublicKey) string {
-	sum := sha256.Sum256(publicKey.N.Bytes())
-	return base64.RawURLEncoding.EncodeToString(sum[:8])
-}
-
-func marshalPrivateKeyToPEM(privateKey *rsa.PrivateKey) (string, error) {
-	der := x509.MarshalPKCS1PrivateKey(privateKey)
-	block := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: der}
-	return string(pem.EncodeToMemory(block)), nil
-}
-
-func bigIntToBytes(value int64) []byte {
-	return new(big.Int).SetInt64(value).Bytes()
-}
-
-func signSessionClaims(claims signedSessionClaims) (string, error) {
-	keyPair := activeSessionKeyPair()
-	if keyPair == nil {
-		return "", errors.New("oidc_key_unavailable")
-	}
-
-	payload, err := json.Marshal(claims)
-	if err != nil {
-		return "", fmt.Errorf("marshal session claims: %w", err)
-	}
-
-	signingInput := base64.RawURLEncoding.EncodeToString(payload)
-	sum := sha256.Sum256([]byte(signingInput))
-	signature, err := rsa.SignPKCS1v15(rand.Reader, keyPair.privateKey, crypto.SHA256, sum[:])
-	if err != nil {
-		return "", fmt.Errorf("sign session claims: %w", err)
-	}
-
-	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature), nil
-}
-
-func verifySessionClaims(token string) (signedSessionClaims, error) {
-	keyPair := activeSessionKeyPair()
-	if keyPair == nil {
-		return signedSessionClaims{}, errors.New("oidc_key_unavailable")
-	}
-
-	parts := strings.Split(token, ".")
-	if len(parts) != 2 {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-
-	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
-	if err != nil {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-	sum := sha256.Sum256([]byte(parts[0]))
-	signature, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-	if err := rsa.VerifyPKCS1v15(&keyPair.privateKey.PublicKey, crypto.SHA256, sum[:], signature); err != nil {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-
-	var claims signedSessionClaims
-	if err := json.Unmarshal(payload, &claims); err != nil {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-	if claims.Subject == "" || claims.SessionID == "" || claims.ExpiresAt <= time.Now().Unix() {
-		return signedSessionClaims{}, errors.New("invalid_session_cookie")
-	}
-	return claims, nil
 }
 
 func normalizeOrigin(value string) string {
@@ -784,99 +616,4 @@ func passkeyPublicKeyFromStoredPayload(raw []byte, rpID string) (*passkeyPublicK
 		return nil, 0, fmt.Errorf("parse passkey payload: %w", err)
 	}
 	return ensurePasskeyPublicKey(payload, rpID)
-}
-
-func (s *Service) issueLoginSession(ctx context.Context, subject string) (string, error) {
-	sessionID, err := randomToken(24)
-	if err != nil {
-		return "", fmt.Errorf("generate session id: %w", err)
-	}
-
-	claims := signedSessionClaims{
-		Subject:   subject,
-		SessionID: sessionID,
-		ExpiresAt: time.Now().Add(loginSessionTTL).UTC().Unix(),
-	}
-	token, err := signSessionClaims(claims)
-	if err != nil {
-		return "", err
-	}
-
-	if _, err := s.db.Exec(ctx, `
-		insert into app_login_sessions (session_id, subject, expires_at, revoked, created_at, updated_at)
-		values ($1, $2, to_timestamp($3), false, now(), now())
-		on conflict (session_id) do update
-		set subject = excluded.subject,
-			expires_at = excluded.expires_at,
-			revoked = false,
-			updated_at = now()
-	`, sessionID, subject, claims.ExpiresAt); err != nil {
-		return "", fmt.Errorf("store login session: %w", err)
-	}
-
-	return token, nil
-}
-
-func (s *Service) revokeLoginSession(ctx context.Context, token string) error {
-	claims, err := verifySessionClaims(token)
-	if err != nil {
-		return nil
-	}
-
-	if _, err := s.db.Exec(ctx, `
-		update app_login_sessions
-		set revoked = true,
-			updated_at = now()
-		where session_id = $1
-			and subject = $2
-	`, claims.SessionID, claims.Subject); err != nil {
-		return fmt.Errorf("revoke login session: %w", err)
-	}
-	return nil
-}
-
-func (s *Service) setLoginSessionCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookieName,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-		Secure:   s.cfg.Environment == "production",
-		MaxAge:   int(loginSessionTTL.Seconds()),
-	})
-}
-
-func (s *Service) resolveLoginSubject(ctx context.Context, token string) (string, error) {
-	claims, err := verifySessionClaims(token)
-	if err != nil {
-		return "", err
-	}
-
-	var active bool
-	err = s.db.QueryRow(ctx, `
-		select exists(
-			select 1
-			from app_login_sessions
-			where session_id = $1
-				and subject = $2
-				and revoked = false
-				and expires_at > now()
-		)
-	`, claims.SessionID, claims.Subject).Scan(&active)
-	if err != nil {
-		return "", fmt.Errorf("lookup login session: %w", err)
-	}
-	if !active {
-		return "", errors.New("session_revoked")
-	}
-
-	_, _ = s.db.Exec(ctx, `
-		update app_login_sessions
-		set last_used_at = now(),
-			updated_at = now()
-		where session_id = $1
-	`, claims.SessionID)
-
-	return claims.Subject, nil
 }

@@ -51,49 +51,11 @@ type RolePositionResponse struct {
 	Items []RolePositionItem `json:"items"`
 }
 
-type RequestSMSOTPRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	Identifier  string `json:"identifier,omitempty"`
-}
-
-type VerifySMSOTPRequest struct {
-	PhoneNumber string `json:"phone_number"`
-	Identifier  string `json:"identifier,omitempty"`
-	Code        string `json:"code"`
-}
-
-type SMSOTPRequestResponse struct {
-	Status      string `json:"status"`
-	Channel     string `json:"channel"`
-	PhoneNumber string `json:"phone_number"`
-	MaskedPhone string `json:"masked_phone,omitempty"`
-}
-
-type SMSOTPVerifyResponse struct {
-	Status  string         `json:"status"`
-	Channel string         `json:"channel"`
-	Session SessionContext `json:"session"`
-}
-
 type ConsentScope struct {
 	Code        string `json:"code"`
 	Label       string `json:"label"`
 	Description string `json:"description,omitempty"`
 	Required    bool   `json:"required"`
-}
-
-type ConsentRequestResponse struct {
-	RequestID  string         `json:"request_id"`
-	ClientID   string         `json:"client_id"`
-	ClientName string         `json:"client_name"`
-	Scopes     []ConsentScope `json:"scopes"`
-	ExpiresAt  string         `json:"expires_at"`
-}
-
-type ConsentDecisionRequest struct {
-	RequestID     string   `json:"request_id"`
-	Decision      string   `json:"decision"`
-	GrantedScopes []string `json:"granted_scopes"`
 }
 
 type OIDCClientRegistrationRequest struct {
