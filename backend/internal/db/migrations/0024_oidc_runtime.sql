@@ -4,6 +4,7 @@ create table if not exists oidc_clients (
 	public_client boolean not null default true,
 	require_pkce boolean not null default true,
 	active boolean not null default true,
+	data jsonb not null default '{}'::jsonb,
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()
 );
@@ -56,6 +57,13 @@ set client_name = excluded.client_name,
 	public_client = excluded.public_client,
 	require_pkce = excluded.require_pkce,
 	active = excluded.active,
+	data = jsonb_build_object(
+		'client_id', excluded.client_id,
+		'client_name', excluded.client_name,
+		'public_client', excluded.public_client,
+		'require_pkce', excluded.require_pkce,
+		'active', excluded.active
+	),
 	updated_at = now();
 
 insert into oidc_client_redirect_uris (client_id, redirect_uri)

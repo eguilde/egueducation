@@ -2992,6 +2992,13 @@ func (s *Service) UpsertOIDCClient(w http.ResponseWriter, r *http.Request) {
 			public_client = excluded.public_client,
 			require_pkce = excluded.require_pkce,
 			active = excluded.active,
+			data = jsonb_build_object(
+				'client_id', excluded.client_id,
+				'client_name', excluded.client_name,
+				'public_client', excluded.public_client,
+				'require_pkce', excluded.require_pkce,
+				'active', excluded.active
+			),
 			updated_at = now()
 	`, req.ClientID, req.ClientName, req.PublicClient, req.RequirePKCE, req.Active); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_oidc_client_save_failed"})
