@@ -1182,24 +1182,12 @@ func normalizeSMSPhoneNumber(phoneNumber string, legacyIdentifier string) string
 }
 
 func (s *Service) resolveSMSLoginPhone(ctx context.Context, phoneNumber string, identifier string) (string, error) {
-	value := strings.TrimSpace(phoneNumber)
-	if value != "" {
-		if phone := s.tryLookupVerifiedPhone(ctx, value); phone != "" {
-			return phone, nil
-		}
-	}
-
-	value = strings.TrimSpace(identifier)
+	value := strings.TrimSpace(identifier)
 	if value == "" {
 		return "", errors.New("missing sms login identifier")
 	}
 	if phone := s.tryLookupVerifiedPhone(ctx, value); phone != "" {
 		return phone, nil
-	}
-	if looksLikePhone(value) {
-		if phone := notification.NormalizePhone(value); phoneDigits(phone) != "" {
-			return phone, nil
-		}
 	}
 	return "", errors.New("sms login target not found")
 }
@@ -1218,26 +1206,13 @@ func (s *Service) tryLookupVerifiedPhone(ctx context.Context, value string) stri
 			and phone_number_verified = true
 			and preferred_otp_channel = 'sms'
 			and (
-				lower(email) = lower($1)
-				or lower(sub) = lower($1)
-				or regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($2::text[])
+				lower(sub) = lower($1)
 			)
-	`, trimmed, phoneNumberCandidates(trimmed)).Scan(&phone)
+	`, trimmed).Scan(&phone)
 	if err != nil {
 		return ""
 	}
 	return notification.NormalizePhone(phone)
-}
-
-func looksLikePhone(value string) bool {
-	digits := phoneDigits(notification.NormalizePhone(value))
-	if digits == "" {
-		return false
-	}
-	if strings.Contains(value, "@") {
-		return false
-	}
-	return true
 }
 
 func phoneNumberCandidates(phoneNumber string) []string {

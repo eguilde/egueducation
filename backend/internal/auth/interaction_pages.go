@@ -304,9 +304,9 @@ const oidcLoginHTML = `<!DOCTYPE html>
                   <span>Pasul 1 din 2</span>
                 </div>
                 <div class="field">
-                  <label for="identifier">Email sau nume de utilizator</label>
-                  <input id="identifier" name="identifier" autocomplete="username" inputmode="email" placeholder="nume@exemplu.ro sau utilizator" />
-                  <span class="field-help">Introdu emailul sau numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span>
+                  <label for="identifier">Nume de utilizator</label>
+                  <input id="identifier" name="identifier" autocomplete="username" inputmode="text" placeholder="thomasgalambos" />
+                  <span class="field-help">Introdu numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span>
                 </div>
                 <div class="toolbar">
                   <button class="btn" type="submit">Trimite codul OTP</button>
@@ -407,7 +407,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
       showError('');
       showSuccess('');
       identifierValue = document.getElementById('identifier').value.trim();
-      if (!identifierValue) { showError('Introdu emailul sau numele de utilizator.'); return false; }
+      if (!identifierValue) { showError('Introdu numele de utilizator.'); return false; }
       const response = await fetch('/api/auth/request-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
