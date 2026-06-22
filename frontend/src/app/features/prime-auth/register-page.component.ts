@@ -9,7 +9,7 @@ import { MessageModule } from 'primeng/message';
 
 type RegisterStep = 'account-type' | 'consent' | 'entry';
 type AccountType = 'staff' | 'community';
-type EntryRoute = '/auth/login' | '/auth/start';
+type EntryRoute = '/auth/start';
 
 @Component({
   selector: 'app-register-page',
@@ -66,7 +66,7 @@ type EntryRoute = '/auth/login' | '/auth/start';
 
           <div class="flex flex-col gap-3 sm:flex-row">
             <a
-              routerLink="/auth/login"
+              routerLink="/auth/start"
               [queryParams]="{ returnUrl: returnUrl }"
               class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-white/70 px-6 py-3 text-base font-bold text-rose-900 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-rose-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
             >
@@ -246,7 +246,7 @@ type EntryRoute = '/auth/login' | '/auth/start';
                     (onClick)="backToConsent()"
                   />
                   <a
-                    routerLink="/auth/login"
+                    routerLink="/auth/start"
                     [queryParams]="{ returnUrl: returnUrl }"
                     class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-white/70 px-6 py-3 text-base font-bold text-rose-900 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-rose-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                   >
@@ -326,7 +326,7 @@ export class RegisterPageComponent {
       title: 'auth.register.entry.classic.title',
       body: 'auth.register.entry.classic.body',
       cta: 'auth.register.entry.classic.cta',
-      route: '/auth/login' as const,
+      route: '/auth/start' as const,
     },
     {
       code: 'wallet' as const,

@@ -12,7 +12,7 @@
           (onClick)="toggleDrawer()"
         />
         <div class="grid leading-tight">
-          <span class="text-base font-black tracking-[-0.02em]">EguEducation</span>
+          <span class="text-base font-black tracking-[-0.02em]">{{ branding.projectTitle() }}</span>
           <span class="hidden text-xs text-surface-500 sm:block">
             {{ authz.institutionName() || ('app.subtitle' | transloco) }}
           </span>

@@ -7,6 +7,7 @@ import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
+import { provideAppBranding } from './core/branding/provide-app-branding';
 import { provideAppAuth } from './core/auth/provide-auth';
 import { APP_ENVIRONMENT } from './core/config/app-environment';
 import { provideAppI18n } from './core/i18n/transloco.providers';
@@ -39,6 +40,7 @@ export const appConfig: ApplicationConfig = {
       withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
     ),
     provideAppI18n(),
+    provideAppBranding(),
     provideAppAuth({
       authority: environment.oidcAuthority,
       clientId: environment.oidcClientId,

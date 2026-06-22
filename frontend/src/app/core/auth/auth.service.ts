@@ -112,13 +112,9 @@ export class AuthService {
       }
     }
 
-    try {
-      await firstValueFrom(this.http.post<{ status: string }>('/api/auth/logout', {}));
-    } catch {
-      // The browser should still leave the authenticated area even if backend logout fails.
-    }
-
-    this.document.location.href = this.config.postLogoutRedirectUri;
+    const logoutUrl = new URL('/logout', this.config.authority);
+    logoutUrl.searchParams.set('returnTo', this.config.postLogoutRedirectUri);
+    this.document.location.href = logoutUrl.toString();
   }
 
   clearLocalSession(): void {

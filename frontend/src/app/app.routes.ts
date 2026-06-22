@@ -18,11 +18,6 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
-    path: 'auth/login',
-    loadComponent: () =>
-      import('./features/prime-auth/login-page.component').then((m) => m.LoginPageComponent),
-  },
-  {
     path: 'auth/register',
     loadComponent: () =>
       import('./features/prime-auth/register-page.component').then((m) => m.RegisterPageComponent),
@@ -46,16 +41,6 @@ export const routes: Routes = [
     path: 'auth/callback',
     loadComponent: () =>
       import('./features/auth/callback-page.component').then((m) => m.CallbackPageComponent),
-  },
-  {
-    path: 'auth/consent',
-    loadComponent: () =>
-      import('./features/prime-auth/consent-page.component').then((m) => m.ConsentPageComponent),
-  },
-  {
-    path: 'auth/logout',
-    loadComponent: () =>
-      import('./features/prime-auth/logout-page.component').then((m) => m.LogoutPageComponent),
   },
   {
     path: 'auth/access-denied',

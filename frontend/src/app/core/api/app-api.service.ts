@@ -18,6 +18,7 @@ import {
   SMSOTPVerifyResponse,
   VerifySMSOTPRequest,
 } from './api.types';
+import { AppBootstrapConfig } from '../branding/app-branding.types';
 
 @Injectable({ providedIn: 'root' })
 export class AppApiService {
@@ -25,6 +26,10 @@ export class AppApiService {
 
   meta() {
     return this.http.get<AppMeta>('/api/meta/app');
+  }
+
+  config() {
+    return this.http.get<AppBootstrapConfig>('/api/config');
   }
 
   authMethods() {

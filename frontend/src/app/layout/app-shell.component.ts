@@ -13,6 +13,7 @@ import { DrawerModule } from 'primeng/drawer';
 import { ToolbarModule } from 'primeng/toolbar';
 
 import { AuthService } from '../core/auth/auth.service';
+import { AppBrandingService } from '../core/branding/app-branding.service';
 import { AuthzService } from '../core/authz/authz.service';
 import { ThemePanelComponent } from './theme-panel.component';
 
@@ -51,6 +52,7 @@ export class AppShellComponent {
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
   protected readonly authz = inject(AuthzService);
+  protected readonly branding = inject(AppBrandingService);
 
   protected readonly navItems: NavItem[] = [
     {
@@ -146,11 +148,11 @@ export class AppShellComponent {
   }
 
   protected async signIn(): Promise<void> {
-    await this.router.navigate(['/auth/start']);
+    await this.auth.login(this.router.url);
   }
 
   protected async signOut(): Promise<void> {
-    await this.router.navigate(['/auth/logout']);
+    await this.auth.logout();
   }
 
   protected async openAdmin(): Promise<void> {

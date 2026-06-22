@@ -44,7 +44,8 @@ func (s *Service) Discovery(w http.ResponseWriter, _ *http.Request) {
 			"sub", "name", "email", "email_verified", "phone_number", "phone_number_verified", "locale", "roles",
 		},
 		"code_challenge_methods_supported":      []string{"S256"},
-		"token_endpoint_auth_methods_supported": []string{"none"},
+		"token_endpoint_auth_methods_supported": []string{"none", "client_secret_basic"},
+		"dpop_signing_alg_values_supported":    []string{"ES256"},
 	})
 }
 
@@ -100,7 +101,7 @@ func (s *Service) Authorize(w http.ResponseWriter, r *http.Request) {
 
 	subject := s.currentSubject(r)
 	if subject == "" {
-		loginURL, err := url.Parse(s.cfg.FrontendOrigin + "/auth/login")
+		loginURL, err := url.Parse(s.cfg.OIDCIssuer + "/login")
 		if err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "login_redirect_failed"})
 			return
@@ -121,7 +122,7 @@ func (s *Service) Authorize(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "consent_request_store_failed"})
 			return
 		}
-		http.Redirect(w, r, s.cfg.FrontendOrigin+"/auth/consent?request="+url.QueryEscape(requestID), http.StatusFound)
+		http.Redirect(w, r, s.cfg.OIDCIssuer+"/consent?request="+url.QueryEscape(requestID), http.StatusFound)
 		return
 	}
 
@@ -186,8 +187,24 @@ func (s *Service) ConsentDecision(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	htmlForm := strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/x-www-form-urlencoded") || strings.Contains(strings.ToLower(r.Header.Get("Accept")), "text/html")
 	var req ConsentDecisionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_consent_decision"})
+			return
+		}
+	} else {
+		if err := r.ParseForm(); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_consent_decision"})
+			return
+		}
+		req.RequestID = strings.TrimSpace(r.FormValue("request_id"))
+		req.Decision = strings.TrimSpace(r.FormValue("decision"))
+		req.GrantedScopes = append(req.GrantedScopes, r.Form["granted_scopes"]...)
+	}
+
+	if req.RequestID == "" && req.Decision == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_consent_decision"})
 		return
 	}
@@ -238,6 +255,10 @@ func (s *Service) ConsentDecision(w http.ResponseWriter, r *http.Request) {
 			"status":      "denied",
 			"redirect_to": s.buildErrorRedirect(redirectURI, state, "access_denied"),
 		})
+		if htmlForm {
+			http.Redirect(w, r, s.buildErrorRedirect(redirectURI, state, "access_denied"), http.StatusFound)
+			return
+		}
 		return
 	}
 
@@ -279,10 +300,18 @@ func (s *Service) ConsentDecision(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "authorization_code_store_failed"})
 		return
 	}
+	if htmlForm {
+		http.Redirect(w, r, redirectTarget, http.StatusFound)
+		return
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"status":      "approved",
 		"redirect_to": redirectTarget,
 	})
+	if htmlForm {
+		http.Redirect(w, r, redirectTarget, http.StatusFound)
+		return
+	}
 }
 
 func (s *Service) buildAuthorizationRedirect(ctx context.Context, clientID, subject, redirectURI, scope, state, nonce, codeChallenge string) (string, error) {
