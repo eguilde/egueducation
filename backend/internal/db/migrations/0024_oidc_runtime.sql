@@ -37,6 +37,7 @@ create table if not exists oidc_refresh_tokens (
 	client_id text not null references oidc_clients(client_id) on delete cascade,
 	subject text not null,
 	scope text not null,
+	cnf_jkt text null,
 	expires_at timestamptz not null,
 	revoked boolean not null default false,
 	created_at timestamptz not null default now(),

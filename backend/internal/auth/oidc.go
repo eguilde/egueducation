@@ -365,13 +365,23 @@ func (s *Service) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cnfJKT := ""
+	if rawProof := strings.TrimSpace(r.Header.Get("DPoP")); rawProof != "" {
+		thumbprint, err := verifyDPoPProof(r, "")
+		if err != nil {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": err.Error()})
+			return
+		}
+		cnfJKT = thumbprint
+	}
+
 	var response map[string]any
 	var err error
 	switch grantType {
 	case "authorization_code":
-		response, err = s.exchangeAuthorizationCode(r.Context(), clientID, r.FormValue("code"), r.FormValue("redirect_uri"), r.FormValue("code_verifier"))
+		response, err = s.exchangeAuthorizationCode(r.Context(), clientID, r.FormValue("code"), r.FormValue("redirect_uri"), r.FormValue("code_verifier"), cnfJKT)
 	case "refresh_token":
-		response, err = s.exchangeRefreshToken(r.Context(), clientID, r.FormValue("refresh_token"))
+		response, err = s.exchangeRefreshToken(r.Context(), clientID, r.FormValue("refresh_token"), cnfJKT)
 	default:
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "unsupported_grant_type"})
 		return
@@ -426,6 +436,17 @@ func (s *Service) UserInfo(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 		return
 	}
+	if strings.EqualFold(parts[0], "DPoP") {
+		thumbprint, err := verifyDPoPProof(r, parts[1])
+		if err != nil {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": err.Error()})
+			return
+		}
+		if bound, ok := tokenThumbprint(claims); !ok || bound != thumbprint {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
+			return
+		}
+	}
 
 	subject, _ := claims["sub"].(string)
 	session, err := s.loadSessionContext(r.Context(), subject)
@@ -446,7 +467,7 @@ func (s *Service) UserInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Service) exchangeAuthorizationCode(ctx context.Context, clientID, code, redirectURI, verifier string) (map[string]any, error) {
+func (s *Service) exchangeAuthorizationCode(ctx context.Context, clientID, code, redirectURI, verifier, cnfJKT string) (map[string]any, error) {
 	if code == "" || redirectURI == "" || verifier == "" {
 		return nil, errors.New("invalid_grant")
 	}
@@ -478,10 +499,10 @@ func (s *Service) exchangeAuthorizationCode(ctx context.Context, clientID, code,
 		return nil, errors.New("authorization_code_update_failed")
 	}
 
-	return s.issueTokenSet(ctx, clientID, subject, scope, derefString(nonce))
+	return s.issueTokenSet(ctx, clientID, subject, scope, derefString(nonce), cnfJKT)
 }
 
-func (s *Service) exchangeRefreshToken(ctx context.Context, clientID, refreshToken string) (map[string]any, error) {
+func (s *Service) exchangeRefreshToken(ctx context.Context, clientID, refreshToken, proofJKT string) (map[string]any, error) {
 	if refreshToken == "" {
 		return nil, errors.New("invalid_grant")
 	}
@@ -489,43 +510,46 @@ func (s *Service) exchangeRefreshToken(ctx context.Context, clientID, refreshTok
 	var (
 		subject string
 		scope   string
+		cnfJKT  *string
 	)
 	err := s.db.QueryRow(ctx, `
-		select subject, scope
+		select subject, scope, cnf_jkt
 		from oidc_refresh_tokens
 		where token = $1
 			and client_id = $2
 			and revoked = false
 			and expires_at > now()
-	`, refreshToken, clientID).Scan(&subject, &scope)
+	`, refreshToken, clientID).Scan(&subject, &scope, &cnfJKT)
 	if err != nil {
 		return nil, errors.New("invalid_grant")
 	}
 
-	return s.issueTokenSet(ctx, clientID, subject, scope, "")
+	binding := derefString(cnfJKT)
+	if binding != "" {
+		if proofJKT == "" || binding != proofJKT {
+			return nil, errors.New("invalid_token_binding")
+		}
+	} else {
+		binding = proofJKT
+	}
+	if _, err := s.db.Exec(ctx, `
+		update oidc_refresh_tokens
+		set revoked = true, updated_at = now()
+		where token = $1
+	`, refreshToken); err != nil {
+		return nil, errors.New("refresh_token_revoke_failed")
+	}
+
+	return s.issueTokenSet(ctx, clientID, subject, scope, "", binding)
 }
 
-func (s *Service) issueTokenSet(ctx context.Context, clientID, subject, scope, nonce string) (map[string]any, error) {
+func (s *Service) issueTokenSet(ctx context.Context, clientID, subject, scope, nonce, cnfJKT string) (map[string]any, error) {
 	session, err := s.loadSessionContext(ctx, subject)
 	if err != nil {
 		return nil, errors.New("session_load_failed")
 	}
 
 	now := time.Now().UTC()
-	accessToken, err := s.signToken(map[string]any{
-		"iss":   s.cfg.OIDCIssuer,
-		"sub":   session.User.Sub,
-		"aud":   clientID,
-		"iat":   now.Unix(),
-		"exp":   now.Add(accessTokenTTL).Unix(),
-		"scope": scope,
-		"jti":   mustRandomToken(16),
-		"typ":   "access_token",
-	})
-	if err != nil {
-		return nil, errors.New("token_sign_failed")
-	}
-
 	idTokenClaims := map[string]any{
 		"iss":                   s.cfg.OIDCIssuer,
 		"sub":                   session.User.Sub,
@@ -553,16 +577,39 @@ func (s *Service) issueTokenSet(ctx context.Context, clientID, subject, scope, n
 	if err != nil {
 		return nil, errors.New("refresh_token_generation_failed")
 	}
+	refreshExpiresAt := now.Add(refreshTokenTTL)
 	if _, err := s.db.Exec(ctx, `
-		insert into oidc_refresh_tokens (token, client_id, subject, scope, expires_at)
-		values ($1, $2, $3, $4, $5)
-	`, refreshToken, clientID, subject, scope, now.Add(refreshTokenTTL)); err != nil {
+		insert into oidc_refresh_tokens (token, client_id, subject, scope, cnf_jkt, expires_at)
+		values ($1, $2, $3, $4, $5, $6)
+	`, refreshToken, clientID, subject, scope, nullableString(cnfJKT), refreshExpiresAt); err != nil {
 		return nil, errors.New("refresh_token_store_failed")
+	}
+
+	tokenType := "Bearer"
+	if cnfJKT != "" {
+		tokenType = "DPoP"
+	}
+	accessTokenClaims := map[string]any{
+		"iss":   s.cfg.OIDCIssuer,
+		"sub":   session.User.Sub,
+		"aud":   clientID,
+		"iat":   now.Unix(),
+		"exp":   now.Add(accessTokenTTL).Unix(),
+		"scope": scope,
+		"jti":   mustRandomToken(16),
+		"typ":   "access_token",
+	}
+	if cnfJKT != "" {
+		accessTokenClaims["cnf"] = map[string]any{"jkt": cnfJKT}
+	}
+	accessToken, err := s.signToken(accessTokenClaims)
+	if err != nil {
+		return nil, errors.New("token_sign_failed")
 	}
 
 	return map[string]any{
 		"access_token":  accessToken,
-		"token_type":    "DPoP",
+		"token_type":    tokenType,
 		"expires_in":    int(accessTokenTTL.Seconds()),
 		"refresh_token": refreshToken,
 		"id_token":      idToken,
