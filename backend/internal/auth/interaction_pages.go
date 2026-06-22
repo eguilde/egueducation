@@ -15,6 +15,9 @@ type oidcLoginPageData struct {
 	Error        string
 	Phone        string
 	MaskedPhone  string
+	SMSAvailable bool
+	PasskeyAvailable bool
+	WalletAvailable bool
 }
 
 type oidcConsentPageData struct {
@@ -90,6 +93,9 @@ func (s *Service) LoginPage(w http.ResponseWriter, r *http.Request) {
 		CustomerName: "EguEducation",
 		ProjectTitle: projectTitle,
 		ReturnURL:    returnURL,
+		SMSAvailable: s.cfg.EnableSMSOTP && s.smsService != nil && s.smsService.Configured(),
+		PasskeyAvailable: s.cfg.EnablePasskeys,
+		WalletAvailable: s.cfg.EnableWallet,
 	})
 }
 
