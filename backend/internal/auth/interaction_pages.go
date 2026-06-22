@@ -179,6 +179,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .method{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--card),var(--card-2));cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;text-align:left}
     .method:hover{transform:translateY(-1px);box-shadow:0 18px 32px rgba(15,23,42,.10);border-color:rgba(225,29,72,.42)}
     .method.active{border-color:rgba(225,29,72,.56);box-shadow:0 18px 32px rgba(225,29,72,.12);background:linear-gradient(180deg,rgba(225,29,72,.06),rgba(225,29,72,.02))}
+    .method:disabled{cursor:not-allowed;opacity:.55;transform:none;box-shadow:none}
     .method-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:14px;background:var(--soft);color:var(--primary);flex:0 0 auto}
     .method-body{display:grid;gap:4px}
     .method strong{font-size:15px}
@@ -204,12 +205,15 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .step-header strong{font-size:14px}
     .step-header span{font-size:12px;color:var(--muted)}
     .otp{display:grid;gap:12px}
-    .otp input{font-size:18px;letter-spacing:.3em;text-align:center}
+    .otp-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+    .otp-box{width:100%;min-width:0;padding:14px 10px;border:1px solid var(--border);border-radius:14px;font:inherit;font-size:18px;letter-spacing:.2em;text-align:center;color:var(--text);background:var(--soft)}
+    .otp-box:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(225,29,72,.14);background:var(--card)}
+    .otp-box.filled{border-color:rgba(225,29,72,.35)}
     .footer-note{margin-top:14px;padding:12px 14px;border-radius:16px;background:rgba(2,6,23,.03);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
     .footer-note strong{color:var(--text)}
     @media(max-width:1120px){.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}
     @media(max-width:860px){body{overflow-y:auto}.shell{display:block}.visual{display:none}.card-shell{grid-template-columns:1fr}.card{border-radius:24px}.card-form,.card-hero{padding:18px}}
-    @media(max-width:480px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.method{padding:13px}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{border-radius:20px}}
+    @media(max-width:480px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.method{padding:13px}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{border-radius:20px}.otp-grid{gap:6px}.otp-box{padding:12px 8px;font-size:16px}}
   </style>
 </head>
 <body>
@@ -309,8 +313,8 @@ const oidcLoginHTML = `<!DOCTYPE html>
                   <span class="field-help">Introdu numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span>
                 </div>
                 <div class="toolbar">
-                  <button class="btn" type="submit">Trimite codul OTP</button>
                   <button class="btn secondary" type="button" onclick="resetToMethods()">Alege altă metodă</button>
+                  <button class="btn" type="submit">Trimite codul OTP</button>
                 </div>
               </form>
 
@@ -320,14 +324,19 @@ const oidcLoginHTML = `<!DOCTYPE html>
                   <span>Pasul 2 din 2</span>
                 </div>
                 <div class="helper-card" id="smsNotice">Am trimis codul SMS către numărul verificat din cont.</div>
-                <div class="field">
-                  <label for="code">Cod OTP</label>
-                  <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" />
-                  <span class="field-help">Introdu cele 6 cifre primite prin SMS.</span>
+                <input type="hidden" id="code" name="code" />
+                <div class="otp-grid" aria-label="Cod OTP">
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" autofocus />
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
+                  <input class="otp-box" type="text" inputmode="numeric" maxlength="1" />
                 </div>
+                <span class="field-help">Introdu cele 6 cifre primite prin SMS.</span>
                 <div class="row">
                   <button class="btn secondary" type="button" onclick="hideCode()">Schimbă identificatorul</button>
-                  <button class="btn" type="submit">Verifică și continuă</button>
+                  <button class="btn" type="submit" id="verifyBtn" disabled>Verifică și continuă</button>
                 </div>
               </form>
             </div>
@@ -350,6 +359,8 @@ const oidcLoginHTML = `<!DOCTYPE html>
     const smsNotice = document.getElementById('smsNotice');
     const identifierInput = document.getElementById('identifier');
     const codeInput = document.getElementById('code');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const otpBoxes = Array.from(document.querySelectorAll('.otp-box'));
     let identifierValue = '';
     function showError(message) {
       errorBox.hidden = !message;
@@ -394,13 +405,28 @@ const oidcLoginHTML = `<!DOCTYPE html>
       }
     }
     function hideSms() { resetToMethods(); }
-    function hideCode() { resetToMethods(); }
+    function hideCode() {
+      resetToMethods();
+      identifierValue = '';
+      codeInput.value = '';
+      otpBoxes.forEach((box) => {
+        box.value = '';
+        box.classList.remove('filled');
+      });
+      verifyBtn.disabled = true;
+    }
     function showWalletMessage(button) {
       setActiveMethod(button);
       smsForm.hidden = true;
       codeForm.hidden = true;
       showSuccess('EUDI wallet nu este încă activat pentru acest tenant.');
       showError('');
+    }
+    function syncOtp() {
+      const code = otpBoxes.map((box) => box.value.replace(/\D/g, '').slice(0, 1)).join('');
+      codeInput.value = code;
+      verifyBtn.disabled = code.length !== 6;
+      otpBoxes.forEach((box) => box.classList.toggle('filled', box.value !== ''));
     }
     async function requestSms(event) {
       event.preventDefault();
@@ -420,7 +446,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
       smsNotice.textContent = 'Am trimis codul SMS către contul asociat identificatorului introdus.';
       smsForm.hidden = true;
       codeForm.hidden = false;
-      codeInput.focus();
+      otpBoxes[0].focus();
       showSuccess('Codul a fost trimis. Verifică mesajul SMS și continuă.');
       return false;
     }
@@ -498,6 +524,47 @@ const oidcLoginHTML = `<!DOCTYPE html>
       for (const byte of bytes) binary += String.fromCharCode(byte);
       return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
     }
+    otpBoxes.forEach((box, index) => {
+      box.addEventListener('input', (event) => {
+        const value = event.target.value.replace(/\D/g, '').slice(0, 1);
+        event.target.value = value;
+        if (value && index < otpBoxes.length - 1) {
+          otpBoxes[index + 1].focus();
+        }
+        syncOtp();
+      });
+      box.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace' && !box.value && index > 0) {
+          otpBoxes[index - 1].value = '';
+          otpBoxes[index - 1].focus();
+          syncOtp();
+        }
+        if (event.key === 'ArrowLeft' && index > 0) {
+          otpBoxes[index - 1].focus();
+        }
+        if (event.key === 'ArrowRight' && index < otpBoxes.length - 1) {
+          otpBoxes[index + 1].focus();
+        }
+        if (event.key === 'Enter' && codeInput.value.length === 6) {
+          codeForm.requestSubmit();
+        }
+      });
+      box.addEventListener('paste', (event) => {
+        event.preventDefault();
+        const paste = (event.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+        if (!paste) {
+          return;
+        }
+        paste.split('').forEach((digit, digitIndex) => {
+          if (otpBoxes[digitIndex]) {
+            otpBoxes[digitIndex].value = digit;
+          }
+        });
+        otpBoxes[Math.min(paste.length, otpBoxes.length - 1)].focus();
+        syncOtp();
+      });
+    });
+    syncOtp();
     showSms(methodGrid.querySelector('.method'));
   </script>
 </body>
@@ -590,7 +657,7 @@ const oidcConsentHTML = `<!DOCTYPE html>
                 <span class="status-pill">Cerere activă</span>
               </div>
               <h1 class="title">{{.CustomerName}}</h1>
-              <p class="subtitle">Confirmă ce date și ce acces acordi aplicației solicitante.</p>
+              <p class="subtitle">Verifică ce scope-uri sunt cerute și aprobă doar ce este necesar pentru această sesiune.</p>
             </div>
 
             <div class="summary" aria-label="Rezumat cerere">
@@ -660,10 +727,10 @@ const oidcConsentHTML = `<!DOCTYPE html>
                 </label>
                 {{end}}
               </div>
-              <div class="notice">Prin permitere, aplicația primește doar scope-urile bifeate aici. Cererea este valabilă până la {{.ExpiresAt}} și este gestionată de providerul OIDC, nu de aplicația frontend.</div>
+              <div class="notice">Prin aprobare, aplicația primește doar scope-urile selectate aici. Cererea este valabilă până la {{.ExpiresAt}} și este gestionată de providerul OIDC, nu de aplicația frontend.</div>
               <div class="row">
-                <button class="btn secondary" type="submit" name="decision" value="deny">Refuză</button>
-                <button class="btn" type="submit" name="decision" value="allow">Permite</button>
+                <button class="btn secondary" type="submit" name="decision" value="deny">Refuză accesul</button>
+                <button class="btn" type="submit" name="decision" value="allow">Permite accesul</button>
               </div>
             </form>
           </section>
