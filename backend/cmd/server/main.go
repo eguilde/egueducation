@@ -47,7 +47,10 @@ func main() {
 	}
 
 	smsService := notification.NewSMSService(pool, cfg.SMSAPIToken, cfg.SMSSenderName)
-	authService := auth.NewService(cfg, smsService, pool)
+	authService, err := auth.NewService(cfg, smsService, pool)
+	if err != nil {
+		logger.Fatal("auth service initialization failed", zap.Error(err))
+	}
 	adminService := admin.NewService(cfg, pool)
 	educationService := education.NewService(pool)
 	earchivaService := earchiva.NewService(pool)
@@ -108,6 +111,13 @@ func main() {
 			r.Use(authService.RequireAuthenticated)
 
 			r.Get("/me", authService.SessionContext)
+			r.Put("/profile", authService.UpdateProfile)
+			r.Get("/passkeys", authService.ListPasskeys)
+			r.Post("/passkeys/register-options", authService.BeginPasskeyRegistration)
+			r.Post("/passkeys/register-finish", authService.FinishPasskeyRegistration)
+			r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)
+			r.Post("/passkeys/login-finish", authService.FinishPasskeyAuthentication)
+			r.Post("/eudi-wallet/activate", authService.ActivateEUDIWallet)
 
 			r.With(authService.RequirePermissions("admin.read")).Get("/admin/dashboard", adminService.Dashboard)
 			r.With(authService.RequirePermissions("admin.users.read")).Get("/admin/users", adminService.ListUsers)
@@ -117,6 +127,12 @@ func main() {
 			r.With(authService.RequirePermissions("admin.roles.manage")).Post("/admin/roles", adminService.UpsertRole)
 			r.With(authService.RequirePermissions("admin.roles.read")).Get("/admin/role-assignments", adminService.ListUserRoleAssignments)
 			r.With(authService.RequirePermissions("admin.roles.manage")).Post("/admin/role-assignments", adminService.UpsertUserRoleAssignment)
+			r.With(authService.RequirePermissions("admin.roles.read")).Get("/admin/role-permissions", adminService.ListRolePermissionAssignments)
+			r.With(authService.RequirePermissions("admin.roles.read")).Get("/admin/role-permissions/filters", adminService.RolePermissionAssignmentFilters)
+			r.With(authService.RequirePermissions("admin.roles.manage")).Post("/admin/role-permissions", adminService.UpsertRolePermissionAssignment)
+			r.With(authService.RequirePermissions("admin.positions.read")).Get("/admin/position-roles", adminService.ListPositionRoleAssignments)
+			r.With(authService.RequirePermissions("admin.positions.read")).Get("/admin/position-roles/filters", adminService.PositionRoleAssignmentFilters)
+			r.With(authService.RequirePermissions("admin.positions.manage")).Post("/admin/position-roles", adminService.UpsertPositionRoleAssignment)
 			r.With(authService.RequirePermissions("admin.org_units.read")).Get("/admin/org-units", adminService.ListOrgUnits)
 			r.With(authService.RequirePermissions("admin.org_units.manage")).Post("/admin/org-units", adminService.UpsertOrgUnit)
 			r.With(authService.RequirePermissions("admin.memberships.read")).Get("/admin/memberships", adminService.ListMemberships)
@@ -183,6 +199,7 @@ func main() {
 
 			r.With(authService.RequirePermissions("education.governance.read")).Get("/education/dashboard", educationService.GovernanceDashboard)
 			r.With(authService.RequirePermissions("education.read")).Get("/education/taxonomies", educationService.ListTaxonomies)
+			r.With(authService.RequirePermissions("education.read")).Get("/education/requirements", educationService.RequirementCatalog)
 			r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings", educationService.GovernanceMeetings)
 			r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings/filters", educationService.GovernanceFilters)
 			r.With(authService.RequirePermissions("education.governance.manage")).Post("/education/governance/meetings", educationService.CreateGovernanceMeeting)
@@ -221,6 +238,7 @@ func main() {
 			r.With(authService.RequirePermissions("education.portfolios.read")).Get("/education/portfolios/dashboard", educationService.PortfolioDashboard)
 			r.With(authService.RequirePermissions("education.portfolios.read")).Get("/education/portfolios/records", educationService.PortfolioRecords)
 			r.With(authService.RequirePermissions("education.portfolios.read")).Get("/education/portfolios/records/filters", educationService.PortfolioFilters)
+			r.With(authService.RequirePermissions("education.portfolios.read")).Get("/education/portfolios/sections", educationService.PortfolioSections)
 			r.With(authService.RequirePermissions("education.portfolios.manage")).Post("/education/portfolios/records", educationService.CreatePortfolioRecord)
 
 			r.With(authService.RequirePermissions("gdpr.read")).Get("/gdpr/dashboard", gdprService.Dashboard)

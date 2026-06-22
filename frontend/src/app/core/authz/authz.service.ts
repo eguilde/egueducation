@@ -13,6 +13,7 @@ export class AuthzService {
   readonly permissions = computed(() => this.sessionSignal()?.permissions ?? []);
   readonly modules = computed(() => this.sessionSignal()?.modules ?? []);
   readonly user = computed(() => this.sessionSignal()?.user ?? null);
+  readonly roles = computed(() => this.sessionSignal()?.user?.roles ?? []);
   readonly institutionName = computed(() => this.sessionSignal()?.institution_name ?? '');
 
   async init(): Promise<void> {
@@ -34,6 +35,14 @@ export class AuthzService {
 
   hasPermission(permission: string): boolean {
     return this.permissions().includes(permission);
+  }
+
+  hasRole(role: string): boolean {
+    return this.roles().includes(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some((role) => this.hasRole(role));
   }
 
   hasAnyPermission(permissions: string[]): boolean {

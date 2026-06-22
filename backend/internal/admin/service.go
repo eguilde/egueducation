@@ -57,6 +57,7 @@ func (s *Service) Dashboard(w http.ResponseWriter, _ *http.Request) {
 		AdminSections: []string{
 			"users",
 			"roles",
+			"rbac",
 			"dossier_requirements",
 			"memberships",
 			"org_units",
@@ -1367,6 +1368,388 @@ func (s *Service) UpsertPermissionAssignment(w http.ResponseWriter, r *http.Requ
 		"assigned":        req.Assigned,
 	})
 
+	httpx.JSON(w, http.StatusCreated, item)
+}
+
+func (s *Service) RolePermissionAssignmentFilters(w http.ResponseWriter, r *http.Request) {
+	roleRows, err := s.pool.Query(r.Context(), `
+		select code, label
+		from app_roles
+		order by code
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+		return
+	}
+	defer roleRows.Close()
+
+	roles := []CodeLabelOption{}
+	for roleRows.Next() {
+		var item CodeLabelOption
+		if err := roleRows.Scan(&item.Code, &item.Label); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+			return
+		}
+		roles = append(roles, item)
+	}
+	if err := roleRows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+		return
+	}
+
+	permissionRows, err := s.pool.Query(r.Context(), `
+		select code, label
+		from app_permissions
+		order by code
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+		return
+	}
+	defer permissionRows.Close()
+
+	permissions := []CodeLabelOption{}
+	for permissionRows.Next() {
+		var item CodeLabelOption
+		if err := permissionRows.Scan(&item.Code, &item.Label); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+			return
+		}
+		permissions = append(permissions, item)
+	}
+	if err := permissionRows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignment_filters_failed"})
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, RolePermissionAssignmentFilters{
+		Roles:       roles,
+		Permissions: permissions,
+	})
+}
+
+func (s *Service) ListRolePermissionAssignments(w http.ResponseWriter, r *http.Request) {
+	query := httpx.ParsePageQuery(
+		r.URL.Query(),
+		map[string]struct{}{"role_code": {}, "permission_code": {}},
+		[]string{"role_code", "role_label", "permission_code", "permission_label"},
+	)
+
+	clauses := []string{"1 = 1"}
+	args := []any{}
+	if value := strings.TrimSpace(query.Filters["role_code"]); value != "" {
+		args = append(args, value)
+		clauses = append(clauses, "rp.role_code = $"+strconv.Itoa(len(args)))
+	}
+	if value := strings.TrimSpace(query.Filters["permission_code"]); value != "" {
+		args = append(args, value)
+		clauses = append(clauses, "rp.permission_code = $"+strconv.Itoa(len(args)))
+	}
+	whereClause := "where " + strings.Join(clauses, " and ")
+
+	var total int
+	if err := s.pool.QueryRow(r.Context(), `
+		select count(*)
+		from app_role_permissions rp
+		join app_roles r on r.code = rp.role_code
+		join app_permissions p on p.code = rp.permission_code
+		`+whereClause, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignments_failed"})
+		return
+	}
+
+	sortField := "rp.role_code"
+	switch query.Sort {
+	case "role_label":
+		sortField = "r.label"
+	case "permission_code":
+		sortField = "rp.permission_code"
+	case "permission_label":
+		sortField = "p.label"
+	}
+
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), `
+		select
+			rp.role_code || ':' || rp.permission_code as id,
+			rp.role_code,
+			r.label,
+			rp.permission_code,
+			p.label
+		from app_role_permissions rp
+		join app_roles r on r.code = rp.role_code
+		join app_permissions p on p.code = rp.permission_code
+		`+whereClause+`
+		order by `+sortField+` `+strings.ToUpper(query.Direction)+`, rp.role_code, rp.permission_code
+		limit $`+strconv.Itoa(len(args)-1)+` offset $`+strconv.Itoa(len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignments_failed"})
+		return
+	}
+	defer rows.Close()
+
+	items := []RolePermissionAssignment{}
+	for rows.Next() {
+		var item RolePermissionAssignment
+		if err := rows.Scan(&item.ID, &item.RoleCode, &item.RoleLabel, &item.PermissionCode, &item.PermissionLabel); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignments_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_role_permission_assignments_failed"})
+		return
+	}
+
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
+func (s *Service) UpsertRolePermissionAssignment(w http.ResponseWriter, r *http.Request) {
+	var req UpsertRolePermissionAssignmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_role_permission_assignment"})
+		return
+	}
+
+	req.RoleCode = strings.TrimSpace(req.RoleCode)
+	req.PermissionCode = strings.TrimSpace(req.PermissionCode)
+	if req.RoleCode == "" || req.PermissionCode == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_role_permission_assignment"})
+		return
+	}
+
+	if req.Assigned {
+		if _, err := s.pool.Exec(r.Context(), `
+			insert into app_role_permissions (role_code, permission_code)
+			values ($1, $2)
+			on conflict do nothing
+		`, req.RoleCode, req.PermissionCode); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_permission_assignment_save_failed"})
+			return
+		}
+	} else {
+		if _, err := s.pool.Exec(r.Context(), `
+			delete from app_role_permissions
+			where role_code = $1 and permission_code = $2
+		`, req.RoleCode, req.PermissionCode); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_permission_assignment_save_failed"})
+			return
+		}
+	}
+
+	var item RolePermissionAssignment
+	if err := s.pool.QueryRow(r.Context(), `
+		select
+			$1 || ':' || $2 as id,
+			r.code,
+			r.label,
+			p.code,
+			p.label
+		from app_roles r
+		join app_permissions p on p.code = $2
+		where r.code = $1
+	`, req.RoleCode, req.PermissionCode).Scan(&item.ID, &item.RoleCode, &item.RoleLabel, &item.PermissionCode, &item.PermissionLabel); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_permission_assignment_save_failed"})
+		return
+	}
+
+	s.logAudit(r, "admin.roles.permission_assignment", "role_permission", item.ID, "Updated role permission assignment", map[string]any{
+		"role_code":       item.RoleCode,
+		"permission_code": item.PermissionCode,
+		"assigned":        req.Assigned,
+	})
+	httpx.JSON(w, http.StatusCreated, item)
+}
+
+func (s *Service) PositionRoleAssignmentFilters(w http.ResponseWriter, r *http.Request) {
+	positionRows, err := s.pool.Query(r.Context(), `
+		select code, name
+		from app_positions
+		order by sort_order, name
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+		return
+	}
+	defer positionRows.Close()
+
+	positions := []CodeNameOption{}
+	for positionRows.Next() {
+		var item CodeNameOption
+		if err := positionRows.Scan(&item.Code, &item.Name); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+			return
+		}
+		positions = append(positions, item)
+	}
+	if err := positionRows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+		return
+	}
+
+	roleRows, err := s.pool.Query(r.Context(), `
+		select code, label
+		from app_roles
+		order by code
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+		return
+	}
+	defer roleRows.Close()
+
+	roles := []CodeLabelOption{}
+	for roleRows.Next() {
+		var item CodeLabelOption
+		if err := roleRows.Scan(&item.Code, &item.Label); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+			return
+		}
+		roles = append(roles, item)
+	}
+	if err := roleRows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignment_filters_failed"})
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, PositionRoleAssignmentFilters{
+		Positions: positions,
+		Roles:     roles,
+	})
+}
+
+func (s *Service) ListPositionRoleAssignments(w http.ResponseWriter, r *http.Request) {
+	query := httpx.ParsePageQuery(
+		r.URL.Query(),
+		map[string]struct{}{"position_code": {}, "role_code": {}},
+		[]string{"position_code", "position_name", "role_code", "role_label"},
+	)
+
+	clauses := []string{"1 = 1"}
+	args := []any{}
+	if value := strings.TrimSpace(query.Filters["position_code"]); value != "" {
+		args = append(args, value)
+		clauses = append(clauses, "pr.position_code = $"+strconv.Itoa(len(args)))
+	}
+	if value := strings.TrimSpace(query.Filters["role_code"]); value != "" {
+		args = append(args, value)
+		clauses = append(clauses, "pr.role_code = $"+strconv.Itoa(len(args)))
+	}
+	whereClause := "where " + strings.Join(clauses, " and ")
+
+	var total int
+	if err := s.pool.QueryRow(r.Context(), `
+		select count(*)
+		from app_position_roles pr
+		join app_positions p on p.code = pr.position_code
+		join app_roles r on r.code = pr.role_code
+		`+whereClause, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignments_failed"})
+		return
+	}
+
+	sortField := "pr.position_code"
+	switch query.Sort {
+	case "position_name":
+		sortField = "p.name"
+	case "role_code":
+		sortField = "pr.role_code"
+	case "role_label":
+		sortField = "r.label"
+	}
+
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), `
+		select
+			pr.position_code || ':' || pr.role_code as id,
+			pr.position_code,
+			p.name,
+			pr.role_code,
+			r.label
+		from app_position_roles pr
+		join app_positions p on p.code = pr.position_code
+		join app_roles r on r.code = pr.role_code
+		`+whereClause+`
+		order by `+sortField+` `+strings.ToUpper(query.Direction)+`, pr.position_code, pr.role_code
+		limit $`+strconv.Itoa(len(args)-1)+` offset $`+strconv.Itoa(len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignments_failed"})
+		return
+	}
+	defer rows.Close()
+
+	items := []PositionRoleAssignment{}
+	for rows.Next() {
+		var item PositionRoleAssignment
+		if err := rows.Scan(&item.ID, &item.PositionCode, &item.PositionName, &item.RoleCode, &item.RoleLabel); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignments_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_position_role_assignments_failed"})
+		return
+	}
+
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
+func (s *Service) UpsertPositionRoleAssignment(w http.ResponseWriter, r *http.Request) {
+	var req UpsertPositionRoleAssignmentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_position_role_assignment"})
+		return
+	}
+
+	req.PositionCode = strings.TrimSpace(req.PositionCode)
+	req.RoleCode = strings.TrimSpace(req.RoleCode)
+	if req.PositionCode == "" || req.RoleCode == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_position_role_assignment"})
+		return
+	}
+
+	if req.Assigned {
+		if _, err := s.pool.Exec(r.Context(), `
+			insert into app_position_roles (position_code, role_code)
+			values ($1, $2)
+			on conflict do nothing
+		`, req.PositionCode, req.RoleCode); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_position_role_assignment_save_failed"})
+			return
+		}
+	} else {
+		if _, err := s.pool.Exec(r.Context(), `
+			delete from app_position_roles
+			where position_code = $1 and role_code = $2
+		`, req.PositionCode, req.RoleCode); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_position_role_assignment_save_failed"})
+			return
+		}
+	}
+
+	var item PositionRoleAssignment
+	if err := s.pool.QueryRow(r.Context(), `
+		select
+			$1 || ':' || $2 as id,
+			p.code,
+			p.name,
+			r.code,
+			r.label
+		from app_positions p
+		join app_roles r on r.code = $2
+		where p.code = $1
+	`, req.PositionCode, req.RoleCode).Scan(&item.ID, &item.PositionCode, &item.PositionName, &item.RoleCode, &item.RoleLabel); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_position_role_assignment_save_failed"})
+		return
+	}
+
+	s.logAudit(r, "admin.roles.position_assignment", "position_role", item.ID, "Updated position role assignment", map[string]any{
+		"position_code": item.PositionCode,
+		"role_code":     item.RoleCode,
+		"assigned":      req.Assigned,
+	})
 	httpx.JSON(w, http.StatusCreated, item)
 }
 

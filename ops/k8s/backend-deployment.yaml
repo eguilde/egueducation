@@ -32,9 +32,9 @@ spec:
             - name: SMSAPI_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: costesti-registratura-secrets
+                  name: egueducation-backend-env
                   key: smsapi-token
-                  optional: true
+                  optional: false
           readinessProbe:
             httpGet:
               path: /health

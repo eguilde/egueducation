@@ -3425,6 +3425,146 @@ func meritSortColumn(field string) string {
 	}
 }
 
+func (s *Service) RequirementCatalog(w http.ResponseWriter, r *http.Request) {
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
+		"domain":                {},
+		"priority":              {},
+		"implementation_status": {},
+		"requirement_type":      {},
+	}, []string{"domain", "implementation_status", "requirement_type", "source_ref"})
+	if query.Sort == "" {
+		query.Sort = "priority"
+	}
+
+	where := []string{"1=1"}
+	args := []any{}
+	for key, value := range query.Filters {
+		args = append(args, "%"+strings.ToLower(value)+"%")
+		switch key {
+		case "domain":
+			where = append(where, fmt.Sprintf("lower(domain) like $%d", len(args)))
+		case "implementation_status":
+			where = append(where, fmt.Sprintf("lower(implementation_status) like $%d", len(args)))
+		case "requirement_type":
+			where = append(where, fmt.Sprintf("lower(requirement_type) like $%d", len(args)))
+		case "source_ref":
+			where = append(where, fmt.Sprintf("lower(source_ref) like $%d", len(args)))
+		}
+	}
+	whereSQL := strings.Join(where, " and ")
+
+	var total int
+	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_requirement_catalog where "+whereSQL, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_requirements_count_failed"})
+		return
+	}
+
+	orderBy := map[string]string{
+		"domain":                "domain",
+		"priority":              "priority",
+		"implementation_status": "implementation_status",
+		"requirement_type":      "requirement_type",
+	}[query.Sort]
+	if orderBy == "" {
+		orderBy = "priority"
+	}
+	direction := "asc"
+	if query.Direction == "desc" {
+		direction = "desc"
+	}
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), `
+		select id::text, domain, code, title_ro, title_en, source_ref, requirement_type, implementation_status, priority, notes
+		from education_requirement_catalog
+		where `+whereSQL+`
+		order by `+orderBy+` `+direction+`, domain, code
+		limit $`+fmt.Sprint(len(args)-1)+` offset $`+fmt.Sprint(len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_requirements_failed"})
+		return
+	}
+	defer rows.Close()
+
+	items := []EducationRequirement{}
+	for rows.Next() {
+		var item EducationRequirement
+		if err := rows.Scan(&item.ID, &item.Domain, &item.Code, &item.TitleRO, &item.TitleEN, &item.SourceRef, &item.RequirementType, &item.ImplementationStatus, &item.Priority, &item.Notes); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_requirements_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
+func (s *Service) PortfolioSections(w http.ResponseWriter, r *http.Request) {
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
+		"section_code":   {},
+		"component_code": {},
+		"sort_order":     {},
+	}, []string{"section_code", "component_code", "label"})
+	if query.Sort == "" {
+		query.Sort = "sort_order"
+	}
+
+	where := []string{"active = true"}
+	args := []any{}
+	for key, value := range query.Filters {
+		args = append(args, "%"+strings.ToLower(value)+"%")
+		switch key {
+		case "section_code":
+			where = append(where, fmt.Sprintf("lower(section_code) like $%d", len(args)))
+		case "component_code":
+			where = append(where, fmt.Sprintf("lower(component_code) like $%d", len(args)))
+		case "label":
+			where = append(where, fmt.Sprintf("(lower(label_ro) like $%d or lower(label_en) like $%d)", len(args), len(args)))
+		}
+	}
+	whereSQL := strings.Join(where, " and ")
+
+	var total int
+	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_portfolio_sections where "+whereSQL, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_sections_count_failed"})
+		return
+	}
+
+	orderBy := map[string]string{
+		"section_code":   "section_code",
+		"component_code": "component_code",
+		"sort_order":     "sort_order",
+	}[query.Sort]
+	if orderBy == "" {
+		orderBy = "sort_order"
+	}
+	direction := "asc"
+	if query.Direction == "desc" {
+		direction = "desc"
+	}
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), `
+		select id::text, section_code, component_code, label_ro, label_en, example_documents, required, sensitive_data, retention_rule, sort_order, active
+		from education_portfolio_sections
+		where `+whereSQL+`
+		order by `+orderBy+` `+direction+`, section_code, component_code
+		limit $`+fmt.Sprint(len(args)-1)+` offset $`+fmt.Sprint(len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_sections_failed"})
+		return
+	}
+	defer rows.Close()
+
+	items := []PortfolioSection{}
+	for rows.Next() {
+		var item PortfolioSection
+		if err := rows.Scan(&item.ID, &item.SectionCode, &item.ComponentCode, &item.LabelRO, &item.LabelEN, &item.ExampleDocuments, &item.Required, &item.SensitiveData, &item.RetentionRule, &item.SortOrder, &item.Active); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_sections_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
 func contains(values []string, candidate string) bool {
 	for _, value := range values {
 		if value == candidate {

@@ -37,7 +37,8 @@ export async function discover(authority: string): Promise<oauth.AuthorizationSe
     return cachedServer;
   }
   const issuer = new URL(authority, window.location.origin);
-  const response = await oauth.discoveryRequest(issuer, { algorithm: 'oidc', ...requestOptions(authority) });
+  const metadataUrl = new URL(`${issuer.toString().replace(/\/$/, '')}/.well-known/openid-configuration`);
+  const response = await credentialFetch(metadataUrl);
   cachedServer = await oauth.processDiscoveryResponse(issuer, response);
   cachedAuthority = authority;
   return cachedServer;

@@ -4,9 +4,40 @@ import { permissionGuard } from './core/authz/authz.guard';
 
 export const routes: Routes = [
   {
-    path: 'login',
+    path: '',
+    pathMatch: 'full',
     loadComponent: () =>
-      import('./features/auth/login-page.component').then((m) => m.LoginPageComponent),
+      import('./features/home/home-page.component').then((m) => m.HomePageComponent),
+  },
+  {
+    path: 'login',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
+  {
+    path: 'auth/login',
+    loadComponent: () =>
+      import('./features/prime-auth/login-page.component').then((m) => m.LoginPageComponent),
+  },
+  {
+    path: 'auth/register',
+    loadComponent: () =>
+      import('./features/prime-auth/register-page.component').then((m) => m.RegisterPageComponent),
+  },
+  {
+    path: 'register',
+    redirectTo: 'auth/register',
+    pathMatch: 'full',
+  },
+  {
+    path: 'auth/start',
+    loadComponent: () =>
+      import('./features/auth/auth-start-page.component').then((m) => m.AuthStartPageComponent),
+  },
+  {
+    path: 'callback',
+    redirectTo: 'auth/callback',
+    pathMatch: 'full',
   },
   {
     path: 'auth/callback',
@@ -16,24 +47,22 @@ export const routes: Routes = [
   {
     path: 'auth/consent',
     loadComponent: () =>
-      import('./features/auth/consent-page.component').then((m) => m.ConsentPageComponent),
+      import('./features/prime-auth/consent-page.component').then((m) => m.ConsentPageComponent),
   },
   {
     path: 'auth/logout',
     loadComponent: () =>
-      import('./features/auth/logout-page.component').then((m) => m.LogoutPageComponent),
+      import('./features/prime-auth/logout-page.component').then((m) => m.LogoutPageComponent),
   },
   {
     path: 'auth/access-denied',
     loadComponent: () =>
-      import('./features/auth/access-denied-page.component').then(
-        (m) => m.AccessDeniedPageComponent,
-      ),
+      import('./features/prime-auth/auth-status-page.component').then((m) => m.AuthStatusPageComponent),
   },
   {
     path: 'auth/logged-out',
     loadComponent: () =>
-      import('./features/auth/logged-out-page.component').then((m) => m.LoggedOutPageComponent),
+      import('./features/prime-auth/auth-status-page.component').then((m) => m.AuthStatusPageComponent),
   },
   {
     path: '',
@@ -42,37 +71,66 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
-        canActivate: [permissionGuard],
-        data: { permission: 'dashboard.read', module: 'dashboard' },
-        loadComponent: () =>
-          import('./features/dashboard/dashboard-page.component').then(
-            (m) => m.DashboardPageComponent,
-          ),
+        redirectTo: 'documente',
+        pathMatch: 'full',
       },
       {
         path: 'documente',
-        loadChildren: () =>
-          import('./features/documente/documente.routes').then((m) => m.documenteRoutes),
+        canActivate: [permissionGuard],
+        data: {
+          roles: ['admin', 'super_admin', 'director', 'secretar', 'registrator'],
+          rolesMode: 'any',
+          permissions: ['registratura.read', 'workflow.read', 'earchiva.read'],
+          permissionsMode: 'any',
+          modules: ['registratura', 'workflow', 'earchiva'],
+          modulesMode: 'any',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/documente-workspace.component').then((m) => m.DocumenteWorkspaceComponent),
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile-page.component').then((m) => m.ProfilePageComponent),
       },
       {
         path: 'education',
-        loadChildren: () =>
-          import('./features/education/education.routes').then((m) => m.educationRoutes),
+        canActivate: [permissionGuard],
+        data: {
+          roles: ['admin', 'super_admin', 'director', 'profesor', 'inspector'],
+          rolesMode: 'any',
+          module: 'education',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/education-workspace.component').then((m) => m.EducationWorkspaceComponent),
       },
       {
         path: 'admin',
-        loadChildren: () =>
-          import('./features/admin/admin.routes').then((m) => m.adminRoutes),
+        canActivate: [permissionGuard],
+        data: {
+          roles: ['admin', 'super_admin', 'director'],
+          rolesMode: 'any',
+          permission: 'admin.read',
+          module: 'admin',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/admin-workspace.component').then((m) => m.AdminWorkspaceComponent),
       },
       {
         path: 'gdpr',
-        loadChildren: () =>
-          import('./features/gdpr/gdpr.routes').then((m) => m.gdprRoutes),
+        canActivate: [permissionGuard],
+        data: {
+          roles: ['admin', 'super_admin', 'director', 'gdpr_officer'],
+          rolesMode: 'any',
+          module: 'gdpr',
+        },
+        loadComponent: () =>
+          import('./features/prime-workspaces/gdpr-workspace.component').then((m) => m.GdprWorkspaceComponent),
       },
-      { path: 'registratura', redirectTo: 'documente/registratura', pathMatch: 'full' },
-      { path: 'workflow', redirectTo: 'documente/workflow', pathMatch: 'full' },
-      { path: 'earchiva', redirectTo: 'documente/earchiva', pathMatch: 'full' },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: 'registratura', redirectTo: 'documente', pathMatch: 'full' },
+      { path: 'workflow', redirectTo: 'documente', pathMatch: 'full' },
+      { path: 'earchiva', redirectTo: 'documente', pathMatch: 'full' },
+      { path: '', redirectTo: 'documente', pathMatch: 'full' },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },

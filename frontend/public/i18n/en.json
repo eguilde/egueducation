@@ -2,6 +2,35 @@
   "app": {
     "subtitle": "Education platform for registry, archive, and workflow operations"
   },
+  "home": {
+    "badge": "Public platform, sign-in only on request",
+    "title": "EguEducation for documents, school governance, and compliance.",
+    "subtitle": "The public page starts without automatic redirects. Authentication is started by the OIDC provider only when the user presses the sign-in button.",
+    "openApp": "Open application",
+    "register": "Request access",
+    "trust": {
+      "oidc": "OIDC redirect",
+      "rbac": "Position-based RBAC",
+      "gdpr": "GDPR by design"
+    },
+    "cards": {
+      "documents": {
+        "kicker": "Documents",
+        "title": "Registry, document workflow, and eArchive",
+        "body": "The document area must be rebuilt as a tabbed workspace with server-side PrimeNG tables and clear row actions."
+      },
+      "education": {
+        "kicker": "Education",
+        "title": "School requirements modeled explicitly",
+        "body": "Governance, personnel, portfolios, and procedures must come from the requirements catalog, not generic screens."
+      },
+      "admin": {
+        "kicker": "Administration",
+        "title": "Administration as an operational dashboard",
+        "body": "Users, positions, permissions, workflows, nomenclatures, and GDPR in one permission-segmented tabbed center."
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "documente": "Documents",
@@ -83,9 +112,102 @@
   },
   "common": {
     "close": "Close",
+    "back": "Back",
     "yes": "Yes",
     "no": "No",
     "open": "Open"
+  },
+  "authLogin": {
+    "badge": "OIDC provider",
+    "title": "Sign in with SMS OTP",
+    "subtitle": "Continue the OIDC flow on a dedicated provider page, without popups and without automatic redirects from the public application.",
+    "identifier": "Phone number",
+    "identifierPlaceholder": "0771364169",
+    "sendCode": "Send SMS code",
+    "codeSent": "The SMS code was sent to {{ phone }}. Enter the six-digit code to continue OIDC authorization.",
+    "code": "OTP code",
+    "verify": "Verify and continue",
+    "resendCode": "Resend SMS code",
+    "identifierRequired": "Enter your phone number.",
+    "codeRequired": "Enter the six-digit SMS code.",
+    "requestFailed": "The SMS code could not be sent.",
+    "verifyFailed": "The SMS code could not be verified.",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "0771364169",
+    "phoneHint": "We will send a six-digit code to this number.",
+    "phoneInvalid": "Enter a valid phone number.",
+    "codeLabel": "Six-digit code",
+    "codeHint": "Type the six digits from the SMS message.",
+    "backToPhone": "Change phone number",
+    "registerCta": "Need an account?",
+    "oidcCta": "Open OIDC start",
+    "registerLink": "Open registration",
+    "cardBadge": "SMS OTP sign-in",
+    "cardTitle": "Phone-based authentication",
+    "cardSubtitle": "The OIDC provider sends a six-digit code by SMS and then returns you to the requested page.",
+    "highlights": {
+      "oidc": {
+        "title": "OIDC aligned",
+        "body": "The provider keeps the redirect flow intact and returns to the original URL after verification."
+      },
+      "sms": {
+        "title": "SMS first",
+        "body": "A phone number is enough to request a six-digit one-time code."
+      },
+      "returnUrl": {
+        "title": "Return URL preserved",
+        "body": "You are sent back to the requested page after the code is verified."
+      }
+    },
+    "pills": {
+      "oidc": "OIDC redirect",
+      "sms": "SMS OTP",
+      "code": "6-digit code"
+    }
+  },
+  "register": {
+    "badge": "Assisted registration",
+    "title": "Start access to the platform",
+    "subtitle": "Choose the account type, confirm consent, and continue with the right method: SMS OTP, passkey, or EUDI Wallet.",
+    "accountType": "Account type",
+    "accountBadgeCitizen": "Citizen",
+    "accountBadgeEmployee": "Employee",
+    "citizen": "Citizen account",
+    "citizenDesc": "For public workflows and verified personal identity access.",
+    "employee": "Institutional account",
+    "employeeDesc": "For institutional users who will later be approved through affiliation and roles.",
+    "consentIntro": "Confirm the items below before continuing to an access method.",
+    "gdprConsent": "I agree to the processing of my data for authentication and registry purposes.",
+    "gdprConsentHelp": "Consent and the minimum required data will be linked to the OIDC session.",
+    "ageConfirmation": "I confirm that I meet the age requirement to use the platform.",
+    "ageConfirmationHelp": "Registration is intended for eligible institution users.",
+    "consentRequired": "You must accept the consent and age confirmation.",
+    "continue": "Continue",
+    "methodIntro": "Choose the method you want to use for onboarding.",
+    "smsTitle": "SMS OTP",
+    "smsDesc": "Start the classic SMS-authenticated flow and then complete the OIDC redirect.",
+    "passkeyTitle": "Passkey / WebAuthn",
+    "passkeyDesc": "Ready for passwordless authentication with biometrics or a hardware key.",
+    "walletTitle": "EUDI Wallet",
+    "walletDesc": "Ready for digital identity and verified attributes through a wallet.",
+    "infoConsent": "Consent",
+    "infoConsentTitle": "Minimum data and a clear purpose",
+    "infoConsentBody": "Onboarding must stay transparent, minimal, and easy to audit for both sign-in and registration.",
+    "infoIdentity": "Identity",
+    "infoIdentityTitle": "Account tied to the right role",
+    "infoIdentityBody": "Institutional accounts can later be validated through affiliation, positions, and extensible roles.",
+    "infoSecurity": "Security",
+    "infoSecurityTitle": "No password, low friction",
+    "infoSecurityBody": "SMS OTP, passkeys, and EUDI Wallet offer a modern path as the backend expands.",
+    "successTitle": "Registration ready",
+    "successSms": "You can now continue with SMS OTP sign-in.",
+    "successPasskey": "After sign-in, you can add a passkey from your profile.",
+    "successWallet": "Once the full integration is in place, the wallet can be used for login and onboarding.",
+    "successDefault": "Choose the right method and continue in the OIDC flow.",
+    "goToLogin": "Go to sign in",
+    "goToNext": "Continue",
+    "footer": "For institutional users, final approval may depend on affiliation, position, and the school's internal policy.",
+    "loginLink": "I already have an account"
   },
   "auth": {
     "login": "Sign in",
@@ -98,6 +220,76 @@
     "oidcBadge": "OIDC, PKCE, and DPoP",
     "loginTitle": "Secure authentication for registry, workflows, and education modules",
     "loginBody": "We start with redirect-based OIDC in the same visual language as the main app, while SMS OTP, passkeys, and EUDI Wallet stay ready inside the same experience.",
+    "register": {
+      "badge": "Assisted registration",
+      "title": "Choose a path into the platform",
+      "subtitle": "This page is informational in this build: it helps users pick a role, confirm consent, and continue through the existing authentication flow.",
+      "cardBadge": "Registration guide",
+      "cardTitle": "No backend registration yet",
+      "cardSubtitle": "We do not invent a new API here. Each button returns you to the live OIDC or SMS sign-in flow.",
+      "steps": {
+        "accountType": "Account type",
+        "consent": "Consent",
+        "entry": "Entry points"
+      },
+      "journey": {
+        "account": {
+          "kicker": "Account type",
+          "title": "Choose the right role",
+          "body": "Pick the account type that best fits the person who will use the platform."
+        },
+        "consent": {
+          "kicker": "Consent",
+          "title": "Review the acknowledgements",
+          "body": "Confirm that you understand how onboarding is handled in this frontend."
+        },
+        "entry": {
+          "kicker": "Existing flow",
+          "title": "Return to the live sign-in paths",
+          "body": "Classic SMS or the standard OIDC start page are the only active routes here."
+        }
+      },
+      "accountTypes": {
+        "staff": {
+          "kicker": "Institution",
+          "title": "School staff",
+          "body": "For teachers, administrators, and employees using institution-managed identities."
+        },
+        "community": {
+          "kicker": "Community",
+          "title": "Community user",
+          "body": "For parents, guardians, and collaborators who only need the public entry points."
+        }
+      },
+      "info": "Self-service registration is not enabled in this frontend. Use the existing sign-in pages to continue.",
+      "selectedAccount": "Selected account type",
+      "consent": {
+        "items": {
+          "provisioning": "I understand account provisioning is handled outside this frontend.",
+          "flow": "I agree to continue only through the existing SMS or OIDC sign-in pages."
+        }
+      },
+      "backToLogin": "Back to sign in",
+      "backToAccountType": "Back to account type",
+      "backToConsent": "Back to consent",
+      "consentCta": "Continue",
+      "oidcCta": "Open OIDC start",
+      "entry": {
+        "info": "Choose one of the existing sign-in routes. Classic sends you to SMS OTP; wallet goes to the standard OIDC start page.",
+        "classic": {
+          "kicker": "Classic",
+          "title": "SMS sign-in",
+          "body": "Use the phone-based OTP page and then return to the app.",
+          "cta": "Open SMS sign-in"
+        },
+        "wallet": {
+          "kicker": "Wallet",
+          "title": "OIDC start",
+          "body": "Use the existing redirect-based flow for wallet-ready identities.",
+          "cta": "Open OIDC start"
+        }
+      }
+    },
     "availableMethods": "Available methods",
     "redirectFlow": "No popups",
     "primaryMethod": "Primary method",
@@ -156,7 +348,7 @@
       "provider": "smsapi.ro",
       "sentTo": "Code sent to {{ phone }}.",
       "form": {
-        "identifier": "Email or phone",
+        "identifier": "Phone number",
         "request": "Send SMS code",
         "code": "OTP code",
         "verify": "Verify SMS"
@@ -174,6 +366,8 @@
     "mode": "Theme mode",
     "light": "Light",
     "dark": "Dark",
+    "primary": "Primary color",
+    "surface": "Surface",
     "language": "Language"
   },
   "dashboard": {

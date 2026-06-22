@@ -2,6 +2,35 @@
   "app": {
     "subtitle": "Platforma educațională pentru registratură, arhivă și fluxuri"
   },
+  "home": {
+    "badge": "Platformă publică, autentificare doar la cerere",
+    "title": "EguEducation pentru documente, guvernanță școlară și conformitate.",
+    "subtitle": "Pagina publică pornește fără redirect automat. Autentificarea se face prin providerul OIDC doar când utilizatorul apasă butonul de autentificare.",
+    "openApp": "Deschide aplicația",
+    "register": "Solicită acces",
+    "trust": {
+      "oidc": "OIDC redirect",
+      "rbac": "RBAC pe poziții",
+      "gdpr": "GDPR by design"
+    },
+    "cards": {
+      "documents": {
+        "kicker": "Documente",
+        "title": "Registratură, flux documente și eArhivă",
+        "body": "Zona documentară trebuie refăcută ca workspace tabbed, cu tabele PrimeNG server-side și acțiuni clare pe rând."
+      },
+      "education": {
+        "kicker": "Educație",
+        "title": "Cerințe școlare modelate explicit",
+        "body": "Guvernanță, personal, portofolii și proceduri trebuie implementate din catalogul de cerințe, nu din ecrane generice."
+      },
+      "admin": {
+        "kicker": "Administrare",
+        "title": "Administrare ca dashboard operațional",
+        "body": "Utilizatori, poziții, permisiuni, fluxuri, nomenclatoare și GDPR într-un centru tabbed, segmentat prin permisiuni."
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "documente": "Documente",
@@ -83,9 +112,102 @@
   },
   "common": {
     "close": "Închide",
+    "back": "Înapoi",
     "yes": "Da",
     "no": "Nu",
     "open": "Deschide"
+  },
+  "authLogin": {
+    "badge": "Provider OIDC",
+    "title": "Autentificare prin SMS OTP",
+    "subtitle": "Continuă fluxul OIDC printr-o pagină dedicată providerului, fără popup-uri și fără redirect automat din aplicația publică.",
+    "identifier": "Număr de telefon",
+    "identifierPlaceholder": "0771364169",
+    "sendCode": "Trimite cod SMS",
+    "codeSent": "Codul SMS a fost trimis către {{ phone }}. Introdu codul din 6 cifre pentru a continua autorizarea OIDC.",
+    "code": "Cod OTP",
+    "verify": "Verifică și continuă",
+    "resendCode": "Retrimite codul SMS",
+    "identifierRequired": "Completează numărul de telefon.",
+    "codeRequired": "Introdu codul SMS din 6 cifre.",
+    "requestFailed": "Codul SMS nu a putut fi trimis.",
+    "verifyFailed": "Codul SMS nu a putut fi verificat.",
+    "phoneLabel": "Număr de telefon",
+    "phonePlaceholder": "0771364169",
+    "phoneHint": "Vom trimite un cod din 6 cifre la acest număr.",
+    "phoneInvalid": "Introdu un număr de telefon valid.",
+    "codeLabel": "Cod din 6 cifre",
+    "codeHint": "Tastează cele șase cifre din SMS.",
+    "backToPhone": "Schimbă numărul de telefon",
+    "registerCta": "Ai nevoie de cont?",
+    "oidcCta": "Deschide OIDC start",
+    "registerLink": "Deschide înregistrarea",
+    "cardBadge": "Autentificare SMS OTP",
+    "cardTitle": "Autentificare bazată pe telefon",
+    "cardSubtitle": "Providerul OIDC trimite un cod din 6 cifre prin SMS și apoi te readuce la pagina cerută.",
+    "highlights": {
+      "oidc": {
+        "title": "Aliniat la OIDC",
+        "body": "Providerul păstrează fluxul de redirect și revine la URL-ul inițial după verificare."
+      },
+      "sms": {
+        "title": "SMS primul",
+        "body": "Este suficient un număr de telefon pentru a cere un cod de unică folosință din 6 cifre."
+      },
+      "returnUrl": {
+        "title": "URL de întoarcere păstrat",
+        "body": "Ești trimis înapoi la pagina solicitată după verificarea codului."
+      }
+    },
+    "pills": {
+      "oidc": "Redirect OIDC",
+      "sms": "SMS OTP",
+      "code": "Cod din 6 cifre"
+    }
+  },
+  "register": {
+    "badge": "Înregistrare asistată",
+    "title": "Începe accesul în platformă",
+    "subtitle": "Alege tipul de cont, confirmă consimțământul și continuă cu metoda potrivită: SMS OTP, passkey sau EUDI Wallet.",
+    "accountType": "Tip cont",
+    "accountBadgeCitizen": "Cetățean",
+    "accountBadgeEmployee": "Angajat",
+    "citizen": "Cont de cetățean",
+    "citizenDesc": "Pentru acces la fluxurile publice și la identitatea personală verificată.",
+    "employee": "Cont de personal",
+    "employeeDesc": "Pentru utilizatori instituționali care vor fi aprobați prin afiliere și roluri.",
+    "consentIntro": "Bifați elementele de mai jos înainte să continuați cu o metodă de acces.",
+    "gdprConsent": "Sunt de acord cu prelucrarea datelor în scop de autentificare și registratură.",
+    "gdprConsentHelp": "Consimțământul și datele minime necesare vor fi asociate sesiunii OIDC.",
+    "ageConfirmation": "Confirm că am vârsta necesară pentru a folosi platforma.",
+    "ageConfirmationHelp": "Înregistrarea este destinată utilizatorilor eligibili ai instituției.",
+    "consentRequired": "Trebuie să bifezi consimțământul și confirmarea de vârstă.",
+    "continue": "Continuă",
+    "methodIntro": "Alege metoda cu care vrei să continui onboarding-ul.",
+    "smsTitle": "SMS OTP",
+    "smsDesc": "Pornește fluxul clasic de autentificare prin SMS și finalizează apoi redirectul OIDC.",
+    "passkeyTitle": "Passkey / WebAuthn",
+    "passkeyDesc": "Pregătit pentru autentificare fără parolă prin biometrie sau cheie hardware.",
+    "walletTitle": "EUDI Wallet",
+    "walletDesc": "Pregătit pentru identitate digitală și atribute verificate prin wallet.",
+    "infoConsent": "Consimțământ",
+    "infoConsentTitle": "Date minime și scop clar",
+    "infoConsentBody": "Onboarding-ul trebuie să fie transparent, limitat la datele necesare și ușor de audit atat pentru login cât și pentru înregistrare.",
+    "infoIdentity": "Identitate",
+    "infoIdentityTitle": "Cont corelat cu rolul potrivit",
+    "infoIdentityBody": "Conturile instituționale pot fi validate ulterior prin afiliere, poziție și roluri extensibile.",
+    "infoSecurity": "Securitate",
+    "infoSecurityTitle": "Fără parolă, fără fricțiune",
+    "infoSecurityBody": "SMS OTP, passkey și EUDI Wallet oferă un parcurs modern și adaptabil pe măsură ce backendul se extinde.",
+    "successTitle": "Înregistrare pregătită",
+    "successSms": "Poți continua acum cu autentificarea prin SMS OTP.",
+    "successPasskey": "După autentificare, poți adăuga o passkey din profil.",
+    "successWallet": "După implementarea completă, wallet-ul va putea fi folosit pentru login și onboarding.",
+    "successDefault": "Alege metoda potrivită și continuă în fluxul OIDC.",
+    "goToLogin": "Mergi la autentificare",
+    "goToNext": "Continuă",
+    "footer": "Pentru utilizatorii instituționali, aprobarea finală poate depinde de afiliere, poziție și politica internă a școlii.",
+    "loginLink": "Am deja cont"
   },
   "auth": {
     "login": "Autentificare",
@@ -98,6 +220,76 @@
     "oidcBadge": "OIDC, PKCE și DPoP",
     "loginTitle": "Autentificare sigură pentru registratură, fluxuri și module educaționale",
     "loginBody": "Pornim cu redirect OIDC în același limbaj vizual ca aplicația principală, iar metodele suplimentare precum SMS OTP, passkey și EUDI Wallet rămân pregătite în aceeași experiență.",
+    "register": {
+      "badge": "Înregistrare asistată",
+      "title": "Alege un parcurs către platformă",
+      "subtitle": "Această pagină este informativă în build-ul curent: ajută utilizatorii să aleagă rolul, să confirme consimțământul și să continue prin fluxul de autentificare existent.",
+      "cardBadge": "Ghid de înregistrare",
+      "cardTitle": "Încă nu există backend de înregistrare",
+      "cardSubtitle": "Nu inventăm aici un API nou. Fiecare buton te readuce în fluxul live de autentificare OIDC sau SMS.",
+      "steps": {
+        "accountType": "Tip cont",
+        "consent": "Consimțământ",
+        "entry": "Puncte de intrare"
+      },
+      "journey": {
+        "account": {
+          "kicker": "Tip cont",
+          "title": "Alege rolul potrivit",
+          "body": "Selectează tipul de cont care se potrivește persoanei care va folosi platforma."
+        },
+        "consent": {
+          "kicker": "Consimțământ",
+          "title": "Revizuiește confirmările",
+          "body": "Confirmă că înțelegi cum este gestionat onboarding-ul în acest frontend."
+        },
+        "entry": {
+          "kicker": "Flux existent",
+          "title": "Revino la căile de autentificare active",
+          "body": "SMS clasic sau pagina standard OIDC start sunt singurele rute active aici."
+        }
+      },
+      "accountTypes": {
+        "staff": {
+          "kicker": "Instituție",
+          "title": "Personal școlar",
+          "body": "Pentru profesori, administratori și angajați care folosesc identități gestionate de instituție."
+        },
+        "community": {
+          "kicker": "Comunitate",
+          "title": "Utilizator comunitate",
+          "body": "Pentru părinți, tutori și colaboratori care au nevoie doar de punctele publice de intrare."
+        }
+      },
+      "info": "În acest frontend nu este activată înregistrarea self-service. Folosește paginile existente de autentificare pentru a continua.",
+      "selectedAccount": "Tipul de cont selectat",
+      "consent": {
+        "items": {
+          "provisioning": "Înțeleg că aprovizionarea contului este gestionată în afara acestui frontend.",
+          "flow": "Sunt de acord să continui doar prin paginile existente de autentificare SMS sau OIDC."
+        }
+      },
+      "backToLogin": "Înapoi la autentificare",
+      "backToAccountType": "Înapoi la tipul de cont",
+      "backToConsent": "Înapoi la consimțământ",
+      "consentCta": "Continuă",
+      "oidcCta": "Deschide OIDC start",
+      "entry": {
+        "info": "Alege una dintre rutele de autentificare existente. Varianta clasică te duce la SMS OTP; varianta wallet te duce la pagina standard OIDC start.",
+        "classic": {
+          "kicker": "Clasic",
+          "title": "Autentificare SMS",
+          "body": "Folosește pagina de OTP pe telefon și apoi revino în aplicație.",
+          "cta": "Deschide autentificarea SMS"
+        },
+        "wallet": {
+          "kicker": "Wallet",
+          "title": "OIDC start",
+          "body": "Folosește fluxul existent bazat pe redirect pentru identități pregătite pentru wallet.",
+          "cta": "Deschide OIDC start"
+        }
+      }
+    },
     "availableMethods": "Metode disponibile",
     "redirectFlow": "Fără popup-uri",
     "primaryMethod": "Metodă principală",
@@ -156,7 +348,7 @@
       "provider": "smsapi.ro",
       "sentTo": "Cod trimis către {{ phone }}.",
       "form": {
-        "identifier": "Email sau telefon",
+        "identifier": "Număr de telefon",
         "request": "Trimite cod SMS",
         "code": "Cod OTP",
         "verify": "Verifică SMS"
@@ -174,6 +366,8 @@
     "mode": "Mod temă",
     "light": "Luminos",
     "dark": "Întunecat",
+    "primary": "Culoare principală",
+    "surface": "Suprafață",
     "language": "Limbă"
   },
   "dashboard": {

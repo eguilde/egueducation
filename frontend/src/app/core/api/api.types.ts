@@ -41,11 +41,13 @@ export interface AuthUiConfig {
 }
 
 export interface RequestSMSOTPRequest {
-  identifier: string;
+  phone_number: string;
+  identifier?: string;
 }
 
 export interface VerifySMSOTPRequest {
-  identifier: string;
+  phone_number: string;
+  identifier?: string;
   code: string;
 }
 
@@ -59,6 +61,32 @@ export interface SMSOTPVerifyResponse {
   status: string;
   channel: string;
   session: SessionContext;
+}
+
+export interface PasskeyAuthenticationOptions {
+  challenge: string;
+  rp: {
+    id: string;
+    name: string;
+  };
+  allowCredentials?: Array<{
+    type: 'public-key';
+    id: string;
+    transports?: string[];
+  }>;
+  timeout: number;
+  userVerification: 'required' | 'preferred' | 'discouraged';
+}
+
+export interface BeginPasskeyAuthenticationResponse {
+  status: string;
+  options: PasskeyAuthenticationOptions;
+}
+
+export interface FinishPasskeyAuthenticationRequest {
+  challenge: string;
+  credential_id: string;
+  response: Record<string, unknown>;
 }
 
 export interface AuthConsentScope {
@@ -155,6 +183,44 @@ export interface AdminUserRoleAssignment {
 
 export interface UpsertAdminUserRoleAssignmentRequest {
   user_id: string;
+  role_code: string;
+  assigned: boolean;
+}
+
+export interface AdminRolePermissionAssignment {
+  id: string;
+  role_code: string;
+  role_label: string;
+  permission_code: string;
+  permission_label: string;
+}
+
+export interface AdminRolePermissionAssignmentFilters {
+  roles: Array<{ code: string; label: string }>;
+  permissions: Array<{ code: string; label: string }>;
+}
+
+export interface UpsertAdminRolePermissionAssignmentRequest {
+  role_code: string;
+  permission_code: string;
+  assigned: boolean;
+}
+
+export interface AdminPositionRoleAssignment {
+  id: string;
+  position_code: string;
+  position_name: string;
+  role_code: string;
+  role_label: string;
+}
+
+export interface AdminPositionRoleAssignmentFilters {
+  positions: Array<{ code: string; name: string }>;
+  roles: Array<{ code: string; label: string }>;
+}
+
+export interface UpsertAdminPositionRoleAssignmentRequest {
+  position_code: string;
   role_code: string;
   assigned: boolean;
 }

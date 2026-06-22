@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@import "tailwindcss-primeui";
+@import "primeicons/primeicons.css";
+
+/* Keep Tailwind's dark utilities on the same selector used by PrimeNG. */
+@custom-variant dark (&:where(.app-dark, .app-dark *));
+
+html {
+  color-scheme: light;
+}
+
+html.app-dark {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background: var(--p-surface-50);
+  color: var(--p-text-color);
+}
+
+html.app-dark body {
+  background: var(--p-surface-950);
+}

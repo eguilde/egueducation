@@ -173,7 +173,7 @@ export class AuthService {
       return;
     }
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (!currentPath.startsWith('/login') && !currentPath.startsWith('/auth/')) {
+    if (!currentPath.startsWith('/callback') && !currentPath.startsWith('/auth/')) {
       sessionStorage.setItem(RETURN_URL_KEY, currentPath || '/dashboard');
     }
   }

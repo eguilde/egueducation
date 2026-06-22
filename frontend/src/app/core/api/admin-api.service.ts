@@ -9,6 +9,8 @@ import {
   AdminPermissionAssignment,
   AdminPermissionAssignmentFilters,
   AdminPosition,
+  AdminPositionRoleAssignment,
+  AdminPositionRoleAssignmentFilters,
   AdminRole,
   AdminDossierRequirement,
   AdminDossierRequirementFilters,
@@ -28,6 +30,8 @@ import {
   AdminWorkflowDefinitionFilters,
   AdminUser,
   AdminUserRoleAssignment,
+  AdminRolePermissionAssignment,
+  AdminRolePermissionAssignmentFilters,
   AdminUserFilters,
   CreateAdminDossierRequirementRequest,
   CreateAdminEducationTaxonomyRequest,
@@ -41,8 +45,10 @@ import {
   UpsertAdminOrgUnitRequest,
   UpsertAdminOIDCClientRequest,
   UpsertAdminPermissionAssignmentRequest,
+  UpsertAdminPositionRoleAssignmentRequest,
   UpsertAdminPositionRequest,
   UpsertAdminRoleRequest,
+  UpsertAdminRolePermissionAssignmentRequest,
   UpsertAdminUserRequest,
   UpsertAdminUserRoleAssignmentRequest,
   UpdateAdminAuthMethodSettingRequest,
@@ -126,6 +132,30 @@ export class AdminApiService {
     return this.http.post<AdminUserRoleAssignment>('/api/admin/role-assignments', payload);
   }
 
+  rolePermissionAssignments(query: TableQuery) {
+    let params = new HttpParams().set('page', String(query.page)).set('pageSize', String(query.pageSize));
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
+    if (query.direction) {
+      params = params.set('direction', query.direction);
+    }
+    for (const [key, value] of Object.entries(query.filters ?? {})) {
+      if (value) {
+        params = params.set(`filter.${key}`, value);
+      }
+    }
+    return this.http.get<PagedResponse<AdminRolePermissionAssignment>>('/api/admin/role-permissions', { params });
+  }
+
+  rolePermissionAssignmentFilters() {
+    return this.http.get<AdminRolePermissionAssignmentFilters>('/api/admin/role-permissions/filters');
+  }
+
+  saveRolePermissionAssignment(payload: UpsertAdminRolePermissionAssignmentRequest) {
+    return this.http.post<AdminRolePermissionAssignment>('/api/admin/role-permissions', payload);
+  }
+
   orgUnits(query: TableQuery) {
     let params = new HttpParams().set('page', String(query.page)).set('pageSize', String(query.pageSize));
     if (query.sort) {
@@ -184,6 +214,30 @@ export class AdminApiService {
 
   savePosition(payload: UpsertAdminPositionRequest) {
     return this.http.post<AdminPosition>('/api/admin/positions', payload);
+  }
+
+  positionRoleAssignments(query: TableQuery) {
+    let params = new HttpParams().set('page', String(query.page)).set('pageSize', String(query.pageSize));
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
+    if (query.direction) {
+      params = params.set('direction', query.direction);
+    }
+    for (const [key, value] of Object.entries(query.filters ?? {})) {
+      if (value) {
+        params = params.set(`filter.${key}`, value);
+      }
+    }
+    return this.http.get<PagedResponse<AdminPositionRoleAssignment>>('/api/admin/position-roles', { params });
+  }
+
+  positionRoleAssignmentFilters() {
+    return this.http.get<AdminPositionRoleAssignmentFilters>('/api/admin/position-roles/filters');
+  }
+
+  savePositionRoleAssignment(payload: UpsertAdminPositionRoleAssignmentRequest) {
+    return this.http.post<AdminPositionRoleAssignment>('/api/admin/position-roles', payload);
   }
 
   permissions(query: TableQuery) {

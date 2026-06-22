@@ -1,231 +1,50 @@
-.server-table {
-  display: grid;
-  border-radius: 1.5rem;
-  border: 1px solid var(--border-soft);
-  background: var(--surface-card);
-  overflow: hidden;
-}
-
-.server-table__toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-soft);
-}
-
-.server-table__controls {
-  display: none;
-  justify-content: flex-end;
-  padding: 0.75rem 1rem 0;
-}
-
-.server-table__mobile-filters {
-  display: none;
-  gap: 0.75rem;
-  padding: 0 1rem 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-}
-
-.server-table__filter-toggle {
-  gap: 0.35rem;
-}
-
-.server-table__scroll {
-  max-height: min(60dvh, 42rem);
-  overflow: auto;
-}
-
-.server-table__cards {
-  display: none;
-  gap: 0.9rem;
-  padding: 1rem;
-}
-
-.server-table__card {
-  display: grid;
-  gap: 0.9rem;
-  border-radius: 1.25rem;
-  border: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--surface-card) 92%, transparent);
-  padding: 1rem;
-}
-
-.server-table__card.is-clickable {
-  cursor: pointer;
-}
-
-.server-table__card.is-selected {
-  border-color: color-mix(in srgb, var(--mat-sys-primary) 55%, var(--border-soft));
-  background: color-mix(in srgb, var(--mat-sys-primary-container) 48%, transparent);
-}
-
-.server-table__card-header,
-.server-table__card-actions,
-.server-table__card-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.server-table__card-copy {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.server-table__card-copy strong {
-  font-size: 1rem;
-  line-height: 1.35;
-}
-
-.server-table__card-state {
-  color: var(--text-soft);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.server-table__card-primary-action {
-  min-height: 2.5rem;
-}
-
-.server-table__card-meta {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
-}
-
-.server-table__card-meta dt {
-  color: var(--text-soft);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.server-table__card-meta dd {
-  margin: 0;
-  text-align: right;
-  font-size: 0.9rem;
-}
-
-table {
-  width: 100%;
-  min-width: 64rem;
-}
-
-.mat-mdc-row.is-clickable {
-  cursor: pointer;
-}
-
-.mat-mdc-row.is-selected {
-  background: color-mix(in srgb, var(--mat-sys-primary-container) 60%, transparent);
-}
-
-.mat-mdc-header-row {
-  background: var(--surface-card);
-}
-
-.server-table__filters {
-  background: var(--surface-card);
-}
-
-.server-table__filter-cell {
-  position: sticky;
-  top: 3.5rem;
-  z-index: 2;
-  background: var(--surface-card);
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
-}
-
-.server-table__filter-field {
-  width: 100%;
-  min-width: 9rem;
-}
-
-.server-table__filter-spacer {
+:host {
   display: block;
-  min-height: 3.5rem;
+  min-height: 0;
+  height: 100%;
 }
 
-.server-table__actions-header,
-.server-table__actions-cell {
+:host ::ng-deep .professional-table {
+  height: 100%;
+}
+
+:host ::ng-deep .professional-table .p-datatable-wrapper {
+  min-height: 0;
+}
+
+:host ::ng-deep .professional-table .p-datatable-thead > tr > th {
   position: sticky;
-  right: 0;
+  top: 0;
+  z-index: 2;
+  background: var(--p-surface-0);
+  color: var(--p-text-color);
+  font-weight: 800;
+}
+
+:host ::ng-deep .professional-table .server-table__filter-row > th {
+  top: 2.8rem;
   z-index: 3;
-  background: var(--surface-card);
-  min-width: 7rem;
-  text-align: right;
+  background: var(--p-surface-50);
 }
 
-.server-table__actions-cell {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.25rem;
-}
-
-.server-table__action-menu-trigger {
-  display: none;
-}
-
-.server-table__empty {
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-soft);
-  color: var(--text-soft);
-}
-
-mat-paginator {
+:host ::ng-deep .professional-table .p-paginator {
   position: sticky;
   bottom: 0;
-  z-index: 2;
-  background: var(--surface-card);
-  border-top: 1px solid var(--border-soft);
+  z-index: 4;
+  border-top: 1px solid var(--p-content-border-color);
+  background: var(--p-surface-0);
 }
 
-@media (max-width: 960px) {
-  table {
-    min-width: 44rem;
-  }
+:host ::ng-deep .professional-table .p-datatable-tbody > tr.server-table__selected-row > td {
+  background: var(--p-highlight-background);
 }
 
-@media (max-width: 720px) {
-  .server-table__controls {
-    display: flex;
-  }
+:host-context(.app-dark) ::ng-deep .professional-table .server-table__filter-row > th,
+:host-context(.app-dark) ::ng-deep .professional-table .p-paginator,
+:host-context(.app-dark) ::ng-deep .professional-table .p-datatable-thead > tr > th {
+  background: var(--p-surface-900);
+}
 
-  .server-table__mobile-filters {
-    display: grid;
-  }
-
-  .server-table__scroll {
-    display: none;
-  }
-
-  .server-table__cards {
-    display: grid;
-  }
-
-  .server-table__filters.is-collapsed {
-    display: none;
-  }
-
-  .server-table__filter-cell {
-    top: 3.25rem;
-  }
-
-  .server-table__action-buttons {
-    display: none;
-  }
-
-  .server-table__action-menu-trigger {
-    display: inline-flex;
-  }
-
-  .server-table__actions-header,
-  .server-table__actions-cell {
-    position: static;
-    min-width: 3.5rem;
-  }
+.filter-input {
+  min-width: 7rem;
 }

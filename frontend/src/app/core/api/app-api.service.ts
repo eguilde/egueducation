@@ -8,6 +8,8 @@ import {
   AuthConsentRequestResponse,
   AuthMethodsResponse,
   AuthUiConfig,
+  BeginPasskeyAuthenticationResponse,
+  FinishPasskeyAuthenticationRequest,
   RequestSMSOTPRequest,
   SessionContext,
   SMSOTPRequestResponse,
@@ -41,6 +43,14 @@ export class AppApiService {
 
   verifySmsOtp(payload: VerifySMSOTPRequest) {
     return this.http.post<SMSOTPVerifyResponse>('/api/auth/verify-sms', payload);
+  }
+
+  beginPasskeyLogin() {
+    return this.http.post<BeginPasskeyAuthenticationResponse>('/api/passkeys/login-options', {});
+  }
+
+  finishPasskeyLogin(payload: FinishPasskeyAuthenticationRequest) {
+    return this.http.post<SMSOTPVerifyResponse>('/api/passkeys/login-finish', payload);
   }
 
   consentRequest(requestId: string) {

@@ -2,37 +2,28 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthzService } from '../../core/authz/authz.service';
-import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component';
 
 @Component({
   selector: 'app-callback-page',
   standalone: true,
-  imports: [TranslocoPipe, AuthShellComponent, MatIconModule, MatProgressSpinnerModule],
+  imports: [TranslocoPipe, ProgressSpinnerModule],
   template: `
-    <app-auth-shell
-      [eyebrow]="'auth.callbackEyebrow' | transloco"
-      [title]="'auth.redirecting' | transloco"
-      [subtitle]="'auth.callbackMessage' | transloco"
-      [visualKicker]="'auth.visual.kicker' | transloco"
-      [visualTitle]="'auth.visual.title' | transloco"
-      [visualBody]="'auth.visual.body' | transloco">
-      <div class="callback-page__card rounded-[1.5rem] border border-slate-200/70 bg-white/70 p-6 shadow-sm dark:border-slate-700/60 dark:bg-slate-950/35">
-        <mat-progress-spinner diameter="44" mode="indeterminate" />
+    <main class="grid min-h-dvh place-items-center bg-surface-50 p-6 dark:bg-surface-950">
+      <div class="callback-page__card rounded-[1.5rem] border border-surface bg-surface-0 p-6 shadow-sm dark:bg-surface-900">
+        <p-progress-spinner strokeWidth="4" ariaLabel="loading" />
         @if (error()) {
           <div class="callback-page__error">
-            <mat-icon>error</mat-icon>
             <p>{{ error() }}</p>
           </div>
         } @else {
           <p>{{ 'auth.callbackMessage' | transloco }}</p>
         }
       </div>
-    </app-auth-shell>
+    </main>
   `,
   styles: `
     .callback-page__card {
@@ -44,19 +35,14 @@ import { AuthShellComponent } from '../../shared/auth-shell/auth-shell.component
 
     .callback-page__card p {
       margin: 0;
-      color: var(--text-soft);
+      color: var(--p-text-muted-color);
     }
 
     .callback-page__error {
       display: grid;
       gap: 0.5rem;
       justify-items: center;
-      color: #be123c;
-    }
-
-    :host-context(.dark-theme) .callback-page__card {
-      background: rgb(15 23 42 / 0.58);
-      border-color: rgb(148 163 184 / 0.18);
+      color: var(--p-red-600);
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,17 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, Input, contentChild, output, signal, TemplateRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, TemplateRef, contentChild, output, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatFormFieldAppearance, MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSortModule, Sort, SortDirection } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { ButtonModule } from 'primeng/button';
+import { DatePickerModule } from 'primeng/datepicker';
+import { InputTextModule } from 'primeng/inputtext';
+import { MenuModule } from 'primeng/menu';
+import { SelectModule } from 'primeng/select';
+import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
 
 export interface ServerTableFilterOption {
   value: string;
@@ -45,25 +42,34 @@ export interface ServerTableRowAction<T> {
   hidden?: (row: T) => boolean;
 }
 
+export interface PageEvent {
+  pageIndex: number;
+  pageSize: number;
+  length: number;
+}
+
+export type SortDirection = 'asc' | 'desc' | '';
+
+export interface Sort {
+  active: string;
+  direction: SortDirection;
+}
+
 export type ServerTableFilterState = Record<string, string>;
 export type ServerTableSortState = Sort;
 
 @Component({
   selector: 'app-server-table',
-  standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatDatepickerModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatMenuModule,
-    MatPaginatorModule,
-    MatSelectModule,
-    MatSortModule,
-    MatTableModule,
-    MatTooltipModule,
+    FormsModule,
+    ButtonModule,
+    DatePickerModule,
+    InputTextModule,
+    MenuModule,
+    SelectModule,
+    TableModule,
+    TooltipModule,
   ],
   templateUrl: './server-table.component.html',
   styleUrl: './server-table.component.scss',
@@ -95,44 +101,42 @@ export class ServerTableComponent {
 
   protected readonly filters = signal<ServerTableFilterState>({});
   protected readonly filtersExpanded = signal(true);
-  protected readonly filterFieldAppearance: MatFormFieldAppearance = 'outline';
   protected readonly toolbarTemplate = contentChild<TemplateRef<unknown>>('serverTableToolbar');
 
   protected hasFilterableColumns(): boolean {
     return this.columns.some((column) => !!column.filter);
   }
 
-  protected trackColumns(): string[] {
-    const columns = this.columns.map((column) => column.key);
-    if (this.rowActions.length > 0) {
-      columns.push('__actions');
-    }
-    return columns;
+  protected visibleColumns(): ServerTableColumn<any>[] {
+    return this.columns;
   }
 
-  protected trackFilterColumns(): string[] {
-    const columns = this.columns.map((column) => `${column.key}-filter`);
-    if (this.rowActions.length > 0) {
-      columns.push('__actions-filter');
-    }
-    return columns;
+  protected first(): number {
+    return this.pageIndex * this.pageSize;
   }
 
-  protected onFilterChange(key: string, value: string): void {
-    this.filters.update((current) => ({ ...current, [key]: value }));
+  protected onLazyLoad(event: TableLazyLoadEvent): void {
+    const nextPageSize = event.rows ?? this.pageSize;
+    const nextFirst = event.first ?? this.first();
+    const nextPageIndex = Math.floor(nextFirst / nextPageSize);
+
+    this.pageChange.emit({
+      pageIndex: nextPageIndex,
+      pageSize: nextPageSize,
+      length: this.total,
+    });
+
+    const sortField = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
+    const direction: SortDirection = event.sortOrder === 1 ? 'asc' : event.sortOrder === -1 ? 'desc' : '';
+    if (sortField || direction) {
+      this.sortChange.emit({ active: sortField ?? '', direction });
+    }
+  }
+
+  protected onFilterChange(key: string, value: string | Date | null): void {
+    const formatted = value instanceof Date ? this.formatDate(value) : String(value ?? '');
+    this.filters.update((current) => ({ ...current, [key]: formatted }));
     this.filterChange.emit(this.filters());
-  }
-
-  protected onSortChange(sort: Sort): void {
-    this.sortChange.emit(sort);
-  }
-
-  protected onDateFilterChange(key: string, value: Date | null): void {
-    const formatted =
-      value == null
-        ? ''
-        : `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-    this.onFilterChange(key, formatted);
   }
 
   protected cellValue(row: any, column: ServerTableColumn<any>): string {
@@ -143,10 +147,9 @@ export class ServerTableComponent {
   }
 
   protected onRowClick(row: any): void {
-    if (!this.rowClickable) {
-      return;
+    if (this.rowClickable) {
+      this.rowClick.emit(row);
     }
-    this.rowClick.emit(row);
   }
 
   protected rowIdentifier(row: any): string | null {
@@ -183,13 +186,44 @@ export class ServerTableComponent {
 
   protected onActionClick(action: ServerTableRowAction<any>, row: any, event: Event): void {
     event.stopPropagation();
-    if (action.disabled?.(row)) {
-      return;
+    if (!action.disabled?.(row)) {
+      this.actionClick.emit({ action: action.key, row });
     }
-    this.actionClick.emit({ action: action.key, row });
+  }
+
+  protected actionIcon(icon: string): string {
+    if (icon.startsWith('pi ')) {
+      return icon;
+    }
+    const iconMap: Record<string, string> = {
+      add: 'pi pi-plus',
+      archive: 'pi pi-inbox',
+      assignment: 'pi pi-file',
+      block: 'pi pi-ban',
+      check: 'pi pi-check',
+      delete: 'pi pi-trash',
+      edit: 'pi pi-pencil',
+      fingerprint: 'pi pi-fingerprint',
+      history: 'pi pi-history',
+      launch: 'pi pi-external-link',
+      more_vert: 'pi pi-ellipsis-v',
+      open_in_new: 'pi pi-external-link',
+      person_search: 'pi pi-user',
+      policy: 'pi pi-shield',
+      print: 'pi pi-print',
+      publish: 'pi pi-send',
+      schedule: 'pi pi-clock',
+      settings: 'pi pi-cog',
+      visibility: 'pi pi-eye',
+    };
+    return iconMap[icon] ?? 'pi pi-circle';
   }
 
   protected toggleFilters(): void {
     this.filtersExpanded.update((value) => !value);
+  }
+
+  private formatDate(value: Date): string {
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
   }
 }

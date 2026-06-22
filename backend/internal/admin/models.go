@@ -115,6 +115,54 @@ type UpsertPermissionAssignmentRequest struct {
 	Assigned       bool   `json:"assigned"`
 }
 
+type CodeLabelOption struct {
+	Code  string `json:"code"`
+	Label string `json:"label"`
+}
+
+type CodeNameOption struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type RolePermissionAssignmentFilters struct {
+	Roles       []CodeLabelOption `json:"roles"`
+	Permissions []CodeLabelOption `json:"permissions"`
+}
+
+type RolePermissionAssignment struct {
+	ID              string `json:"id"`
+	RoleCode        string `json:"role_code"`
+	RoleLabel       string `json:"role_label"`
+	PermissionCode  string `json:"permission_code"`
+	PermissionLabel string `json:"permission_label"`
+}
+
+type UpsertRolePermissionAssignmentRequest struct {
+	RoleCode       string `json:"role_code"`
+	PermissionCode string `json:"permission_code"`
+	Assigned       bool   `json:"assigned"`
+}
+
+type PositionRoleAssignmentFilters struct {
+	Positions []CodeNameOption   `json:"positions"`
+	Roles     []CodeLabelOption `json:"roles"`
+}
+
+type PositionRoleAssignment struct {
+	ID           string `json:"id"`
+	PositionCode string `json:"position_code"`
+	PositionName string `json:"position_name"`
+	RoleCode     string `json:"role_code"`
+	RoleLabel    string `json:"role_label"`
+}
+
+type UpsertPositionRoleAssignmentRequest struct {
+	PositionCode string `json:"position_code"`
+	RoleCode     string `json:"role_code"`
+	Assigned     bool   `json:"assigned"`
+}
+
 type DossierRequirement struct {
 	ID                   string `json:"id"`
 	SourceModule         string `json:"source_module"`

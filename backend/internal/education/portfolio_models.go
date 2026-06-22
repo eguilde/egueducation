@@ -49,3 +49,30 @@ type CreatePortfolioRecordRequest struct {
 	Custodian            string `json:"custodian"`
 	Notes                string `json:"notes"`
 }
+
+type EducationRequirement struct {
+	ID                   string `json:"id"`
+	Domain               string `json:"domain"`
+	Code                 string `json:"code"`
+	TitleRO              string `json:"title_ro"`
+	TitleEN              string `json:"title_en"`
+	SourceRef            string `json:"source_ref"`
+	RequirementType      string `json:"requirement_type"`
+	ImplementationStatus string `json:"implementation_status"`
+	Priority             int    `json:"priority"`
+	Notes                string `json:"notes"`
+}
+
+type PortfolioSection struct {
+	ID               string   `json:"id"`
+	SectionCode      string   `json:"section_code"`
+	ComponentCode    string   `json:"component_code"`
+	LabelRO          string   `json:"label_ro"`
+	LabelEN          string   `json:"label_en"`
+	ExampleDocuments []string `json:"example_documents"`
+	Required         bool     `json:"required"`
+	SensitiveData    bool     `json:"sensitive_data"`
+	RetentionRule    string   `json:"retention_rule"`
+	SortOrder        int      `json:"sort_order"`
+	Active           bool     `json:"active"`
+}

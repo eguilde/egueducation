@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"math/big"
 	"net/http"
 	"net/url"
 	"slices"
@@ -26,31 +25,6 @@ const (
 	accessTokenTTL       = 15 * time.Minute
 	idTokenTTL           = 15 * time.Minute
 )
-
-type oidcKeyPair struct {
-	privateKey *rsa.PrivateKey
-	keyID      string
-	modulus    string
-	exponent   string
-}
-
-func newOIDCKeyPair() (*oidcKeyPair, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err
-	}
-
-	modulus := base64.RawURLEncoding.EncodeToString(privateKey.PublicKey.N.Bytes())
-	exponent := base64.RawURLEncoding.EncodeToString(big.NewInt(int64(privateKey.PublicKey.E)).Bytes())
-	sum := sha256.Sum256(privateKey.PublicKey.N.Bytes())
-
-	return &oidcKeyPair{
-		privateKey: privateKey,
-		keyID:      base64.RawURLEncoding.EncodeToString(sum[:8]),
-		modulus:    modulus,
-		exponent:   exponent,
-	}, nil
-}
 
 func (s *Service) Discovery(w http.ResponseWriter, _ *http.Request) {
 	issuer := s.cfg.OIDCIssuer
@@ -126,7 +100,7 @@ func (s *Service) Authorize(w http.ResponseWriter, r *http.Request) {
 
 	subject := s.currentSubject(r)
 	if subject == "" {
-		loginURL, err := url.Parse(s.cfg.FrontendOrigin + "/login")
+		loginURL, err := url.Parse(s.cfg.FrontendOrigin + "/auth/login")
 		if err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "login_redirect_failed"})
 			return
@@ -418,7 +392,7 @@ func (s *Service) UserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := s.verifyToken(parts[1])
+	claims, err := s.verifyToken(parts[1], "access_token")
 	if err != nil {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 		return
@@ -619,7 +593,7 @@ func (s *Service) signToken(claims map[string]any) (string, error) {
 	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature), nil
 }
 
-func (s *Service) verifyToken(token string) (map[string]any, error) {
+func (s *Service) verifyToken(token string, expectedTypes ...string) (map[string]any, error) {
 	if s.oidc == nil {
 		return nil, errors.New("oidc_key_unavailable")
 	}
@@ -646,8 +620,20 @@ func (s *Service) verifyToken(token string) (map[string]any, error) {
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, err
 	}
+	if issuer, _ := claims["iss"].(string); issuer != s.cfg.OIDCIssuer {
+		return nil, errors.New("token_issuer_invalid")
+	}
+	if aud, _ := claims["aud"].(string); aud != s.cfg.OIDCClientID && aud != s.cfg.OIDCDesktopClient {
+		return nil, errors.New("token_audience_invalid")
+	}
 	if exp, ok := claims["exp"].(float64); !ok || int64(exp) <= time.Now().Unix() {
 		return nil, errors.New("token_expired")
+	}
+	if len(expectedTypes) > 0 {
+		typ, _ := claims["typ"].(string)
+		if typ == "" || !slices.Contains(expectedTypes, typ) {
+			return nil, errors.New("token_type_invalid")
+		}
 	}
 	return claims, nil
 }

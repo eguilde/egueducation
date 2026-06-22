@@ -11,16 +11,24 @@ export const permissionGuard: CanActivateFn = (route, state) => {
   const requiredPermission = route.data['permission'] as string | undefined;
   const requiredPermissions = route.data['permissions'] as string[] | undefined;
   const permissionsMode = (route.data['permissionsMode'] as 'all' | 'any' | undefined) ?? 'all';
+  const requiredRole = route.data['role'] as string | undefined;
+  const requiredRoles = route.data['roles'] as string[] | undefined;
+  const rolesMode = (route.data['rolesMode'] as 'all' | 'any' | undefined) ?? 'any';
   const requiredModule = route.data['module'] as string | undefined;
   const requiredModules = route.data['modules'] as string[] | undefined;
   const modulesMode = (route.data['modulesMode'] as 'all' | 'any' | undefined) ?? 'all';
 
   if (!authz.user()) {
     auth.storeReturnUrl(state.url);
-    return router.createUrlTree(['/login']);
+    return router.createUrlTree(['/']);
   }
 
   const allowed =
+    (!requiredRole || authz.hasRole(requiredRole)) &&
+    (!requiredRoles ||
+      (rolesMode === 'any'
+        ? authz.hasAnyRole(requiredRoles)
+        : requiredRoles.every((role) => authz.hasRole(role)))) &&
     (!requiredPermission || authz.hasPermission(requiredPermission)) &&
     (!requiredPermissions ||
       (permissionsMode === 'any'

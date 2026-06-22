@@ -1,117 +1,133 @@
-<mat-sidenav-container class="shell">
-  <mat-sidenav
-    [mode]="sidenavMode()"
-    [opened]="sidenavOpened()"
-    [disableClose]="!isHandset()"
-    (closedStart)="mobileOpen.set(false)"
-    class="shell__nav"
-  >
-    <div class="shell__brand">
-      <div class="shell__brand-mark">E</div>
-      <div>
-        <div class="shell__brand-title">EguEducation</div>
-        <div class="shell__brand-subtitle">{{ 'app.subtitle' | transloco }}</div>
+<div class="shell min-h-dvh bg-surface-50 text-color dark:bg-surface-950">
+  <p-toolbar styleClass="shell__toolbar">
+    <ng-template pTemplate="start">
+      <div class="flex items-center gap-3">
+        <p-button
+          type="button"
+          icon="pi pi-bars"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Toggle navigation"
+          (onClick)="toggleDrawer()"
+        />
+        <div class="grid leading-tight">
+          <span class="text-base font-black tracking-[-0.02em]">EguEducation</span>
+          <span class="hidden text-xs text-surface-500 sm:block">
+            {{ authz.institutionName() || ('app.subtitle' | transloco) }}
+          </span>
+        </div>
       </div>
-    </div>
+    </ng-template>
 
-    <mat-nav-list class="shell__list">
-      @for (item of visibleNavItems(); track item.route) {
-        <a
-          mat-list-item
-          [routerLink]="item.route"
-          routerLinkActive="is-active"
-          (click)="closeMobileNav()"
-        >
-          <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
-          <span matListItemTitle>{{ item.labelKey | transloco }}</span>
-        </a>
+    <ng-template pTemplate="end">
+      @if (authz.user(); as user) {
+        <div class="hidden items-center gap-2 rounded-full border border-surface bg-surface-0 px-3 py-1 shadow-sm lg:flex dark:bg-surface-900">
+          <p-avatar [label]="userInitial()" shape="circle" styleClass="bg-primary text-primary-contrast" />
+          <div class="grid max-w-52 leading-tight">
+            <span class="truncate text-sm font-bold">{{ user.name || user.email || user.sub }}</span>
+            <span class="truncate text-xs text-surface-500">{{ user.email || user.sub }}</span>
+          </div>
+        </div>
       }
-    </mat-nav-list>
+    </ng-template>
+  </p-toolbar>
 
-    <div class="shell__bottom">
-      <mat-divider />
+  <p-drawer
+    [visible]="drawerVisible()"
+    (visibleChange)="drawerVisible.set($event)"
+    [modal]="isHandset()"
+    [dismissible]="isHandset()"
+    [showCloseIcon]="false"
+    [blockScroll]="isHandset()"
+    styleClass="shell__drawer"
+  >
+    <ng-template pTemplate="headless">
+      <aside class="flex h-full min-h-0 flex-col bg-surface-0 dark:bg-surface-950">
+        <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
+          @if (authz.user()) {
+            <nav class="grid gap-1">
+              @for (item of visibleNavItems(); track item.route) {
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="is-active"
+                  class="shell__nav-link"
+                  (click)="closeMobileNav()"
+                >
+                  <i [class]="item.icon"></i>
+                  <span>{{ item.labelKey | transloco }}</span>
+                </a>
+              }
+            </nav>
+          }
+        </div>
 
-      <section class="shell__account">
-        @if (authz.user(); as user) {
-          <div class="shell__account-summary">
-            <div class="shell__account-avatar">{{ (user.name || user.email || user.sub).slice(0, 1).toUpperCase() }}</div>
-            <div>
-              <div class="shell__account-name">{{ user.name || user.email || user.sub }}</div>
-              <div class="shell__account-meta">{{ user.email || user.sub }}</div>
-            </div>
-          </div>
-          <button mat-stroked-button class="shell__auth-btn" (click)="signOut()">
-            {{ 'auth.logout' | transloco }}
-          </button>
-        } @else {
-          <div class="shell__guest">
-            <div class="shell__guest-title">{{ 'auth.notAuthenticated' | transloco }}</div>
-            <button mat-flat-button class="shell__auth-btn" (click)="signIn()">
-              {{ 'auth.login' | transloco }}
-            </button>
-          </div>
-        }
-      </section>
+        <footer class="grid gap-3 border-t border-surface p-3">
+          <section class="rounded-2xl border border-surface bg-surface-50 p-3 dark:bg-surface-900">
+            @if (authz.user(); as user) {
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="flex min-w-0 flex-1 items-center gap-3 rounded-xl border-0 bg-transparent p-1 text-left text-color transition hover:bg-surface-100 dark:hover:bg-surface-800"
+                  (click)="openProfile()"
+                >
+                  <p-avatar [label]="userInitial()" shape="circle" styleClass="bg-primary text-primary-contrast" />
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-bold">{{ user.name || user.email || user.sub }}</span>
+                    <span class="block truncate text-xs text-surface-500">{{ user.email || user.sub }}</span>
+                  </span>
+                </button>
+                <p-button
+                  type="button"
+                  icon="pi pi-sign-out"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="danger"
+                  [attr.aria-label]="'auth.logout' | transloco"
+                  (onClick)="signOut()"
+                />
+              </div>
+            } @else {
+              <p-button
+                type="button"
+                [label]="'auth.login' | transloco"
+                icon="pi pi-sign-in"
+                styleClass="w-full justify-center"
+                (onClick)="signIn()"
+              />
+            }
+          </section>
 
-      <mat-expansion-panel>
-        <mat-expansion-panel-header>
-          <mat-panel-title>{{ 'appearance.title' | transloco }}</mat-panel-title>
-        </mat-expansion-panel-header>
-
-        <div class="shell__appearance">
-          <div class="shell__appearance-row">
-            <span>{{ 'appearance.mode' | transloco }}</span>
-            <button mat-stroked-button (click)="theme.toggleTheme()">
-              {{ ('appearance.' + theme.mode()) | transloco }}
-            </button>
-          </div>
-
-          <div class="shell__appearance-row shell__appearance-row--stack">
-            <span>{{ 'appearance.language' | transloco }}</span>
-            <mat-button-toggle-group
-              [value]="theme.language()"
-              (change)="theme.setLanguage($event.value)"
+          <section class="rounded-2xl border border-surface bg-surface-50 dark:bg-surface-900">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left text-sm font-black text-color transition hover:bg-surface-100 dark:hover:bg-surface-800"
+              [attr.aria-expanded]="appearanceOpen()"
+              aria-controls="shell-appearance-panel"
+              (click)="toggleAppearance()"
             >
-              <mat-button-toggle value="ro">RO</mat-button-toggle>
-              <mat-button-toggle value="en">EN</mat-button-toggle>
-            </mat-button-toggle-group>
-          </div>
-        </div>
-      </mat-expansion-panel>
-    </div>
-  </mat-sidenav>
+              <span class="flex items-center gap-2">
+                <i class="pi pi-palette text-primary"></i>
+                {{ 'appearance.title' | transloco }}
+              </span>
+              <i class="pi text-surface-500" [class.pi-chevron-down]="!appearanceOpen()" [class.pi-chevron-up]="appearanceOpen()"></i>
+            </button>
 
-  <mat-sidenav-content class="shell__content">
-    <mat-toolbar class="shell__toolbar px-3 sm:px-5">
-      <button mat-icon-button (click)="toggleNav()" class="shell__menu-btn">
-        <mat-icon>menu</mat-icon>
-      </button>
-      <div class="flex min-w-0 flex-1 items-center justify-between gap-3">
-        <div class="shell__toolbar-copy min-w-0">
-          <div class="shell__toolbar-title truncate">EguEducation</div>
-          <div class="shell__toolbar-subtitle truncate">{{ authz.institutionName() || ('app.subtitle' | transloco) }}</div>
-        </div>
-
-        @if (authz.user(); as user) {
-          <div class="hidden items-center gap-3 rounded-full border border-slate-200/70 bg-white/70 px-3 py-1.5 text-sm shadow-sm dark:border-slate-700/60 dark:bg-slate-900/60 lg:flex">
-            <div class="shell__account-avatar !h-9 !w-9">
-              {{ (user.name || user.email || user.sub).slice(0, 1).toUpperCase() }}
-            </div>
-            <div class="min-w-0">
-              <div class="truncate font-semibold text-slate-900 dark:text-slate-100">
-                {{ user.name || user.email || user.sub }}
+            @if (appearanceOpen()) {
+              <div id="shell-appearance-panel" class="border-t border-surface p-3">
+                <app-theme-panel />
               </div>
-              <div class="truncate text-xs text-slate-500 dark:text-slate-400">
-                {{ user.email || user.sub }}
-              </div>
-            </div>
-          </div>
-        }
-      </div>
-    </mat-toolbar>
+            }
+          </section>
+        </footer>
+      </aside>
+    </ng-template>
+  </p-drawer>
 
-    <main class="shell__main">
-      <router-outlet />
-    </main>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+  <main
+    class="shell__main min-h-[calc(100dvh-4rem)] p-3 transition-[padding] duration-200 sm:p-4 lg:p-5"
+    [class.lg:pl-[22rem]]="drawerVisible()"
+  >
+    <router-outlet />
+  </main>
+</div>

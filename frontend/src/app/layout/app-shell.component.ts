@@ -1,23 +1,20 @@
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { map } from 'rxjs/operators';
 
-import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { AvatarModule } from 'primeng/avatar';
+import { ButtonModule } from 'primeng/button';
+import { DrawerModule } from 'primeng/drawer';
+import { ToolbarModule } from 'primeng/toolbar';
 
 import { AuthService } from '../core/auth/auth.service';
 import { AuthzService } from '../core/authz/authz.service';
-import { ThemeService } from '../core/ui/theme.service';
+import { ThemePanelComponent } from './theme-panel.component';
 
 interface NavItem {
   icon: string;
@@ -34,18 +31,16 @@ interface NavItem {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
     TranslocoPipe,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatDividerModule,
-    MatExpansionModule,
-    MatIconModule,
-    MatListModule,
-    MatSidenavModule,
-    MatToolbarModule,
+    AvatarModule,
+    ButtonModule,
+    DrawerModule,
+    ThemePanelComponent,
+    ToolbarModule,
   ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
@@ -56,29 +51,28 @@ export class AppShellComponent {
   private readonly router = inject(Router);
   protected readonly auth = inject(AuthService);
   protected readonly authz = inject(AuthzService);
-  protected readonly theme = inject(ThemeService);
 
   protected readonly navItems: NavItem[] = [
     {
-      icon: 'dashboard',
+      icon: 'pi pi-chart-line',
       labelKey: 'nav.dashboard',
       route: '/dashboard',
       permission: 'dashboard.read',
       module: 'dashboard',
     },
     {
-      icon: 'folder_open',
+      icon: 'pi pi-folder-open',
       labelKey: 'nav.documente',
-      route: '/documente/dashboard',
+      route: '/documente',
       permission: ['registratura.read', 'workflow.read', 'earchiva.read'],
       permissionMode: 'any',
       module: ['registratura', 'workflow', 'earchiva'],
       moduleMode: 'any',
     },
     {
-      icon: 'school',
+      icon: 'pi pi-graduation-cap',
       labelKey: 'nav.education',
-      route: '/education/dashboard',
+      route: '/education',
       permission: [
         'education.governance.read',
         'education.personnel.read',
@@ -94,15 +88,7 @@ export class AppShellComponent {
       permissionMode: 'any',
       module: 'education',
     },
-    {
-      icon: 'policy',
-      labelKey: 'nav.gdpr',
-      route: '/gdpr/dashboard',
-      permission: ['gdpr.read', 'gdpr.policies.read', 'gdpr.requests.read'],
-      permissionMode: 'all',
-      module: 'gdpr',
-    },
-    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin/dashboard', permission: 'admin.read', module: 'admin' },
+    { icon: 'pi pi-cog', labelKey: 'nav.admin', route: '/admin', permission: 'admin.read', module: 'admin' },
   ];
   protected readonly visibleNavItems = computed(() =>
     this.navItems.filter((item) =>
@@ -110,33 +96,55 @@ export class AppShellComponent {
     ),
   );
 
-  protected readonly mobileOpen = signal(false);
+  protected readonly drawerVisible = signal(true);
+  protected readonly appearanceOpen = signal(false);
   private readonly handset = toSignal(
     this.breakpoints.observe('(max-width: 1024px)').pipe(map((state) => state.matches)),
     { initialValue: false },
   );
   protected readonly isHandset = computed(() => this.handset());
-  protected readonly sidenavMode = computed<'side' | 'over'>(() => (this.isHandset() ? 'over' : 'side'));
-  protected readonly sidenavOpened = computed(() => (this.isHandset() ? this.mobileOpen() : true));
 
-  protected toggleNav(): void {
-    if (this.isHandset()) {
-      this.mobileOpen.update((open) => !open);
-    }
+  constructor() {
+    effect(() => {
+      this.drawerVisible.set(!this.isHandset());
+    });
+  }
+
+  protected toggleDrawer(): void {
+    this.drawerVisible.update((open) => !open);
+  }
+
+  protected toggleAppearance(): void {
+    this.appearanceOpen.update((open) => !open);
   }
 
   protected closeMobileNav(): void {
     if (this.isHandset()) {
-      this.mobileOpen.set(false);
+      this.drawerVisible.set(false);
     }
   }
 
   protected async signIn(): Promise<void> {
-    await this.router.navigate(['/login']);
+    await this.router.navigate(['/auth/start']);
   }
 
   protected async signOut(): Promise<void> {
     await this.router.navigate(['/auth/logout']);
+  }
+
+  protected async openAdmin(): Promise<void> {
+    await this.router.navigate(['/admin']);
+    this.closeMobileNav();
+  }
+
+  protected async openProfile(): Promise<void> {
+    await this.router.navigate(['/profile']);
+    this.closeMobileNav();
+  }
+
+  protected userInitial(): string {
+    const user = this.authz.user();
+    return (user?.name || user?.email || user?.sub || 'U').slice(0, 1).toUpperCase();
   }
 
   protected canAccess(
