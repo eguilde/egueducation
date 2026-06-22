@@ -96,6 +96,24 @@ type ConsentDecisionRequest struct {
 	GrantedScopes []string `json:"granted_scopes"`
 }
 
+type OIDCClientRegistrationRequest struct {
+	ClientID     string   `json:"client_id"`
+	ClientName   string   `json:"client_name"`
+	PublicClient bool     `json:"public_client"`
+	RequirePKCE  bool     `json:"require_pkce"`
+	Active       bool     `json:"active"`
+	RedirectURIs []string `json:"redirect_uris"`
+}
+
+type OIDCClientRegistrationResponse struct {
+	ClientID     string   `json:"client_id"`
+	ClientName   string   `json:"client_name"`
+	PublicClient bool     `json:"public_client"`
+	RequirePKCE  bool     `json:"require_pkce"`
+	Active       bool     `json:"active"`
+	RedirectURIs []string `json:"redirect_uris"`
+}
+
 type UpdateProfileRequest struct {
 	Name        string `json:"name"`
 	PhoneNumber string `json:"phone_number"`

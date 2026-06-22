@@ -34,6 +34,7 @@ func (s *Service) Discovery(w http.ResponseWriter, _ *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"issuer":                                issuer,
 		"authorization_endpoint":                issuer + "/authorize",
+		"registration_endpoint":                 issuer + "/register",
 		"token_endpoint":                        issuer + "/token",
 		"userinfo_endpoint":                     issuer + "/userinfo",
 		"jwks_uri":                              issuer + "/jwks",
@@ -48,6 +49,7 @@ func (s *Service) Discovery(w http.ResponseWriter, _ *http.Request) {
 		},
 		"code_challenge_methods_supported":      []string{"S256"},
 		"token_endpoint_auth_methods_supported": []string{"none", "client_secret_basic"},
+		"registration_endpoint_auth_methods_supported": []string{"none"},
 		"dpop_signing_alg_values_supported":    []string{"ES256"},
 	})
 }
@@ -69,6 +71,96 @@ func (s *Service) JWKS(w http.ResponseWriter, _ *http.Request) {
 				"e":   s.oidc.exponent,
 			},
 		},
+	})
+}
+
+func (s *Service) RegisterClient(w http.ResponseWriter, r *http.Request) {
+	var req OIDCClientRegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_client_registration"})
+		return
+	}
+
+	req.ClientID = strings.TrimSpace(req.ClientID)
+	req.ClientName = strings.TrimSpace(req.ClientName)
+	redirectURIs := make([]string, 0, len(req.RedirectURIs))
+	for _, rawURI := range req.RedirectURIs {
+		uri := strings.TrimSpace(rawURI)
+		if uri == "" || slices.Contains(redirectURIs, uri) {
+			continue
+		}
+		redirectURIs = append(redirectURIs, uri)
+	}
+	if req.ClientID == "" || req.ClientName == "" || len(redirectURIs) == 0 {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_client_registration"})
+		return
+	}
+	if strings.EqualFold(s.cfg.Environment, "production") && !s.knownClientID(req.ClientID) {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "registration_not_permitted"})
+		return
+	}
+
+	publicClient := true
+	requirePKCE := true
+	active := req.Active
+	if !active {
+		active = true
+	}
+
+	tx, err := s.db.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "client_registration_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+
+	if _, err := tx.Exec(r.Context(), `
+		insert into oidc_clients (client_id, client_name, public_client, require_pkce, active)
+		values ($1, $2, $3, $4, $5)
+		on conflict (client_id) do update
+		set client_name = excluded.client_name,
+			public_client = excluded.public_client,
+			require_pkce = excluded.require_pkce,
+			active = excluded.active,
+			data = jsonb_build_object(
+				'client_id', excluded.client_id,
+				'client_name', excluded.client_name,
+				'public_client', excluded.public_client,
+				'require_pkce', excluded.require_pkce,
+				'active', excluded.active
+			),
+			updated_at = now()
+	`, req.ClientID, req.ClientName, publicClient, requirePKCE, active); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "client_registration_failed"})
+		return
+	}
+
+	if _, err := tx.Exec(r.Context(), `delete from oidc_client_redirect_uris where client_id = $1`, req.ClientID); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "client_registration_failed"})
+		return
+	}
+	for _, redirectURI := range redirectURIs {
+		if _, err := tx.Exec(r.Context(), `
+			insert into oidc_client_redirect_uris (client_id, redirect_uri)
+			values ($1, $2)
+		`, req.ClientID, redirectURI); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "client_registration_failed"})
+			return
+		}
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "client_registration_failed"})
+		return
+	}
+
+	httpx.JSON(w, http.StatusCreated, OIDCClientRegistrationResponse{
+		ClientID:     req.ClientID,
+		ClientName:   req.ClientName,
+		PublicClient: publicClient,
+		RequirePKCE:  requirePKCE,
+		Active:       active,
+		RedirectURIs: redirectURIs,
 	})
 }
 
@@ -267,14 +359,14 @@ func (s *Service) ConsentDecision(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "consent_request_update_failed"})
 			return
 		}
-		httpx.JSON(w, http.StatusOK, map[string]any{
-			"status":      "denied",
-			"redirect_to": s.buildErrorRedirect(redirectURI, state, "access_denied"),
-		})
 		if htmlForm {
 			http.Redirect(w, r, s.buildErrorRedirect(redirectURI, state, "access_denied"), http.StatusFound)
 			return
 		}
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"status":      "denied",
+			"redirect_to": s.buildErrorRedirect(redirectURI, state, "access_denied"),
+		})
 		return
 	}
 
@@ -324,10 +416,6 @@ func (s *Service) ConsentDecision(w http.ResponseWriter, r *http.Request) {
 		"status":      "approved",
 		"redirect_to": redirectTarget,
 	})
-	if htmlForm {
-		http.Redirect(w, r, redirectTarget, http.StatusFound)
-		return
-	}
 }
 
 func (s *Service) buildAuthorizationRedirect(ctx context.Context, clientID, subject, redirectURI, scope, state, nonce, codeChallenge string) (string, error) {
@@ -699,6 +787,16 @@ func (s *Service) storeOIDCModel(ctx context.Context, modelName, modelID string,
 		return "", fmt.Errorf("store oidc model: %w", err)
 	}
 	return modelID, nil
+}
+
+func (s *Service) knownClientID(clientID string) bool {
+	if clientID == "" {
+		return false
+	}
+	if clientID == s.cfg.OIDCClientID || clientID == s.cfg.OIDCDesktopClient {
+		return true
+	}
+	return false
 }
 
 func (s *Service) validateClientRedirect(ctx context.Context, clientID, redirectURI string) (bool, error) {

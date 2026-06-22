@@ -108,6 +108,7 @@ func main() {
 		r.Post("/auth/logout", authService.Logout)
 		r.Get("/oidc/.well-known/openid-configuration", authService.Discovery)
 		r.Get("/oidc/jwks", authService.JWKS)
+		r.Post("/oidc/register", authService.RegisterClient)
 		r.Get("/oidc/authorize", authService.Authorize)
 		r.Get("/oidc/login", authService.LoginPage)
 		r.Get("/oidc/consent", authService.ConsentPage)
