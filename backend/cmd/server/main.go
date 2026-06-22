@@ -106,7 +106,8 @@ func main() {
 		r.Get("/auth/role-positions", authService.RolePositions)
 		r.Post("/auth/session/exchange", authService.ExchangeSession)
 		r.Post("/auth/logout", authService.Logout)
-		r.Mount("/oidc", authService.OIDCHandler())
+		r.Handle("/oidc", authService.OIDCHandler())
+		r.Handle("/oidc/*", authService.OIDCHandler())
 		r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)
 		r.Post("/passkeys/login-finish", authService.FinishPasskeyAuthentication)
 

@@ -61,7 +61,6 @@ func newOIDCProviderHandler(
 		}),
 		provider.WithTokenAuthnMethods(goidc.ClientAuthnNone, goidc.ClientAuthnSecretBasic),
 		provider.WithScopes(goidc.ScopeOpenID, goidc.ScopeProfile, goidc.ScopeEmail, goidc.ScopePhone, goidc.ScopeOfflineAccess),
-		provider.WithPathPrefix("/api/oidc"),
 		provider.WithClientStorage(clientStore),
 		provider.WithAuthnSessionStorage(authnStore),
 		provider.WithGrantSessionStorage(grantStore),
