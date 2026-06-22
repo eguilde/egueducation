@@ -14,10 +14,10 @@ spec:
         app: egueducation-frontend
     spec:
       imagePullSecrets:
-        - name: registry-eguilde-pull
+        - name: ghcr-pull-secret
       containers:
         - name: frontend
-          image: forge.eguilde.cloud/eguilde/egueducation-frontend:latest
+          image: registry.eguilde.cloud/eguilde/egueducation-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

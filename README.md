@@ -37,6 +37,8 @@ Cluster database wiring currently targets:
 Kubernetes manifests are in `ops/k8s/` and currently assume:
 
 - frontend host: `scoalabalotesti.eguilde.cloud`
-- backend image: `ghcr.io/eguilde/egueducation-backend:latest`
-- frontend image: `ghcr.io/eguilde/egueducation-frontend:latest`
+- image registry: `registry.eguilde.cloud/eguilde`
+- backend image: `registry.eguilde.cloud/eguilde/egueducation-backend:latest`
+- frontend image: `registry.eguilde.cloud/eguilde/egueducation-frontend:latest`
+- image pull secret: `ghcr-pull-secret`
 - TLS via `letsencrypt-godaddy`
