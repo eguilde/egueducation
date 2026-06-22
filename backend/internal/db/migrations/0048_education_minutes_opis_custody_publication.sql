@@ -169,7 +169,7 @@ insert into education_publications (
 	mandatory, published_on, reviewed_by, institution_id, notes
 )
 values
-	('PUB-2026-0001', 'guvernanta', 'hotarare', 'Hotărâre privind aprobarea proiectului de buget', 'avizier', 'publicat', 'finalizata', true, current_date - 11, 'DPO unitate', 'Publicată după anonimizarea datelor personale.'),
-	('PUB-2026-0002', 'portofolii', 'procedura_portofoliu', 'Procedura internă pentru portofoliul profesional al cadrului didactic', 'site_public', 'pregatit', 'nu_este_necesara', true, null, 'Director adjunct', 'În curs de validare pentru publicarea pe site.'),
-	('PUB-2026-0003', 'regulamente', 'roi', 'Regulament de ordine interioară 2025-2026', 'site_public', 'publicat', 'nu_este_necesara', true, current_date - 40, 'Secretariat', 'Versiune aprobată și disponibilă public.')
+	('PUB-2026-0001', 'guvernanta', 'hotarare', 'Hotărâre privind aprobarea proiectului de buget', 'avizier', 'publicat', 'finalizata', true, current_date - 11, 'DPO unitate', 'inst-001', 'Publicată după anonimizarea datelor personale.'),
+	('PUB-2026-0002', 'portofolii', 'procedura_portofoliu', 'Procedura internă pentru portofoliul profesional al cadrului didactic', 'site_public', 'pregatit', 'nu_este_necesara', true, null, 'Director adjunct', 'inst-001', 'În curs de validare pentru publicarea pe site.'),
+	('PUB-2026-0003', 'regulamente', 'roi', 'Regulament de ordine interioară 2025-2026', 'site_public', 'publicat', 'nu_este_necesara', true, current_date - 40, 'Secretariat', 'inst-001', 'Versiune aprobată și disponibilă public.')
 on conflict do nothing;
