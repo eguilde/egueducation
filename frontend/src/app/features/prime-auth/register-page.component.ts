@@ -25,8 +25,8 @@ type EntryRoute = '/auth/start';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.18),_transparent_32rem),linear-gradient(135deg,_#fff7f8_0%,_#ffffff_46%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.28),_transparent_30rem),linear-gradient(135deg,_#19040a_0%,_#0f172a_58%,_#260711_100%)] dark:text-white">
-      <section class="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.02fr_0.98fr] md:px-8 lg:px-10">
+    <main class="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.18),_transparent_32rem),linear-gradient(135deg,_#fff7f8_0%,_#ffffff_46%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.28),_transparent_30rem),linear-gradient(135deg,_#19040a_0%,_#0f172a_58%,_#260711_100%)] dark:text-white">
+      <section class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.02fr_0.98fr] md:px-8 lg:px-10">
         <div class="space-y-8">
           <div class="inline-flex items-center rounded-full border border-rose-200 bg-white/75 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm backdrop-blur dark:border-rose-400/30 dark:bg-white/10 dark:text-rose-100">
             {{ 'auth.register.badge' | transloco }}

@@ -9,8 +9,8 @@ import { ThemeService } from '../../core/ui/theme.service';
   standalone: true,
   imports: [RouterLink, TranslocoPipe],
   template: `
-    <main class="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.22),_transparent_34rem),linear-gradient(135deg,_#fff7f8_0%,_#fff_46%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.3),_transparent_32rem),linear-gradient(135deg,_#19040a_0%,_#0f172a_58%,_#260711_100%)] dark:text-white">
-      <section class="mx-auto grid min-h-screen w-full max-w-7xl items-center gap-10 px-5 py-8 md:grid-cols-[1.05fr_0.95fr] md:px-8 lg:px-10">
+    <main class="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.22),_transparent_34rem),linear-gradient(135deg,_#fff7f8_0%,_#fff_46%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.3),_transparent_32rem),linear-gradient(135deg,_#19040a_0%,_#0f172a_58%,_#260711_100%)] dark:text-white">
+      <section class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-10 px-5 py-8 md:grid-cols-[1.05fr_0.95fr] md:px-8 lg:px-10">
         <div class="space-y-8">
           <div class="inline-flex items-center rounded-full border border-rose-200 bg-white/75 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm backdrop-blur dark:border-rose-400/30 dark:bg-white/10 dark:text-rose-100">
             {{ 'home.badge' | transloco }}

@@ -76,9 +76,10 @@ type SMSOTPVerifyResponse struct {
 }
 
 type ConsentScope struct {
-	Code     string `json:"code"`
-	Label    string `json:"label"`
-	Required bool   `json:"required"`
+	Code        string `json:"code"`
+	Label       string `json:"label"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required"`
 }
 
 type ConsentRequestResponse struct {

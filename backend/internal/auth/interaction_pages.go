@@ -137,92 +137,205 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--soft:#fff1f2;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 24px 60px rgba(15,23,42,.14)}
-    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--soft:#1e293b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--primary:#f43f5e;--primary-contrast:#fff;--shadow:0 24px 60px rgba(0,0,0,.35)}
-    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 44%,#ffe4e9);color:var(--text);min-height:100%;overflow:hidden}
-    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(360px,480px) minmax(0,1fr)}
-    .visual{display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,80px);background:linear-gradient(135deg,rgba(15,23,42,.9),rgba(225,29,72,.72) 48%,rgba(8,47,73,.46));color:#fff}
-    .visual h2{font-size:clamp(34px,4.5vw,64px);line-height:1.02;margin:14px 0 18px}
-    .visual p{max-width:460px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.86)}
-    .panel{display:flex;align-items:center;justify-content:center;padding:clamp(24px,4vw,64px);overflow-y:auto}
-    .card{width:100%;max-width:420px;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
-    .header{text-align:center;margin-bottom:18px}
-    .badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    h1{font-size:20px;margin-top:10px}
-    .subtitle{margin-top:4px;font-size:13px;color:var(--muted);line-height:1.6}
-    .grid{display:grid;gap:10px;margin-bottom:14px}
-    .method{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--card);cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s}
-    .method:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.12);border-color:var(--primary)}
-    .method strong{font-size:14px}
-    .method span{font-size:12px;color:var(--muted);line-height:1.5}
-    .field{margin-bottom:14px}
-    .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
-    .field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;color:var(--text);background:var(--soft)}
-    .field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(225,29,72,.15)}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;border:none;border-radius:10px;background:var(--primary);color:var(--primary-contrast);font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
-    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary)}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#ffffff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-2:#fb7185;--primary-contrast:#fff;--shadow:0 32px 80px rgba(15,23,42,.16);--shadow-2:0 20px 45px rgba(225,29,72,.18)}
+    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--soft:#1e293b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--muted-2:#94a3b8;--primary:#f43f5e;--primary-2:#fb7185;--primary-contrast:#fff;--shadow:0 32px 80px rgba(0,0,0,.40);--shadow-2:0 20px 45px rgba(244,63,94,.24)}
+    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.18),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 46%,#ffe4ec);color:var(--text);min-height:100%;overflow:hidden}
+    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,620px)}
+    .visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.82) 44%,rgba(8,47,73,.56));color:#fff;overflow:hidden}
+    .visual::before,.visual::after{content:"";position:absolute;border-radius:999px;filter:blur(6px);pointer-events:none}
+    .visual::before{width:24rem;height:24rem;right:-6rem;top:-5rem;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 68%)}
+    .visual::after{width:18rem;height:18rem;left:-4rem;bottom:-4rem;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%)}
+    .visual-inner{position:relative;z-index:1;max-width:560px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);backdrop-filter:blur(14px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .hero-title{font-size:clamp(34px,4.8vw,64px);line-height:1.02;margin:18px 0 18px;letter-spacing:-.045em}
+    .hero-copy{max-width:48ch;font-size:16px;line-height:1.7;color:rgba(255,255,255,.88)}
+    .feature-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+    .feature{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);font-size:13px;font-weight:700;color:#fff}
+    .panel{display:flex;align-items:center;justify-content:center;padding:clamp(18px,3vw,48px);overflow-y:auto}
+    .card{width:100%;max-width:680px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
+    .card-shell{display:grid;grid-template-columns:1.02fr .98fr;gap:18px;align-items:start}
+    .card-hero{padding:22px;border-radius:22px;background:radial-gradient(circle at top right,rgba(225,29,72,.12),transparent 45%),linear-gradient(180deg,var(--card),var(--soft));border:1px solid var(--border)}
+    .card-header{display:flex;flex-direction:column;gap:10px}
+    .brand-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .brand-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.16);font-size:12px;font-weight:700;color:var(--primary)}
+    .title{font-size:22px;line-height:1.15;letter-spacing:-.03em}
+    .subtitle{font-size:14px;color:var(--muted);line-height:1.65}
+    .summary{display:grid;gap:10px;margin-top:18px}
+    .summary-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.65);border:1px solid var(--border)}
+    html.dark .summary-item,html.app-dark .summary-item{background:rgba(15,23,42,.72)}
+    .summary-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--primary);flex:0 0 auto}
+    .summary-item strong{display:block;font-size:13px;margin-bottom:3px}
+    .summary-item span{display:block;font-size:12px;color:var(--muted)}
+    .summary-scopes{display:grid;gap:8px;margin-top:8px;padding-top:10px;border-top:1px solid var(--border)}
+    .summary-scope{display:flex;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.55);border:1px solid var(--border)}
+    html.dark .summary-scope,html.app-dark .summary-scope{background:rgba(15,23,42,.58)}
+    .summary-scope strong{display:block;font-size:13px;line-height:1.35}
+    .summary-scope span{display:block;font-size:12px;color:var(--muted);line-height:1.5}
+    .summary-scope code{display:block;margin-top:2px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);background:transparent}
+    .card-form{padding:22px;border-radius:22px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow-2)}
+    .section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
+    .grid{display:grid;gap:12px}
+    .method{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--card),var(--card-2));cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;text-align:left}
+    .method:hover{transform:translateY(-1px);box-shadow:0 18px 32px rgba(15,23,42,.10);border-color:rgba(225,29,72,.42)}
+    .method.active{border-color:rgba(225,29,72,.56);box-shadow:0 18px 32px rgba(225,29,72,.12);background:linear-gradient(180deg,rgba(225,29,72,.06),rgba(225,29,72,.02))}
+    .method-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:14px;background:var(--soft);color:var(--primary);flex:0 0 auto}
+    .method-body{display:grid;gap:4px}
+    .method strong{font-size:15px}
+    .method span{font-size:12px;color:var(--muted);line-height:1.55}
+    .method-kicker{font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--primary)}
+    .field{display:grid;gap:6px}
+    .field label{font-size:13px;font-weight:700}
+    .field input{width:100%;padding:14px 14px;border:1px solid var(--border);border-radius:14px;font:inherit;color:var(--text);background:var(--soft);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+    .field input::placeholder{color:var(--muted-2)}
+    .field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(225,29,72,.14);background:var(--card)}
+    .field-help{font-size:12px;color:var(--muted);line-height:1.55}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--primary),#be123c);color:var(--primary-contrast);font:inherit;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 16px 26px rgba(225,29,72,.22);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+    .btn:hover{transform:translateY(-1px);filter:saturate(1.02)}
+    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary);box-shadow:none}
+    .btn.ghost{background:transparent;border:1px dashed var(--border);color:var(--muted)}
     .row{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr))}
-    .muted{font-size:12px;color:var(--muted);line-height:1.5}
-    .notice{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.5}
-    .error{margin-bottom:14px;padding:10px 12px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:12px}
-    @media(max-width:900px){body{overflow-y:auto}.shell{display:block}.visual{display:none}.panel{min-height:100vh;padding:20px}.card{max-width:440px}}
-    @media(max-width:420px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}}
+    .helper-card{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
+    .error{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;line-height:1.6}
+    .success{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-size:13px;line-height:1.6}
+    .step{display:grid;gap:12px;margin-top:14px}
+    .step-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .step-header strong{font-size:14px}
+    .step-header span{font-size:12px;color:var(--muted)}
+    .otp{display:grid;gap:12px}
+    .otp input{font-size:18px;letter-spacing:.3em;text-align:center}
+    .footer-note{margin-top:14px;padding:12px 14px;border-radius:16px;background:rgba(2,6,23,.03);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
+    .footer-note strong{color:var(--text)}
+    @media(max-width:1120px){.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}
+    @media(max-width:860px){body{overflow-y:auto}.shell{display:block}.visual{display:none}.card-shell{grid-template-columns:1fr}.card{border-radius:24px}.card-form,.card-hero{padding:18px}}
+    @media(max-width:480px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.method{padding:13px}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{border-radius:20px}}
   </style>
 </head>
 <body>
   <div class="shell">
     <section class="visual">
-      <div>
-        <div class="badge">OIDC Provider</div>
-        <h2>Autentificare sigură pentru EguEducation</h2>
-        <p>Acces cu SMS OTP, passkey și EUDI wallet, cu consimțământ și sesiuni gestionate exclusiv în backend-ul OIDC.</p>
+      <div class="visual-inner">
+        <div class="eyebrow">OIDC Provider</div>
+        <h2 class="hero-title">Autentificare sigură pentru {{.CustomerName}}</h2>
+        <p class="hero-copy">Accesul este gestionat complet de providerul OIDC, cu SMS OTP, passkey, consimțământ separat și sesiuni securizate în backend.</p>
+        <div class="feature-row" aria-label="Capabilități autentificare">
+          <span class="feature">SMS OTP</span>
+          <span class="feature">Passkey</span>
+          <span class="feature">EUDI Wallet</span>
+          <span class="feature">Consent flow</span>
+        </div>
       </div>
     </section>
     <section class="panel">
       <div class="card">
-        <div class="header">
-          <div class="badge">Autentificare</div>
-          <h1>{{.CustomerName}}</h1>
-          <p class="subtitle">Alege metoda de autentificare și continuă în fluxul OIDC.</p>
-        </div>
+        <div class="card-shell">
+          <aside class="card-hero">
+            <div class="card-header">
+              <div class="brand-line">
+                <div class="brand-pill">Autentificare</div>
+                <span class="status-pill">Sesiune OIDC activă</span>
+              </div>
+              <h1 class="title">{{.CustomerName}}</h1>
+              <p class="subtitle">Alege metoda de autentificare și continuă în aplicație fără parolă.</p>
+            </div>
 
-        <div id="error" class="error" hidden></div>
-        <div class="grid">
-          <button class="method" type="button" onclick="showSms()">
-            <strong>SMS OTP</strong>
-            <span>Autentificare cu cod trimis pe telefonul verificat.</span>
-          </button>
-          <button class="method" type="button" onclick="loginPasskey()">
-            <strong>Passkey</strong>
-            <span>Cheie de acces fără parolă, pentru autentificare rapidă și sigură.</span>
-          </button>
-          <button class="method" type="button" onclick="showError('EUDI wallet login este disponibil după configurarea serviciului de portofel digital.')">
-            <strong>EUDI wallet</strong>
-            <span>Fluxul de portofel digital este servit de providerul OIDC.</span>
-          </button>
-        </div>
+            <div class="summary" aria-label="Avantaje autentificare">
+              <div class="summary-item">
+                <span class="summary-icon">1</span>
+                <div>
+                  <strong>SMS OTP și passkey</strong>
+                  <span>Metode moderne, simple și fără parolă.</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">2</span>
+                <div>
+                  <strong>Consimțământ în OIDC</strong>
+                  <span>Fluxul de aprobare rămâne în providerul backend.</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">3</span>
+                <div>
+                  <strong>Întoarcere sigură</strong>
+                  <span>Revii la exact cererea inițială după autentificare.</span>
+                </div>
+              </div>
+            </div>
+          </aside>
 
-        <form id="smsForm" class="grid" onsubmit="return requestSms(event)" hidden>
-          <div class="field">
-            <label for="phone">Număr de telefon</label>
-            <input id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+40..." />
-          </div>
-          <button class="btn" type="submit">Trimite codul</button>
-          <button class="btn secondary" type="button" onclick="hideSms()">Înapoi</button>
-        </form>
+          <section class="card-form">
+            <div class="section-title">Metode de acces</div>
+            <div id="error" class="error" hidden role="alert" aria-live="polite"></div>
+            <div id="success" class="success" hidden role="status" aria-live="polite"></div>
 
-        <form id="codeForm" class="grid" onsubmit="return verifySms(event)" hidden>
-          <div class="notice" id="smsNotice">Am trimis codul pe telefonul introdus.</div>
-          <div class="field">
-            <label for="code">Cod OTP</label>
-            <input id="code" name="code" inputmode="numeric" maxlength="6" placeholder="••••••" />
-          </div>
-          <button class="btn" type="submit">Verifică și continuă</button>
-          <button class="btn secondary" type="button" onclick="hideCode()">Schimbă telefonul</button>
-        </form>
+            <div class="grid" id="methodGrid">
+              <button class="method active" type="button" onclick="showSms(this)">
+                <span class="method-icon">✉</span>
+                <span class="method-body">
+                  <span class="method-kicker">Recomandat</span>
+                  <strong>SMS OTP</strong>
+                  <span>Trimite un cod pe telefonul verificat și finalizează autentificarea în câteva secunde.</span>
+                </span>
+              </button>
+              <button class="method" type="button" onclick="loginPasskey(this)">
+                <span class="method-icon">◈</span>
+                <span class="method-body">
+                  <span class="method-kicker">Fără cod</span>
+                  <strong>Passkey</strong>
+                  <span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă și sigură.</span>
+                </span>
+              </button>
+              <button class="method" type="button" onclick="showWalletMessage(this)">
+                <span class="method-icon">⌁</span>
+                <span class="method-body">
+                  <span class="method-kicker">Identitate digitală</span>
+                  <strong>EUDI Wallet</strong>
+                  <span>Fluxul de wallet digital este disponibil când providerul este configurat pentru acest canal.</span>
+                </span>
+              </button>
+            </div>
 
-        <div class="notice">
-          {{if .ReturnURL}}La autentificare vei reveni la fluxul OIDC original.{{end}}
+            <div class="step">
+              <form id="smsForm" class="grid" onsubmit="return requestSms(event)" hidden>
+                <div class="step-header">
+                  <strong>Autentificare SMS</strong>
+                  <span>Pasul 1 din 2</span>
+                </div>
+                <div class="field">
+                  <label for="identifier">Email sau nume de utilizator</label>
+                  <input id="identifier" name="identifier" autocomplete="username" inputmode="email" placeholder="nume@exemplu.ro sau utilizator" />
+                  <span class="field-help">Introdu emailul sau numele de utilizator al contului. Codul SMS va fi trimis către numărul verificat asociat contului.</span>
+                </div>
+                <div class="toolbar">
+                  <button class="btn" type="submit">Trimite codul OTP</button>
+                  <button class="btn secondary" type="button" onclick="resetToMethods()">Alege altă metodă</button>
+                </div>
+              </form>
+
+              <form id="codeForm" class="grid otp" onsubmit="return verifySms(event)" hidden>
+                <div class="step-header">
+                  <strong>Confirmă codul OTP</strong>
+                  <span>Pasul 2 din 2</span>
+                </div>
+                <div class="helper-card" id="smsNotice">Am trimis codul SMS către numărul verificat din cont.</div>
+                <div class="field">
+                  <label for="code">Cod OTP</label>
+                  <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" />
+                  <span class="field-help">Introdu cele 6 cifre primite prin SMS.</span>
+                </div>
+                <div class="row">
+                  <button class="btn secondary" type="button" onclick="hideCode()">Schimbă identificatorul</button>
+                  <button class="btn" type="submit">Verifică și continuă</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="footer-note">
+              {{if .ReturnURL}}După autentificare vei reveni automat la cererea OIDC inițială.{{else}}Sesiunea este gestionată exclusiv de providerul OIDC.{{end}}
+            </div>
+          </section>
         </div>
       </div>
     </section>
@@ -230,53 +343,110 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <script>
     const returnUrl = {{printf "%q" .ReturnURL}};
     const errorBox = document.getElementById('error');
+    const successBox = document.getElementById('success');
+    const methodGrid = document.getElementById('methodGrid');
     const smsForm = document.getElementById('smsForm');
     const codeForm = document.getElementById('codeForm');
     const smsNotice = document.getElementById('smsNotice');
-    let phoneValue = '';
-    function showError(message) { errorBox.hidden = !message; errorBox.textContent = message || ''; }
-    function showSms() { showError(''); smsForm.hidden = false; codeForm.hidden = true; document.getElementById('phone').focus(); }
-    function hideSms() { smsForm.hidden = true; showError(''); }
-    function hideCode() { codeForm.hidden = true; smsForm.hidden = false; showError(''); }
+    const identifierInput = document.getElementById('identifier');
+    const codeInput = document.getElementById('code');
+    let identifierValue = '';
+    function showError(message) {
+      errorBox.hidden = !message;
+      errorBox.textContent = message || '';
+      if (message) {
+        successBox.hidden = true;
+        successBox.textContent = '';
+      }
+    }
+    function showSuccess(message) {
+      successBox.hidden = !message;
+      successBox.textContent = message || '';
+      if (message) {
+        errorBox.hidden = true;
+        errorBox.textContent = '';
+      }
+    }
+    function setActiveMethod(button) {
+      for (const item of methodGrid.querySelectorAll('.method')) {
+        item.classList.remove('active');
+      }
+      if (button) {
+        button.classList.add('active');
+      }
+    }
+    function showSms(button) {
+      setActiveMethod(button);
+      showError('');
+      showSuccess('');
+      smsForm.hidden = false;
+      codeForm.hidden = true;
+      identifierInput.focus();
+    }
+    function resetToMethods() {
+      smsForm.hidden = true;
+      codeForm.hidden = true;
+      showError('');
+      showSuccess('');
+      const firstMethod = methodGrid.querySelector('.method');
+      if (firstMethod) {
+        setActiveMethod(firstMethod);
+      }
+    }
+    function hideSms() { resetToMethods(); }
+    function hideCode() { resetToMethods(); }
+    function showWalletMessage(button) {
+      setActiveMethod(button);
+      smsForm.hidden = true;
+      codeForm.hidden = true;
+      showSuccess('EUDI wallet nu este încă activat pentru acest tenant.');
+      showError('');
+    }
     async function requestSms(event) {
       event.preventDefault();
       showError('');
-      phoneValue = document.getElementById('phone').value.trim();
-      if (!phoneValue) { showError('Introdu telefonul.'); return false; }
+      showSuccess('');
+      identifierValue = document.getElementById('identifier').value.trim();
+      if (!identifierValue) { showError('Introdu emailul sau numele de utilizator.'); return false; }
       const response = await fetch('/api/auth/request-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phoneValue })
+        body: JSON.stringify({ identifier: identifierValue })
       });
       if (!response.ok) {
         showError('Nu am putut trimite codul. Încearcă din nou.');
         return false;
       }
-      smsNotice.textContent = 'Codul a fost trimis pe ' + phoneValue + '.';
+      smsNotice.textContent = 'Am trimis codul SMS către contul asociat identificatorului introdus.';
       smsForm.hidden = true;
       codeForm.hidden = false;
-      document.getElementById('code').focus();
+      codeInput.focus();
+      showSuccess('Codul a fost trimis. Verifică mesajul SMS și continuă.');
       return false;
     }
     async function verifySms(event) {
       event.preventDefault();
       showError('');
+      showSuccess('');
       const code = document.getElementById('code').value.trim();
-      if (!phoneValue || !code) { showError('Completează telefonul și codul.'); return false; }
+      if (!identifierValue || !code) { showError('Completează identificatorul și codul.'); return false; }
       const response = await fetch('/api/auth/verify-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: phoneValue, code: code })
+        body: JSON.stringify({ identifier: identifierValue, code: code })
       });
       if (!response.ok) {
         showError('Cod invalid sau expirat.');
         return false;
       }
+      showSuccess('Autentificare reușită. Se redirecționează către aplicație...');
       window.location.assign(returnUrl);
       return false;
     }
-    async function loginPasskey() {
+    async function loginPasskey(button) {
+      setActiveMethod(button);
       showError('');
+      showSuccess('');
       if (!navigator.credentials || !window.PublicKeyCredential) {
         showError('Browserul nu suportă passkey.');
         return;
@@ -312,6 +482,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
         })
       });
       if (!finish.ok) { showError('Passkey respins sau invalid.'); return; }
+      showSuccess('Passkey verificat. Se redirecționează către aplicație...');
       window.location.assign(returnUrl);
     }
     function b64urlToBuf(value) {
@@ -327,6 +498,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
       for (const byte of bytes) binary += String.fromCharCode(byte);
       return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
     }
+    showSms(methodGrid.querySelector('.method'));
   </script>
 </body>
 </html>`
@@ -340,55 +512,164 @@ const oidcConsentHTML = `<!DOCTYPE html>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--soft:#fff1f2;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 24px 60px rgba(15,23,42,.14)}
-    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--soft:#1e293b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--primary:#f43f5e;--primary-contrast:#fff;--shadow:0 24px 60px rgba(0,0,0,.35)}
-    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 44%,#ffe4e9);color:var(--text);min-height:100%;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:560px;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
-    .header{text-align:center;margin-bottom:18px}
-    .badge{display:inline-flex;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    h1{margin-top:10px;font-size:20px}
-    .subtitle{margin-top:4px;font-size:13px;color:var(--muted);line-height:1.6}
-    .grid{display:grid;gap:8px}
-    .client{margin:16px 0;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--soft)}
-    .scope{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--soft:#fff1f5;--soft-2:#ffe4ec;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
+    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--soft:#1e293b;--soft-2:#31243b;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--muted-2:#94a3b8;--primary:#f43f5e;--primary-contrast:#fff;--shadow:0 28px 72px rgba(0,0,0,.38);--shadow-2:0 18px 36px rgba(244,63,94,.18)}
+    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%;overflow:hidden}
+    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(360px,1fr) minmax(420px,680px)}
+    .visual{display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.84) 42%,rgba(8,47,73,.56));color:#fff;position:relative;overflow:hidden}
+    .visual::before,.visual::after{content:"";position:absolute;border-radius:999px;pointer-events:none}
+    .visual::before{width:24rem;height:24rem;right:-6rem;top:-5rem;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 68%)}
+    .visual::after{width:18rem;height:18rem;left:-4rem;bottom:-4rem;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 72%)}
+    .visual-inner{position:relative;z-index:1;max-width:560px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);backdrop-filter:blur(14px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+    .hero-title{font-size:clamp(34px,4.8vw,64px);line-height:1.02;margin:18px 0 18px;letter-spacing:-.045em}
+    .hero-copy{max-width:48ch;font-size:16px;line-height:1.7;color:rgba(255,255,255,.88)}
+    .feature-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+    .feature{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);font-size:13px;font-weight:700;color:#fff}
+    .panel{display:flex;align-items:center;justify-content:center;padding:clamp(18px,3vw,48px);overflow-y:auto}
+    .card{width:100%;max-width:720px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
+    .card-shell{display:grid;grid-template-columns:1fr 1.02fr;gap:18px;align-items:start}
+    .card-hero{padding:22px;border-radius:22px;background:radial-gradient(circle at top right,rgba(225,29,72,.12),transparent 45%),linear-gradient(180deg,var(--card),var(--soft));border:1px solid var(--border)}
+    .card-header{display:grid;gap:10px}
+    .brand-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .brand-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
+    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.16);font-size:12px;font-weight:700;color:var(--primary)}
+    .title{font-size:22px;line-height:1.15;letter-spacing:-.03em}
+    .subtitle{font-size:14px;color:var(--muted);line-height:1.65}
+    .summary{display:grid;gap:10px;margin-top:18px}
+    .summary-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.65);border:1px solid var(--border)}
+    html.dark .summary-item,html.app-dark .summary-item{background:rgba(15,23,42,.72)}
+    .summary-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--primary);flex:0 0 auto}
+    .summary-item strong{display:block;font-size:13px;margin-bottom:3px}
+    .summary-item span{display:block;font-size:12px;color:var(--muted)}
+    .card-form{padding:22px;border-radius:22px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow-2)}
+    .section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
+    .grid{display:grid;gap:12px}
+    .scope-list{display:grid;gap:10px}
+    .scope{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,var(--card),var(--card-2))}
     .scope input{accent-color:var(--primary);margin-top:4px}
     .scope strong{display:block;font-size:14px}
-    .scope span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-    .notice{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.5}
-    .row{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:11px 16px;border:none;border-radius:10px;background:var(--primary);color:var(--primary-contrast);font:inherit;font-weight:700;cursor:pointer}
-    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary)}
-    .error{margin-bottom:14px;padding:10px 12px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:12px}
+    .scope span{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.55}
+    .scope .scope-code{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+    .client{margin:16px 0 18px;padding:14px;border-radius:18px;border:1px solid var(--border);background:var(--soft)}
+    .client-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .client-name{font-size:16px;font-weight:800}
+    .client-meta{font-size:12px;color:var(--muted);line-height:1.6;max-width:42ch}
+    .notice{margin-top:14px;padding:12px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}
+    .row{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:12px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--primary),#be123c);color:var(--primary-contrast);font:inherit;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 16px 26px rgba(225,29,72,.22);transition:transform .18s ease,filter .18s ease}
+    .btn:hover{transform:translateY(-1px);filter:saturate(1.02)}
+    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary);box-shadow:none}
+    .error{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;line-height:1.6}
+    @media(max-width:1120px){body{overflow-y:auto}.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}
+    @media(max-width:860px){.visual{display:none}.card-shell{grid-template-columns:1fr}.card,.card-hero,.card-form{border-radius:24px}}
+    @media(max-width:480px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.row{grid-template-columns:1fr}.client-top{display:grid}.title{font-size:20px}.hero-title{font-size:32px}.card-hero,.card-form{padding:18px}}
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="header">
-      <div class="badge">Consimțământ OIDC</div>
-      <h1>{{.CustomerName}}</h1>
-      <p class="subtitle">Confirmă ce date și ce acces acordi aplicației solicitante.</p>
-    </div>
-    {{if .Error}}<div class="error">{{.Error}}</div>{{end}}
-    <div class="client"><strong>{{.ClientName}}</strong><div class="subtitle">Solicită acces prin OIDC pentru acest cont.</div></div>
-    <form method="post" action="/api/oidc/consent/decision">
-      <input type="hidden" name="request_id" value="{{.RequestID}}">
-      <div class="grid">
-        {{range .Scopes}}
-        <label class="scope">
-          <input type="checkbox" name="granted_scopes" value="{{.Code}}" {{if .Required}}checked disabled{{else}}checked{{end}}>
-          <span>
-            <strong>{{.Label}}</strong>
-            <span>{{.Code}}</span>
-          </span>
-        </label>
-        {{end}}
+  <div class="shell">
+    <section class="visual">
+      <div class="visual-inner">
+        <div class="eyebrow">OIDC Consent</div>
+        <h2 class="hero-title">Confirmă accesul cerut de aplicație</h2>
+        <p class="hero-copy">Consimțământul rămâne în providerul OIDC. Poți vedea exact ce date sunt cerute și poți aproba sau refuza cererea înainte să revii în aplicație.</p>
+        <div class="feature-row" aria-label="Capabilități consimțământ">
+          <span class="feature">Scope review</span>
+          <span class="feature">User control</span>
+          <span class="feature">OIDC native</span>
+        </div>
       </div>
-      <div class="notice">Cererea este valabilă până la {{.ExpiresAt}} și este gestionată de providerul OIDC, nu de aplicația frontend.</div>
-      <div class="row">
-        <button class="btn secondary" type="submit" name="decision" value="deny">Refuză</button>
-        <button class="btn" type="submit" name="decision" value="allow">Permite</button>
+    </section>
+    <section class="panel">
+      <div class="card">
+        <div class="card-shell">
+          <aside class="card-hero">
+            <div class="card-header">
+              <div class="brand-line">
+                <div class="brand-pill">Consimțământ OIDC</div>
+                <span class="status-pill">Cerere activă</span>
+              </div>
+              <h1 class="title">{{.CustomerName}}</h1>
+              <p class="subtitle">Confirmă ce date și ce acces acordi aplicației solicitante.</p>
+            </div>
+
+            <div class="summary" aria-label="Rezumat cerere">
+              <div class="summary-item">
+                <span class="summary-icon">1</span>
+                <div>
+                  <strong>Aplicația solicitantă</strong>
+                  <span>{{.ClientName}}</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">2</span>
+                <div>
+                  <strong>Ce va primi aplicația</strong>
+                  <span>Poți aproba doar scope-urile relevante pentru această sesiune.</span>
+                </div>
+              </div>
+              <div class="summary-item">
+                <span class="summary-icon">3</span>
+                <div>
+                  <strong>Control complet</strong>
+                  <span>Decizia este validată în backend și revii apoi în aplicația inițială.</span>
+                </div>
+              </div>
+              {{if .Scopes}}
+              <div class="summary-scopes" aria-label="Scope-uri cerute">
+                {{range .Scopes}}
+                <div class="summary-scope">
+                  <span class="summary-icon">{{if .Required}}✓{{else}}•{{end}}</span>
+                  <div>
+                    <strong>{{.Label}}</strong>
+                    <span>{{.Description}}</span>
+                    <code>{{.Code}}</code>
+                  </div>
+                </div>
+                {{end}}
+              </div>
+              {{end}}
+            </div>
+          </aside>
+
+          <section class="card-form">
+            <div class="section-title">Detalii cerere</div>
+            {{if .Error}}<div class="error" role="alert">{{.Error}}</div>{{end}}
+
+            <div class="client">
+              <div class="client-top">
+                <div>
+                  <div class="client-name">{{.ClientName}}</div>
+                  <div class="client-meta">Solicită acces prin OIDC pentru acest cont. Confirmarea se aplică doar acestei cereri active.</div>
+                </div>
+                <div class="badge">OIDC</div>
+              </div>
+            </div>
+
+            <form method="post" action="/api/oidc/consent/decision">
+              <input type="hidden" name="request_id" value="{{.RequestID}}">
+              <div class="scope-list">
+                {{range .Scopes}}
+                <label class="scope">
+                  <input type="checkbox" name="granted_scopes" value="{{.Code}}" {{if .Required}}checked disabled{{else}}checked{{end}}>
+                  <span>
+                    <strong>{{.Label}}</strong>
+                    <span>{{.Description}}</span>
+                    <span class="scope-code">{{.Code}}</span>
+                  </span>
+                </label>
+                {{end}}
+              </div>
+              <div class="notice">Prin permitere, aplicația primește doar scope-urile bifeate aici. Cererea este valabilă până la {{.ExpiresAt}} și este gestionată de providerul OIDC, nu de aplicația frontend.</div>
+              <div class="row">
+                <button class="btn secondary" type="submit" name="decision" value="deny">Refuză</button>
+                <button class="btn" type="submit" name="decision" value="allow">Permite</button>
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
-    </form>
+    </section>
   </div>
 </body>
 </html>`
@@ -402,27 +683,55 @@ const oidcLogoutHTML = `<!DOCTYPE html>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 24px 60px rgba(15,23,42,.14)}
-    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--primary:#f43f5e;--shadow:0 24px 60px rgba(0,0,0,.35)}
-    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 44%,#ffe4e9);color:var(--text);min-height:100%;display:grid;place-items:center;padding:24px}
-    .card{width:100%;max-width:420px;padding:24px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow);text-align:center}
-    .icon{width:64px;height:64px;border-radius:50%;margin:0 auto 16px;background:color-mix(in srgb,var(--primary) 12%,var(--card));display:flex;align-items:center;justify-content:center;color:var(--primary)}
-    h1{font-size:20px;margin-bottom:8px}
-    p{font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:20px}
+    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
+    html.dark,html.app-dark{color-scheme:dark;--bg:#020617;--card:#0f172a;--card-2:#111c31;--border:#334155;--text:#f8fafc;--muted:#cbd5e1;--primary:#f43f5e;--shadow:0 28px 72px rgba(0,0,0,.38);--shadow-2:0 18px 36px rgba(244,63,94,.18)}
+    body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%;display:grid;place-items:center;padding:24px}
+    .card{width:100%;max-width:560px;padding:24px;border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow);text-align:center}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--primary);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .icon{width:72px;height:72px;border-radius:50%;margin:16px auto;background:color-mix(in srgb,var(--primary) 12%,var(--card));display:flex;align-items:center;justify-content:center;color:var(--primary);box-shadow:var(--shadow-2)}
+    h1{font-size:24px;margin:10px 0 8px;letter-spacing:-.03em}
+    p{font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:20px}
+    .summary{display:grid;gap:10px;text-align:left;margin:18px 0 22px}
+    .summary-item{display:flex;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:18px;background:rgba(255,255,255,.58)}
+    html.dark .summary-item,html.app-dark .summary-item{background:rgba(15,23,42,.58)}
+    .summary-step{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--primary);color:#fff;font-weight:800;flex:0 0 auto}
+    .summary-item strong{display:block;font-size:13px;margin-bottom:2px}
+    .summary-item small{display:block;font-size:12px;color:var(--muted);line-height:1.5}
     .actions{display:grid;gap:10px}
-    .btn{display:flex;align-items:center;justify-content:center;width:100%;padding:11px 16px;border:none;border-radius:10px;background:var(--primary);color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:none}
-    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary)}
+    .btn{display:flex;align-items:center;justify-content:center;width:100%;padding:12px 16px;border:none;border-radius:14px;background:var(--primary);color:#fff;font:inherit;font-weight:800;cursor:pointer;text-decoration:none;box-shadow:0 16px 26px rgba(225,29,72,.22);transition:transform .18s ease,filter .18s ease}
+    .btn:hover{transform:translateY(-1px);filter:saturate(1.02)}
+    .btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary);box-shadow:none}
+    .footer{margin-top:16px;font-size:12px;color:var(--muted);line-height:1.6}
+    @media(max-width:520px){body{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}}
   </style>
 </head>
 <body>
   <div class="card">
+    <div class="badge">Logout OIDC</div>
     <div class="icon">⟲</div>
     <h1>Sesiune închisă</h1>
-    <p>Te-ai deconectat din providerul OIDC. Poți reveni în aplicație sau închide această pagină.</p>
+    <p>Te-ai deconectat din providerul OIDC. Poți reveni în aplicație sau poți închide această pagină.</p>
+    <div class="summary" aria-label="Ce s-a întâmplat">
+      <div class="summary-item">
+        <span class="summary-step">1</span>
+        <div>
+          <strong>Sesiunea backend a fost revocată</strong>
+          <small>Cookie-ul de sesiune și starea OIDC au fost curățate în backend.</small>
+        </div>
+      </div>
+      <div class="summary-item">
+        <span class="summary-step">2</span>
+        <div>
+          <strong>Fluxul s-a încheiat corect</strong>
+          <small>Poți reveni în aplicația inițială folosind butonul de mai jos.</small>
+        </div>
+      </div>
+    </div>
     <div class="actions">
       <a class="btn" href="{{.ReturnTo}}">Înapoi în aplicație</a>
       <button type="button" class="btn secondary" onclick="window.close()">Închide pagina</button>
     </div>
+    <div class="footer">Logout-ul este gestionat exclusiv în providerul OIDC, nu în aplicația SPA.</div>
   </div>
 </body>
 </html>`

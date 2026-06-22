@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -624,8 +625,8 @@ func (s *Service) RequestSMSOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phoneNumber := normalizeSMSPhoneNumber(req.PhoneNumber, req.Identifier)
-	if phoneNumber == "" {
+	loginPhone, err := s.resolveSMSLoginPhone(r.Context(), req.PhoneNumber, req.Identifier)
+	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_request"})
 		return
 	}
@@ -634,22 +635,17 @@ func (s *Service) RequestSMSOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phone, err := s.lookupVerifiedPhoneNumber(r.Context(), phoneNumber)
-	if err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_unavailable"})
-		return
-	}
-
 	var recentCount int
 	_ = s.db.QueryRow(r.Context(), `
 		select count(*)
 		from sms_otp_codes
 		where identifier = $1 and created_at > now() - interval '10 minutes'
-	`, phone).Scan(&recentCount)
+	`, loginPhone).Scan(&recentCount)
 	if recentCount >= smsOTPRateLimit {
-		s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.request", "authentication", phoneNumber, "failed", "SMS OTP request rate limited.", map[string]any{
+		s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "failed", "SMS OTP request rate limited.", map[string]any{
 			"channel":      "sms",
-			"phone_number": phoneNumber,
+			"identifier":    strings.TrimSpace(req.Identifier),
+			"phone_number":  loginPhone,
 		})
 		httpx.JSON(w, http.StatusTooManyRequests, map[string]any{"code": "sms_otp_rate_limited"})
 		return
@@ -670,34 +666,36 @@ func (s *Service) RequestSMSOTP(w http.ResponseWriter, r *http.Request) {
 	_, err = s.db.Exec(r.Context(), `
 		insert into sms_otp_codes (identifier, code_hash, purpose, expires_at, created_at, updated_at)
 		values ($1, $2, 'sms_login', $3, now(), now())
-	`, phone, string(hash), time.Now().Add(smsOTPExpiry))
+	`, loginPhone, string(hash), time.Now().Add(smsOTPExpiry))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_store_failed"})
 		return
 	}
 
 	message := fmt.Sprintf("Codul dumneavoastra de autentificare EguEducation este: %s. Valabil 10 minute.", code)
-	if _, err := s.smsService.Send(r.Context(), phone, message); err != nil {
-		s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.request", "authentication", phoneNumber, "failed", "SMS OTP send failed.", map[string]any{
+	if _, err := s.smsService.Send(r.Context(), loginPhone, message); err != nil {
+		s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "failed", "SMS OTP send failed.", map[string]any{
 			"channel":      "sms",
-			"phone_number": phoneNumber,
-			"masked_phone": maskPhone(phone),
+			"identifier":    strings.TrimSpace(req.Identifier),
+			"phone_number":  loginPhone,
+			"masked_phone":  maskPhone(loginPhone),
 		})
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_send_failed"})
 		return
 	}
 
-	s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.request", "authentication", phoneNumber, "success", "SMS OTP requested.", map[string]any{
+	s.logAudit(r.Context(), loginPhone, "auth.sms_otp.request", "authentication", loginPhone, "success", "SMS OTP requested.", map[string]any{
 		"channel":      "sms",
-		"phone_number": phoneNumber,
-		"masked_phone": maskPhone(phone),
+		"identifier":    strings.TrimSpace(req.Identifier),
+		"phone_number":  loginPhone,
+		"masked_phone":  maskPhone(loginPhone),
 	})
 
 	httpx.JSON(w, http.StatusOK, SMSOTPRequestResponse{
 		Status:      "sent",
 		Channel:     "sms",
-		PhoneNumber: maskPhone(phone),
-		MaskedPhone: maskPhone(phone),
+		PhoneNumber: maskPhone(loginPhone),
+		MaskedPhone: maskPhone(loginPhone),
 	})
 }
 
@@ -708,14 +706,17 @@ func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	phoneNumber := normalizeSMSPhoneNumber(req.PhoneNumber, req.Identifier)
+	loginTarget := strings.TrimSpace(req.Identifier)
+	if loginTarget == "" {
+		loginTarget = strings.TrimSpace(req.PhoneNumber)
+	}
 	code := strings.TrimSpace(req.Code)
-	if phoneNumber == "" || code == "" {
+	if loginTarget == "" || code == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_sms_otp_verify"})
 		return
 	}
 
-	phone, err := s.lookupVerifiedPhoneNumber(r.Context(), phoneNumber)
+	loginPhone, err := s.resolveSMSLoginPhone(r.Context(), req.PhoneNumber, req.Identifier)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
 		return
@@ -732,20 +733,22 @@ func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
 		where identifier = $1 and used = false and expires_at > now()
 		order by created_at desc
 		limit 1
-	`, phone).Scan(&otpID, &codeHash, &attempts)
+	`, loginPhone).Scan(&otpID, &codeHash, &attempts)
 	if err != nil {
-		s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.verify", "authentication", phoneNumber, "failed", "SMS OTP verification failed.", map[string]any{
+		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification failed.", map[string]any{
 			"channel":      "sms",
-			"phone_number": phoneNumber,
+			"identifier":    loginTarget,
+			"phone_number":  loginPhone,
 			"reason":       "missing_or_expired_code",
 		})
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
 		return
 	}
 	if attempts >= smsOTPMaxAttempts {
-		s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.verify", "authentication", phoneNumber, "failed", "SMS OTP verification blocked.", map[string]any{
+		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification blocked.", map[string]any{
 			"channel":      "sms",
-			"phone_number": phoneNumber,
+			"identifier":    loginTarget,
+			"phone_number":  loginPhone,
 			"reason":       "too_many_attempts",
 		})
 		httpx.JSON(w, http.StatusTooManyRequests, map[string]any{"code": "sms_otp_too_many_attempts"})
@@ -753,9 +756,10 @@ func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(codeHash), []byte(code)); err != nil {
 		_, _ = s.db.Exec(r.Context(), `update sms_otp_codes set attempts = attempts + 1, updated_at = now() where id = $1`, otpID)
-		s.logAudit(r.Context(), phoneNumber, "auth.sms_otp.verify", "authentication", phoneNumber, "failed", "SMS OTP verification failed.", map[string]any{
+		s.logAudit(r.Context(), loginTarget, "auth.sms_otp.verify", "authentication", loginTarget, "failed", "SMS OTP verification failed.", map[string]any{
 			"channel":      "sms",
-			"phone_number": phoneNumber,
+			"identifier":    loginTarget,
+			"phone_number":  loginPhone,
 			"reason":       "invalid_code",
 		})
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "sms_otp_invalid"})
@@ -764,7 +768,7 @@ func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
 
 	_, _ = s.db.Exec(r.Context(), `update sms_otp_codes set used = true, updated_at = now() where id = $1`, otpID)
 
-	subject, err := s.lookupSubjectByPhoneNumber(r.Context(), phoneNumber)
+	subject, err := s.lookupSubjectByPhoneNumber(r.Context(), loginPhone)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "sms_otp_login_failed"})
 		return
@@ -792,7 +796,8 @@ func (s *Service) VerifySMSOTP(w http.ResponseWriter, r *http.Request) {
 
 	s.logAudit(r.Context(), subject, "auth.sms_otp.verify", "session", session.User.ID, "success", "SMS OTP verified and session established.", map[string]any{
 		"channel":          "sms",
-		"phone_number":     phoneNumber,
+		"identifier":       loginTarget,
+		"phone_number":     loginPhone,
 		"user_id":          session.User.ID,
 		"institution_id":   session.InstitutionID,
 		"preferred_locale": session.User.Locale,
@@ -1174,6 +1179,65 @@ func normalizeSMSPhoneNumber(phoneNumber string, legacyIdentifier string) string
 		return ""
 	}
 	return normalized
+}
+
+func (s *Service) resolveSMSLoginPhone(ctx context.Context, phoneNumber string, identifier string) (string, error) {
+	value := strings.TrimSpace(phoneNumber)
+	if value != "" {
+		if phone := s.tryLookupVerifiedPhone(ctx, value); phone != "" {
+			return phone, nil
+		}
+	}
+
+	value = strings.TrimSpace(identifier)
+	if value == "" {
+		return "", errors.New("missing sms login identifier")
+	}
+	if phone := s.tryLookupVerifiedPhone(ctx, value); phone != "" {
+		return phone, nil
+	}
+	if looksLikePhone(value) {
+		if phone := notification.NormalizePhone(value); phoneDigits(phone) != "" {
+			return phone, nil
+		}
+	}
+	return "", errors.New("sms login target not found")
+}
+
+func (s *Service) tryLookupVerifiedPhone(ctx context.Context, value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	var phone string
+	err := s.db.QueryRow(ctx, `
+		select phone_number
+		from app_users
+		where status = 'active'
+			and phone_number_verified = true
+			and preferred_otp_channel = 'sms'
+			and (
+				lower(email) = lower($1)
+				or lower(sub) = lower($1)
+				or regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($2::text[])
+			)
+	`, trimmed, phoneNumberCandidates(trimmed)).Scan(&phone)
+	if err != nil {
+		return ""
+	}
+	return notification.NormalizePhone(phone)
+}
+
+func looksLikePhone(value string) bool {
+	digits := phoneDigits(notification.NormalizePhone(value))
+	if digits == "" {
+		return false
+	}
+	if strings.Contains(value, "@") {
+		return false
+	}
+	return true
 }
 
 func phoneNumberCandidates(phoneNumber string) []string {

@@ -115,6 +115,7 @@ export interface FinishPasskeyAuthenticationRequest {
 export interface AuthConsentScope {
   code: string;
   label: string;
+  description?: string;
   required: boolean;
 }
 

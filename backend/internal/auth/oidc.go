@@ -748,20 +748,33 @@ func (s *Service) buildErrorRedirect(redirectURI, state, errorCode string) strin
 }
 
 func consentScopes(scope string) []ConsentScope {
-	scopeLabels := map[string]string{
-		"profile": "Profil și roluri",
-		"email":   "Adresă de email verificată",
-		"phone":   "Număr de telefon verificat",
+	scopeLabels := map[string]struct {
+		Label       string
+		Description string
+	}{
+		"profile": {
+			Label:       "Profil și roluri",
+			Description: "Permite aplicației să vadă numele afișat, identificatorul de cont și rolurile expuse în sesiune.",
+		},
+		"email": {
+			Label:       "Adresă de email verificată",
+			Description: "Permite aplicației să citească adresa de email confirmată și starea de verificare a acesteia.",
+		},
+		"phone": {
+			Label:       "Număr de telefon verificat",
+			Description: "Permite aplicației să citească numărul de telefon confirmat și starea de verificare a acestuia.",
+		},
 	}
 	scopes := make([]ConsentScope, 0, len(scopeLabels))
 	for _, code := range strings.Fields(scope) {
-		label, ok := scopeLabels[code]
+		scopeMeta, ok := scopeLabels[code]
 		if !ok {
 			continue
 		}
 		scopes = append(scopes, ConsentScope{
-			Code:  code,
-			Label: label,
+			Code:        code,
+			Label:       scopeMeta.Label,
+			Description: scopeMeta.Description,
 		})
 	}
 	return scopes
