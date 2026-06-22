@@ -913,187 +913,248 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{.CustomerName}} - Autentificare</title>
   <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--card-2:#fff8fa;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--muted-2:#94a3b8;--primary:#e11d48;--primary-contrast:#fff;--shadow:0 28px 72px rgba(15,23,42,.16);--shadow-2:0 18px 36px rgba(225,29,72,.14)}
-    *{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:'Inter Variable','Inter',system-ui,sans-serif;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),radial-gradient(circle at bottom right,rgba(248,113,113,.10),transparent 24rem),linear-gradient(135deg,var(--bg),#fff 45%,#ffe4ec);color:var(--text);min-height:100%}
-    .shell{min-height:100vh;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,680px)}
-    .visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,84px);background:linear-gradient(135deg,rgba(15,23,42,.94),rgba(225,29,72,.84) 42%,rgba(8,47,73,.56));color:#fff;overflow:hidden}
-    .visual:before,.visual:after{content:'';position:absolute;border-radius:999px;pointer-events:none}.visual:before{width:24rem;height:24rem;right:-6rem;top:-5rem;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 68%)}.visual:after{width:18rem;height:18rem;left:-4rem;bottom:-4rem;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%)}
-    .visual-inner{position:relative;z-index:1;max-width:560px}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);backdrop-filter:blur(14px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    .hero-title{font-size:clamp(34px,4.8vw,64px);line-height:1.02;margin:18px 0 18px;letter-spacing:-.045em}.hero-copy{max-width:48ch;font-size:16px;line-height:1.7;color:rgba(255,255,255,.88)}
-    .feature-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}.feature{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);font-size:13px;font-weight:700;color:#fff}
-    .panel{display:flex;align-items:center;justify-content:center;padding:clamp(18px,3vw,48px);overflow-y:auto}.card{width:100%;max-width:720px;padding:clamp(18px,2.8vw,28px);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),var(--card-2));box-shadow:var(--shadow)}
-    .card-shell{display:grid;grid-template-columns:1.02fr .98fr;gap:18px;align-items:start}.card-hero{padding:22px;border-radius:22px;background:radial-gradient(circle at top right,rgba(225,29,72,.12),transparent 45%),linear-gradient(180deg,var(--card),var(--soft));border:1px solid var(--border)}
-    .brand-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.brand-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase}
-    .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(225,29,72,.08);border:1px solid rgba(225,29,72,.16);font-size:12px;font-weight:700;color:var(--primary)}
-    .title{font-size:22px;line-height:1.15;letter-spacing:-.03em;margin:12px 0 8px}.subtitle{font-size:14px;color:var(--muted);line-height:1.65}.summary{display:grid;gap:10px;margin-top:18px}
-    .summary-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.65);border:1px solid var(--border)}.summary-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--soft);color:var(--primary);flex:0 0 auto}.summary-item strong{display:block;font-size:13px;margin-bottom:3px}.summary-item span{display:block;font-size:12px;color:var(--muted)}
-    .card-form{padding:22px;border-radius:22px;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow-2)}.section-title{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary);margin-bottom:8px}
-    .field{display:grid;gap:6px}.field label{font-size:13px;font-weight:700}.field input{width:100%;padding:14px;border:1px solid var(--border);border-radius:14px;font:inherit;color:var(--text);background:var(--soft)}.field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(225,29,72,.14);background:var(--card)}
-    .field-help,.minor,.sub{font-size:12px;line-height:1.6;color:var(--muted)}.sub{font-size:14px;margin:0 0 14px}
-    .grid{display:grid;gap:12px}.methods{grid-template-columns:1fr 1fr}.method{display:flex;align-items:flex-start;gap:12px;width:100%;padding:14px;border-radius:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--card),var(--card-2));cursor:pointer;text-align:left}
-    .method-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:14px;background:var(--soft);color:var(--primary);flex:0 0 auto}.method-body{display:grid;gap:4px}.method-kicker{font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--primary)}.method strong{font-size:15px}.method span{font-size:12px;color:var(--muted)}
-    .helper-card,.msg{margin-top:12px;padding:12px 14px;border-radius:16px;background:var(--soft);border:1px solid var(--border);font-size:12px;line-height:1.6;color:var(--muted)}.err{margin-bottom:14px;padding:12px 14px;border-radius:16px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;line-height:1.6}
-    .btn{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:13px 16px;border:none;border-radius:14px;background:linear-gradient(180deg,var(--primary),#be123c);color:var(--primary-contrast);font:inherit;font-weight:800;cursor:pointer;text-decoration:none}.btn.secondary{background:transparent;border:1px solid var(--border);color:var(--primary)}
-    .toolbar,.actions{display:flex;gap:10px;flex-wrap:wrap}.otp-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.otp-box{width:100%;padding:14px 10px;border:1px solid var(--border);border-radius:14px;font:inherit;font-size:18px;letter-spacing:.2em;text-align:center;color:var(--text);background:var(--soft)}
-    .checks{display:grid;gap:10px}.check{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid var(--border);border-radius:16px}.check input{margin-top:3px}.check span{font-size:13px;color:var(--text)}
-    @media(max-width:1120px){.shell{grid-template-columns:1fr}.visual{min-height:auto}.panel{padding:18px 16px 24px}.card{max-width:760px}}@media(max-width:860px){body{overflow-y:auto}.visual{display:none}.card-shell{grid-template-columns:1fr}}@media(max-width:520px){.panel{padding:0}.card{min-height:100vh;max-width:none;border:0;border-radius:0;box-shadow:none}.methods,.actions{grid-template-columns:1fr;display:grid}}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{color-scheme:light;--primary-50:#fff1f2;--primary-500:#f43f5e;--primary-600:#e11d48;--primary-700:#be123c;--surface-0:#fff;--surface-50:#f8fafc;--surface-100:#f1f5f9;--surface-200:#e2e8f0;--surface-300:#cbd5e1;--surface-500:#64748b;--surface-700:#334155;--surface-900:#0f172a;--bg:var(--surface-50);--card:var(--surface-0);--card-soft:var(--surface-50);--border:var(--surface-200);--text:var(--surface-900);--muted:var(--surface-500);--soft:color-mix(in srgb,var(--primary-500) 12%,var(--surface-0));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:0 24px 60px rgba(15,23,42,.14)}
+    html,body{height:100%}
+    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow:hidden}
+    .auth-shell{min-height:100vh;width:100%;display:grid;grid-template-columns:minmax(360px,440px) minmax(0,1fr);background:var(--card)}
+    .auth-panel{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:clamp(24px,4vw,64px);overflow-y:auto}
+    .auth-visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,80px);color:#fff;background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(190,18,60,.82) 46%,rgba(8,47,73,.48));overflow:hidden}
+    .auth-visual::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 24% 20%,rgba(255,255,255,.18),transparent 28%),linear-gradient(180deg,transparent 45%,rgba(14,8,18,.36));pointer-events:none}
+    .visual-copy{position:relative;z-index:1;max-width:560px}
+    .visual-kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.8;margin-bottom:14px}
+    .visual-copy h2{font-size:clamp(34px,4.5vw,60px);line-height:1.02;font-weight:750;margin-bottom:18px;color:#fff}
+    .visual-copy p{max-width:460px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.86)}
+    #content{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
+    .header{text-align:center;margin-bottom:18px}
+    .step{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:var(--soft);color:var(--primary-700);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+    h1{font-size:20px;font-weight:700;color:var(--text)}
+    .subtitle{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+    .error-banner{background:#fef2f2;border-left:4px solid #ef4444;padding:12px;margin-bottom:16px;border-radius:0 12px 12px 0;display:flex;align-items:center;gap:8px}
+    .error-banner p{color:#b91c1c;font-size:12px;font-weight:500;line-height:1.5}
+    .info-banner{background:var(--soft);border-left:4px solid var(--primary-500);padding:10px 12px;margin-bottom:16px;border-radius:0 10px 10px 0;font-size:12px;color:var(--text);line-height:1.5}
+    .method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+    .method-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);text-align:center;cursor:pointer;color:inherit;font:inherit;transition:transform .2s,box-shadow .2s,border-color .2s,background .2s;width:100%}
+    .method-card:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.12);border-color:var(--primary-500);background:var(--soft)}
+    .method-card:disabled{cursor:not-allowed;opacity:.6;box-shadow:none;transform:none}
+    .method-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:var(--soft);color:var(--primary-600)}
+    .method-title{font-size:14px;font-weight:600;color:var(--text)}
+    .method-subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+    .passkey-banner{display:flex;align-items:center;gap:8px;padding:10px;margin-top:10px;border-radius:12px;border:1px solid var(--border);background:var(--card-soft);font-size:12px;color:var(--text)}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
+    .field input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+    .field input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus);background:var(--card)}
+    .hint{font-size:12px;line-height:1.5;color:var(--muted);margin-top:6px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--primary-500);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
+    .btn:hover{background:var(--primary-600);box-shadow:0 10px 20px rgba(15,23,42,.16)}
+    .btn:disabled{background:var(--surface-300);color:var(--surface-500);cursor:not-allowed;box-shadow:none}
+    .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:8px}
+    .btn-secondary:hover{background:var(--card-soft)}
+    .btn-deny{background:transparent;border:1px solid var(--border);color:#b3261e;margin-top:8px}
+    .btn-deny:hover{background:#fef2f2;border-color:#ef4444}
+    .back-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;margin-bottom:16px;text-decoration:none}
+    .back-link:hover{color:var(--primary-600)}
+    .otp-boxes{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+    .otp-box{width:44px;height:52px;border:1.5px solid var(--border);border-radius:10px;font-size:22px;font-weight:600;text-align:center;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;caret-color:transparent;background:var(--card-soft)}
+    .otp-box:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus)}
+    .otp-box.filled{border-color:var(--primary-500);background:var(--soft)}
+    .client-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card-soft);margin-bottom:16px}
+    .client-logo{width:40px;height:40px;border-radius:10px;background:var(--primary-500);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .client-name{font-size:15px;font-weight:600;color:var(--text)}
+    .client-sub{font-size:12px;color:var(--muted)}
+    .select-all-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+    .scope-list{margin-bottom:16px}
+    .scope-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;user-select:none;transition:background .15s,border-color .15s}
+    .scope-item:hover{background:var(--soft);border-color:var(--primary-500)}
+    .scope-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary-500);cursor:pointer}
+    .scope-label{font-size:14px;font-weight:500;color:var(--text)}
+    .gdpr-notice{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+    @media (max-width: 960px){body{overflow-y:auto}.auth-shell{grid-template-columns:1fr}.auth-visual{display:none}.auth-panel{min-height:auto;padding:24px 16px}.method-grid{grid-template-columns:1fr}.otp-box{width:40px;height:48px}}
+    @media (max-width: 520px){.auth-panel{padding:0}#content{max-width:none;min-height:100vh;border:0;border-radius:0;box-shadow:none;padding:24px 18px}.otp-boxes{gap:6px}}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <section class="visual">
-      <div class="visual-inner">
-        <div class="eyebrow">OIDC Provider</div>
-        <h2 class="hero-title">Autentificare sigură pentru {{.CustomerName}}</h2>
-        <p class="hero-copy">Accesul este gestionat complet de providerul OIDC, cu PKCE, DPoP, passkey, OTP și consimțământ separat în backend.</p>
-        <div class="feature-row">
-          <span class="feature">SMS OTP</span>
-          <span class="feature">Passkey</span>
-          <span class="feature">Consent flow</span>
-          <span class="feature">Session security</span>
+  <div class="auth-shell">
+    <main class="auth-panel">
+      <div id="content">
+        <div class="header">
+          <div class="step">{{.StepLabel}}</div>
+          <h1>{{.CustomerName}}</h1>
+          <p class="subtitle">Autentificare OIDC securizată pentru acces la platformă.</p>
         </div>
-      </div>
-    </section>
-    <section class="panel">
-      <div class="card">
-        <div class="card-shell">
-          <aside class="card-hero">
-              <div class="brand-line">
-                <div class="brand-pill">Autentificare</div>
-                <span class="status-pill">{{.StepLabel}}</span>
+
+        {{if .Error}}
+        <div class="error-banner"><p>{{.Error}}</p></div>
+        {{end}}
+
+        {{if eq .Step "methods"}}
+        <form action="{{.FormAction}}" method="POST">
+          <div class="method-grid">
+            <button type="submit" name="method" value="otp" class="method-card">
+              <div class="method-icon">✉</div>
+              <div>
+                <div class="method-title">SMS</div>
+                <div class="method-subtitle">Cod OTP</div>
               </div>
-            <h1 class="title">{{.CustomerName}}</h1>
-            <p class="subtitle">Experiența OIDC trebuie să rămână coerentă, modernă și aliniată cu platforma principală.</p>
-            <div class="summary">
-              <div class="summary-item"><span class="summary-icon">1</span><div><strong>Fără parole clasice</strong><span>Autentificare prin OTP și passkey, direct în provider.</span></div></div>
-              <div class="summary-item"><span class="summary-icon">2</span><div><strong>Flux OIDC complet</strong><span>Login, verificare și consimțământ în aceeași experiență.</span></div></div>
-              <div class="summary-item"><span class="summary-icon">3</span><div><strong>Întoarcere sigură</strong><span>După finalizare revii exact în aplicația care a inițiat cererea.</span></div></div>
-            </div>
-          </aside>
-          <section class="card-form">
-            <div class="section-title">Continuare sesiune</div>
-            {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
-            {{if eq .Step "methods"}}
-              <h2 class="title" style="margin-top:0">Alege metoda de autentificare</h2>
-              <p class="sub">Selectează metoda cu care vrei să continui autentificarea.</p>
-              <form method="POST" action="{{.FormAction}}" class="grid">
-                <div class="grid">
-                  <button class="method" type="submit" name="method" value="otp">
-                    <span class="method-icon">✉</span>
-                    <span class="method-body">
-                      <span class="method-kicker">Recomandat</span>
-                      <strong>SMS</strong>
-                      <span>Continuă cu identificarea contului și primește codul de 6 cifre prin SMS.</span>
-                    </span>
-                  </button>
-                  <button class="method" id="biometricBtn" type="button">
-                    <span class="method-icon">◈</span>
-                    <span class="method-body">
-                      <span class="method-kicker">Fără cod</span>
-                      <strong>Passkey</strong>
-                      <span>Folosește cheia de acces din dispozitiv pentru autentificare rapidă.</span>
-                    </span>
-                  </button>
-                  <button class="method" type="submit" name="method" value="eudi_wallet" {{if not .WalletEnabled}}disabled aria-disabled="true"{{end}}>
-                    <span class="method-icon">▣</span>
-                    <span class="method-body">
-                      <span class="method-kicker">{{if .WalletEnabled}}Identitate digitală{{else}}Indisponibil{{end}}</span>
-                      <strong>EUDI Wallet</strong>
-                      <span>{{if .WalletEnabled}}Continuă cu identitatea digitală din portofelul european.{{else}}Fluxul EUDI Wallet nu este activ încă pe acest mediu.{{end}}</span>
-                    </span>
-                  </button>
-                </div>
-              </form>
-              <div class="helper-card">Passkey folosește fluxul WebAuthn existent și predă identitatea înapoi providerului OIDC după validare.</div>
-              <script>
-              (function(){
-                var btn=document.getElementById('biometricBtn');
-                if(!btn||!window.PublicKeyCredential){if(btn){btn.disabled=true;}return;}
-                btn.addEventListener('click',function(){
-                  fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
-                    .then(function(r){if(!r.ok)throw new Error('options failed');return r.json();})
-                    .then(function(payload){
-                      var opts=payload.options||payload;
-                      var challenge=opts.challenge;
-                      opts.challenge=b64u(opts.challenge);
-                      if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
-                      return navigator.credentials.get({publicKey:opts}).then(function(cred){return {cred:cred,challenge:challenge};});
-                    })
-                    .then(function(result){
-                      var cred=result.cred;
-                      var resp={clientDataJSON:u8b64(new Uint8Array(cred.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(cred.response.authenticatorData)),signature:u8b64(new Uint8Array(cred.response.signature)),type:cred.type};
-                      return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:cred.id,response:resp})});
-                    })
-                    .then(function(r){if(!r.ok){throw new Error('finish failed');}return r.json();})
-                    .then(function(data){
-                      var f=document.createElement('form');f.method='POST';f.action='{{.FormAction}}';
-                      var method=document.createElement('input');method.type='hidden';method.name='method';method.value='passkey_done';
-                      var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
-                      f.appendChild(method);f.appendChild(nonce);document.body.appendChild(f);f.submit();
-                    })
-                    .catch(function(){window.location.reload();});
-                });
-                function b64u(value){var base64=value.replace(/-/g,'+').replace(/_/g,'/');base64=base64.padEnd(Math.ceil(base64.length/4)*4,'=');var binary=atob(base64);var out=new Uint8Array(binary.length);for(var i=0;i<binary.length;i++){out[i]=binary.charCodeAt(i);}return out;}
-                function u8b64(bytes){var binary='';bytes.forEach(function(byte){binary+=String.fromCharCode(byte);});return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
-                })();
-              </script>
-            {{else if eq .Step "otp_identifier"}}
-              <h2 class="title" style="margin-top:0">Identificare pentru SMS</h2>
-              <p class="sub">Introdu utilizatorul, adresa de email sau numărul de telefon pentru a trimite codul OTP.</p>
-              <form method="POST" action="{{.FormAction}}" class="grid">
-                <div class="field">
-                  <label for="identifier">Utilizator, email sau telefon</label>
-                  <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="utilizator / email / telefon">
-                  <span class="field-help">După identificare, sistemul trimite codul de 6 cifre către telefonul asociat contului.</span>
-                </div>
-                <div class="actions">
-                  <button class="btn" type="submit">Trimite codul prin SMS</button>
-                  <button class="btn secondary" type="submit" name="action" value="back">Înapoi</button>
-                </div>
-              </form>
-            {{else if eq .Step "otp"}}
-              <h2 class="title" style="margin-top:0">Confirmă codul OTP</h2>
-              <p class="sub">{{.Message}}</p>
-              <form method="POST" action="{{.FormAction}}" class="grid">
-                <div class="otp-grid">
-                  <input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box"><input maxlength="1" inputmode="numeric" class="otp-box">
-                </div>
-                <input type="hidden" id="code" name="code">
-                <div class="actions">
-                  <button class="btn" type="submit">Verifică și continuă</button>
-                  <button class="btn secondary" type="submit" name="action" value="back">Înapoi</button>
-                </div>
-              </form>
-              <script>
-              (function(){
-                var boxes=document.querySelectorAll('.otp-box');var hidden=document.getElementById('code');
-                function sync(){var value='';boxes.forEach(function(box){value+=box.value.replace(/\D/g,'');});hidden.value=value;}
-                boxes.forEach(function(box,index){
-                  box.addEventListener('input',function(){box.value=box.value.replace(/\D/g,'').slice(0,1);if(box.value&&index<boxes.length-1){boxes[index+1].focus();}sync();});
-                  box.addEventListener('keydown',function(event){if(event.key==='Backspace'&&!box.value&&index>0){boxes[index-1].focus();}sync();});
-                  box.addEventListener('paste',function(event){event.preventDefault();var text=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);text.split('').forEach(function(char,i){if(boxes[i]){boxes[i].value=char;}});sync();});
-                });
-              })();
-              </script>
-            {{else}}
-              <h2 class="title" style="margin-top:0">Consimțământ OIDC</h2>
-              <p class="sub">{{.ClientName}} solicită acces la datele selectate pentru această sesiune.</p>
-              <form method="POST" action="{{.FormAction}}" class="grid">
-                <div class="checks">
-                  {{range .Scopes}}
-                    <label class="check"><input type="checkbox" name="granted_scope" value="{{.ID}}" checked><span>{{.Label}}</span></label>
-                  {{end}}
-                </div>
-                <div class="actions">
-                  <button class="btn" type="submit" name="action" value="allow">Acceptă și continuă</button>
-                  <button class="btn secondary" type="submit" name="action" value="deny">Refuză</button>
-                </div>
-              </form>
-            {{end}}
-          </section>
+            </button>
+            <button type="button" id="biometricBtn" class="method-card">
+              <div class="method-icon">◈</div>
+              <div>
+                <div class="method-title">Passkey</div>
+                <div class="method-subtitle">Cheie de acces</div>
+              </div>
+            </button>
+            <button type="submit" name="method" value="eudi_wallet" class="method-card" {{if not .WalletEnabled}}disabled{{end}}>
+              <div class="method-icon">▣</div>
+              <div>
+                <div class="method-title">EUDI Wallet</div>
+                <div class="method-subtitle">{{if .WalletEnabled}}Portofel digital{{else}}Indisponibil{{end}}</div>
+              </div>
+            </button>
+          </div>
+        </form>
+        <div id="passkey-banner" class="passkey-banner" style="display:none">
+          Passkey folosește autentificarea WebAuthn a dispozitivului și continuă direct fluxul OIDC.
         </div>
+        <script>
+        (function(){
+          var btn=document.getElementById('biometricBtn');
+          if(!btn||!window.PublicKeyCredential){if(btn){btn.disabled=true;}return;}
+          document.getElementById('passkey-banner').style.display='flex';
+          btn.addEventListener('click',function(){
+            fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+              .then(function(r){if(!r.ok)throw new Error('options failed');return r.json();})
+              .then(function(payload){
+                var opts=payload.options||payload;
+                var challenge=opts.challenge;
+                opts.challenge=b64u(opts.challenge);
+                if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
+                return navigator.credentials.get({publicKey:opts}).then(function(cred){return {cred:cred,challenge:challenge};});
+              })
+              .then(function(result){
+                var cred=result.cred;
+                var resp={clientDataJSON:u8b64(new Uint8Array(cred.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(cred.response.authenticatorData)),signature:u8b64(new Uint8Array(cred.response.signature)),type:cred.type};
+                return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:cred.id,response:resp})});
+              })
+              .then(function(r){if(!r.ok)throw new Error('finish failed');return r.json();})
+              .then(function(data){
+                var f=document.createElement('form');f.method='POST';f.action='{{.FormAction}}';
+                var im=document.createElement('input');im.type='hidden';im.name='method';im.value='passkey_done';
+                var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
+                f.appendChild(im);f.appendChild(nonce);document.body.appendChild(f);f.submit();
+              })
+              .catch(function(err){if(err&&err.name!=='NotAllowedError'){alert(err.message||'Autentificarea cu passkey a esuat');}});
+          });
+          function b64u(b){var s=atob(b.replace(/-/g,'+').replace(/_/g,'/'));return new Uint8Array([].map.call(s,function(c){return c.charCodeAt(0);}));}
+          function u8b64(a){return btoa(String.fromCharCode.apply(null,a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
+        })();
+        </script>
+
+        {{else if eq .Step "otp_identifier"}}
+        <form action="{{.FormAction}}" method="POST">
+          <button type="submit" name="action" value="back" class="back-link">Inapoi la metode</button>
+          <div class="field">
+            <label for="identifier">Utilizator, email sau numar de telefon</label>
+            <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="utilizator / email / telefon" autofocus>
+            <div class="hint">Dupa identificare, sistemul trimite codul de 6 cifre catre telefonul asociat contului.</div>
+          </div>
+          <button type="submit" class="btn">Trimite codul prin SMS</button>
+        </form>
+
+        {{else if eq .Step "otp"}}
+        <div class="info-banner">{{.Message}}</div>
+        <form action="{{.FormAction}}" method="POST" id="otpForm">
+          <div class="otp-boxes">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" autofocus>
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1">
+          </div>
+          <input type="hidden" id="code" name="code">
+          <button type="submit" class="btn" id="verifyBtn" disabled>Verifica codul</button>
+        </form>
+        <div style="margin-top:16px;text-align:center">
+          <form method="POST" action="{{.FormAction}}" style="display:inline">
+            <input type="hidden" name="action" value="back">
+            <button type="submit" class="back-link">Inapoi la identificare</button>
+          </form>
+        </div>
+        <script>
+        (function(){
+          var boxes=document.querySelectorAll('.otp-box'),code=document.getElementById('code'),btn=document.getElementById('verifyBtn'),form=document.getElementById('otpForm');
+          function sync(){
+            var v=Array.prototype.map.call(boxes,function(b){return b.value;}).join('');
+            code.value=v;btn.disabled=v.length<6;
+            Array.prototype.forEach.call(boxes,function(b){b.classList.toggle('filled',b.value!=='');});
+            if(v.length===6){btn.focus();}
+          }
+          Array.prototype.forEach.call(boxes,function(box,i){
+            box.addEventListener('paste',function(e){
+              e.preventDefault();
+              var paste=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+              if(paste){paste.split('').forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(paste.length,5)]||boxes[5]).focus();sync();}
+            });
+            box.addEventListener('input',function(e){
+              var v=e.target.value.replace(/\D/g,'');
+              if(v.length>1){var d=v.slice(0,6).split('');d.forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(d.length,5)]||boxes[5]).focus();sync();return;}
+              e.target.value=v;if(v&&i<5){boxes[i+1].focus();}sync();
+            });
+            box.addEventListener('keydown',function(e){
+              if(e.key==='Backspace'&&!box.value&&i>0){boxes[i-1].value='';boxes[i-1].focus();sync();}
+              if(e.key==='ArrowLeft'&&i>0){boxes[i-1].focus();}
+              if(e.key==='ArrowRight'&&i<5){boxes[i+1].focus();}
+              if(e.key==='Enter'&&code.value.length===6){form.submit();}
+            });
+          });
+          form.addEventListener('submit',sync);
+        })();
+        </script>
+
+        {{else}}
+        <div class="client-card">
+          <div class="client-logo">✓</div>
+          <div>
+            <div class="client-name">{{.ClientName}}</div>
+            <div class="client-sub">solicita acces la datele tale</div>
+          </div>
+        </div>
+        <form action="{{.FormAction}}" method="POST" id="consentForm">
+          {{if .Scopes}}
+          <div class="select-all-row">
+            <input type="checkbox" id="selectAll" checked onchange="toggleAll(this)">
+            <label for="selectAll" style="cursor:pointer">Selecteaza toate</label>
+          </div>
+          <div class="scope-list">
+            {{range .Scopes}}
+            <label class="scope-item">
+              <input type="checkbox" name="granted_scope" value="{{.ID}}" checked>
+              <span class="scope-label">{{.Label}}</span>
+            </label>
+            {{end}}
+          </div>
+          {{end}}
+          <button type="submit" name="action" value="allow" class="btn">Accepta si continua</button>
+          <button type="submit" name="action" value="deny" class="btn btn-deny">Refuza</button>
+          <p class="gdpr-notice">Prin acceptare, esti de acord cu procesarea datelor in conformitate cu Regulamentul (UE) 2016/679 (GDPR).</p>
+        </form>
+        <script>
+        function toggleAll(cb){
+          document.querySelectorAll('#consentForm input[name=granted_scope]').forEach(function(i){i.checked=cb.checked;});
+        }
+        </script>
+        {{end}}
       </div>
-    </section>
+    </main>
+    <aside class="auth-visual" aria-hidden="true">
+      <div class="visual-copy">
+        <div class="visual-kicker">eGuilde Identity</div>
+        <h2>Acces securizat la servicii educationale digitale.</h2>
+        <p>Autentificare moderna pentru OTP, passkey si EUDI Wallet, cu pasi clari si consistenti pentru fiecare institutie.</p>
+      </div>
+    </aside>
   </div>
 </body>
 </html>`
