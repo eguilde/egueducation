@@ -10,6 +10,7 @@ import (
 
 type oidcLoginPageData struct {
 	CustomerName string
+	ProjectTitle string
 	ReturnURL    string
 	Error        string
 	Phone        string
@@ -18,6 +19,7 @@ type oidcLoginPageData struct {
 
 type oidcConsentPageData struct {
 	CustomerName string
+	ProjectTitle string
 	RequestID     string
 	ClientName    string
 	Scopes        []ConsentScope
@@ -27,7 +29,49 @@ type oidcConsentPageData struct {
 
 type oidcLogoutPageData struct {
 	CustomerName string
+	ProjectTitle string
 	ReturnTo     string
+}
+
+func projectTitleFromHostname(host string) string {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return "EguEducation"
+	}
+	if i := strings.Index(host, ":"); i >= 0 {
+		host = host[:i]
+	}
+	if host == "localhost" || host == "127.0.0.1" || host == "[::1]" {
+		return "EguEducation"
+	}
+
+	labels := strings.Split(host, ".")
+	tenant := ""
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" || label == "www" || label == "app" {
+			continue
+		}
+		tenant = label
+		break
+	}
+	if tenant == "" {
+		return "EguEducation"
+	}
+
+	parts := strings.FieldsFunc(tenant, func(r rune) bool {
+		return r == '-' || r == '_'
+	})
+	if len(parts) == 0 {
+		parts = []string{tenant}
+	}
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+		parts[i] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
+	}
+	return strings.Join(parts, " ")
 }
 
 func (s *Service) LoginPage(w http.ResponseWriter, r *http.Request) {
@@ -40,9 +84,11 @@ func (s *Service) LoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	projectTitle := projectTitleFromHostname(r.Host)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = template.Must(template.New("oidc-login").Parse(oidcLoginHTML)).Execute(w, oidcLoginPageData{
 		CustomerName: "EguEducation",
+		ProjectTitle: projectTitle,
 		ReturnURL:    returnURL,
 	})
 }
@@ -60,6 +106,7 @@ func (s *Service) ConsentPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		_ = template.Must(template.New("oidc-consent-error").Parse(oidcConsentHTML)).Execute(w, oidcConsentPageData{
 			CustomerName: "EguEducation",
+			ProjectTitle: projectTitleFromHostname(r.Host),
 			Error:        "Cererea de consimțământ nu a fost găsită sau a expirat.",
 		})
 		return
@@ -92,6 +139,7 @@ func (s *Service) LogoutPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = template.Must(template.New("oidc-logout").Parse(oidcLogoutHTML)).Execute(w, oidcLogoutPageData{
 		CustomerName: "EguEducation",
+		ProjectTitle: projectTitleFromHostname(r.Host),
 		ReturnTo:     returnTo,
 	})
 }
@@ -121,6 +169,7 @@ func (s *Service) loadConsentPageData(r *http.Request, subject string) (oidcCons
 
 	return oidcConsentPageData{
 		CustomerName: "EguEducation",
+		ProjectTitle: projectTitleFromHostname(r.Host),
 		RequestID:     requestID,
 		ClientName:    clientName,
 		Scopes:        consentScopes(scope),
@@ -133,7 +182,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.CustomerName}} - Autentificare</title>
+  <title>{{.ProjectTitle}} - Autentificare</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
@@ -218,7 +267,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     <section class="visual">
       <div class="visual-inner">
         <div class="eyebrow">OIDC Provider</div>
-        <h2 class="hero-title">Autentificare sigură pentru {{.CustomerName}}</h2>
+        <h2 class="hero-title">Autentificare sigură pentru {{.ProjectTitle}}</h2>
         <p class="hero-copy">Accesul este gestionat complet de providerul OIDC, cu SMS OTP, passkey, consimțământ separat și sesiuni securizate în backend.</p>
         <div class="feature-row" aria-label="Capabilități autentificare">
           <span class="feature">SMS OTP</span>
@@ -237,7 +286,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
                 <div class="brand-pill">Autentificare</div>
                 <span class="status-pill">Sesiune OIDC activă</span>
               </div>
-              <h1 class="title">{{.CustomerName}}</h1>
+              <h1 class="title">{{.ProjectTitle}}</h1>
               <p class="subtitle">Alege metoda de autentificare și continuă în aplicație fără parolă.</p>
             </div>
             <div class="summary" aria-label="Avantaje autentificare">
@@ -321,7 +370,7 @@ const oidcConsentHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.CustomerName}} - Consimțământ</title>
+  <title>{{.ProjectTitle}} - Consimțământ</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
@@ -402,7 +451,7 @@ const oidcConsentHTML = `<!DOCTYPE html>
                 <div class="brand-pill">Consimțământ OIDC</div>
                 <span class="status-pill">Cerere activă</span>
               </div>
-              <h1 class="title">{{.CustomerName}}</h1>
+              <h1 class="title">{{.ProjectTitle}}</h1>
               <p class="subtitle">Verifică ce scope-uri sunt cerute și aprobă doar ce este necesar pentru această sesiune.</p>
             </div>
 
@@ -492,7 +541,7 @@ const oidcLogoutHTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.CustomerName}} — Deconectare</title>
+  <title>{{.ProjectTitle}} — Deconectare</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%}
