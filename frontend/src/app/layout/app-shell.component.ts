@@ -65,6 +65,18 @@ export class AppShellComponent {
 
   protected readonly navSections: NavSection[] = [
     {
+      title: 'Start',
+      description: 'Punctul de intrare în aplicație.',
+      items: [
+        {
+          id: 'home',
+          icon: 'pi pi-home',
+          label: 'Acasă',
+          route: '/',
+        },
+      ],
+    },
+    {
       title: 'Registratură / Flux / Arhivă',
       description: 'Documente, trasee, registre și evidență arhivistică.',
       items: [
