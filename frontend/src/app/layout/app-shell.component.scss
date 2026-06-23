@@ -1,6 +1,7 @@
 :host {
   display: block;
   min-height: 100dvh;
+  --shell-drawer-width: clamp(18rem, 22vw, 24rem);
 }
 
 :host ::ng-deep .shell__toolbar .p-toolbar {
@@ -27,7 +28,7 @@
 
 :host ::ng-deep .shell__drawer {
   top: 4rem;
-  width: min(21rem, calc(100vw - 2rem));
+  width: min(var(--shell-drawer-width), calc(100vw - 1rem));
   height: calc(100dvh - 4rem);
   border-right: 1px solid var(--p-content-border-color);
 }
@@ -53,7 +54,15 @@
 }
 
 .shell__main {
-  min-height: calc(100dvh - 4rem);
+  min-height: 0;
+}
+
+.shell__main--drawer-open {
+  padding-inline-start: var(--shell-drawer-width);
+}
+
+.shell__footer {
+  min-height: 2rem;
 }
 
 .shell__nav-link {

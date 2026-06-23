@@ -1,4 +1,4 @@
-<div class="shell min-h-dvh bg-surface-50 text-color dark:bg-surface-950">
+<div class="shell flex min-h-dvh flex-col bg-surface-50 text-color dark:bg-surface-950">
   <p-toolbar styleClass="shell__toolbar">
     <ng-template pTemplate="start">
       <p-button
@@ -42,32 +42,43 @@
   <p-drawer
     [visible]="drawerVisible()"
     (visibleChange)="drawerVisible.set($event)"
-    [modal]="isHandset()"
-    [dismissible]="isHandset()"
+    [modal]="!isDesktop()"
+    [dismissible]="!isDesktop()"
     [showCloseIcon]="false"
-    [blockScroll]="isHandset()"
+    [blockScroll]="!isDesktop()"
     styleClass="shell__drawer"
   >
     <ng-template pTemplate="headless">
       <aside class="flex h-full min-h-0 flex-col bg-surface-0 dark:bg-surface-950">
         <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
           @if (authenticated()) {
-            <nav class="grid gap-1">
-              @for (item of visibleNavItems(); track item.route) {
-                <a
-                  [routerLink]="item.route"
-                  routerLinkActive="is-active"
-                  class="shell__nav-link"
-                  (click)="closeMobileNav()"
-                >
-                  <i [class]="item.icon"></i>
-                  <span>{{ item.labelKey | transloco }}</span>
-                </a>
-              }
-            </nav>
+            @for (section of drawerSections(); track section.title) {
+              <section class="shell__section">
+                <header class="mb-2">
+                  <h2 class="m-0 text-sm font-black uppercase tracking-[0.18em] text-muted-color">
+                    {{ section.title }}
+                  </h2>
+                  <p class="m-0 mt-1 text-xs leading-5 text-muted-color">{{ section.description }}</p>
+                </header>
+                <nav class="grid gap-1">
+                  @for (item of section.items; track item.id) {
+                    <a
+                      [routerLink]="item.route"
+                      routerLinkActive="is-active"
+                      class="shell__nav-link"
+                      (click)="closeMobileNav()"
+                    >
+                      <i [class]="item.icon"></i>
+                      <span>{{ item.label }}</span>
+                    </a>
+                  }
+                </nav>
+                <p-divider />
+              </section>
+            }
           } @else {
-            <div class="shell__empty-state rounded-2xl border border-dashed border-surface-200 bg-surface-50 p-4 text-sm text-muted-color dark:border-surface-800 dark:bg-surface-900">
-              Autentifică-te pentru a vedea meniurile și funcțiile disponibile în platformă.
+            <div class="shell__empty-state rounded-2xl border border-dashed border-surface-300 p-4 text-sm text-muted-color dark:border-surface-700">
+              Autentifică-te pentru a vedea navigația aplicației și meniurile permise rolului tău.
             </div>
           }
         </div>
@@ -112,9 +123,16 @@
   </p-drawer>
 
   <main
-    class="shell__main min-h-[calc(100dvh-4rem)] transition-[padding] duration-200"
-    [class.lg:pl-[22rem]]="authenticated() && drawerVisible()"
+    class="shell__main flex-1 min-h-0 transition-[padding] duration-200"
+    [class.shell__main--drawer-open]="authenticated() && isDesktop() && drawerVisible()"
   >
     <router-outlet />
   </main>
+
+  <footer class="shell__footer border-t border-surface-200 px-4 py-2 text-[0.66rem] leading-4 text-muted-color dark:border-surface-800">
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+      <span class="truncate">eGuEducation • registratură, educație, arhivă electronică și RBAC</span>
+      <span class="truncate text-right">Interfață responsivă pentru desktop, tabletă și mobil</span>
+    </div>
+  </footer>
 </div>
