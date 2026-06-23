@@ -51,7 +51,8 @@ export class AuthzService {
   }
 
   roleLabel(roleCode: string): string {
-    return this.roleCatalog().find((role) => role.code === roleCode)?.label ?? roleCode;
+    const normalizedRoleCode = this.normalizeRoleCode(roleCode);
+    return this.roleCatalog().find((role) => this.normalizeRoleCode(role.code) === normalizedRoleCode)?.label ?? roleCode;
   }
 
   rolePermissions(roleCode: string): string[] {
@@ -63,7 +64,8 @@ export class AuthzService {
   }
 
   hasRole(role: string): boolean {
-    return this.roles().includes(role);
+    const normalizedRole = this.normalizeRoleCode(role);
+    return this.roles().some((currentRole) => this.normalizeRoleCode(currentRole) === normalizedRole);
   }
 
   hasAnyRole(roles: string[]): boolean {
@@ -98,5 +100,9 @@ export class AuthzService {
     } catch {
       this.rolePositionsSignal.set([]);
     }
+  }
+
+  private normalizeRoleCode(role: string): string {
+    return role.toLowerCase().replace(/[^a-z0-9]+/g, '');
   }
 }
