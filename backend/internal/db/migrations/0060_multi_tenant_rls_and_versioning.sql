@@ -71,7 +71,7 @@ create table if not exists app_entity_versions (
 create index if not exists idx_app_entity_versions_lookup
 	on app_entity_versions (tenant_code, entity_table, entity_id, version_no desc);
 
-create or replace function app.record_entity_version()
+create or replace function public.record_entity_version()
 returns trigger
 language plpgsql
 as $$
@@ -204,7 +204,7 @@ declare
 			tbl
 		);
 		execute format('drop trigger if exists trg_%s_entity_version on %I', tbl, tbl);
-		execute format('create trigger trg_%s_entity_version after insert or update or delete on %I for each row execute function app.record_entity_version()', tbl, tbl);
+		execute format('create trigger trg_%s_entity_version after insert or update or delete on %I for each row execute function public.record_entity_version()', tbl, tbl);
 	end loop;
 end;
 $$;
