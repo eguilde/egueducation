@@ -44,7 +44,16 @@ func main() {
 	}
 	defer pool.Close()
 
-	if err := db.Migrate(ctx, pool); err != nil {
+	migrationPool := pool
+	if migrationURL := strings.TrimSpace(cfg.MigrationDatabaseURL); migrationURL != "" && migrationURL != cfg.DatabaseURL {
+		migrationPool, err = db.Open(ctx, migrationURL)
+		if err != nil {
+			logger.Fatal("migration database connection failed", zap.Error(err))
+		}
+		defer migrationPool.Close()
+	}
+
+	if err := db.Migrate(ctx, migrationPool); err != nil {
 		logger.Fatal("database migration failed", zap.Error(err))
 	}
 
