@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -25,9 +24,9 @@ func NewSMSService(pool *pgxpool.Pool, apiToken, senderName string) *SMSService 
 		apiToken:   apiToken,
 		senderName: senderName,
 		pool:       pool,
-		client: &http.Client{
-			Timeout: 20 * time.Second,
-		},
+		// Match the working provider flow from costesti-registratura: let the
+		// provider decide when to respond instead of failing early on a short client timeout.
+		client: &http.Client{},
 	}
 }
 
