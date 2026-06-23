@@ -2,7 +2,6 @@ import { DOCUMENT } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import * as oauth from 'oauth4webapi';
-import { firstValueFrom } from 'rxjs';
 
 import { ThemeService } from '../ui/theme.service';
 import { AUTH_CONFIG, AuthConfig, StoredTokens, UserProfile } from './auth.types';
@@ -115,11 +114,18 @@ export class AuthService {
       await this.ensureServer();
       const dpop = await this.ensureDpopHandle();
       const verifier = oauth.generateRandomCodeVerifier();
+      const themeScheme = this.theme.colorScheme();
+      const themeDark = this.theme.isDarkMode();
       const { url, state } = await buildAuthorizationUrl(
         this.server!,
         this.resolvedConfig(),
         verifier,
-        undefined,
+        {
+          ui_theme_scheme: themeScheme,
+          ui_theme_dark: String(themeDark),
+          ui_theme_primary: this.theme.selectedPrimaryColor(),
+          ui_theme_surface: this.theme.selectedSurface(),
+        },
         dpop ?? undefined,
       );
       this.storeRedirectLogin(state, verifier, returnUrl);
@@ -148,7 +154,6 @@ export class AuthService {
       );
       this.setSession(tokens);
       this.scheduleRenewal(tokens.expires_at);
-      await firstValueFrom(this.http.post<{ status: string }>('/api/auth/session/exchange', {}));
     } finally {
       sessionStorage.removeItem(this.redirectVerifierKey);
       sessionStorage.removeItem(this.redirectStateKey);

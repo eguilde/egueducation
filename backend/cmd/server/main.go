@@ -120,7 +120,6 @@ func main() {
 		r.Get("/auth/ui-config", authService.UIConfig)
 		r.Get("/auth/role-catalog", authService.RoleCatalog)
 		r.Get("/auth/role-positions", authService.RolePositions)
-		r.Post("/auth/session/exchange", authService.ExchangeSession)
 		r.Post("/auth/logout", authService.Logout)
 		r.Handle("/oidc", oidcHandler)
 		r.Handle("/oidc/*", oidcHandler)

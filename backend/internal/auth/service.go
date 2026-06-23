@@ -610,87 +610,6 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
-	token, scheme, ok := ExtractAccessToken(r)
-	if !ok || token == "" {
-		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "missing_authorization"})
-		return
-	}
-	if scheme == AccessTokenDPoP {
-		proof, err := VerifyDPoPProof(r, token)
-		if err != nil {
-			WriteDPoPNonce(w)
-			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_proof"})
-			return
-		}
-		claims, err := s.verifier.Verify(r.Context(), token)
-		if err != nil {
-			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
-			return
-		}
-		if claims.Cnf.JKT != "" && claims.Cnf.JKT != proof.Thumbprint {
-			WriteDPoPNonce(w)
-			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_binding"})
-			return
-		}
-		subject := strings.TrimSpace(claims.Subject)
-		if subject == "" {
-			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
-			return
-		}
-		session, err := s.loadSessionContext(r.Context(), r.Host, subject)
-		if err != nil {
-			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
-			return
-		}
-		if _, err := s.db.Exec(r.Context(), `
-			update app_users
-			set last_login_at = now(),
-				updated_at = now()
-			where lower(sub) = lower($1)
-		`, subject); err == nil {
-			session.User.Sub = subject
-		}
-		s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC token exchange acknowledged.", map[string]any{
-			"channel":        "oidc_redirect",
-			"user_id":        session.User.ID,
-			"institution_id": session.InstitutionID,
-		})
-		httpx.JSON(w, http.StatusOK, map[string]any{
-			"status":  "established",
-			"session": session,
-		})
-		return
-	}
-	claims, err := s.verifier.Verify(r.Context(), token)
-	if err != nil {
-		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
-		return
-	}
-	subject := strings.TrimSpace(claims.Subject)
-	if subject == "" {
-		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
-		return
-	}
-
-	session, err := s.loadSessionContext(r.Context(), r.Host, subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
-		return
-	}
-
-	s.logAudit(r.Context(), subject, "auth.session.exchange", "session", session.User.ID, "success", "OIDC token exchange acknowledged.", map[string]any{
-		"channel":        "oidc_redirect",
-		"user_id":        session.User.ID,
-		"institution_id": session.InstitutionID,
-	})
-
-	httpx.JSON(w, http.StatusOK, map[string]any{
-		"status":  "established",
-		"session": session,
-	})
-}
-
 func (s *Service) loadSessionContext(ctx context.Context, host string, subject string) (SessionContext, error) {
 	var session SessionContext
 	err := s.db.QueryRow(ctx, `
@@ -711,6 +630,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 		from app_users u
 		join app_session_context sc on sc.user_id = u.id
 		where lower(u.sub) = lower($1)
+		   or u.id::text = $1
 	`, subject).Scan(
 		&session.User.ID,
 		&session.User.Sub,
@@ -740,19 +660,19 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			select ur.role_code
 			from app_user_roles ur
 			join app_users u on u.id = ur.user_id
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 			union
 			select pr.role_code
 			from app_memberships m
 			join app_users u on u.id = m.user_id
 			join app_position_roles pr on pr.position_code = m.position_code
 			left join app_org_units ou on ou.code = m.org_unit_code
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
 				and coalesce(ou.tenant_code, '') = $2
 		) roles
 		order by role_code
-	`, subject, session.InstitutionID)
+	`, session.User.ID, session.InstitutionID)
 	if err != nil {
 		return SessionContext{}, err
 	}
@@ -775,19 +695,19 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			select up.permission_code
 			from app_user_permissions up
 			join app_users u on u.id = up.user_id
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 			union
 			select rp.permission_code
 			from app_user_roles ur
 			join app_users u on u.id = ur.user_id
 			join app_role_permissions rp on rp.role_code = ur.role_code
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 			union
 			select pp.permission_code
 			from app_memberships m
 			join app_users u on u.id = m.user_id
 			join app_position_permissions pp on pp.position_code = m.position_code
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
 			union
 			select rp.permission_code
@@ -795,11 +715,11 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			join app_users u on u.id = m.user_id
 			join app_position_roles pr on pr.position_code = m.position_code
 			join app_role_permissions rp on rp.role_code = pr.role_code
-			where lower(u.sub) = lower($1)
+			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
 		) permissions
 		order by permission_code
-	`, subject)
+	`, session.User.ID)
 	if err != nil {
 		return SessionContext{}, err
 	}
