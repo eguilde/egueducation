@@ -1,7 +1,15 @@
 :host {
   display: block;
   min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   --shell-drawer-width: clamp(18rem, 22vw, 24rem);
+}
+
+:host .shell {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 :host ::ng-deep .shell__toolbar .p-toolbar {
@@ -56,6 +64,7 @@
 
 .shell__main {
   min-height: 0;
+  overflow: hidden;
 }
 
 .shell__main--drawer-open {
@@ -64,6 +73,7 @@
 
 .shell__footer {
   min-height: 2rem;
+  flex: 0 0 auto;
 }
 
 .shell__nav-link {

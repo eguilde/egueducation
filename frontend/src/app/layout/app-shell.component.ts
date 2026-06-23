@@ -52,7 +52,7 @@ interface NavSection {
     ToolbarModule,
   ],
   templateUrl: './app-shell.component.html',
-  styleUrl: './app-shell.component.scss',
+  styleUrl: './app-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppShellComponent {
@@ -214,6 +214,10 @@ export class AppShellComponent {
       return [];
     }
 
+    if (this.authz.hasFullAccess()) {
+      return this.navSections;
+    }
+
     return this.navSections
       .map((section) => ({
         ...section,
@@ -296,6 +300,10 @@ export class AppShellComponent {
     permissionMode: 'all' | 'any' = 'any',
     moduleMode: 'all' | 'any' = 'any',
   ): boolean {
+    if (this.authz.hasFullAccess()) {
+      return true;
+    }
+
     const roleOk = !roles || (
       Array.isArray(roles)
         ? (rolesMode === 'all'

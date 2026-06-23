@@ -84,6 +84,10 @@ export class AuthzService {
     return moduleCodes.some((moduleCode) => this.hasModule(moduleCode));
   }
 
+  hasFullAccess(): boolean {
+    return this.hasRole('super_admin') || this.hasRole('admin');
+  }
+
   private async loadRoleCatalog(): Promise<void> {
     try {
       const response = await firstValueFrom(this.api.roleCatalog());

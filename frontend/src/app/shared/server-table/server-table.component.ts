@@ -77,7 +77,7 @@ export type ServerTableSortState = Sort;
     TooltipModule,
   ],
   templateUrl: './server-table.component.html',
-  styleUrl: './server-table.component.scss',
+  styleUrl: './server-table.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ServerTableComponent {

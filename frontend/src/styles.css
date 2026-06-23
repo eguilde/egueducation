@@ -22,6 +22,11 @@ body {
   min-height: 100%;
 }
 
+html,
+body {
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, sans-serif;

@@ -23,6 +23,10 @@ export const permissionGuard: CanActivateFn = (route, state) => {
     return router.createUrlTree(['/']);
   }
 
+  if (authz.hasFullAccess()) {
+    return true;
+  }
+
   const allowed =
     (!requiredRole || authz.hasRole(requiredRole)) &&
     (!requiredRoles ||

@@ -1,0 +1,50 @@
+:host {
+  display: block;
+  min-height: 0;
+  height: 100%;
+}
+
+:host ::ng-deep .professional-table {
+  height: 100%;
+}
+
+:host ::ng-deep .professional-table .p-datatable-wrapper {
+  min-height: 0;
+}
+
+:host ::ng-deep .professional-table .p-datatable-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--p-surface-0);
+  color: var(--p-text-color);
+  font-weight: 800;
+}
+
+:host ::ng-deep .professional-table .server-table__filter-row > th {
+  top: 2.8rem;
+  z-index: 3;
+  background: var(--p-surface-50);
+}
+
+:host ::ng-deep .professional-table .p-paginator {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  border-top: 1px solid var(--p-content-border-color);
+  background: var(--p-surface-0);
+}
+
+:host ::ng-deep .professional-table .p-datatable-tbody > tr.server-table__selected-row > td {
+  background: var(--p-highlight-background);
+}
+
+:host-context(.app-dark) ::ng-deep .professional-table .server-table__filter-row > th,
+:host-context(.app-dark) ::ng-deep .professional-table .p-paginator,
+:host-context(.app-dark) ::ng-deep .professional-table .p-datatable-thead > tr > th {
+  background: var(--p-surface-900);
+}
+
+.filter-input {
+  min-width: 7rem;
+}
