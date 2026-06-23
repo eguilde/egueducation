@@ -52,6 +52,15 @@ interface ProfileDatum {
   value: string;
 }
 
+type ProfileUserLike = {
+  sub?: string;
+  email?: string;
+  name?: string;
+  phone_number?: string;
+  locale?: unknown;
+  roles?: string[];
+};
+
 @Component({
   selector: 'app-profile-page',
   imports: [
@@ -236,16 +245,16 @@ export class ProfilePageComponent {
   protected readonly eudiStatus = computed(() => this.authMethods().includes('eudi_wallet') ? 'activ' : 'neactivat');
   protected readonly authenticated = computed(() => this.auth.isAuthenticated());
   protected readonly sessionUser = computed(() => this.authz.session()?.user ?? null);
-  protected readonly profileUser = computed(() => this.sessionUser() ?? this.auth.profile() ?? null);
+  protected readonly profileUser = computed<ProfileUserLike | null>(() => (this.sessionUser() ?? this.auth.profile() ?? null) as ProfileUserLike | null);
   protected readonly institutionalName = computed(() => this.authz.institutionName() || 'Nespecificată');
   protected readonly profileDetails = computed<ProfileDatum[]>(() => {
     const user = this.profileUser();
     return [
-      { label: 'Nume', value: user?.name?.trim() || '-' },
-      { label: 'Email', value: user?.email?.trim() || '-' },
-      { label: 'Telefon', value: user?.phone_number?.trim() || '-' },
-      { label: 'Limbă', value: user?.locale ?? 'ro' },
-      { label: 'Subject OIDC', value: user?.sub?.trim() || '-' },
+      { label: 'Nume', value: this.toText(user?.name) },
+      { label: 'Email', value: this.toText(user?.email) },
+      { label: 'Telefon', value: this.toText(user?.phone_number) },
+      { label: 'Limbă', value: this.toLocale(user?.locale) },
+      { label: 'Subject OIDC', value: this.toText(user?.sub) },
       { label: 'Instituție', value: this.institutionalName() },
     ];
   });
@@ -274,9 +283,9 @@ export class ProfilePageComponent {
         return;
       }
       this.profileForm.patchValue({
-        name: user.name ?? '',
-        phone_number: user.phone_number ?? '',
-        locale: user.locale ?? 'ro',
+        name: this.toText(user.name),
+        phone_number: this.toText(user.phone_number),
+        locale: this.toLocale(user.locale),
       }, { emitEvent: false });
     });
     this.loadPasskeys();
@@ -284,7 +293,7 @@ export class ProfilePageComponent {
 
   protected userInitial(): string {
     const user = this.profileUser();
-    return (user?.name || user?.email || user?.sub || 'U').slice(0, 1).toUpperCase();
+    return this.toText(user?.name || user?.email || user?.sub, 'U').slice(0, 1).toUpperCase();
   }
 
   protected authMethods(): string[] {
@@ -307,19 +316,19 @@ export class ProfilePageComponent {
 
   protected displayName(): string {
     const user = this.profileUser();
-    return user?.name?.trim() || user?.email?.trim() || user?.sub?.trim() || 'Cont utilizator';
+    return this.toText(user?.name || user?.email || user?.sub, 'Cont utilizator');
   }
 
   protected userEmail(): string {
-    return this.profileUser()?.email?.trim() || '-';
+    return this.toText(this.profileUser()?.email);
   }
 
   protected userPhone(): string {
-    return this.profileUser()?.phone_number?.trim() || '-';
+    return this.toText(this.profileUser()?.phone_number);
   }
 
   protected userSub(): string {
-    return this.profileUser()?.sub?.trim() || '-';
+    return this.toText(this.profileUser()?.sub);
   }
 
   protected saveProfile(): void {
@@ -440,5 +449,17 @@ export class ProfilePageComponent {
       binary += String.fromCharCode(byte);
     }
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  private toText(value: unknown, fallback = '-'): string {
+    if (typeof value !== 'string') {
+      return fallback;
+    }
+    const trimmed = value.trim();
+    return trimmed || fallback;
+  }
+
+  private toLocale(value: unknown): 'ro' | 'en' {
+    return value === 'en' ? 'en' : 'ro';
   }
 }
