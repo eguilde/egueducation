@@ -1,6 +1,4 @@
-create schema if not exists app;
-
-create or replace function app.current_institution_id()
+create or replace function public.current_institution_id()
 returns text
 language sql
 stable
@@ -8,7 +6,7 @@ as $$
 	select nullif(current_setting('app.institution_id', true), '');
 $$;
 
-create or replace function app.current_tenant_code()
+create or replace function public.current_tenant_code()
 returns text
 language sql
 stable
@@ -16,7 +14,7 @@ as $$
 	select nullif(current_setting('app.tenant_id', true), '');
 $$;
 
-create or replace function app.can_bypass_tenant_rls()
+create or replace function public.can_bypass_tenant_rls()
 returns boolean
 language sql
 stable
@@ -202,7 +200,7 @@ declare
 		execute format('drop policy if exists tenant_read on %I', tbl);
 		execute format('drop policy if exists tenant_write on %I', tbl);
 		execute format(
-			'create policy tenant_isolation on %I using (app.can_bypass_tenant_rls() or institution_id = app.current_institution_id()) with check (app.can_bypass_tenant_rls() or institution_id = app.current_institution_id())',
+			'create policy tenant_isolation on %I using (public.can_bypass_tenant_rls() or institution_id = public.current_institution_id()) with check (public.can_bypass_tenant_rls() or institution_id = public.current_institution_id())',
 			tbl
 		);
 		execute format('drop trigger if exists trg_%s_entity_version on %I', tbl, tbl);
@@ -217,21 +215,21 @@ begin
 	alter table app_tenants force row level security;
 	drop policy if exists tenant_isolation on app_tenants;
 	create policy tenant_isolation on app_tenants
-		using (app.can_bypass_tenant_rls())
-		with check (app.can_bypass_tenant_rls());
+		using (public.can_bypass_tenant_rls())
+		with check (public.can_bypass_tenant_rls());
 
 	alter table app_org_units enable row level security;
 	alter table app_org_units force row level security;
 	drop policy if exists tenant_isolation on app_org_units;
 	create policy tenant_isolation on app_org_units
-		using (app.can_bypass_tenant_rls() or tenant_code = app.current_tenant_code())
-		with check (app.can_bypass_tenant_rls() or tenant_code = app.current_tenant_code());
+		using (public.can_bypass_tenant_rls() or tenant_code = public.current_tenant_code())
+		with check (public.can_bypass_tenant_rls() or tenant_code = public.current_tenant_code());
 
 	alter table app_memberships enable row level security;
 	alter table app_memberships force row level security;
 	drop policy if exists tenant_isolation on app_memberships;
 	create policy tenant_isolation on app_memberships
-		using (app.can_bypass_tenant_rls() or tenant_code = app.current_tenant_code())
-		with check (app.can_bypass_tenant_rls() or tenant_code = app.current_tenant_code());
+		using (public.can_bypass_tenant_rls() or tenant_code = public.current_tenant_code())
+		with check (public.can_bypass_tenant_rls() or tenant_code = public.current_tenant_code());
 end;
 $$;
