@@ -54,13 +54,20 @@ func (s *SMSService) Send(ctx context.Context, to, message string) (string, erro
 		return "", fmt.Errorf("SMSAPI_TOKEN not configured")
 	}
 
+	providerID, err := s.sendToProvider(ctx, to, message)
+	if err != nil {
+		s.markFailed(ctx, queueID, err.Error())
+		return "", err
+	}
+	s.markSent(ctx, queueID, providerID)
+	return providerID, nil
+}
+
+func (s *SMSService) sendToProvider(ctx context.Context, to, message string) (string, error) {
 	form := url.Values{}
 	form.Set("to", to)
 	form.Set("message", message)
 	form.Set("format", "json")
-	if s.senderName != "" {
-		form.Set("sender", s.senderName)
-	}
 
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -69,22 +76,20 @@ func (s *SMSService) Send(ctx context.Context, to, message string) (string, erro
 		strings.NewReader(form.Encode()),
 	)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("smsapi request create: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Bearer "+s.apiToken)
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		s.markFailed(ctx, queueID, err.Error())
 		return "", fmt.Errorf("smsapi request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		s.markFailed(ctx, queueID, fmt.Sprintf("smsapi error (status %d): %s", resp.StatusCode, body))
-		return "", fmt.Errorf("smsapi error (status %d): %s", resp.StatusCode, body)
+		return "", fmt.Errorf("smsapi error (status %d): %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
 	var result struct {
@@ -95,21 +100,15 @@ func (s *SMSService) Send(ctx context.Context, to, message string) (string, erro
 		} `json:"list"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
-		providerID := strings.TrimSpace(string(body))
-		s.markSent(ctx, queueID, providerID)
-		return providerID, nil
+		return strings.TrimSpace(string(body)), nil
 	}
 	if result.Error != 0 {
-		s.markFailed(ctx, queueID, fmt.Sprintf("smsapi error %d: %s", result.Error, result.Message))
 		return "", fmt.Errorf("smsapi error %d: %s", result.Error, result.Message)
 	}
 	if len(result.List) > 0 && result.List[0].ID != "" {
-		s.markSent(ctx, queueID, result.List[0].ID)
 		return result.List[0].ID, nil
 	}
-	providerID := strings.TrimSpace(string(body))
-	s.markSent(ctx, queueID, providerID)
-	return providerID, nil
+	return strings.TrimSpace(string(body)), nil
 }
 
 func NormalizePhone(phone string) string {
