@@ -18,12 +18,12 @@
   border: 0;
   border-bottom: 1px solid var(--p-content-border-color);
   border-radius: 0;
-  background: color-mix(in srgb, var(--p-surface-0) 92%, transparent);
+  background: var(--app-toolbar-background, color-mix(in srgb, var(--p-surface-0) 92%, var(--p-primary-50)));
   backdrop-filter: blur(18px);
 }
 
 :host-context(.app-dark) ::ng-deep .shell__toolbar {
-  background: color-mix(in srgb, var(--p-surface-950) 90%, transparent);
+  background: var(--app-toolbar-background, color-mix(in srgb, var(--p-surface-950) 90%, var(--p-primary-950)));
 }
 
 :host ::ng-deep .shell__drawer {
@@ -31,6 +31,7 @@
   width: min(var(--shell-drawer-width), calc(100vw - 1rem));
   height: calc(100dvh - 4rem);
   border-right: 1px solid var(--p-content-border-color);
+  background: var(--app-drawer-background, var(--p-surface-0));
 }
 
 :host ::ng-deep .shell__toolbar .p-toolbar-center {
@@ -95,11 +96,11 @@
 }
 
 .shell__drawer-footer {
-  background: color-mix(in srgb, var(--p-surface-0) 96%, transparent);
+  background: var(--app-footer-background, color-mix(in srgb, var(--p-surface-0) 96%, var(--p-primary-50)));
 }
 
 :host-context(.app-dark) .shell__drawer-footer {
-  background: color-mix(in srgb, var(--p-surface-950) 94%, transparent);
+  background: var(--app-footer-background, color-mix(in srgb, var(--p-surface-950) 94%, var(--p-primary-950)));
 }
 
 .shell__footer-card {
@@ -109,7 +110,7 @@
   gap: 0.65rem;
   border: 1px solid var(--p-content-border-color);
   border-radius: 1rem;
-  background: var(--p-surface-0);
+  background: color-mix(in srgb, var(--p-surface-0) 90%, var(--p-primary-50));
   padding: 0.9rem 1rem;
   text-align: left;
   transition:
@@ -125,7 +126,7 @@
 }
 
 :host-context(.app-dark) .shell__footer-card {
-  background: var(--p-surface-900);
+  background: color-mix(in srgb, var(--p-surface-900) 90%, var(--p-primary-950));
 }
 
 .shell__footer-card-main {
@@ -148,7 +149,7 @@
   margin-inline-start: auto;
   border: 0;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--p-surface-0) 75%, transparent);
+  background: color-mix(in srgb, var(--p-surface-0) 78%, var(--p-primary-50));
   color: var(--p-text-color);
   padding: 0.5rem 0.85rem;
   font: inherit;
@@ -166,7 +167,7 @@
 }
 
 :host-context(.app-dark) .shell__footer-inline-action {
-  background: color-mix(in srgb, var(--p-surface-900) 78%, transparent);
+  background: color-mix(in srgb, var(--p-surface-900) 78%, var(--p-primary-950));
 }
 
 .shell__footer-copy {

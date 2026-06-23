@@ -46,9 +46,11 @@ export class ThemeService {
   readonly surfaces = SURFACES;
   readonly colorScheme = signal((localStorage.getItem('app-color-scheme') as 'system' | 'light' | 'dark') || 'system');
   readonly systemPrefersDark = signal(this.mediaQuery.matches);
-  readonly selectedPrimaryColor = signal(localStorage.getItem('app-primary-color') || 'rose');
+  readonly lightPrimaryColor = signal(localStorage.getItem('app-primary-color-light') || 'rose');
+  readonly darkPrimaryColor = signal(localStorage.getItem('app-primary-color-dark') || 'red');
   readonly selectedSurface = signal(localStorage.getItem('app-surface') || 'slate');
   readonly selectedLanguage = signal((localStorage.getItem('app-language') as 'ro' | 'en') || 'ro');
+  readonly selectedPrimaryColor = computed(() => (this.isDarkMode() ? this.darkPrimaryColor() : this.lightPrimaryColor()));
   readonly isDarkMode = computed(() => {
     const scheme = this.colorScheme();
     if (scheme === 'dark') {
@@ -78,15 +80,34 @@ export class ThemeService {
     effect(() => {
       const colorName = this.selectedPrimaryColor();
       const color = PRIMARY_COLORS.find((item) => item.name === colorName) ?? PRIMARY_COLORS[PRIMARY_COLORS.length - 1];
-      localStorage.setItem('app-primary-color', color.name);
+      localStorage.setItem('app-primary-color-light', this.lightPrimaryColor());
+      localStorage.setItem('app-primary-color-dark', this.darkPrimaryColor());
       updatePrimaryPalette(color.palette);
-    });
 
-    effect(() => {
       const surfaceName = this.selectedSurface();
       const surface = SURFACES.find((item) => item.name === surfaceName) ?? SURFACES[0];
       localStorage.setItem('app-surface', surface.name);
       updateSurfacePalette(surface.palette);
+
+      const isDark = this.isDarkMode();
+      const pageBackground = isDark
+        ? `radial-gradient(circle at top left, color-mix(in srgb, ${color.palette['950']} 30%, transparent), transparent 24rem), linear-gradient(135deg, ${surface.palette['950']} 0%, color-mix(in srgb, ${surface.palette['950']} 88%, ${color.palette['950']}) 56%, ${surface.palette['900']} 100%)`
+        : `radial-gradient(circle at top left, color-mix(in srgb, ${color.palette['50']} 24%, transparent), transparent 24rem), linear-gradient(135deg, ${surface.palette['50']} 0%, color-mix(in srgb, ${surface.palette['0']} 86%, ${color.palette['50']}) 58%, ${surface.palette['0']} 100%)`;
+      const toolbarBackground = isDark
+        ? `color-mix(in srgb, ${surface.palette['950']} 78%, ${color.palette['950']})`
+        : `color-mix(in srgb, ${surface.palette['0']} 84%, ${color.palette['50']})`;
+      const drawerBackground = isDark
+        ? `color-mix(in srgb, ${surface.palette['950']} 92%, ${color.palette['950']})`
+        : `color-mix(in srgb, ${surface.palette['0']} 94%, ${color.palette['50']})`;
+      const footerBackground = isDark
+        ? `color-mix(in srgb, ${surface.palette['950']} 90%, ${color.palette['950']})`
+        : `color-mix(in srgb, ${surface.palette['0']} 96%, ${color.palette['50']})`;
+
+      const rootStyle = this.document.documentElement.style;
+      rootStyle.setProperty('--app-page-background', pageBackground);
+      rootStyle.setProperty('--app-toolbar-background', toolbarBackground);
+      rootStyle.setProperty('--app-drawer-background', drawerBackground);
+      rootStyle.setProperty('--app-footer-background', footerBackground);
     });
 
     effect(() => {
@@ -103,7 +124,23 @@ export class ThemeService {
 
   setPrimaryColor(colorName: string): void {
     if (PRIMARY_COLORS.some((item) => item.name === colorName)) {
-      this.selectedPrimaryColor.set(colorName);
+      if (this.isDarkMode()) {
+        this.darkPrimaryColor.set(colorName);
+      } else {
+        this.lightPrimaryColor.set(colorName);
+      }
+    }
+  }
+
+  setLightPrimaryColor(colorName: string): void {
+    if (PRIMARY_COLORS.some((item) => item.name === colorName)) {
+      this.lightPrimaryColor.set(colorName);
+    }
+  }
+
+  setDarkPrimaryColor(colorName: string): void {
+    if (PRIMARY_COLORS.some((item) => item.name === colorName)) {
+      this.darkPrimaryColor.set(colorName);
     }
   }
 

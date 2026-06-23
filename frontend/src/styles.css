@@ -25,10 +25,14 @@ body {
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  background: var(--p-surface-50);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-50) 20%, transparent), transparent 28rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--p-surface-0) 94%, var(--p-primary-50)) 0%, var(--p-surface-50) 100%);
   color: var(--p-text-color);
 }
 
 html.app-dark body {
-  background: var(--p-surface-950);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-950) 28%, transparent), transparent 30rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--p-surface-950) 88%, var(--p-primary-950)) 0%, var(--p-surface-950) 100%);
 }

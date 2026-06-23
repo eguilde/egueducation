@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
 import { ButtonModule } from 'primeng/button';
+import { DividerModule } from 'primeng/divider';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 
@@ -10,7 +11,7 @@ import { ThemeService } from '../core/ui/theme.service';
 
 @Component({
   selector: 'app-theme-panel',
-  imports: [TitleCasePipe, FormsModule, TranslocoPipe, ButtonModule, SelectButtonModule, TooltipModule],
+  imports: [TitleCasePipe, FormsModule, TranslocoPipe, ButtonModule, DividerModule, SelectButtonModule, TooltipModule],
   template: `
     <div class="flex flex-col gap-3 text-sm" role="group" [attr.aria-label]="'appearance.title' | transloco">
       <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
@@ -32,22 +33,55 @@ import { ThemeService } from '../core/ui/theme.service';
 
       <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
         <legend class="font-medium" id="primary-color-label">{{ 'appearance.primary' | transloco }}</legend>
-        <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="primary-color-label">
-          @for (color of theme.primaryColors; track color.name) {
-            <button
-              type="button"
-              role="radio"
-              class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
-              [class.outline-primary]="theme.selectedPrimaryColor() === color.name"
-              [class.outline-transparent]="theme.selectedPrimaryColor() !== color.name"
-              [style.backgroundColor]="color.palette['500']"
-              [pTooltip]="color.name | titlecase"
-              tooltipPosition="top"
-              [attr.aria-checked]="theme.selectedPrimaryColor() === color.name"
-              [attr.aria-label]="('appearance.primary' | transloco) + ': ' + (color.name | titlecase)"
-              (click)="theme.setPrimaryColor(color.name)"
-            ></button>
-          }
+        <p class="m-0 text-xs text-muted-color">
+          Light: {{ theme.lightPrimaryColor() | titlecase }} • Dark: {{ theme.darkPrimaryColor() | titlecase }}
+        </p>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-color">Light mode</span>
+            <span class="text-xs text-muted-color">{{ theme.lightPrimaryColor() | titlecase }}</span>
+          </div>
+          <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="primary-color-label">
+            @for (color of theme.primaryColors; track color.name) {
+              <button
+                type="button"
+                role="radio"
+                class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
+                [class.outline-primary]="theme.lightPrimaryColor() === color.name"
+                [class.outline-transparent]="theme.lightPrimaryColor() !== color.name"
+                [style.backgroundColor]="color.palette['500']"
+                [pTooltip]="color.name | titlecase"
+                tooltipPosition="top"
+                [attr.aria-checked]="theme.lightPrimaryColor() === color.name"
+                [attr.aria-label]="('appearance.primary' | transloco) + ': ' + (color.name | titlecase)"
+                (click)="theme.setLightPrimaryColor(color.name)"
+              ></button>
+            }
+          </div>
+
+          <p-divider />
+
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-color">Dark mode</span>
+            <span class="text-xs text-muted-color">{{ theme.darkPrimaryColor() | titlecase }}</span>
+          </div>
+          <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="primary-color-label">
+            @for (color of theme.primaryColors; track color.name) {
+              <button
+                type="button"
+                role="radio"
+                class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
+                [class.outline-primary]="theme.darkPrimaryColor() === color.name"
+                [class.outline-transparent]="theme.darkPrimaryColor() !== color.name"
+                [style.backgroundColor]="color.palette['500']"
+                [pTooltip]="color.name | titlecase"
+                tooltipPosition="top"
+                [attr.aria-checked]="theme.darkPrimaryColor() === color.name"
+                [attr.aria-label]="('appearance.primary' | transloco) + ': ' + (color.name | titlecase)"
+                (click)="theme.setDarkPrimaryColor(color.name)"
+              ></button>
+            }
+          </div>
         </div>
       </fieldset>
 
