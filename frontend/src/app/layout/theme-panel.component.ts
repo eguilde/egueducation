@@ -16,13 +16,13 @@ import { ThemeService } from '../core/ui/theme.service';
       <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
         <legend class="font-medium" id="theme-mode-label">{{ 'appearance.mode' | transloco }}</legend>
         <p-selectbutton
-          [options]="darkModeOptions"
-          [ngModel]="theme.isDarkMode()"
+          [options]="colorSchemeOptions"
+          [ngModel]="theme.colorScheme()"
           optionLabel="icon"
           optionValue="value"
           size="small"
           aria-labelledby="theme-mode-label"
-          (ngModelChange)="theme.setDarkMode($event)"
+          (ngModelChange)="theme.setColorScheme($event)"
         >
           <ng-template #item let-item>
             <i [class]="item.icon" aria-hidden="true"></i>
@@ -89,9 +89,10 @@ import { ThemeService } from '../core/ui/theme.service';
 })
 export class ThemePanelComponent {
   protected readonly theme = inject(ThemeService);
-  protected readonly darkModeOptions = [
-    { icon: 'pi pi-sun', value: false },
-    { icon: 'pi pi-moon', value: true },
+  protected readonly colorSchemeOptions = [
+    { icon: 'pi pi-desktop', value: 'system' },
+    { icon: 'pi pi-sun', value: 'light' },
+    { icon: 'pi pi-moon', value: 'dark' },
   ];
   protected readonly languageOptions = [
     { label: 'RO', value: 'ro' },

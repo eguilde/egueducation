@@ -43,9 +43,9 @@ set name = excluded.name,
 	phone_number = excluded.phone_number,
 	locale = excluded.locale,
 	status = excluded.status,
-	email_verified = true,
-	phone_number_verified = true,
-	preferred_otp_channel = 'sms',
+	email_verified = excluded.email_verified,
+	phone_number_verified = excluded.phone_number_verified,
+	preferred_otp_channel = excluded.preferred_otp_channel,
 	last_login_at = excluded.last_login_at,
 	updated_at = now();
 

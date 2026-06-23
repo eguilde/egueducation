@@ -16,6 +16,9 @@ export function provideAppAuth(config: AuthConfig): EnvironmentProviders {
         return async () => {
           await auth.init();
           await authz.init();
+          if (auth.isAuthenticated()) {
+            await authz.bootstrapAuthenticated();
+          }
         };
       },
     },

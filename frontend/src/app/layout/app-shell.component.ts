@@ -8,11 +8,14 @@ import { map } from 'rxjs/operators';
 
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
+import { PopoverModule } from 'primeng/popover';
 import { ToolbarModule } from 'primeng/toolbar';
 
 import { AuthService } from '../core/auth/auth.service';
 import { AppBrandingService } from '../core/branding/app-branding.service';
 import { AuthzService } from '../core/authz/authz.service';
+import { ThemeService } from '../core/ui/theme.service';
+import { ThemePanelComponent } from './theme-panel.component';
 
 interface NavItem {
   icon: string;
@@ -35,6 +38,8 @@ interface NavItem {
     TranslocoPipe,
     ButtonModule,
     DrawerModule,
+    PopoverModule,
+    ThemePanelComponent,
     ToolbarModule,
   ],
   templateUrl: './app-shell.component.html',
@@ -47,6 +52,7 @@ export class AppShellComponent {
   protected readonly auth = inject(AuthService);
   protected readonly authz = inject(AuthzService);
   protected readonly branding = inject(AppBrandingService);
+  protected readonly theme = inject(ThemeService);
 
   protected readonly navItems: NavItem[] = [
     {
@@ -114,7 +120,7 @@ export class AppShellComponent {
   );
 
   protected readonly drawerVisible = signal(false);
-  protected readonly authenticated = computed(() => this.auth.isAuthenticated() || !!this.authz.user());
+  protected readonly authenticated = computed(() => this.auth.isAuthenticated());
   private readonly handset = toSignal(
     this.breakpoints.observe('(max-width: 1024px)').pipe(map((state) => state.matches)),
     { initialValue: false },

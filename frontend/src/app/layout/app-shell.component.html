@@ -1,7 +1,15 @@
 <div class="shell min-h-dvh bg-surface-50 text-color dark:bg-surface-950">
   <p-toolbar styleClass="shell__toolbar">
     <ng-template pTemplate="start">
-      <span class="shell__toolbar-spacer"></span>
+      <p-button
+        type="button"
+        icon="pi pi-bars"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        ariaLabel="Deschide meniul"
+        (onClick)="toggleDrawer()"
+      />
     </ng-template>
 
     <ng-template pTemplate="center">
@@ -14,36 +22,42 @@
 
     <ng-template pTemplate="end">
       <div class="flex items-center gap-2">
+        <p-button
+          type="button"
+          icon="pi pi-palette"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Tema aplicatiei"
+          (onClick)="themePopover.toggle($event)"
+        />
+
         @if (authenticated()) {
           <p-button
             type="button"
-            [label]="'auth.logout' | transloco"
             icon="pi pi-sign-out"
             severity="secondary"
             [outlined]="true"
+            [rounded]="true"
+            ariaLabel="Logout"
             (onClick)="signOut()"
           />
         } @else {
           <p-button
             type="button"
-            [label]="'auth.login' | transloco"
             icon="pi pi-sign-in"
+            [rounded]="true"
+            ariaLabel="Login"
             (onClick)="signIn()"
           />
         }
-
-        <p-button
-          type="button"
-          icon="pi pi-bars"
-          [rounded]="true"
-          [text]="true"
-          severity="secondary"
-          ariaLabel="Deschide meniul"
-          (onClick)="toggleDrawer()"
-        />
       </div>
     </ng-template>
   </p-toolbar>
+
+  <p-popover #themePopover [dismissable]="true" appendTo="body" styleClass="shell__theme-popover">
+    <app-theme-panel />
+  </p-popover>
 
   <p-drawer
     [visible]="drawerVisible()"

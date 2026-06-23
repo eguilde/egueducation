@@ -13,6 +13,7 @@ export class AuthzService {
   private readonly sessionSignal = signal<SessionContext | null>(null);
   private readonly roleCatalogSignal = signal<RoleCatalogItem[]>([]);
   private readonly rolePositionsSignal = signal<RolePositionItem[]>([]);
+  private readonly initializedSignal = signal(false);
 
   readonly session = this.sessionSignal.asReadonly();
   readonly roleCatalog = this.roleCatalogSignal.asReadonly();
@@ -22,24 +23,31 @@ export class AuthzService {
   readonly user = computed(() => this.sessionSignal()?.user ?? null);
   readonly roles = computed(() => this.sessionSignal()?.user?.roles ?? []);
   readonly institutionName = computed(() => this.sessionSignal()?.institution_name ?? '');
+  readonly initialized = this.initializedSignal.asReadonly();
 
   async init(): Promise<void> {
-    await this.reload();
-    await this.loadRoleCatalog();
-    await this.loadRolePositions();
+    this.sessionSignal.set(null);
   }
 
   async reload(): Promise<void> {
     try {
       const session = await firstValueFrom(this.http.get<SessionContext>('/api/me'));
       this.sessionSignal.set(session ?? null);
+      this.initializedSignal.set(true);
     } catch {
       this.sessionSignal.set(null);
+      this.initializedSignal.set(true);
     }
   }
 
   clearSession(): void {
     this.sessionSignal.set(null);
+  }
+
+  async bootstrapAuthenticated(): Promise<void> {
+    await this.reload();
+    await this.loadRoleCatalog();
+    await this.loadRolePositions();
   }
 
   roleLabel(roleCode: string): string {

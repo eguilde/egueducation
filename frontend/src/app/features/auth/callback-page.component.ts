@@ -73,7 +73,7 @@ export class CallbackPageComponent {
   private async finish(): Promise<void> {
     try {
       await this.auth.handleCallback(new URLSearchParams(window.location.search));
-      await this.authz.reload();
+      await this.authz.bootstrapAuthenticated();
       await this.router.navigateByUrl(this.auth.consumeReturnUrl());
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'Authentication failed');

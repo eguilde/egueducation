@@ -556,6 +556,7 @@ func renderMethodStep(
 
 	switch r.FormValue("method") {
 	case "otp":
+		sess.StoreParameter("step", "otp_identifier")
 		return renderOIDCStep(w, tmpl, oidcLoginData{
 			Step:           "otp_identifier",
 			StepLabel:      "Pasul 2",

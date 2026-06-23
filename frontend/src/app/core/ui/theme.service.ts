@@ -1,5 +1,5 @@
 import { DOCUMENT } from '@angular/common';
-import { Injectable, effect, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { TranslocoService } from '@jsverse/transloco';
 import { updatePrimaryPalette, updateSurfacePalette } from '@primeuix/themes';
 
@@ -39,21 +39,38 @@ const SURFACES: PaletteOption[] = [
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
   private readonly transloco = inject(TranslocoService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
   readonly primaryColors = PRIMARY_COLORS;
   readonly surfaces = SURFACES;
-  readonly isDarkMode = signal(localStorage.getItem('app-dark-mode') === 'true');
+  readonly colorScheme = signal((localStorage.getItem('app-color-scheme') as 'system' | 'light' | 'dark') || 'system');
+  readonly systemPrefersDark = signal(this.mediaQuery.matches);
   readonly selectedPrimaryColor = signal(localStorage.getItem('app-primary-color') || 'rose');
   readonly selectedSurface = signal(localStorage.getItem('app-surface') || 'slate');
   readonly selectedLanguage = signal((localStorage.getItem('app-language') as 'ro' | 'en') || 'ro');
+  readonly isDarkMode = computed(() => {
+    const scheme = this.colorScheme();
+    if (scheme === 'dark') {
+      return true;
+    }
+    if (scheme === 'light') {
+      return false;
+    }
+    return this.systemPrefersDark();
+  });
 
-  readonly mode = this.isDarkMode.asReadonly();
+  readonly mode = this.isDarkMode;
   readonly language = this.selectedLanguage.asReadonly();
 
   constructor() {
+    const handler = (event: MediaQueryListEvent) => this.systemPrefersDark.set(event.matches);
+    this.mediaQuery.addEventListener('change', handler);
+    this.destroyRef.onDestroy(() => this.mediaQuery.removeEventListener('change', handler));
+
     effect(() => {
+      localStorage.setItem('app-color-scheme', this.colorScheme());
       const isDark = this.isDarkMode();
-      localStorage.setItem('app-dark-mode', String(isDark));
       this.document.documentElement.classList.toggle('app-dark', isDark);
       this.document.documentElement.dataset['pTheme'] = isDark ? 'dark' : 'light';
     });
@@ -80,8 +97,8 @@ export class ThemeService {
     });
   }
 
-  setDarkMode(isDark: boolean): void {
-    this.isDarkMode.set(isDark);
+  setColorScheme(mode: 'system' | 'light' | 'dark'): void {
+    this.colorScheme.set(mode);
   }
 
   setPrimaryColor(colorName: string): void {
