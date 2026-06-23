@@ -85,37 +85,44 @@
 
         <div class="shell__drawer-footer mt-auto border-t border-surface-200 p-3 dark:border-surface-800">
           @if (authenticated()) {
-            <button
-              type="button"
-              class="shell__account-button"
-              (click)="openProfile()"
-            >
-              <span class="shell__account-avatar">
-                {{ userLabel().slice(0, 1) | uppercase }}
-              </span>
-              <span class="min-w-0 flex-1 text-left">
-                <span class="block truncate text-sm font-black text-color">{{ userLabel() }}</span>
-                <span class="block text-xs text-muted-color">Deschide profilul și metodele de autentificare</span>
-              </span>
-              <i class="pi pi-user text-sm text-muted-color"></i>
-            </button>
-            <p-button
-              type="button"
-              class="mt-3 w-full"
-              icon="pi pi-sign-out"
-              label="Ieșire"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="signOut()"
-            />
+            <div class="shell__footer-row">
+              <button
+                type="button"
+                class="shell__account-button"
+                (click)="openProfile()"
+              >
+                <span class="shell__account-avatar">
+                  {{ userLabel().slice(0, 1) | uppercase }}
+                </span>
+                <span class="min-w-0 flex-1 text-left">
+                  <span class="block truncate text-sm font-black text-color">{{ userLabel() }}</span>
+                  <span class="block text-xs text-muted-color">Profil și metode de autentificare</span>
+                </span>
+                <i class="pi pi-user text-sm text-muted-color"></i>
+              </button>
+              <p-button
+                type="button"
+                class="shell__footer-action"
+                icon="pi pi-sign-out"
+                ariaLabel="Ieșire"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="signOut()"
+              />
+            </div>
           } @else {
-            <p-button
-              type="button"
-              class="w-full"
-              icon="pi pi-sign-in"
-              label="Autentificare"
-              (onClick)="signIn()"
-            />
+            <div class="shell__footer-row">
+              <span class="shell__footer-copy text-xs text-muted-color">
+                Accesul la module este disponibil după autentificare.
+              </span>
+              <p-button
+                type="button"
+                class="shell__footer-action"
+                icon="pi pi-sign-in"
+                ariaLabel="Autentificare"
+                (onClick)="signIn()"
+              />
+            </div>
           }
         </div>
       </aside>
