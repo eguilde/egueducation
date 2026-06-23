@@ -192,8 +192,37 @@ declare
 		'education_evaluation_result_issues'
 	];
 	tbl text;
+	has_institution_id boolean;
 	begin
 	foreach tbl in array tables loop
+		if tbl = 'workflow_definitions' then
+			execute format('alter table %I enable row level security', tbl);
+			execute format('alter table %I force row level security', tbl);
+			execute format('drop policy if exists tenant_isolation on %I', tbl);
+			execute format('drop policy if exists tenant_read on %I', tbl);
+			execute format('drop policy if exists tenant_write on %I', tbl);
+			execute format(
+				'create policy tenant_isolation on %I using (true) with check (true)',
+				tbl
+			);
+			execute format('drop trigger if exists trg_%s_entity_version on %I', tbl, tbl);
+			execute format('create trigger trg_%s_entity_version after insert or update or delete on %I for each row execute function public.record_entity_version()', tbl, tbl);
+			continue;
+		end if;
+
+		select exists (
+			select 1
+			from information_schema.columns
+			where table_schema = 'public'
+				and table_name = tbl
+				and column_name = 'institution_id'
+		)
+		into has_institution_id;
+
+		if not has_institution_id then
+			raise exception 'table % is missing institution_id and is not handled by multi-tenant RLS migration', tbl;
+		end if;
+
 		execute format('alter table %I enable row level security', tbl);
 		execute format('alter table %I force row level security', tbl);
 		execute format('drop policy if exists tenant_isolation on %I', tbl);

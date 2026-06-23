@@ -56,6 +56,9 @@ func main() {
 	if err := db.Migrate(ctx, migrationPool); err != nil {
 		logger.Fatal("database migration failed", zap.Error(err))
 	}
+	if err := db.ValidateSchemaContract(ctx, pool); err != nil {
+		logger.Fatal("schema contract validation failed", zap.Error(err))
+	}
 
 	sessionDB := db.NewSessionPool(pool)
 
