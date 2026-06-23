@@ -724,6 +724,7 @@ func (s *Service) syncEvaluationAppealDocumentsToPersonnelFile(ctx context.Conte
 	}
 	defer rows.Close()
 
+	appeals := make([]evaluationAppealMirrorRecord, 0)
 	activeFileReferences := make([]string, 0)
 	for rows.Next() {
 		var appeal evaluationAppealMirrorRecord
@@ -742,29 +743,74 @@ func (s *Service) syncEvaluationAppealDocumentsToPersonnelFile(ctx context.Conte
 		if !appeal.AttachedToPersonnelFile {
 			continue
 		}
-
-		fileReference := fmt.Sprintf("%s/%s", evaluation.EvaluationCode, appeal.AppealCode)
-		activeFileReferences = append(activeFileReferences, fileReference)
-		if err := s.upsertEvaluationAppealDocument(ctx, evaluation, appeal, fileReference, institutionID); err != nil {
-			return err
-		}
+		appeals = append(appeals, appeal)
+		activeFileReferences = append(activeFileReferences, fmt.Sprintf("%s/%s", evaluation.EvaluationCode, appeal.AppealCode))
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate evaluation appeals for personnel file sync: %w", err)
 	}
+	rows.Close()
 
-	deleteQuery := `
-		delete from education_personnel_file_documents
-		where personnel_id = $1 and institution_id = $2 and document_category = 'evaluare' and file_reference like $3
-	`
-	deleteArgs := []any{evaluation.PersonnelID, institutionID, evaluation.EvaluationCode + "/APEL-%"}
-	if len(activeFileReferences) > 0 {
-		deleteQuery += ` and not (file_reference = any($4::text[]))`
-		deleteArgs = append(deleteArgs, activeFileReferences)
+	for _, appeal := range appeals {
+		fileReference := fmt.Sprintf("%s/%s", evaluation.EvaluationCode, appeal.AppealCode)
+		if err := s.upsertEvaluationAppealDocument(ctx, evaluation, appeal, fileReference, institutionID); err != nil {
+			return err
+		}
 	}
 
-	if _, err := s.pool.Exec(ctx, deleteQuery, deleteArgs...); err != nil {
+	if err := s.deleteStalePersonnelFileDocuments(ctx, evaluation.PersonnelID, institutionID, evaluation.EvaluationCode+"/APEL-%", activeFileReferences); err != nil {
 		return fmt.Errorf("delete stale mirrored evaluation appeal documents: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteStalePersonnelFileDocuments(ctx context.Context, personnelID string, institutionID string, fileReferencePattern string, activeFileReferences []string) error {
+	active := make(map[string]struct{}, len(activeFileReferences))
+	for _, fileReference := range activeFileReferences {
+		fileReference = strings.TrimSpace(fileReference)
+		if fileReference != "" {
+			active[fileReference] = struct{}{}
+		}
+	}
+
+	rows, err := s.pool.Query(ctx, `
+		select id::text, file_reference
+		from education_personnel_file_documents
+		where personnel_id = $1
+			and institution_id = $2
+			and document_category = 'evaluare'
+			and file_reference like $3
+	`, personnelID, institutionID, fileReferencePattern)
+	if err != nil {
+		return fmt.Errorf("list stale mirrored personnel file documents: %w", err)
+	}
+	defer rows.Close()
+
+	staleIDs := make([]string, 0)
+	for rows.Next() {
+		var id string
+		var fileReference string
+		if err := rows.Scan(&id, &fileReference); err != nil {
+			return fmt.Errorf("scan stale mirrored personnel file document: %w", err)
+		}
+		if _, keep := active[fileReference]; keep {
+			continue
+		}
+		staleIDs = append(staleIDs, id)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate stale mirrored personnel file documents: %w", err)
+	}
+	rows.Close()
+
+	for _, id := range staleIDs {
+		if _, err := s.pool.Exec(ctx, `
+			delete from education_personnel_file_documents
+			where id = $1::uuid and personnel_id = $2 and institution_id = $3
+		`, id, personnelID, institutionID); err != nil {
+			return fmt.Errorf("delete mirrored personnel file document %s: %w", id, err)
+		}
 	}
 
 	return nil

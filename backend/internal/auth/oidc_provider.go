@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,9 +85,13 @@ func newOIDCProviderHandler(
 		active := keyManager.ActiveJWKS()
 		keys := make([]jose.JSONWebKey, 0, len(active.Keys))
 		for _, key := range active.Keys {
+			resolvedKey := key.Key
+			if privateKey, ok := key.Key.(*rsa.PrivateKey); ok {
+				resolvedKey = &privateKey.PublicKey
+			}
 			keys = append(keys, jose.JSONWebKey{
 				KeyID:     key.KeyID,
-				Key:       key.Key,
+				Key:       resolvedKey,
 				Algorithm: key.Algorithm,
 				Use:       key.Use,
 			})
@@ -403,6 +408,16 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		if err != nil {
 			return nil
 		}
+
+		configuredTenantHint := strings.TrimSpace(cfg.CustomerDomain + " " + cfg.CustomerName)
+		branding := tenant.ResolveBranding(r.Host, cfg.CustomerName, preferredInstitution)
+		if tenant.IsLocalHost(r.Host) {
+			branding = tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+		}
+		if branding.InstitutionID == "" {
+			branding = tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+		}
+		preferredInstitution = branding.InstitutionID
 
 		roles, _ := loadRolesForSubject(r.Context(), db, subject)
 		audience := tokenAudiences(grant, cfg.OIDCAudience)

@@ -32,6 +32,9 @@ export interface EducationFormField {
   required?: boolean;
   options?: EducationOption[] | ((context: EducationFieldOptionsContext) => EducationOption[]);
   defaultValue?: string | number | boolean;
+  min?: number;
+  max?: number;
+  step?: number;
   wide?: boolean;
 }
 

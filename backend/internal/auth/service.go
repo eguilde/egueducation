@@ -651,8 +651,16 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 	}
 
 	branding := tenant.ResolveBranding(host, session.InstitutionName, session.InstitutionID)
+	configuredTenantHint := strings.TrimSpace(s.cfg.CustomerDomain + " " + s.cfg.CustomerName)
+	if tenant.IsLocalHost(host) {
+		branding = tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+	}
+	if branding.InstitutionID == "" {
+		branding = tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+	}
 	session.InstitutionID = branding.InstitutionID
 	session.InstitutionName = branding.Name
+	tenantCode := tenant.DefaultTenantCode(session.InstitutionID, branding.Subdomain)
 
 	roleRows, err := s.db.Query(ctx, `
 		select distinct role_code
@@ -672,7 +680,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 				and coalesce(ou.tenant_code, '') = $2
 		) roles
 		order by role_code
-	`, session.User.ID, session.InstitutionID)
+	`, session.User.ID, tenantCode)
 	if err != nil {
 		return SessionContext{}, err
 	}

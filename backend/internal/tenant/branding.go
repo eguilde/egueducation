@@ -12,6 +12,37 @@ type Branding struct {
 	ShortName     string
 }
 
+func DefaultInstitutionID(customerName string) string {
+	value := strings.ToLower(strings.TrimSpace(customerName))
+	switch {
+	case strings.Contains(value, "balotesti"), strings.Contains(value, "balotești"), strings.Contains(value, "scoalabalotesti"):
+		return "inst-balotesti"
+	default:
+		return "inst-001"
+	}
+}
+
+func DefaultTenantCode(institutionID, subdomain string) string {
+	switch strings.TrimSpace(strings.ToLower(institutionID)) {
+	case "inst-balotesti":
+		return "tenant-balotesti"
+	case "inst-001", "":
+		if strings.Contains(strings.ToLower(strings.TrimSpace(subdomain)), "balotesti") {
+			return "tenant-balotesti"
+		}
+		return "tenant-egueducation"
+	default:
+		suffix := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(institutionID)), "inst-")
+		if suffix == "" {
+			if strings.Contains(strings.ToLower(strings.TrimSpace(subdomain)), "balotesti") {
+				return "tenant-balotesti"
+			}
+			return "tenant-egueducation"
+		}
+		return "tenant-" + suffix
+	}
+}
+
 func ResolveBranding(host, fallbackName, fallbackInstitutionID string) Branding {
 	hostname := normalizeHost(host)
 	switch {
@@ -69,6 +100,11 @@ func normalizeHost(host string) string {
 		value = value[:idx]
 	}
 	return value
+}
+
+func IsLocalHost(host string) bool {
+	hostname := normalizeHost(host)
+	return hostname == "" || hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
 }
 
 func firstLabel(hostname string) string {

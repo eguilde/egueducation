@@ -525,6 +525,7 @@ func (s *Service) syncEvaluationResultIssueDocumentsToPersonnelFile(ctx context.
 	}
 	defer rows.Close()
 
+	issues := make([]evaluationResultIssueMirrorRecord, 0)
 	activeFileReferences := make([]string, 0)
 	for rows.Next() {
 		var issue evaluationResultIssueMirrorRecord
@@ -547,28 +548,22 @@ func (s *Service) syncEvaluationResultIssueDocumentsToPersonnelFile(ctx context.
 		if !issue.AttachedToPersonnelFile {
 			continue
 		}
-
-		fileReference := fmt.Sprintf("%s/%s", evaluation.EvaluationCode, issue.IssueCode)
-		activeFileReferences = append(activeFileReferences, fileReference)
-		if err := s.upsertEvaluationResultIssueDocument(ctx, evaluation, issue, fileReference, institutionID); err != nil {
-			return err
-		}
+		issues = append(issues, issue)
+		activeFileReferences = append(activeFileReferences, fmt.Sprintf("%s/%s", evaluation.EvaluationCode, issue.IssueCode))
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("iterate evaluation result issues for personnel file sync: %w", err)
 	}
+	rows.Close()
 
-	deleteQuery := `
-		delete from education_personnel_file_documents
-		where personnel_id = $1 and institution_id = $2 and document_category = 'evaluare' and file_reference like $3
-	`
-	deleteArgs := []any{evaluation.PersonnelID, institutionID, evaluation.EvaluationCode + "/EVRES-%"}
-	if len(activeFileReferences) > 0 {
-		deleteQuery += ` and not (file_reference = any($4::text[]))`
-		deleteArgs = append(deleteArgs, activeFileReferences)
+	for _, issue := range issues {
+		fileReference := fmt.Sprintf("%s/%s", evaluation.EvaluationCode, issue.IssueCode)
+		if err := s.upsertEvaluationResultIssueDocument(ctx, evaluation, issue, fileReference, institutionID); err != nil {
+			return err
+		}
 	}
 
-	if _, err := s.pool.Exec(ctx, deleteQuery, deleteArgs...); err != nil {
+	if err := s.deleteStalePersonnelFileDocuments(ctx, evaluation.PersonnelID, institutionID, evaluation.EvaluationCode+"/EVRES-%", activeFileReferences); err != nil {
 		return fmt.Errorf("delete stale mirrored evaluation result issue documents: %w", err)
 	}
 

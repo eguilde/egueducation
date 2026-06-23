@@ -196,7 +196,14 @@ type DeleteTarget = EditorTarget & { row: EducationRow };
                     <textarea pTextarea rows="4" [(ngModel)]="createForm[field.field]"></textarea>
                   }
                   @case ('number') {
-                    <p-inputNumber [(ngModel)]="createForm[field.field]" [min]="0" />
+                    <p-inputNumber
+                      [(ngModel)]="createForm[field.field]"
+                      [min]="field.min ?? 0"
+                      [max]="field.max ?? null"
+                      [minFractionDigits]="field.step && field.step < 1 ? 2 : 0"
+                      [maxFractionDigits]="field.step && field.step < 1 ? 2 : 0"
+                      [step]="field.step ?? 1"
+                    />
                   }
                   @case ('date') {
                     <p-datepicker appendTo="body" dateFormat="yy-mm-dd" [(ngModel)]="createForm[field.field]" [showIcon]="true" />
