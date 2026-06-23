@@ -85,10 +85,10 @@
 
         <div class="shell__drawer-footer mt-auto border-t border-surface-200 p-3 dark:border-surface-800">
           @if (authenticated()) {
-            <div class="shell__footer-row">
+            <div class="shell__footer-card">
               <button
                 type="button"
-                class="shell__account-button"
+                class="shell__footer-card-main"
                 (click)="openProfile()"
               >
                 <span class="shell__account-avatar">
@@ -98,30 +98,31 @@
                   <span class="block truncate text-sm font-black text-color">{{ userLabel() }}</span>
                   <span class="block text-xs text-muted-color">Profil și metode de autentificare</span>
                 </span>
-                <i class="pi pi-user text-sm text-muted-color"></i>
               </button>
-              <p-button
+              <button
                 type="button"
-                class="shell__footer-action"
-                icon="pi pi-sign-out"
-                ariaLabel="Ieșire"
-                severity="secondary"
-                [outlined]="true"
-                (onClick)="signOut()"
-              />
+                class="shell__footer-inline-action"
+                aria-label="Ieșire"
+                (click)="signOut()"
+              >
+                <i class="pi pi-sign-out"></i>
+                <span>Ieșire</span>
+              </button>
             </div>
           } @else {
-            <div class="shell__footer-row">
+            <div class="shell__footer-card">
               <span class="shell__footer-copy text-xs text-muted-color">
                 Accesul la module este disponibil după autentificare.
               </span>
-              <p-button
+              <button
                 type="button"
-                class="shell__footer-action"
-                icon="pi pi-sign-in"
-                ariaLabel="Autentificare"
-                (onClick)="signIn()"
-              />
+                class="shell__footer-inline-action"
+                aria-label="Autentificare"
+                (click)="signIn()"
+              >
+                <i class="pi pi-sign-in"></i>
+                <span>Autentificare</span>
+              </button>
             </div>
           }
         </div>
