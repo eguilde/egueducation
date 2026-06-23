@@ -5,13 +5,16 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
+import { FieldsetModule } from 'primeng/fieldset';
 import { DividerModule } from 'primeng/divider';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { TableModule } from 'primeng/table';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 
+import { AuthService } from '../../core/auth/auth.service';
 import { AuthzService } from '../../core/authz/authz.service';
 
 interface UpdateProfileRequest {
@@ -43,6 +46,11 @@ interface FinishPasskeyRegistrationRequest {
   response: unknown;
 }
 
+interface ProfileDatum {
+  label: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-profile-page',
   imports: [
@@ -51,9 +59,11 @@ interface FinishPasskeyRegistrationRequest {
     AvatarModule,
     ButtonModule,
     CardModule,
+    FieldsetModule,
     DividerModule,
     InputTextModule,
     MessageModule,
+    TableModule,
     SelectModule,
     TagModule,
     TooltipModule,
@@ -73,7 +83,7 @@ interface FinishPasskeyRegistrationRequest {
           </div>
           <div class="flex flex-wrap gap-2">
             @for (method of authMethods(); track method) {
-              <p-tag [value]="method" severity="info" />
+              <p-tag [value]="methodLabel(method)" severity="info" />
             }
           </div>
         </div>
@@ -83,51 +93,70 @@ interface FinishPasskeyRegistrationRequest {
         <p-card styleClass="h-full border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
           <ng-template pTemplate="title">Date utilizator</ng-template>
           <ng-template pTemplate="subtitle">Datele de identitate primite din providerul OIDC și profilul instituțional.</ng-template>
+          <div class="mb-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm text-muted-color dark:border-surface-800 dark:bg-surface-950">
+            <span class="font-semibold text-color">{{ displayName() }}</span>
+            <span class="mx-2">•</span>
+            <span>{{ userEmail() }}</span>
+          </div>
 
-          @if (authz.user(); as user) {
-            <form class="grid gap-4 md:grid-cols-2" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-              <label class="profile-field">
-                <span>Nume afișat</span>
-                <input pInputText formControlName="name" />
-              </label>
-              <label class="profile-field">
-                <span>Email</span>
-                <input pInputText [value]="user.email" readonly />
-              </label>
-              <label class="profile-field">
-                <span>Telefon</span>
-                <input pInputText formControlName="phone_number" />
-              </label>
-              <label class="profile-field">
-                <span>Limbă</span>
-                <p-select appendTo="body" [options]="localeOptions" formControlName="locale" />
-              </label>
-              <label class="profile-field md:col-span-2">
-                <span>Subject OIDC</span>
-                <input pInputText [value]="user.sub" readonly />
-              </label>
-              <div class="md:col-span-2 flex items-center justify-between gap-3">
-                <p-message severity="success" variant="simple" size="small" [text]="profileMessage()" />
-                <p-button type="submit" label="Salvează profilul" icon="pi pi-save" [loading]="profileSaving()" [disabled]="profileForm.invalid" />
-              </div>
-            </form>
-          }
+          <p-table [value]="profileDetails()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-sm p-datatable-striped">
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                <td class="w-1/3 font-semibold text-muted-color">{{ row.label }}</td>
+                <td class="break-words text-color">{{ row.value }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
 
           <p-divider />
 
-          <div>
-            <h3 class="m-0 mb-2 text-base font-bold">Roluri și context</h3>
-            <div class="flex flex-wrap gap-2">
-              @for (role of authz.user()?.roles ?? []; track role) {
-                <p-tag [value]="authz.roleLabel(role)" severity="secondary" [pTooltip]="role" />
-              } @empty {
-                <span class="text-sm text-muted-color">Nu există roluri expuse în sesiune.</span>
-              }
+          <form class="grid gap-4 md:grid-cols-2" [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+            <label class="profile-field">
+              <span>Nume afișat</span>
+              <input pInputText formControlName="name" />
+            </label>
+            <label class="profile-field">
+              <span>Email</span>
+              <input pInputText [value]="userEmail()" readonly />
+            </label>
+            <label class="profile-field">
+              <span>Telefon</span>
+              <input pInputText formControlName="phone_number" />
+            </label>
+            <label class="profile-field">
+              <span>Limbă</span>
+              <p-select appendTo="body" [options]="localeOptions" formControlName="locale" />
+            </label>
+            <div class="md:col-span-2 flex items-center justify-between gap-3">
+              <p-message severity="success" variant="simple" size="small" [text]="profileMessage()" />
+              <p-button type="submit" label="Salvează profilul" icon="pi pi-save" [loading]="profileSaving()" [disabled]="profileForm.invalid" />
             </div>
-            <p class="m-0 mt-3 text-sm text-muted-color">
-              Instituție: {{ authz.institutionName() || '-' }}
-            </p>
-          </div>
+          </form>
+
+          <p-divider />
+
+          <p-fieldset legend="Roluri și context">
+            <div class="grid gap-4">
+              <p-table [value]="roleRows()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-sm">
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td class="w-1/3 font-semibold text-muted-color">{{ row.label }}</td>
+                    <td>
+                      @if (row.kind === 'taglist') {
+                        <div class="flex flex-wrap gap-2">
+                          @for (item of row.values; track item) {
+                            <p-tag [value]="item" severity="secondary" />
+                          }
+                        </div>
+                      } @else {
+                        <span class="text-color">{{ row.value }}</span>
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </p-fieldset>
         </p-card>
 
         <div class="grid gap-4">
@@ -178,6 +207,7 @@ interface FinishPasskeyRegistrationRequest {
 export class ProfilePageComponent {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
   protected readonly authz = inject(AuthzService);
   protected readonly localeOptions = [{ label: 'Română', value: 'ro' }, { label: 'English', value: 'en' }];
   protected readonly passkeys = signal<PasskeyCredentialSummary[]>([]);
@@ -188,6 +218,27 @@ export class ProfilePageComponent {
   protected readonly passkeyMessage = signal('');
   protected readonly eudiMessage = signal('');
   protected readonly eudiStatus = computed(() => this.authMethods().includes('eudi_wallet') ? 'activ' : 'neactivat');
+  protected readonly sessionUser = computed(() => this.authz.session()?.user ?? null);
+  protected readonly profileUser = computed(() => this.sessionUser() ?? this.auth.profile() ?? null);
+  protected readonly institutionalName = computed(() => this.authz.institutionName() || 'Nespecificată');
+  protected readonly profileDetails = computed<ProfileDatum[]>(() => {
+    const user = this.profileUser();
+    return [
+      { label: 'Nume', value: user?.name?.trim() || '-' },
+      { label: 'Email', value: user?.email?.trim() || '-' },
+      { label: 'Telefon', value: user?.phone_number?.trim() || '-' },
+      { label: 'Limbă', value: user?.locale ?? 'ro' },
+      { label: 'Subject OIDC', value: user?.sub?.trim() || '-' },
+      { label: 'Instituție', value: this.institutionalName() },
+    ];
+  });
+  protected readonly roleRows = computed(() => {
+    const roles = this.sessionUser()?.roles ?? this.auth.profile()?.roles ?? [];
+    return [
+      { label: 'Roluri', kind: 'taglist' as const, values: roles.length > 0 ? roles.map((role) => this.authz.roleLabel(role)) : ['Fără roluri în sesiune'] },
+      { label: 'Autentificare', kind: 'text' as const, value: this.authMethods().length > 0 ? this.authMethods().map((method) => this.methodLabel(method)).join(', ') : 'Nespecificată' },
+    ];
+  });
 
   protected readonly profileForm = this.fb.nonNullable.group({
     name: ['', Validators.required],
@@ -197,7 +248,11 @@ export class ProfilePageComponent {
 
   constructor() {
     effect(() => {
-      const user = this.authz.user();
+      if (this.auth.isAuthenticated() && !this.authz.session()) {
+        void this.authz.reload();
+      }
+
+      const user = this.profileUser();
       if (!user) {
         return;
       }
@@ -211,12 +266,39 @@ export class ProfilePageComponent {
   }
 
   protected userInitial(): string {
-    const user = this.authz.user();
+    const user = this.profileUser();
     return (user?.name || user?.email || user?.sub || 'U').slice(0, 1).toUpperCase();
   }
 
   protected authMethods(): string[] {
     return this.authz.session()?.authentication ?? [];
+  }
+
+  protected methodLabel(method: string): string {
+    const labels: Record<string, string> = {
+      sms: 'SMS',
+      passkey: 'Passkey',
+      eudi_wallet: 'EUDI Wallet',
+      password: 'Parolă',
+    };
+    return labels[method] ?? method;
+  }
+
+  protected displayName(): string {
+    const user = this.profileUser();
+    return user?.name?.trim() || user?.email?.trim() || user?.sub?.trim() || 'Cont utilizator';
+  }
+
+  protected userEmail(): string {
+    return this.profileUser()?.email?.trim() || '-';
+  }
+
+  protected userPhone(): string {
+    return this.profileUser()?.phone_number?.trim() || '-';
+  }
+
+  protected userSub(): string {
+    return this.profileUser()?.sub?.trim() || '-';
   }
 
   protected saveProfile(): void {
