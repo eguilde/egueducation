@@ -31,26 +31,6 @@
           ariaLabel="Tema aplicatiei"
           (onClick)="themePopover.toggle($event)"
         />
-
-        @if (authenticated()) {
-          <p-button
-            type="button"
-            icon="pi pi-sign-out"
-            severity="secondary"
-            [outlined]="true"
-            [rounded]="true"
-            ariaLabel="Logout"
-            (onClick)="signOut()"
-          />
-        } @else {
-          <p-button
-            type="button"
-            icon="pi pi-sign-in"
-            [rounded]="true"
-            ariaLabel="Login"
-            (onClick)="signIn()"
-          />
-        }
       </div>
     </ng-template>
   </p-toolbar>
@@ -70,8 +50,8 @@
   >
     <ng-template pTemplate="headless">
       <aside class="flex h-full min-h-0 flex-col bg-surface-0 dark:bg-surface-950">
-        @if (authenticated()) {
-          <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
+        <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
+          @if (authenticated()) {
             <nav class="grid gap-1">
               @for (item of visibleNavItems(); track item.route) {
                 <a
@@ -85,8 +65,48 @@
                 </a>
               }
             </nav>
-          </div>
-        }
+          } @else {
+            <div class="shell__empty-state rounded-2xl border border-dashed border-surface-200 bg-surface-50 p-4 text-sm text-muted-color dark:border-surface-800 dark:bg-surface-900">
+              Autentifică-te pentru a vedea meniurile și funcțiile disponibile în platformă.
+            </div>
+          }
+        </div>
+
+        <div class="shell__drawer-footer mt-auto border-t border-surface-200 p-3 dark:border-surface-800">
+          @if (authenticated()) {
+            <button
+              type="button"
+              class="shell__account-button"
+              (click)="openProfile()"
+            >
+              <span class="shell__account-avatar">
+                {{ userLabel().slice(0, 1) | uppercase }}
+              </span>
+              <span class="min-w-0 flex-1 text-left">
+                <span class="block truncate text-sm font-black text-color">{{ userLabel() }}</span>
+                <span class="block text-xs text-muted-color">Deschide profilul și metodele de autentificare</span>
+              </span>
+              <i class="pi pi-user text-sm text-muted-color"></i>
+            </button>
+            <p-button
+              type="button"
+              class="mt-3 w-full"
+              icon="pi pi-sign-out"
+              label="Ieșire"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="signOut()"
+            />
+          } @else {
+            <p-button
+              type="button"
+              class="w-full"
+              icon="pi pi-sign-in"
+              label="Autentificare"
+              (onClick)="signIn()"
+            />
+          }
+        </div>
       </aside>
     </ng-template>
   </p-drawer>

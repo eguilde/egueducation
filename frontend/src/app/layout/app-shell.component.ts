@@ -8,6 +8,7 @@ import { map } from 'rxjs/operators';
 
 import { ButtonModule } from 'primeng/button';
 import { DrawerModule } from 'primeng/drawer';
+import { DividerModule } from 'primeng/divider';
 import { PopoverModule } from 'primeng/popover';
 import { ToolbarModule } from 'primeng/toolbar';
 
@@ -38,6 +39,7 @@ interface NavItem {
     TranslocoPipe,
     ButtonModule,
     DrawerModule,
+    DividerModule,
     PopoverModule,
     ThemePanelComponent,
     ToolbarModule,
@@ -121,6 +123,15 @@ export class AppShellComponent {
 
   protected readonly drawerVisible = signal(false);
   protected readonly authenticated = computed(() => this.auth.isAuthenticated());
+  protected readonly userLabel = computed(() =>
+    this.authz.user()?.name?.trim() ||
+    this.auth.profile()?.name?.trim() ||
+    this.authz.user()?.email?.trim() ||
+    this.auth.profile()?.email?.trim() ||
+    this.authz.user()?.sub?.trim() ||
+    this.auth.profile()?.sub?.trim() ||
+    'Contul meu',
+  );
   private readonly handset = toSignal(
     this.breakpoints.observe('(max-width: 1024px)').pipe(map((state) => state.matches)),
     { initialValue: false },
@@ -129,11 +140,9 @@ export class AppShellComponent {
 
   constructor() {
     effect(() => {
-      if (!this.authenticated()) {
-        this.drawerVisible.set(false);
-        return;
+      if (this.authenticated() && !this.isHandset()) {
+        this.drawerVisible.set(true);
       }
-      this.drawerVisible.set(!this.isHandset());
     });
   }
 
@@ -153,6 +162,11 @@ export class AppShellComponent {
 
   protected async signOut(): Promise<void> {
     await this.auth.logout();
+  }
+
+  protected openProfile(): void {
+    void this.router.navigateByUrl('/profile');
+    this.closeMobileNav();
   }
 
   protected canAccess(
