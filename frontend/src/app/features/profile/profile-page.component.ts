@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -89,8 +90,9 @@ interface ProfileDatum {
         </div>
       </header>
 
-      <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <p-card styleClass="h-full border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+      @if (profileUser()) {
+        <div class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <p-card styleClass="h-full border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
           <ng-template pTemplate="title">Date utilizator</ng-template>
           <ng-template pTemplate="subtitle">Datele de identitate primite din providerul OIDC și profilul instituțional.</ng-template>
           <div class="mb-3 rounded-2xl border border-surface-200 bg-surface-50 px-4 py-3 text-sm text-muted-color dark:border-surface-800 dark:bg-surface-950">
@@ -157,9 +159,9 @@ interface ProfileDatum {
               </p-table>
             </div>
           </p-fieldset>
-        </p-card>
+          </p-card>
 
-        <div class="grid gap-4">
+          <div class="grid gap-4">
           <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
             <ng-template pTemplate="title">Passkey / WebAuthn</ng-template>
             <ng-template pTemplate="subtitle">Adaugă o cheie de acces pentru autentificare fără parolă și step-up pe acțiuni sensibile.</ng-template>
@@ -188,8 +190,21 @@ interface ProfileDatum {
               <p-button label="Activează EUDI wallet" icon="pi pi-wallet" [loading]="eudiBusy()" (onClick)="activateEudiWallet()" />
             </div>
           </p-card>
+          </div>
         </div>
-      </div>
+      } @else if (authenticated()) {
+        <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+          <ng-template pTemplate="title">Date de profil în curs de încărcare</ng-template>
+          <ng-template pTemplate="subtitle">Sesiunea este autenticată, dar profilul instituțional nu a fost încă preluat.</ng-template>
+          <p-message severity="info" variant="simple" [text]="'Sincronizăm datele contului cu backendul. Reîncarcă pagina dacă mesajul persistă.'" />
+        </p-card>
+      } @else {
+        <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+          <ng-template pTemplate="title">Autentificare necesară</ng-template>
+          <ng-template pTemplate="subtitle">Profilul este disponibil numai după autentificare.</ng-template>
+          <p-button label="Autentificare" icon="pi pi-sign-in" (onClick)="signIn()" />
+        </p-card>
+      }
     </section>
   `,
   styles: `
@@ -208,6 +223,7 @@ export class ProfilePageComponent {
   private readonly http = inject(HttpClient);
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   protected readonly authz = inject(AuthzService);
   protected readonly localeOptions = [{ label: 'Română', value: 'ro' }, { label: 'English', value: 'en' }];
   protected readonly passkeys = signal<PasskeyCredentialSummary[]>([]);
@@ -218,6 +234,7 @@ export class ProfilePageComponent {
   protected readonly passkeyMessage = signal('');
   protected readonly eudiMessage = signal('');
   protected readonly eudiStatus = computed(() => this.authMethods().includes('eudi_wallet') ? 'activ' : 'neactivat');
+  protected readonly authenticated = computed(() => this.auth.isAuthenticated());
   protected readonly sessionUser = computed(() => this.authz.session()?.user ?? null);
   protected readonly profileUser = computed(() => this.sessionUser() ?? this.auth.profile() ?? null);
   protected readonly institutionalName = computed(() => this.authz.institutionName() || 'Nespecificată');
@@ -282,6 +299,10 @@ export class ProfilePageComponent {
       password: 'Parolă',
     };
     return labels[method] ?? method;
+  }
+
+  protected async signIn(): Promise<void> {
+    await this.auth.login(this.router.url);
   }
 
   protected displayName(): string {
