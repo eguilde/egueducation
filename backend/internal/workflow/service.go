@@ -8,19 +8,19 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/dossier"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 
@@ -35,7 +35,12 @@ func (s *Service) logAudit(r *http.Request, action string, targetType string, ta
 	})
 }
 
+func (s *Service) institutionID(r *http.Request) string {
+	return strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
+}
+
 func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var response DashboardResponse
 	err := s.pool.QueryRow(r.Context(), `
 		select
@@ -44,8 +49,8 @@ func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
 			count(*) filter (where status = 'waiting_approval') as waiting_approval,
 			(select count(*) from workflow_definitions where active = true) as active_definitions
 		from workflow_instances
-		where institution_id = 'inst-001'
-	`).Scan(
+		where institution_id = $1
+	`, institutionID).Scan(
 		&response.Stats.ActiveTasks,
 		&response.Stats.OverdueTasks,
 		&response.Stats.WaitingApproval,
@@ -56,7 +61,7 @@ func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.Stats.ReadyDossiers, response.Stats.BlockedDossiers, err = s.readinessStats(r.Context())
+	response.Stats.ReadyDossiers, response.Stats.BlockedDossiers, err = s.readinessStats(r.Context(), s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_dashboard_failed"})
 		return
@@ -117,7 +122,7 @@ func (s *Service) ListTasks(w http.ResponseWriter, r *http.Request) {
 		[]string{"title", "definition_code", "status", "priority", "assigned_to", "due_on"},
 	)
 
-	whereClause, args := buildTaskFilters(query.Filters)
+	whereClause, args := buildTaskFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	countSQL := `
@@ -311,7 +316,7 @@ func (s *Service) CreateTask(w http.ResponseWriter, r *http.Request) {
 				$7,
 				definition.initial_step,
 				case when nullif($8, '') is null then null else $8::date end,
-				'inst-001',
+				$10,
 				$9
 			from workflow_definitions definition
 			where definition.code = $1 and definition.active = true
@@ -361,6 +366,7 @@ func (s *Service) CreateTask(w http.ResponseWriter, r *http.Request) {
 		req.AssignedTo,
 		trimOrEmpty(req.DueDate),
 		req.Summary,
+		s.institutionID(r),
 	).Scan(
 		&task.ID,
 		&task.DefinitionCode,
@@ -546,9 +552,9 @@ func (s *Service) TransitionTask(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, task)
 }
 
-func buildTaskFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"wi.institution_id = 'inst-001'"}
-	args := []any{}
+func buildTaskFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"wi.institution_id = $1"}
+	args := []any{institutionID}
 
 	addContains := func(column string, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
@@ -650,7 +656,7 @@ func actionRequiresReady(action string) bool {
 	}
 }
 
-func (s *Service) readinessStats(ctx context.Context) (int, int, error) {
+func (s *Service) readinessStats(ctx context.Context, institutionID string) (int, int, error) {
 	rows, err := s.pool.Query(ctx, `
 		select
 			wi.source_module,
@@ -658,9 +664,9 @@ func (s *Service) readinessStats(ctx context.Context) (int, int, error) {
 			`+dossier.CountSQL("link_stats")+`
 		from workflow_instances wi
 		`+dossier.LateralJoinSQL("link_stats", "wi.source_module", "wi.source_record_id")+`
-		where wi.institution_id = 'inst-001'
+		where wi.institution_id = $1
 			and wi.status <> 'archived'
-	`)
+	`, institutionID)
 	if err != nil {
 		return 0, 0, err
 	}

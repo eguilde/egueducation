@@ -1,12 +1,12 @@
 package nomenclature
 
-import "github.com/jackc/pgx/v5/pgxpool"
+import appdb "github.com/eguilde/egueducation/internal/db"
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 

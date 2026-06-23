@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -25,6 +24,7 @@ import (
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/eguilde/egueducation/internal/notification"
 	"github.com/eguilde/egueducation/internal/registratura"
+	"github.com/eguilde/egueducation/internal/tenant"
 	"github.com/eguilde/egueducation/internal/workflow"
 )
 
@@ -48,17 +48,19 @@ func main() {
 		logger.Fatal("database migration failed", zap.Error(err))
 	}
 
+	sessionDB := db.NewSessionPool(pool)
+
 	smsService := notification.NewSMSService(pool, cfg.SMSAPIToken, cfg.SMSSenderName)
-	authService, err := auth.NewService(cfg, smsService, pool)
+	authService, err := auth.NewService(cfg, smsService, sessionDB)
 	if err != nil {
 		logger.Fatal("auth service initialization failed", zap.Error(err))
 	}
-	adminService := admin.NewService(cfg, pool)
-	educationService := education.NewService(pool)
-	earchivaService := earchiva.NewService(pool)
-	gdprService := gdpr.NewService(pool)
-	registraturaService := registratura.NewService(pool)
-	workflowService := workflow.NewService(pool)
+	adminService := admin.NewService(cfg, sessionDB)
+	educationService := education.NewService(sessionDB)
+	earchivaService := earchiva.NewService(sessionDB)
+	gdprService := gdpr.NewService(sessionDB)
+	registraturaService := registratura.NewService(sessionDB)
+	workflowService := workflow.NewService(sessionDB)
 
 	router := chi.NewRouter()
 	router.Use(chimw.RequestID)
@@ -578,20 +580,15 @@ func buildBootstrapConfig(cfg config.Config, r *http.Request) map[string]any {
 		frontendOrigin = scheme + "://" + r.Host
 	}
 
-	customerName := "Școala Bălotești"
-	customerShortName := "Bălotești"
-	customerWebsite := frontendOrigin
-	if parsed, err := url.Parse(frontendOrigin); err == nil && parsed.Hostname() != "" {
-		host := parsed.Hostname()
-		switch {
-		case strings.Contains(host, "scoalabalotesti"):
-			customerName = "Școala Bălotești"
-			customerShortName = "Bălotești"
-		default:
-			customerName = "EguEducation"
-			customerShortName = "EguEducation"
+	branding := tenant.ResolveBranding(frontendOrigin, cfg.CustomerName, "")
+	if r != nil {
+		if resolved := tenant.ResolveBranding(r.Host, cfg.CustomerName, ""); resolved.Name != "" {
+			branding = resolved
 		}
 	}
+	customerName := branding.Name
+	customerShortName := branding.ShortName
+	customerWebsite := frontendOrigin
 
 	return map[string]any{
 		"version":             "1.0.0",

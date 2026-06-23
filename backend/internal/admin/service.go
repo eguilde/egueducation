@@ -11,31 +11,33 @@ import (
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/config"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/dossier"
 	"github.com/eguilde/egueducation/internal/httpx"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/eguilde/egueducation/internal/tenant"
 )
 
 type Service struct {
 	cfg  config.Config
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(cfg config.Config, pool *pgxpool.Pool) *Service {
+func NewService(cfg config.Config, pool *appdb.SessionPool) *Service {
 	return &Service{
 		cfg:  cfg,
 		pool: pool,
 	}
 }
 
-func (s *Service) Dashboard(w http.ResponseWriter, _ *http.Request) {
-	readyDossiers, blockedDossiers := s.readinessStats()
+func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
+	readyDossiers, blockedDossiers := s.readinessStats(r.Context(), institutionID)
 	users := s.scalarCount("select count(*) from app_users")
 	memberships := s.scalarCount("select count(*) from app_memberships")
 	positions := s.scalarCount("select count(*) from app_positions")
 	permissions := s.scalarCount("select count(*) from app_permissions")
 	workflows := s.scalarCount("select count(*) from workflow_definitions")
-	archives := s.scalarCount("select count(*) from archive_records where institution_id = 'inst-001'")
+	archives := s.scalarCountWhere(r.Context(), "select count(*) from archive_records where institution_id = $1", institutionID)
 	httpx.JSON(w, http.StatusOK, DashboardResponse{
 		Stats: DashboardStats{
 			Users:           users,
@@ -89,6 +91,14 @@ func (s *Service) logAudit(r *http.Request, action string, targetType string, ta
 	})
 }
 
+func (s *Service) institutionID(r *http.Request) string {
+	return strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
+}
+
+func (s *Service) institutionName(r *http.Request) string {
+	return tenant.ResolveBranding(r.Host, s.cfg.CustomerName, s.institutionID(r)).Name
+}
+
 func (s *Service) scalarCount(sql string) int {
 	var count int
 	if s.pool == nil {
@@ -100,21 +110,32 @@ func (s *Service) scalarCount(sql string) int {
 	return count
 }
 
-func (s *Service) readinessStats() (int, int) {
+func (s *Service) scalarCountWhere(ctx context.Context, sql string, arg any) int {
+	var count int
+	if s.pool == nil {
+		return 0
+	}
+	if err := s.pool.QueryRow(ctx, sql, arg).Scan(&count); err != nil {
+		return 0
+	}
+	return count
+}
+
+func (s *Service) readinessStats(ctx context.Context, institutionID string) (int, int) {
 	if s.pool == nil {
 		return 0, 0
 	}
 
-	rows, err := s.pool.Query(context.Background(), `
+	rows, err := s.pool.Query(ctx, `
 		select
 			wi.source_module,
 			case when wi.source_record_id is null then null else wi.source_record_id::text end as source_record_id,
 			`+dossier.CountSQL("link_stats")+`
 		from workflow_instances wi
 		`+dossier.LateralJoinSQL("link_stats", "wi.source_module", "wi.source_record_id")+`
-		where wi.institution_id = 'inst-001'
+		where wi.institution_id = $1
 			and wi.status <> 'archived'
-	`)
+	`, institutionID)
 	if err != nil {
 		return 0, 0
 	}
@@ -138,7 +159,7 @@ func (s *Service) readinessStats() (int, int) {
 		); err != nil {
 			return 0, 0
 		}
-		dossierReady, _, err := dossier.Evaluate(context.Background(), s.pool, sourceModule, sourceRecordID != nil, counts, dossier.PurposeReadiness)
+		dossierReady, _, err := dossier.Evaluate(ctx, s.pool, sourceModule, sourceRecordID != nil, counts, dossier.PurposeReadiness)
 		if err != nil {
 			return 0, 0
 		}
@@ -285,6 +306,8 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	if req.PreferredOTPChannel == "" {
 		req.PreferredOTPChannel = "sms"
 	}
+	institutionID := s.institutionID(r)
+	institutionName := s.institutionName(r)
 
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
@@ -331,9 +354,9 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := tx.Exec(r.Context(), `
 		insert into app_session_context(user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
-		values ($1::uuid, 'inst-001', 'Colegiul Național EguEducation', array['oidc_redirect', 'sms_otp', 'passkey', 'eudi_wallet'], array['retention_policies', 'subject_export', 'purpose_limited_access', 'publication_anonymization'])
+		values ($1::uuid, $2, $3, array['oidc_redirect', 'sms_otp', 'passkey', 'eudi_wallet'], array['retention_policies', 'subject_export', 'purpose_limited_access', 'publication_anonymization'])
 		on conflict (user_id) do nothing
-	`, item.ID); err != nil {
+	`, item.ID, institutionID, institutionName); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 		return
 	}
@@ -362,9 +385,9 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusCreated, item)
 }
 
-func (s *Service) UserFilters(w http.ResponseWriter, _ *http.Request) {
+func (s *Service) UserFilters(w http.ResponseWriter, r *http.Request) {
 	load := func(sql string) ([]string, error) {
-		rows, err := s.pool.Query(context.Background(), sql)
+		rows, err := s.pool.Query(r.Context(), sql)
 		if err != nil {
 			return nil, err
 		}

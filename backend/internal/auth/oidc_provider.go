@@ -12,6 +12,7 @@ import (
 
 	"github.com/eguilde/egueducation/internal/config"
 	"github.com/eguilde/egueducation/internal/notification"
+	"github.com/eguilde/egueducation/internal/tenant"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -113,10 +114,10 @@ func seedOIDCClients(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) 
 	}
 
 	clients := []struct {
-		ID          string
-		Name        string
+		ID           string
+		Name         string
 		RedirectURIs []string
-		AppType     string
+		AppType      string
 	}{
 		{
 			ID:           cfg.OIDCClientID,
@@ -480,11 +481,11 @@ func buildDCRHandler(cfg *config.Config) goidc.HandleDynamicClientFunc {
 
 func buildProviderErrorRenderer(cfg *config.Config) goidc.RenderErrorFunc {
 	tmpl := template.Must(template.New("oidc-error").Parse(oidcErrorHTML))
-	return func(w http.ResponseWriter, _ *http.Request, err error) error {
+	return func(w http.ResponseWriter, r *http.Request, err error) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		return tmpl.Execute(w, map[string]string{
-			"CustomerName": cfg.CustomerName,
+			"CustomerName": tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name,
 			"Error":        "Sesiunea de autentificare a expirat sau cererea OIDC este invalidă. Vă rugăm să încercați din nou.",
 			"Detail":       err.Error(),
 		})
@@ -542,13 +543,15 @@ func renderMethodStep(
 	otp *otpService,
 	passkeyRedeemNonce func(string) (string, bool),
 ) (goidc.Status, error) {
+	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	data := oidcLoginData{
 		Step:           "methods",
 		StepLabel:      "Pasul 1",
-		CustomerName:   cfg.CustomerName,
+		CustomerName:   customerName,
 		FormAction:     formAction,
 		FrontendOrigin: cfg.FrontendOrigin,
 		WalletEnabled:  cfg.EnableWallet,
+		Theme:          resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -560,10 +563,11 @@ func renderMethodStep(
 		return renderOIDCStep(w, tmpl, oidcLoginData{
 			Step:           "otp_identifier",
 			StepLabel:      "Pasul 2",
-			CustomerName:   cfg.CustomerName,
+			CustomerName:   customerName,
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			WalletEnabled:  cfg.EnableWallet,
+			Theme:          resolveOIDCThemeSettings(r, sess),
 		})
 	case "eudi_wallet":
 		data.Error = "Autentificarea cu EUDI Wallet nu este disponibilă încă în acest flux."
@@ -597,15 +601,17 @@ func renderOTPIdentifierStep(
 	formAction string,
 	otp *otpService,
 ) (goidc.Status, error) {
+	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	identifier, _ := sess.StoredParameter("identifier").(string)
 	data := oidcLoginData{
 		Step:           "otp_identifier",
 		StepLabel:      "Pasul 2",
-		CustomerName:   cfg.CustomerName,
+		CustomerName:   customerName,
 		FormAction:     formAction,
 		FrontendOrigin: cfg.FrontendOrigin,
 		Identifier:     identifier,
 		WalletEnabled:  cfg.EnableWallet,
+		Theme:          resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -615,10 +621,11 @@ func renderOTPIdentifierStep(
 		return renderOIDCStep(w, tmpl, oidcLoginData{
 			Step:           "methods",
 			StepLabel:      "Pasul 1",
-			CustomerName:   cfg.CustomerName,
+			CustomerName:   customerName,
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			WalletEnabled:  cfg.EnableWallet,
+			Theme:          resolveOIDCThemeSettings(r, sess),
 		})
 	}
 
@@ -633,11 +640,6 @@ func renderOTPIdentifierStep(
 		data.Identifier = identifier
 		return renderOIDCStep(w, tmpl, data)
 	}
-	if smsService == nil || !smsService.Configured() {
-		data.Error = "Fluxul OTP nu este configurat pe acest mediu."
-		data.Identifier = identifier
-		return renderOIDCStep(w, tmpl, data)
-	}
 	code, err := otp.Generate(r.Context(), user.ID, otpPurposeLogin)
 	if err != nil {
 		data.Error = "Nu am putut genera codul OTP."
@@ -645,10 +647,21 @@ func renderOTPIdentifierStep(
 		return renderOIDCStep(w, tmpl, data)
 	}
 	message := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
-	if _, err := smsService.Send(r.Context(), user.PhoneNumber, message); err != nil {
-		data.Error = "Nu am putut trimite codul OTP prin SMS."
-		data.Identifier = identifier
-		return renderOIDCStep(w, tmpl, data)
+	if smsService != nil && smsService.Configured() {
+		if _, err := smsService.Send(r.Context(), user.PhoneNumber, message); err != nil {
+			data.Error = "Nu am putut trimite codul OTP prin SMS."
+			data.Identifier = identifier
+			return renderOIDCStep(w, tmpl, data)
+		}
+	} else if !cfg.IsProduction() {
+		message = fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code)
+	}
+	if smsService == nil || !smsService.Configured() {
+		if cfg.IsProduction() {
+			data.Error = "Serviciul SMS nu este configurat pe acest mediu."
+			data.Identifier = identifier
+			return renderOIDCStep(w, tmpl, data)
+		}
 	}
 
 	sess.StoreParameter("step", "otp")
@@ -657,10 +670,11 @@ func renderOTPIdentifierStep(
 	return renderOIDCStep(w, tmpl, oidcLoginData{
 		Step:         "otp",
 		StepLabel:    "Pasul 3",
-		CustomerName: cfg.CustomerName,
+		CustomerName: customerName,
 		FormAction:   formAction,
 		Identifier:   identifier,
-		Message:      "Am trimis un cod de verificare către telefonul asociat contului.",
+		Message:      message,
+		Theme:        resolveOIDCThemeSettings(r, sess),
 	})
 }
 
@@ -673,14 +687,16 @@ func renderOTPStep(
 	formAction string,
 	otp *otpService,
 ) (goidc.Status, error) {
+	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	identifier, _ := sess.StoredParameter("identifier").(string)
 	data := oidcLoginData{
 		Step:         "otp",
 		StepLabel:    "Pasul 3",
-		CustomerName: cfg.CustomerName,
+		CustomerName: customerName,
 		FormAction:   formAction,
 		Identifier:   identifier,
 		Message:      "Am trimis un cod de verificare către telefonul asociat contului.",
+		Theme:        resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -690,11 +706,12 @@ func renderOTPStep(
 		return renderOIDCStep(w, tmpl, oidcLoginData{
 			Step:           "otp_identifier",
 			StepLabel:      "Pasul 2",
-			CustomerName:   cfg.CustomerName,
+			CustomerName:   customerName,
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			Identifier:     identifier,
 			WalletEnabled:  cfg.EnableWallet,
+			Theme:          resolveOIDCThemeSettings(r, sess),
 		})
 	}
 
@@ -726,13 +743,15 @@ func renderConsentStep(
 	tmpl *template.Template,
 	formAction string,
 ) (goidc.Status, error) {
+	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	data := oidcLoginData{
 		Step:         "consent",
 		StepLabel:    "Pasul 4",
-		CustomerName: cfg.CustomerName,
+		CustomerName: customerName,
 		FormAction:   formAction,
-		ClientName:   cfg.CustomerName,
+		ClientName:   customerName,
 		Scopes:       buildScopeItems(sess.Scopes),
+		Theme:        resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -872,6 +891,181 @@ type oidcLoginData struct {
 	Error          string
 	WalletEnabled  bool
 	Scopes         []scopeItem
+	Theme          oidcThemeSettings
+}
+
+type oidcThemeSettings struct {
+	Scheme     string
+	Dark       bool
+	Primary    string
+	Surface    string
+	Primary500 string
+	Primary600 string
+	Primary700 string
+	Surface0   string
+	Surface50  string
+	Surface100 string
+	Surface200 string
+	Surface300 string
+	Surface500 string
+	Surface700 string
+	Surface900 string
+	Bg         string
+	Card       string
+	CardSoft   string
+	Border     string
+	Text       string
+	Muted      string
+	Soft       string
+	Focus      string
+	Shadow     string
+}
+
+func resolveOIDCThemeSettings(r *http.Request, sess *goidc.AuthnSession) oidcThemeSettings {
+	settings := oidcThemeSettings{
+		Scheme:  "system",
+		Primary: "rose",
+		Surface: "slate",
+		Dark:    false,
+	}
+
+	read := func(key string) string {
+		if r != nil {
+			if value := strings.TrimSpace(r.URL.Query().Get(key)); value != "" {
+				return value
+			}
+		}
+		if sess != nil {
+			if value, ok := sess.StoredParameter(key).(string); ok {
+				return strings.TrimSpace(value)
+			}
+		}
+		return ""
+	}
+
+	if value := read("ui_theme_scheme"); value == "light" || value == "dark" || value == "system" {
+		settings.Scheme = value
+	}
+	if value := read("ui_theme_primary"); value != "" {
+		settings.Primary = value
+	}
+	if value := read("ui_theme_surface"); value != "" {
+		settings.Surface = value
+	}
+	if value := read("ui_theme_dark"); value != "" {
+		settings.Dark = value == "1" || strings.EqualFold(value, "true") || strings.EqualFold(value, "yes")
+	}
+	if settings.Scheme == "dark" {
+		settings.Dark = true
+	} else if settings.Scheme == "light" {
+		settings.Dark = false
+	}
+
+	primary := resolveOIDCPrimaryPalette(settings.Primary)
+	surface := resolveOIDCSurfacePalette(settings.Surface)
+	settings.Primary500 = primary[500]
+	settings.Primary600 = primary[600]
+	settings.Primary700 = primary[700]
+	settings.Surface0 = surface[0]
+	settings.Surface50 = surface[50]
+	settings.Surface100 = surface[100]
+	settings.Surface200 = surface[200]
+	settings.Surface300 = surface[300]
+	settings.Surface500 = surface[500]
+	settings.Surface700 = surface[700]
+	settings.Surface900 = surface[900]
+
+	if settings.Dark {
+		settings.Bg = settings.Surface900
+		settings.Card = settings.Surface800()
+		settings.CardSoft = settings.Surface700
+		settings.Border = settings.Surface700
+		settings.Text = settings.Surface0
+		settings.Muted = settings.Surface300
+		settings.Shadow = "0 24px 60px rgba(2,6,23,.45)"
+	} else {
+		settings.Bg = settings.Surface50
+		settings.Card = settings.Surface0
+		settings.CardSoft = settings.Surface50
+		settings.Border = settings.Surface200
+		settings.Text = settings.Surface900
+		settings.Muted = settings.Surface500
+		settings.Shadow = "0 24px 60px rgba(15,23,42,.14)"
+	}
+	settings.Soft = fmt.Sprintf("color-mix(in srgb, %s 12%%, %s)", settings.Primary500, settings.Surface0)
+	settings.Focus = fmt.Sprintf("color-mix(in srgb, %s 22%%, transparent)", settings.Primary500)
+	return settings
+}
+
+func (s oidcThemeSettings) Surface800() string {
+	return resolveOIDCSurfacePalette(s.Surface)[800]
+}
+
+func storeOIDCThemeSettings(sess *goidc.AuthnSession, r *http.Request) {
+	if sess == nil || r == nil {
+		return
+	}
+	for _, key := range []string{"ui_theme_scheme", "ui_theme_primary", "ui_theme_surface", "ui_theme_dark"} {
+		if value := strings.TrimSpace(r.URL.Query().Get(key)); value != "" {
+			sess.StoreParameter(key, value)
+		}
+	}
+}
+
+func resolveOIDCPrimaryPalette(name string) map[int]string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "emerald":
+		return map[int]string{50: "#ecfdf5", 100: "#d1fae5", 200: "#a7f3d0", 300: "#6ee7b7", 400: "#34d399", 500: "#10b981", 600: "#059669", 700: "#047857", 800: "#065f46", 900: "#064e3b", 950: "#022c22"}
+	case "green":
+		return map[int]string{50: "#f0fdf4", 100: "#dcfce7", 200: "#bbf7d0", 300: "#86efac", 400: "#4ade80", 500: "#22c55e", 600: "#16a34a", 700: "#15803d", 800: "#166534", 900: "#14532d", 950: "#052e16"}
+	case "lime":
+		return map[int]string{50: "#f7fee7", 100: "#ecfccb", 200: "#d9f99d", 300: "#bef264", 400: "#a3e635", 500: "#84cc16", 600: "#65a30d", 700: "#4d7c0f", 800: "#3f6212", 900: "#365314", 950: "#1a2e05"}
+	case "orange":
+		return map[int]string{50: "#fff7ed", 100: "#ffedd5", 200: "#fed7aa", 300: "#fdba74", 400: "#fb923c", 500: "#f97316", 600: "#ea580c", 700: "#c2410c", 800: "#9a3412", 900: "#7c2d12", 950: "#431407"}
+	case "amber":
+		return map[int]string{50: "#fffbeb", 100: "#fef3c7", 200: "#fde68a", 300: "#fcd34d", 400: "#fbbf24", 500: "#f59e0b", 600: "#d97706", 700: "#b45309", 800: "#92400e", 900: "#78350f", 950: "#451a03"}
+	case "yellow":
+		return map[int]string{50: "#fefce8", 100: "#fef9c3", 200: "#fef08a", 300: "#fde047", 400: "#facc15", 500: "#eab308", 600: "#ca8a04", 700: "#a16207", 800: "#854d0e", 900: "#713f12", 950: "#422006"}
+	case "teal":
+		return map[int]string{50: "#f0fdfa", 100: "#ccfbf1", 200: "#99f6e4", 300: "#5eead4", 400: "#2dd4bf", 500: "#14b8a6", 600: "#0d9488", 700: "#0f766e", 800: "#115e59", 900: "#134e4a", 950: "#042f2e"}
+	case "cyan":
+		return map[int]string{50: "#ecfeff", 100: "#cffafe", 200: "#a5f3fc", 300: "#67e8f9", 400: "#22d3ee", 500: "#06b6d4", 600: "#0891b2", 700: "#0e7490", 800: "#155e75", 900: "#164e63", 950: "#083344"}
+	case "sky":
+		return map[int]string{50: "#f0f9ff", 100: "#e0f2fe", 200: "#bae6fd", 300: "#7dd3fc", 400: "#38bdf8", 500: "#0ea5e9", 600: "#0284c7", 700: "#0369a1", 800: "#075985", 900: "#0c4a6e", 950: "#082f49"}
+	case "blue":
+		return map[int]string{50: "#eff6ff", 100: "#dbeafe", 200: "#bfdbfe", 300: "#93c5fd", 400: "#60a5fa", 500: "#3b82f6", 600: "#2563eb", 700: "#1d4ed8", 800: "#1e40af", 900: "#1e3a8a", 950: "#172554"}
+	case "indigo":
+		return map[int]string{50: "#eef2ff", 100: "#e0e7ff", 200: "#c7d2fe", 300: "#a5b4fc", 400: "#818cf8", 500: "#6366f1", 600: "#4f46e5", 700: "#4338ca", 800: "#3730a3", 900: "#312e81", 950: "#1e1b4b"}
+	case "violet":
+		return map[int]string{50: "#f5f3ff", 100: "#ede9fe", 200: "#ddd6fe", 300: "#c4b5fd", 400: "#a78bfa", 500: "#8b5cf6", 600: "#7c3aed", 700: "#6d28d9", 800: "#5b21b6", 900: "#4c1d95", 950: "#2e1065"}
+	case "purple":
+		return map[int]string{50: "#faf5ff", 100: "#f3e8ff", 200: "#e9d5ff", 300: "#d8b4fe", 400: "#c084fc", 500: "#a855f7", 600: "#9333ea", 700: "#7e22ce", 800: "#6b21a8", 900: "#581c87", 950: "#3b0764"}
+	case "fuchsia":
+		return map[int]string{50: "#fdf4ff", 100: "#fae8ff", 200: "#f5d0fe", 300: "#f0abfc", 400: "#e879f9", 500: "#d946ef", 600: "#c026d3", 700: "#a21caf", 800: "#86198f", 900: "#701a75", 950: "#4a044e"}
+	case "pink":
+		return map[int]string{50: "#fdf2f8", 100: "#fce7f3", 200: "#fbcfe8", 300: "#f9a8d4", 400: "#f472b6", 500: "#ec4899", 600: "#db2777", 700: "#be185d", 800: "#9d174d", 900: "#831843", 950: "#500724"}
+	case "rose":
+		fallthrough
+	default:
+		return map[int]string{50: "#fff1f2", 100: "#ffe4e6", 200: "#fecdd3", 300: "#fda4af", 400: "#fb7185", 500: "#f43f5e", 600: "#e11d48", 700: "#be123c", 800: "#9f1239", 900: "#881337", 950: "#4c0519"}
+	}
+}
+
+func resolveOIDCSurfacePalette(name string) map[int]string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "gray":
+		return map[int]string{0: "#ffffff", 50: "#f9fafb", 100: "#f3f4f6", 200: "#e5e7eb", 300: "#d1d5db", 400: "#9ca3af", 500: "#6b7280", 600: "#4b5563", 700: "#374151", 800: "#1f2937", 900: "#111827", 950: "#030712"}
+	case "zinc":
+		return map[int]string{0: "#ffffff", 50: "#fafafa", 100: "#f4f4f5", 200: "#e4e4e7", 300: "#d4d4d8", 400: "#a1a1aa", 500: "#71717a", 600: "#52525b", 700: "#3f3f46", 800: "#27272a", 900: "#18181b", 950: "#09090b"}
+	case "neutral":
+		return map[int]string{0: "#ffffff", 50: "#fafafa", 100: "#f5f5f5", 200: "#e5e5e5", 300: "#d4d4d4", 400: "#a3a3a3", 500: "#737373", 600: "#525252", 700: "#404040", 800: "#262626", 900: "#171717", 950: "#0a0a0a"}
+	case "stone":
+		return map[int]string{0: "#ffffff", 50: "#fafaf9", 100: "#f5f5f4", 200: "#e7e5e4", 300: "#d6d3d1", 400: "#a8a29e", 500: "#78716c", 600: "#57534e", 700: "#44403c", 800: "#292524", 900: "#1c1917", 950: "#0c0a09"}
+	case "slate":
+		fallthrough
+	default:
+		return map[int]string{0: "#ffffff", 50: "#f8fafc", 100: "#f1f5f9", 200: "#e2e8f0", 300: "#cbd5e1", 400: "#94a3b8", 500: "#64748b", 600: "#475569", 700: "#334155", 800: "#1e293b", 900: "#0f172a", 950: "#020617"}
+	}
 }
 
 const oidcErrorHTML = `<!DOCTYPE html>

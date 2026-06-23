@@ -12,26 +12,27 @@ import (
 
 	"github.com/eguilde/egueducation/internal/audit"
 	"github.com/eguilde/egueducation/internal/config"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/eguilde/egueducation/internal/notification"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/eguilde/egueducation/internal/tenant"
 )
 
 type Service struct {
 	cfg         config.Config
 	smsService  *notification.SMSService
-	db          *pgxpool.Pool
+	db          *appdb.SessionPool
 	oidcHandler http.Handler
 	verifier    *JWTVerifier
 }
 
-func NewService(cfg config.Config, smsService *notification.SMSService, db *pgxpool.Pool) (*Service, error) {
+func NewService(cfg config.Config, smsService *notification.SMSService, db *appdb.SessionPool) (*Service, error) {
 	service := &Service{
 		cfg:        cfg,
 		smsService: smsService,
 		db:         db,
 	}
-	oidcHandler, verifier, err := newOIDCProviderHandler(db, &cfg, smsService, service.redeemPasskeyLoginNonce)
+	oidcHandler, verifier, err := newOIDCProviderHandler(db.Raw(), &cfg, smsService, service.redeemPasskeyLoginNonce)
 	if err != nil {
 		return nil, fmt.Errorf("initialize oidc provider: %w", err)
 	}
@@ -175,7 +176,7 @@ func (s *Service) SessionContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := s.loadSessionContext(r.Context(), subject)
+	session, err := s.loadSessionContext(r.Context(), r.Host, subject)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]string{
 			"code":    "session_load_failed",
@@ -228,7 +229,7 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		"locale": req.Locale,
 	})
 
-	updated, err := s.loadSessionContext(r.Context(), session.User.Sub)
+	updated, err := s.loadSessionContext(r.Context(), r.Host, session.User.Sub)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "session_load_failed"})
 		return
@@ -637,7 +638,7 @@ func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 			return
 		}
-		session, err := s.loadSessionContext(r.Context(), subject)
+		session, err := s.loadSessionContext(r.Context(), r.Host, subject)
 		if err != nil {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 			return
@@ -672,7 +673,7 @@ func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := s.loadSessionContext(r.Context(), subject)
+	session, err := s.loadSessionContext(r.Context(), r.Host, subject)
 	if err != nil {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 		return
@@ -690,7 +691,7 @@ func (s *Service) ExchangeSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *Service) loadSessionContext(ctx context.Context, subject string) (SessionContext, error) {
+func (s *Service) loadSessionContext(ctx context.Context, host string, subject string) (SessionContext, error) {
 	var session SessionContext
 	err := s.db.QueryRow(ctx, `
 		select
@@ -729,6 +730,10 @@ func (s *Service) loadSessionContext(ctx context.Context, subject string) (Sessi
 		return SessionContext{}, err
 	}
 
+	branding := tenant.ResolveBranding(host, session.InstitutionName, session.InstitutionID)
+	session.InstitutionID = branding.InstitutionID
+	session.InstitutionName = branding.Name
+
 	roleRows, err := s.db.Query(ctx, `
 		select distinct role_code
 		from (
@@ -741,11 +746,13 @@ func (s *Service) loadSessionContext(ctx context.Context, subject string) (Sessi
 			from app_memberships m
 			join app_users u on u.id = m.user_id
 			join app_position_roles pr on pr.position_code = m.position_code
+			left join app_org_units ou on ou.code = m.org_unit_code
 			where lower(u.sub) = lower($1)
 				and m.active = true
+				and coalesce(ou.tenant_code, '') = $2
 		) roles
 		order by role_code
-	`, subject)
+	`, subject, session.InstitutionID)
 	if err != nil {
 		return SessionContext{}, err
 	}

@@ -10,18 +10,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 
@@ -34,6 +34,10 @@ func (s *Service) logAudit(r *http.Request, action string, targetType string, ta
 		Summary:      summary,
 		Details:      details,
 	})
+}
+
+func (s *Service) institutionID(r *http.Request) string {
+	return strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
 }
 
 func (s *Service) Nomenclatures(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +244,7 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	document, err := s.createDocumentTx(ctx, tx, req, authruntime.CurrentSubjectFromRequest(r))
+	document, err := s.createDocumentTx(ctx, tx, req, authruntime.CurrentSubjectFromRequest(r), s.institutionID(r))
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "registry_not_found"})
@@ -966,7 +970,7 @@ func (s *Service) CreateDocumentAttachment(w http.ResponseWriter, r *http.Reques
 
 func (s *Service) LookupDocuments(w http.ResponseWriter, r *http.Request) {
 	search := strings.TrimSpace(r.URL.Query().Get("query"))
-	args := []any{"inst-001"}
+	args := []any{s.institutionID(r)}
 	whereClause := "where d.institution_id = $1"
 	if search != "" {
 		args = append(args, "%"+strings.ToLower(search)+"%")

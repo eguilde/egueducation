@@ -10,18 +10,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 

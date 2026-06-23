@@ -3,15 +3,18 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
+	"github.com/eguilde/egueducation/internal/tenant"
 )
 
 type sessionContextKey string
 type accessClaimsContextKey string
 
 const (
-	requestSessionContextKey sessionContextKey     = "egueducation.session"
+	requestSessionContextKey sessionContextKey      = "egueducation.session"
 	requestClaimsContextKey  accessClaimsContextKey = "egueducation.access_claims"
 )
 
@@ -50,13 +53,35 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			return
 		}
 
-		session, err := s.loadSessionContext(r.Context(), claims.Subject)
+		session, err := s.loadSessionContext(r.Context(), r.Host, claims.Subject)
 		if err != nil {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), requestClaimsContextKey, claims)
+		branding := tenant.ResolveBranding(r.Host, session.InstitutionName, session.InstitutionID)
+		isSuperAdmin := false
+		for _, role := range session.User.Roles {
+			if strings.EqualFold(role, "super_admin") {
+				isSuperAdmin = true
+				break
+			}
+		}
+		sessionCtx, release, err := appdb.AcquireRequestConn(r.Context(), s.db.Raw(), appdb.SessionConfig{
+			TenantID:        session.InstitutionID,
+			InstitutionID:   session.InstitutionID,
+			InstitutionName: session.InstitutionName,
+			TenantSubdomain: branding.Subdomain,
+			ActorSubject:    session.User.Sub,
+			IsSuperAdmin:    isSuperAdmin,
+		})
+		if err != nil {
+			httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "tenant_session_unavailable"})
+			return
+		}
+		defer release()
+
+		ctx := context.WithValue(sessionCtx, requestClaimsContextKey, claims)
 		ctx = context.WithValue(ctx, requestSessionContextKey, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

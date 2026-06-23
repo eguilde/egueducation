@@ -9,18 +9,18 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 
@@ -33,6 +33,10 @@ func (s *Service) logAudit(r *http.Request, action string, targetType string, ta
 		Summary:      summary,
 		Details:      details,
 	})
+}
+
+func (s *Service) institutionID(r *http.Request) string {
+	return strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
 }
 
 func (s *Service) Nomenclatures(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +106,7 @@ func (s *Service) Nomenclatures(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var response DashboardResponse
 	err := s.pool.QueryRow(r.Context(), `
 		select
@@ -110,8 +115,8 @@ func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
 			count(*) filter (where status = 'draft') as draft_records,
 			count(distinct fond) as unique_fonds
 		from archive_records
-		where institution_id = 'inst-001'
-	`).Scan(
+		where institution_id = $1
+	`, institutionID).Scan(
 		&response.Stats.TotalRecords,
 		&response.Stats.ValidatedRecords,
 		&response.Stats.DraftRecords,
@@ -142,7 +147,7 @@ func (s *Service) ListRecords(w http.ResponseWriter, r *http.Request) {
 		[]string{"record_number", "title", "fond", "series", "source_module", "status", "assigned_archivist", "archived_on"},
 	)
 
-	whereClause, args := buildRecordFilters(query.Filters)
+	whereClause, args := buildRecordFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	countSQL := "select count(*) from archive_records ar " + whereClause
@@ -322,7 +327,7 @@ func (s *Service) CreateRecord(w http.ResponseWriter, r *http.Request) {
 		req.BoxNumber,
 		req.LocationCode,
 		req.ArchivedAt,
-		"inst-001",
+		s.institutionID(r),
 		req.Notes,
 	).Scan(
 		&record.ID,
@@ -365,9 +370,9 @@ func (s *Service) CreateRecord(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusCreated, record)
 }
 
-func buildRecordFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"ar.institution_id = 'inst-001'"}
-	args := []any{}
+func buildRecordFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"ar.institution_id = $1"}
+	args := []any{institutionID}
 
 	addContains := func(column string, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")

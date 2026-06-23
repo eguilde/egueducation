@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
 type Purpose string
@@ -34,7 +34,11 @@ type Requirement struct {
 	RequiredForApprove   bool   `json:"required_for_approve"`
 }
 
-func Evaluate(ctx context.Context, pool *pgxpool.Pool, sourceModule string, hasSourceRecord bool, counts RelationCounts, purpose Purpose) (bool, []string, error) {
+type Queryer interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func Evaluate(ctx context.Context, pool Queryer, sourceModule string, hasSourceRecord bool, counts RelationCounts, purpose Purpose) (bool, []string, error) {
 	if !hasSourceRecord {
 		return true, []string{}, nil
 	}
@@ -62,7 +66,7 @@ func Evaluate(ctx context.Context, pool *pgxpool.Pool, sourceModule string, hasS
 	return len(missing) == 0, missing, nil
 }
 
-func ListRequirements(ctx context.Context, pool *pgxpool.Pool, sourceModule string) ([]Requirement, error) {
+func ListRequirements(ctx context.Context, pool Queryer, sourceModule string) ([]Requirement, error) {
 	rows, err := pool.Query(ctx, `
 		select
 			id::text,

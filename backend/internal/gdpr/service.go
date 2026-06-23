@@ -8,18 +8,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
+	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *pgxpool.Pool
+	pool *appdb.SessionPool
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 
@@ -32,6 +31,10 @@ func (s *Service) logAudit(r *http.Request, action string, targetType string, ta
 		Summary:      summary,
 		Details:      details,
 	})
+}
+
+func (s *Service) institutionID(r *http.Request) string {
+	return strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
 }
 
 func (s *Service) Config(w http.ResponseWriter, r *http.Request) {
@@ -67,16 +70,17 @@ func (s *Service) Config(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var response DashboardResponse
 	err := s.pool.QueryRow(r.Context(), `
 		select
 			count(*) filter (where status = 'active') as active_policies,
-			(select count(*) from gdpr_subject_requests where institution_id = 'inst-001' and status in ('received', 'identity_check', 'in_progress', 'waiting_approval')) as pending_requests,
-			(select count(*) from gdpr_subject_requests where institution_id = 'inst-001' and due_on < current_date and status not in ('completed', 'rejected')) as overdue_requests,
-			(select count(*) from gdpr_subject_requests where institution_id = 'inst-001' and anonymization_required = true) as anonymization_cases
+			(select count(*) from gdpr_subject_requests where institution_id = $1 and status in ('received', 'identity_check', 'in_progress', 'waiting_approval')) as pending_requests,
+			(select count(*) from gdpr_subject_requests where institution_id = $1 and due_on < current_date and status not in ('completed', 'rejected')) as overdue_requests,
+			(select count(*) from gdpr_subject_requests where institution_id = $1 and anonymization_required = true) as anonymization_cases
 		from gdpr_retention_policies
-		where institution_id = 'inst-001'
-	`).Scan(
+		where institution_id = $1
+	`, institutionID).Scan(
 		&response.Stats.ActivePolicies,
 		&response.Stats.PendingRequests,
 		&response.Stats.OverdueRequests,
@@ -104,7 +108,7 @@ func (s *Service) RetentionPolicies(w http.ResponseWriter, r *http.Request) {
 		[]string{"policy_code", "domain_code", "record_category", "status", "review_due_on"},
 	)
 
-	whereClause, args := buildRetentionFilters(query.Filters)
+	whereClause, args := buildRetentionFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	if err := s.pool.QueryRow(r.Context(), "select count(*) from gdpr_retention_policies grp "+whereClause, args...).Scan(&total); err != nil {
@@ -187,6 +191,7 @@ func (s *Service) RetentionPolicyFilters(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Service) CreateRetentionPolicy(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var req CreateRetentionPolicyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_retention_policy_payload"})
@@ -253,7 +258,7 @@ func (s *Service) CreateRetentionPolicy(w http.ResponseWriter, r *http.Request) 
 		req.Status,
 		req.ReviewDueOn,
 		req.OwnerName,
-		"inst-001",
+		institutionID,
 		req.Notes,
 	).Scan(
 		&item.ID,
@@ -301,7 +306,7 @@ func (s *Service) SubjectRequests(w http.ResponseWriter, r *http.Request) {
 		[]string{"request_code", "subject_name", "request_type", "status", "submitted_on", "due_on"},
 	)
 
-	whereClause, args := buildSubjectRequestFilters(query.Filters)
+	whereClause, args := buildSubjectRequestFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	if err := s.pool.QueryRow(r.Context(), "select count(*) from gdpr_subject_requests gsr "+whereClause, args...).Scan(&total); err != nil {
@@ -390,6 +395,7 @@ func (s *Service) SubjectRequestFilters(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Service) CreateSubjectRequest(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var req CreateSubjectRequestRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_subject_request_payload"})
@@ -464,7 +470,7 @@ func (s *Service) CreateSubjectRequest(w http.ResponseWriter, r *http.Request) {
 		req.HandledBy,
 		req.SourceModule,
 		req.AnonymizationRequired,
-		"inst-001",
+		institutionID,
 		req.Notes,
 	).Scan(
 		&item.ID,
@@ -500,6 +506,7 @@ func (s *Service) CreateSubjectRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) ExportDashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var response ExportDashboardResponse
 	err := s.pool.QueryRow(r.Context(), `
 		select
@@ -508,8 +515,8 @@ func (s *Service) ExportDashboard(w http.ResponseWriter, r *http.Request) {
 			count(*) filter (where status = 'generated') as generated_exports,
 			count(*) filter (where status = 'delivered') as delivered_exports
 		from gdpr_subject_exports
-		where institution_id = 'inst-001'
-	`).Scan(
+		where institution_id = $1
+	`, institutionID).Scan(
 		&response.Stats.TotalExports,
 		&response.Stats.PendingApproval,
 		&response.Stats.GeneratedExports,
@@ -538,7 +545,7 @@ func (s *Service) SubjectExports(w http.ResponseWriter, r *http.Request) {
 		[]string{"export_code", "subject_name", "source_module", "status", "export_format", "approved_on", "generated_on"},
 	)
 
-	whereClause, args := buildSubjectExportFilters(query.Filters)
+	whereClause, args := buildSubjectExportFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	if err := s.pool.QueryRow(r.Context(), "select count(*) from gdpr_subject_exports gse "+whereClause, args...).Scan(&total); err != nil {
@@ -629,6 +636,7 @@ func (s *Service) SubjectExportFilters(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) CreateSubjectExport(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var req CreateSubjectExportRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_subject_export_payload"})
@@ -712,7 +720,7 @@ func (s *Service) CreateSubjectExport(w http.ResponseWriter, r *http.Request) {
 		req.ApprovedOn,
 		req.GeneratedOn,
 		req.PackageSummary,
-		"inst-001",
+		institutionID,
 		req.Notes,
 	).Scan(
 		&item.ID,
@@ -746,6 +754,7 @@ func (s *Service) CreateSubjectExport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) PublicationDashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var response PublicationDashboardResponse
 	err := s.pool.QueryRow(r.Context(), `
 		select
@@ -754,8 +763,8 @@ func (s *Service) PublicationDashboard(w http.ResponseWriter, r *http.Request) {
 			count(*) filter (where publication_status = 'ready') as ready_for_publication,
 			count(*) filter (where publication_status = 'published') as published_items
 		from gdpr_publication_reviews
-		where institution_id = 'inst-001'
-	`).Scan(
+		where institution_id = $1
+	`, institutionID).Scan(
 		&response.Stats.TotalReviews,
 		&response.Stats.PendingAnonymization,
 		&response.Stats.ReadyForPublication,
@@ -783,7 +792,7 @@ func (s *Service) PublicationReviews(w http.ResponseWriter, r *http.Request) {
 		[]string{"review_code", "source_module", "source_label", "anonymization_status", "publication_status", "reviewed_on"},
 	)
 
-	whereClause, args := buildPublicationReviewFilters(query.Filters)
+	whereClause, args := buildPublicationReviewFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	if err := s.pool.QueryRow(r.Context(), "select count(*) from gdpr_publication_reviews gpr "+whereClause, args...).Scan(&total); err != nil {
@@ -872,6 +881,7 @@ func (s *Service) PublicationReviewFilters(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Service) CreatePublicationReview(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
 	var req CreatePublicationReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_publication_review_payload"})
@@ -945,7 +955,7 @@ func (s *Service) CreatePublicationReview(w http.ResponseWriter, r *http.Request
 		req.ReviewedBy,
 		req.ReviewedOn,
 		req.LegalBasis,
-		"inst-001",
+		institutionID,
 		req.Notes,
 	).Scan(
 		&item.ID,
@@ -977,9 +987,9 @@ func (s *Service) CreatePublicationReview(w http.ResponseWriter, r *http.Request
 	httpx.JSON(w, http.StatusCreated, item)
 }
 
-func buildRetentionFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"grp.institution_id = 'inst-001'"}
-	args := []any{}
+func buildRetentionFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"grp.institution_id = $1"}
+	args := []any{institutionID}
 	addContains := func(column, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, fmt.Sprintf("lower(%s) like $%d", column, len(args)))
@@ -1027,9 +1037,9 @@ func retentionSortColumn(field string) string {
 	}
 }
 
-func buildSubjectRequestFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"gsr.institution_id = 'inst-001'"}
-	args := []any{}
+func buildSubjectRequestFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"gsr.institution_id = $1"}
+	args := []any{institutionID}
 	addContains := func(column, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, fmt.Sprintf("lower(%s) like $%d", column, len(args)))
@@ -1088,9 +1098,9 @@ func subjectRequestSortColumn(field string) string {
 	}
 }
 
-func buildSubjectExportFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"gse.institution_id = 'inst-001'"}
-	args := []any{}
+func buildSubjectExportFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"gse.institution_id = $1"}
+	args := []any{institutionID}
 	addContains := func(column, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, fmt.Sprintf("lower(%s) like $%d", column, len(args)))
@@ -1148,9 +1158,9 @@ func subjectExportSortColumn(field string) string {
 	}
 }
 
-func buildPublicationReviewFilters(filters map[string]string) (string, []any) {
-	clauses := []string{"gpr.institution_id = 'inst-001'"}
-	args := []any{}
+func buildPublicationReviewFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"gpr.institution_id = $1"}
+	args := []any{institutionID}
 	addContains := func(column, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, fmt.Sprintf("lower(%s) like $%d", column, len(args)))

@@ -205,7 +205,7 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 			createReq.Subject = fmt.Sprintf("%s #%d", req.Subject, i+1)
 		}
 
-		item, err := s.createDocumentTx(r.Context(), tx, createReq, authruntime.CurrentSubjectFromRequest(r))
+		item, err := s.createDocumentTx(r.Context(), tx, createReq, authruntime.CurrentSubjectFromRequest(r), s.institutionID(r))
 		if err != nil {
 			if err == pgx.ErrNoRows {
 				httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "registry_not_found"})
@@ -532,7 +532,7 @@ func (s *Service) resolveRegistryID(ctx context.Context, tx pgx.Tx, registruID *
 	return id, nil
 }
 
-func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDocumentRequest, createdBy string) (Document, error) {
+func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDocumentRequest, createdBy string, institutionID string) (Document, error) {
 	var document Document
 
 	registruID, err := s.resolveRegistryID(ctx, tx, req.RegistruID)
@@ -589,7 +589,7 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 		req.Status,
 		req.Correspondent,
 		req.AssignedTo,
-		"inst-001",
+		institutionID,
 		req.Confidentiality,
 		req.Summary,
 		dueDate,
