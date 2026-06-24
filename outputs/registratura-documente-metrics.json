@@ -1,0 +1,63 @@
+{
+  "url": "http://localhost:4200/documente",
+  "filterPanelVisible": true,
+  "headerColumns": "40px 787.203px 240px",
+  "searchButtonRect": {
+    "x": 333,
+    "y": 138,
+    "width": 40,
+    "height": 40
+  },
+  "centerGroupRect": {
+    "x": 385,
+    "y": 137,
+    "width": 787,
+    "height": 42
+  },
+  "centerTexts": [
+    "Intrare",
+    "Ieșire",
+    "Multiplu"
+  ],
+  "registryLabelRect": {
+    "x": 1184,
+    "y": 137,
+    "width": 192,
+    "height": 42
+  },
+  "registrySelectRect": {
+    "x": 1184,
+    "y": 137,
+    "width": 192,
+    "height": 42
+  },
+  "exportButtonRect": {
+    "x": 1384,
+    "y": 138,
+    "width": 40,
+    "height": 40
+  },
+  "tableRootRect": {
+    "x": 333,
+    "y": 191,
+    "width": 1091,
+    "height": 721
+  },
+  "datatableRect": null,
+  "gridRect": {
+    "x": 333,
+    "y": 191,
+    "width": 1367,
+    "height": 1701
+  },
+  "paginatorRect": {
+    "x": 333,
+    "y": 872,
+    "width": 1091,
+    "height": 40
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 960
+  }
+}

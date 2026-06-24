@@ -1,0 +1,23 @@
+- generic [ref=e2]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: Pasul 3
+        - heading "È˜coala GimnazialÄƒ nr. 1 BaloteÈ™ti" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Autentificare OIDC securizată pentru acces la platformă.
+      - generic [ref=e9]: "Codul dumneavoastră de autentificare este: 245535. Valabil 10 minute."
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - textbox [ref=e12]: "2"
+          - textbox [ref=e13]: "4"
+          - textbox [ref=e14]: "5"
+          - textbox [ref=e15]: "5"
+          - textbox [ref=e16]: "3"
+          - textbox [ref=e17]: "5"
+        - button "Verifica codul" [active] [ref=e18] [cursor=pointer]
+      - button "Inapoi la identificare" [ref=e21] [cursor=pointer]
+  - complementary [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]: eGuilde Identity
+      - heading [level=2] [ref=e25]: Acces securizat la servicii educationale digitale.
+      - paragraph [ref=e26]: Autentificare moderna pentru OTP, passkey si EUDI Wallet, cu pasi clari si consistenti pentru fiecare institutie.

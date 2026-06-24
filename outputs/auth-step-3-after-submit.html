@@ -1,0 +1,142 @@
+<!DOCTYPE html><html lang="ro"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>È˜coala GimnazialÄƒ nr. 1 BaloteÈ™ti - Autentificare</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{color-scheme:light;--primary-50:#fff1f2;--primary-500:#f43f5e;--primary-600:#e11d48;--primary-700:#be123c;--surface-0:#fff;--surface-50:#f8fafc;--surface-100:#f1f5f9;--surface-200:#e2e8f0;--surface-300:#cbd5e1;--surface-500:#64748b;--surface-700:#334155;--surface-900:#0f172a;--bg:var(--surface-50);--card:var(--surface-0);--card-soft:var(--surface-50);--border:var(--surface-200);--text:var(--surface-900);--muted:var(--surface-500);--soft:color-mix(in srgb,var(--primary-500) 12%,var(--surface-0));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:0 24px 60px rgba(15,23,42,.14)}
+    html,body{height:100%}
+    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow:hidden}
+    .auth-shell{min-height:100vh;width:100%;display:grid;grid-template-columns:minmax(360px,440px) minmax(0,1fr);background:var(--card)}
+    .auth-panel{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:clamp(24px,4vw,64px);overflow-y:auto}
+    .auth-visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,80px);color:#fff;background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(190,18,60,.82) 46%,rgba(8,47,73,.48));overflow:hidden}
+    .auth-visual::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 24% 20%,rgba(255,255,255,.18),transparent 28%),linear-gradient(180deg,transparent 45%,rgba(14,8,18,.36));pointer-events:none}
+    .visual-copy{position:relative;z-index:1;max-width:560px}
+    .visual-kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.8;margin-bottom:14px}
+    .visual-copy h2{font-size:clamp(34px,4.5vw,60px);line-height:1.02;font-weight:750;margin-bottom:18px;color:#fff}
+    .visual-copy p{max-width:460px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.86)}
+    #content{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
+    .header{text-align:center;margin-bottom:18px}
+    .step{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:var(--soft);color:var(--primary-700);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+    h1{font-size:20px;font-weight:700;color:var(--text)}
+    .subtitle{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+    .error-banner{background:#fef2f2;border-left:4px solid #ef4444;padding:12px;margin-bottom:16px;border-radius:0 12px 12px 0;display:flex;align-items:center;gap:8px}
+    .error-banner p{color:#b91c1c;font-size:12px;font-weight:500;line-height:1.5}
+    .info-banner{background:var(--soft);border-left:4px solid var(--primary-500);padding:10px 12px;margin-bottom:16px;border-radius:0 10px 10px 0;font-size:12px;color:var(--text);line-height:1.5}
+    .method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+    .method-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);text-align:center;cursor:pointer;color:inherit;font:inherit;transition:transform .2s,box-shadow .2s,border-color .2s,background .2s;width:100%}
+    .method-card:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.12);border-color:var(--primary-500);background:var(--soft)}
+    .method-card:disabled{cursor:not-allowed;opacity:.6;box-shadow:none;transform:none}
+    .method-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:var(--soft);color:var(--primary-600)}
+    .method-title{font-size:14px;font-weight:600;color:var(--text)}
+    .method-subtitle{font-size:12px;color:var(--muted);margin-top:2px}
+    .passkey-banner{display:flex;align-items:center;gap:8px;padding:10px;margin-top:10px;border-radius:12px;border:1px solid var(--border);background:var(--card-soft);font-size:12px;color:var(--text)}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
+    .field input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+    .field input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus);background:var(--card)}
+    .hint{font-size:12px;line-height:1.5;color:var(--muted);margin-top:6px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--primary-500);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
+    .btn:hover{background:var(--primary-600);box-shadow:0 10px 20px rgba(15,23,42,.16)}
+    .btn:disabled{background:var(--surface-300);color:var(--surface-500);cursor:not-allowed;box-shadow:none}
+    .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:8px}
+    .btn-secondary:hover{background:var(--card-soft)}
+    .btn-deny{background:transparent;border:1px solid var(--border);color:#b3261e;margin-top:8px}
+    .btn-deny:hover{background:#fef2f2;border-color:#ef4444}
+    .back-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;margin-bottom:16px;text-decoration:none}
+    .back-link:hover{color:var(--primary-600)}
+    .otp-boxes{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+    .otp-box{width:44px;height:52px;border:1.5px solid var(--border);border-radius:10px;font-size:22px;font-weight:600;text-align:center;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;caret-color:transparent;background:var(--card-soft)}
+    .otp-box:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus)}
+    .otp-box.filled{border-color:var(--primary-500);background:var(--soft)}
+    .client-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card-soft);margin-bottom:16px}
+    .client-logo{width:40px;height:40px;border-radius:10px;background:var(--primary-500);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .client-name{font-size:15px;font-weight:600;color:var(--text)}
+    .client-sub{font-size:12px;color:var(--muted)}
+    .select-all-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+    .scope-list{margin-bottom:16px}
+    .scope-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;user-select:none;transition:background .15s,border-color .15s}
+    .scope-item:hover{background:var(--soft);border-color:var(--primary-500)}
+    .scope-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary-500);cursor:pointer}
+    .scope-label{font-size:14px;font-weight:500;color:var(--text)}
+    .gdpr-notice{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+    @media (max-width: 960px){body{overflow-y:auto}.auth-shell{grid-template-columns:1fr}.auth-visual{display:none}.auth-panel{min-height:auto;padding:24px 16px}.method-grid{grid-template-columns:1fr}.otp-box{width:40px;height:48px}}
+    @media (max-width: 520px){.auth-panel{padding:0}#content{max-width:none;min-height:100vh;border:0;border-radius:0;box-shadow:none;padding:24px 18px}.otp-boxes{gap:6px}}
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <main class="auth-panel">
+      <div id="content">
+        <div class="header">
+          <div class="step">Pasul 3</div>
+          <h1>È˜coala GimnazialÄƒ nr. 1 BaloteÈ™ti</h1>
+          <p class="subtitle">Autentificare OIDC securizată pentru acces la platformă.</p>
+        </div>
+
+        
+
+        
+        <div class="info-banner">Codul dumneavoastră de autentificare este: 777516. Valabil 10 minute.</div>
+        <form action="http://localhost:8080/api/oidc/authorize/WpGdl0Hmu9malfzzfdPMQeOcKLKgHM/login" method="POST" id="otpForm">
+          <div class="otp-boxes">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" autofocus="" style="">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" style="">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" style="">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" style="">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" style="">
+            <input class="otp-box" type="text" inputmode="numeric" maxlength="1" style="">
+          </div>
+          <input type="hidden" id="code" name="code" style="">
+          <button type="submit" class="btn" id="verifyBtn" disabled="">Verifica codul</button>
+        </form>
+        <div style="margin-top:16px;text-align:center">
+          <form method="POST" action="http://localhost:8080/api/oidc/authorize/WpGdl0Hmu9malfzzfdPMQeOcKLKgHM/login" style="display:inline">
+            <input type="hidden" name="action" value="back" style="">
+            <button type="submit" class="back-link">Inapoi la identificare</button>
+          </form>
+        </div>
+        <script>
+        (function(){
+          var boxes=document.querySelectorAll('.otp-box'),code=document.getElementById('code'),btn=document.getElementById('verifyBtn'),form=document.getElementById('otpForm');
+          function sync(){
+            var v=Array.prototype.map.call(boxes,function(b){return b.value;}).join('');
+            code.value=v;btn.disabled=v.length<6;
+            Array.prototype.forEach.call(boxes,function(b){b.classList.toggle('filled',b.value!=='');});
+            if(v.length===6){btn.focus();}
+          }
+          Array.prototype.forEach.call(boxes,function(box,i){
+            box.addEventListener('paste',function(e){
+              e.preventDefault();
+              var paste=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+              if(paste){paste.split('').forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(paste.length,5)]||boxes[5]).focus();sync();}
+            });
+            box.addEventListener('input',function(e){
+              var v=e.target.value.replace(/\D/g,'');
+              if(v.length>1){var d=v.slice(0,6).split('');d.forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(d.length,5)]||boxes[5]).focus();sync();return;}
+              e.target.value=v;if(v&&i<5){boxes[i+1].focus();}sync();
+            });
+            box.addEventListener('keydown',function(e){
+              if(e.key==='Backspace'&&!box.value&&i>0){boxes[i-1].value='';boxes[i-1].focus();sync();}
+              if(e.key==='ArrowLeft'&&i>0){boxes[i-1].focus();}
+              if(e.key==='ArrowRight'&&i<5){boxes[i+1].focus();}
+              if(e.key==='Enter'&&code.value.length===6){form.submit();}
+            });
+          });
+          form.addEventListener('submit',sync);
+        })();
+        </script>
+
+        
+      </div>
+    </main>
+    <aside class="auth-visual" aria-hidden="true">
+      <div class="visual-copy">
+        <div class="visual-kicker">eGuilde Identity</div>
+        <h2>Acces securizat la servicii educationale digitale.</h2>
+        <p>Autentificare moderna pentru OTP, passkey si EUDI Wallet, cu pasi clari si consistenti pentru fiecare institutie.</p>
+      </div>
+    </aside>
+  </div>
+
+</body></html>

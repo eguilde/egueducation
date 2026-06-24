@@ -1,0 +1,464 @@
+{"kind":"deck","id":"pr/gphho8","name":"Deck"}
+{"kind":"layout","layoutId":"be45910b-f01b-4d83-8696-568d21dd8be0","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"d86bd9cb-19e0-44b7-baae-d6e9b989402b","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/o8meli","slide":1,"title":"Manual operational","textShapes":19}
+{"kind":"shape","id":"sh/wjudg7ad","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/7y1kre1w","slide":1,"bbox":[0,0,10,720]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":1,"text":"Manual operational","textPreview":"Manual operational","textChars":18,"textLines":1,"bbox":[48,56,220,22]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":1,"text":"Ajutor si manual de lucru","textPreview":"Ajutor si manual de lucru","textChars":25,"textLines":1,"bbox":[48,96,620,184]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":1,"text":"Ghid operational pentru modulul education, construit ca manual in-app si aliniat la cele doua documente sursa.","textPreview":"Ghid operational pentru modulul education, construit ca manual in-app si aliniat la cele doua documente sursa.","textChars":110,"textLines":1,"bbox":[48,286,620,94]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":1,"text":"Deck manual pentru utilizare in aplicatie, aliniat la cele doua PDF-uri sursa.","textPreview":"Deck manual pentru utilizare in aplicatie, aliniat la cele doua PDF-uri sursa.","textChars":78,"textLines":1,"bbox":[48,392,620,60]}
+{"kind":"shape","id":"sh/i5sneloj","slide":1,"bbox":[750,88,450,258]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":1,"text":"Acoperire","textPreview":"Acoperire","textChars":9,"textLines":1,"bbox":[782,116,120,30]}
+{"kind":"textbox","id":"sh/0z61032l","slide":1,"text":"13 capitole functionale","textPreview":"13 capitole functionale","textChars":23,"textLines":1,"bbox":[782,160,370,48]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":1,"text":"Portofolii, guvernanta, personal, rapoarte, conformitate","textPreview":"Portofolii, guvernanta, personal, rapoarte, conformitate","textChars":56,"textLines":1,"bbox":[782,210,370,24]}
+{"kind":"shape","id":"sh/fa9w3m94","slide":1,"bbox":[782,252,370,1]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":1,"text":"Sursa 1","textPreview":"Sursa 1","textChars":7,"textLines":1,"bbox":[782,270,170,18]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":1,"text":"Metodologie portofoliu CD","textPreview":"Metodologie portofoliu CD","textChars":25,"textLines":1,"bbox":[900,270,252,18]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":1,"text":"Sursa 2","textPreview":"Sursa 2","textChars":7,"textLines":1,"bbox":[782,294,170,18]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":1,"text":"Ghid directori unitati de invatamant","textPreview":"Ghid directori unitati de invatamant","textChars":36,"textLines":1,"bbox":[900,294,252,18]}
+{"kind":"shape","id":"sh/8jqh0fep","slide":1,"bbox":[48,520,1162,120]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":1,"text":"Capitole","textPreview":"Capitole","textChars":8,"textLines":1,"bbox":[76,548,160,18]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":1,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[76,570,160,42]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":1,"text":"Acoperite","textPreview":"Acoperite","textChars":9,"textLines":1,"bbox":[444,548,160,18]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":1,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[444,570,160,42]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":1,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[812,548,160,18]}
+{"kind":"textbox","id":"sh/94fu18jq","slide":1,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[812,570,160,42]}
+{"kind":"shape","id":"sh/kjm1cfa9","slide":1,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/ra5gbq1o","slide":1,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf","textChars":50,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":1,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/o8meli","slide":1,"text":""}
+{"kind":"slide","id":"sl/cfevap","slide":2,"title":"Orientare","textShapes":18}
+{"kind":"shape","id":"sh/vahoza1g","slide":2,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":2,"text":"Orientare","textPreview":"Orientare","textChars":9,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":2,"text":"Cum se foloseste acest manual","textPreview":"Cum se foloseste acest manual","textChars":29,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/6hcrmhk3","slide":2,"text":"Ghid de lucru","textPreview":"Ghid de lucru","textChars":13,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":2,"text":"Porneste din rutele rapide, deschide capitolul potrivit rolului tau si urmeaza exact secventele din stanga si iesirile asteptate din dreapta. Fiecare capitol este gandit ca o instructiune operationala completa, nu ca o simpla eticheta de ecran.","textPreview":"Porneste din rutele rapide, deschide capitolul potrivit rolului tau si urmeaza exact secventele din stanga si iesirile asteptate din drea...","textChars":244,"textLines":1,"bbox":[48,146,1100,72]}
+{"kind":"shape","id":"sh/onyd0z61","slide":2,"bbox":[48,220,572,360]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":2,"text":"Pasi de lucru","textPreview":"Pasi de lucru","textChars":13,"textLines":1,"bbox":[64,234,110,28]}
+{"kind":"textbox","id":"sh/6dcbulwv","slide":2,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,274,30,30]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":2,"text":"Cauta manualul dupa capitol, ruta sau rol.","textPreview":"Cauta manualul dupa capitol, ruta sau rol.","textChars":42,"textLines":1,"bbox":[106,270,498,56]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":2,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,350,30,30]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":2,"text":"Daca esti profesor, foloseste portofoliul si fluxurile de evaluare sau mobilitate.","textPreview":"Daca esti profesor, foloseste portofoliul si fluxurile de evaluare sau mobilitate.","textChars":82,"textLines":1,"bbox":[106,346,498,56]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":2,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,426,30,30]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":2,"text":"Daca esti director, foloseste guvernanta, cockpitul si rapoartele standard.","textPreview":"Daca esti director, foloseste guvernanta, cockpitul si rapoartele standard.","textChars":75,"textLines":1,"bbox":[106,422,498,56]}
+{"kind":"shape","id":"sh/n29gr2p8","slide":2,"bbox":[648,220,584,360]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":2,"text":"Roluri si intrari","textPreview":"Roluri si intrari","textChars":17,"textLines":1,"bbox":[664,234,130,28]}
+{"kind":"shape","id":"sh/58z25kb6","slide":2,"bbox":[666,283,10,10]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":2,"text":"Director: guvernanta, CA, CP, portofoliu managerial, rapoarte.","textPreview":"Director: guvernanta, CA, CP, portofoliu managerial, rapoarte.","textChars":62,"textLines":1,"bbox":[684,275,532,40]}
+{"kind":"shape","id":"sh/neloj2t8","slide":2,"bbox":[666,337,10,10]}
+{"kind":"textbox","id":"sh/ytsvu9kn","slide":2,"text":"Profesor: portofoliu personal, opis, transfer, evaluare, valorificare.","textPreview":"Profesor: portofoliu personal, opis, transfer, evaluare, valorificare.","textChars":70,"textLines":1,"bbox":[684,329,532,40]}
+{"kind":"shape","id":"sh/2x4nap4r","slide":2,"bbox":[666,391,10,10]}
+{"kind":"textbox","id":"sh/vixczed8","slide":2,"text":"Secretariat: registratura, documente-model, publicare, trasabilitate.","textPreview":"Secretariat: registratura, documente-model, publicare, trasabilitate.","textChars":69,"textLines":1,"bbox":[684,383,532,40]}
+{"kind":"shape","id":"sh/k3q5o7qp","slide":2,"bbox":[666,445,10,10]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":2,"text":"Inspector: conformitate, control si analiza punctelor critice.","textPreview":"Inspector: conformitate, control si analiza punctelor critice.","textChars":62,"textLines":1,"bbox":[684,437,532,40]}
+{"kind":"shape","id":"sh/6psfil0r","slide":2,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/val87ed8","slide":2,"text":"Ghid de lucru pentru rolurile din eGuEducation","textPreview":"Ghid de lucru pentru rolurile din eGuEducation","textChars":46,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/cfevap","slide":2,"text":""}
+{"kind":"slide","id":"sl/40amkz","slide":3,"title":"Capitol 01 / 13  |  profesor, director, secretariat","textShapes":22}
+{"kind":"shape","id":"sh/7qpg3ex0","slide":3,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":3,"text":"Capitol 01 / 13  |  profesor, director, secretariat","textPreview":"Capitol 01 / 13  |  profesor, director, secretariat","textChars":51,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":3,"text":"Portofoliul profesional al cadrului didactic","textPreview":"Portofoliul profesional al cadrului didactic","textChars":44,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":3,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":3,"text":"Registrul portofoliilor, structura pe sectiuni, documentele, checklistul, custodia, transferul si revizuirea. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Registrul portofoliilor, structura pe sectiuni, documentele, checklistul, custodia, transferul si revizuirea. In aplicatie, acest capitol...","textChars":261,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/wjudg7ad","slide":3,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":3,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":3,"text":"Deschide Portofoliul meu sau lista de Portofolii CD.","textPreview":"Deschide Portofoliul meu sau lista de Portofolii CD.","textChars":52,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":3,"text":"Verifica starea, sectiunile si lipsurile din portofoliu.","textPreview":"Verifica starea, sectiunile si lipsurile din portofoliu.","textChars":56,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/obm58z25","slide":3,"text":"Trimite la verificare sau revino la completare din fluxul ghidat.","textPreview":"Trimite la verificare sau revino la completare din fluxul ghidat.","textChars":65,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":3,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, director, secretariat.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, director,...","textChars":150,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/6xkf6dcb","slide":3,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":3,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":3,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/z61032ls","slide":3,"text":"PDF principal de portofoliu","textPreview":"PDF principal de portofoliu","textChars":27,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/al87ed8b","slide":3,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":3,"text":"sumar de transfer si custodie","textPreview":"sumar de transfer si custodie","textChars":29,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/72x4nap4","slide":3,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":3,"text":"stare operationala pentru verificare si validare","textPreview":"stare operationala pentru verificare si validare","textChars":48,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/p8nqxs72","slide":3,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":3,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/7ed8bat4","slide":3,"text":"/education/portfolio/me","textPreview":"/education/portfolio/me","textChars":23,"textLines":1,"bbox":[786,508,202.8,28]}
+{"kind":"textbox","id":"sh/0z61032l","slide":3,"text":"/education/portfolio/workflow","textPreview":"/education/portfolio/workflow","textChars":29,"textLines":1,"bbox":[786,544,248.4,28]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":3,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[786,580,180,28]}
+{"kind":"shape","id":"sh/i5sneloj","slide":3,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":3,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  portfolio-professional","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  portfolio-professional","textChars":77,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/xobm58z2","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/40amkz","slide":3,"text":""}
+{"kind":"slide","id":"sl/bqehau","slide":4,"title":"Capitol 02 / 13  |  profesor, secretariat, director","textShapes":21}
+{"kind":"shape","id":"sh/kb6xkf6d","slide":4,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":4,"text":"Capitol 02 / 13  |  profesor, secretariat, director","textPreview":"Capitol 02 / 13  |  profesor, secretariat, director","textChars":51,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":4,"text":"Opis, indexare si datare","textPreview":"Opis, indexare si datare","textChars":24,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/9knih4by","slide":4,"text":"Acoperit","textPreview":"Acoperit","textChars":8,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":4,"text":"Opisul este indexat cronologic, regenerator automat din documente si afisat cu datare vizibila. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Opisul este indexat cronologic, regenerator automat din documente si afisat cu datare vizibila. In aplicatie, acest capitol este tratat c...","textChars":247,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/re1w7mp0","slide":4,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":4,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/9gr2p8nq","slide":4,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":4,"text":"Deschide opisul din detaliul portofoliului.","textPreview":"Deschide opisul din detaliul portofoliului.","textChars":43,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":4,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":4,"text":"Regeneraza opisul dupa modificari de documente.","textPreview":"Regeneraza opisul dupa modificari de documente.","textChars":47,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/gfmlkjm1","slide":4,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/90je9cvi","slide":4,"text":"Urmareste datarea automata si numarul de inregistrari.","textPreview":"Urmareste datarea automata si numarul de inregistrari.","textChars":54,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/y1kre1w7","slide":4,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, secretariat, director.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, secretari...","textChars":150,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":4,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":4,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/9s36hcrm","slide":4,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":4,"text":"opis structurat","textPreview":"opis structurat","textChars":15,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/nih4byhg","slide":4,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":4,"text":"referinte document","textPreview":"referinte document","textChars":18,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/a5gbq1or","slide":4,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":4,"text":"datare si ordonare cronologica","textPreview":"datare si ordonare cronologica","textChars":30,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/s72x4nap","slide":4,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/3ylc7u54","slide":4,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":4,"text":"/education/portfolio/me","textPreview":"/education/portfolio/me","textChars":23,"textLines":1,"bbox":[786,508,202.8,28]}
+{"kind":"textbox","id":"sh/h4byhgn2","slide":4,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[996.8,508,180,28]}
+{"kind":"shape","id":"sh/sji5snel","slide":4,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/za1gvy90","slide":4,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  opis-indexare-datare","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  opis-indexare-datare","textChars":75,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/bqehau","slide":4,"text":""}
+{"kind":"slide","id":"sl/noanmf","slide":5,"title":"Capitol 03 / 13  |  secretariat, director, HR","textShapes":22}
+{"kind":"shape","id":"sh/jm1cfa9w","slide":5,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":5,"text":"Capitol 03 / 13  |  secretariat, director, HR","textPreview":"Capitol 03 / 13  |  secretariat, director, HR","textChars":45,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":5,"text":"Delimitarea portofoliu versus dosar personal","textPreview":"Delimitarea portofoliu versus dosar personal","textChars":44,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/u9knih4b","slide":5,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/judg7ads","slide":5,"text":"Portofoliul profesional si dosarul personal raman entitati distincte, dar corelabile si auditate. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Portofoliul profesional si dosarul personal raman entitati distincte, dar corelabile si auditate. In aplicatie, acest capitol este tratat...","textChars":249,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":5,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/1032lszq","slide":5,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":5,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":5,"text":"Urmareste sumarul consolidat de relatie dintre portofoliu si dosarul personal.","textPreview":"Urmareste sumarul consolidat de relatie dintre portofoliu si dosarul personal.","textChars":78,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":5,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":5,"text":"Verifica documentele oglindite si blocajele institutionale.","textPreview":"Verifica documentele oglindite si blocajele institutionale.","textChars":59,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":5,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/knih4byh","slide":5,"text":"Aplica reguli interne pentru separare sau dublare de documente.","textPreview":"Aplica reguli interne pentru separare sau dublare de documente.","textChars":63,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":5,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, director, HR.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, direct...","textChars":144,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/29gr2p8n","slide":5,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/d0z61032","slide":5,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/kf6dcbul","slide":5,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/vixczed8","slide":5,"text":"sumar relatie portofoliu-dosar","textPreview":"sumar relatie portofoliu-dosar","textChars":30,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/2x4nap4r","slide":5,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":5,"text":"reguli de oglindire","textPreview":"reguli de oglindire","textChars":19,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":5,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":5,"text":"audit de acces si trasabilitate","textPreview":"audit de acces si trasabilitate","textChars":31,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/loj2t83i","slide":5,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":5,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":5,"text":"/education/personnel","textPreview":"/education/personnel","textChars":20,"textLines":1,"bbox":[786,508,180,28]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":5,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[974,508,180,28]}
+{"kind":"textbox","id":"sh/lwval87e","slide":5,"text":"/education/compliance","textPreview":"/education/compliance","textChars":21,"textLines":1,"bbox":[786,544,187.6,28]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":5,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":5,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  portfolio-vs-dossier","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  portfolio-vs-dossier","textChars":75,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/noanmf","slide":5,"text":""}
+{"kind":"slide","id":"sl/tdliqb","slide":6,"title":"Capitol 04 / 13  |  secretariat, director, profesor","textShapes":21}
+{"kind":"shape","id":"sh/mlkjm1cf","slide":6,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/xc3ylc7u","slide":6,"text":"Capitol 04 / 13  |  secretariat, director, profesor","textPreview":"Capitol 04 / 13  |  secretariat, director, profesor","textChars":51,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/4r65wjud","slide":6,"text":"Transfer digital si mobilitate","textPreview":"Transfer digital si mobilitate","textChars":30,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":6,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/mtwra5gb","slide":6,"text":"Transferurile sunt urmarite procedural, cu custodie, predare, receptie si legaturi cu mobilitatea. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Transferurile sunt urmarite procedural, cu custodie, predare, receptie si legaturi cu mobilitatea. In aplicatie, acest capitol este trata...","textChars":250,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/xkf6dcbu","slide":6,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":6,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":6,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":6,"text":"Deschide sumarul de transfer al portofoliului.","textPreview":"Deschide sumarul de transfer al portofoliului.","textChars":46,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":6,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":6,"text":"Verifica stadiul: pregatit, trimis, receptionat sau inchis.","textPreview":"Verifica stadiul: pregatit, trimis, receptionat sau inchis.","textChars":59,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":6,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":6,"text":"Urmareste unitatea de baza si unitatea curenta.","textPreview":"Urmareste unitatea de baza si unitatea curenta.","textChars":47,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":6,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, director, profesor.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, direct...","textChars":150,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/p4r65wju","slide":6,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":6,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/7y1kre1w","slide":6,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":6,"text":"sumar transfer","textPreview":"sumar transfer","textChars":14,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/p8nqxs72","slide":6,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":6,"text":"istoric de predare si receptie","textPreview":"istoric de predare si receptie","textChars":30,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":6,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/val87ed8","slide":6,"text":"stare de mobilitate","textPreview":"stare de mobilitate","textChars":19,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/6psfil0r","slide":6,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":6,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":6,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[786,508,180,28]}
+{"kind":"textbox","id":"sh/vixczed8","slide":6,"text":"/education/personnel","textPreview":"/education/personnel","textChars":20,"textLines":1,"bbox":[974,508,180,28]}
+{"kind":"shape","id":"sh/2x4nap4r","slide":6,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/d0z61032","slide":6,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  transfer-mobility","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  transfer-mobility","textChars":72,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/tdliqb","slide":6,"text":""}
+{"kind":"slide","id":"sl/u00wki","slide":7,"title":"Capitol 05 / 13  |  profesor, director, inspector","textShapes":21}
+{"kind":"shape","id":"sh/2t83itgf","slide":7,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/9knih4by","slide":7,"text":"Capitol 05 / 13  |  profesor, director, inspector","textPreview":"Capitol 05 / 13  |  profesor, director, inspector","textChars":49,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":7,"text":"Fluxurile de valorificare a portofoliului","textPreview":"Fluxurile de valorificare a portofoliului","textChars":41,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":7,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":7,"text":"Portofoliul poate fi utilizat in evaluare, mobilitate, gradatii, inspectii si dezvoltare profesionala. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Portofoliul poate fi utilizat in evaluare, mobilitate, gradatii, inspectii si dezvoltare profesionala. In aplicatie, acest capitol este t...","textChars":254,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/9w3m94fu","slide":7,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":7,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":7,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/2hwfyxob","slide":7,"text":"Deschide sumarul de valorificare al portofoliului.","textPreview":"Deschide sumarul de valorificare al portofoliului.","textChars":50,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":7,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":7,"text":"Urmareste contextul metodologic relevant.","textPreview":"Urmareste contextul metodologic relevant.","textChars":41,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/ulwval87","slide":7,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":7,"text":"Filtreaza traseele pe evaluare, mobilitate sau gradatie.","textPreview":"Filtreaza traseele pe evaluare, mobilitate sau gradatie.","textChars":56,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":7,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, director, inspector.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, director,...","textChars":148,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":7,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":7,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/ji5snelo","slide":7,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":7,"text":"istoric de valorificare","textPreview":"istoric de valorificare","textChars":23,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":7,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":7,"text":"stare pe context","textPreview":"stare pe context","textChars":16,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/c7u54zid","slide":7,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":7,"text":"raport contextual","textPreview":"raport contextual","textChars":17,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":7,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/1032lszq","slide":7,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":7,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[786,508,180,28]}
+{"kind":"textbox","id":"sh/judg7ads","slide":7,"text":"/education/personnel","textPreview":"/education/personnel","textChars":20,"textLines":1,"bbox":[974,508,180,28]}
+{"kind":"shape","id":"sh/u9knih4b","slide":7,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/54zidony","slide":7,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  valorification","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  valorification","textChars":69,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/u00wki","slide":7,"text":""}
+{"kind":"slide","id":"sl/849o8v","slide":8,"title":"Capitol 06 / 13  |  director, secretariat, CP","textShapes":21}
+{"kind":"shape","id":"sh/gfmlkjm1","slide":8,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":8,"text":"Capitol 06 / 13  |  director, secretariat, CP","textPreview":"Capitol 06 / 13  |  director, secretariat, CP","textChars":45,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":8,"text":"ROF si ROI","textPreview":"ROF si ROI","textChars":10,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":8,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":8,"text":"Regulamentele au versiuni, avizare, aprobare, publicare si arhivare, cu sumar procedural. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Regulamentele au versiuni, avizare, aprobare, publicare si arhivare, cu sumar procedural. In aplicatie, acest capitol este tratat ca un f...","textChars":241,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":8,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/y1kre1w7","slide":8,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":8,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/g3ex0nux","slide":8,"text":"Deschide registrul de regulamente.","textPreview":"Deschide registrul de regulamente.","textChars":34,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/m94fu18j","slide":8,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/fu18jqh0","slide":8,"text":"Verifica starea versiunii si a workflow-ului.","textPreview":"Verifica starea versiunii si a workflow-ului.","textChars":45,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/4fu18jqh","slide":8,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/x0nuxc3y","slide":8,"text":"Publica doar versiunea aprobata si inregistrata.","textPreview":"Publica doar versiunea aprobata si inregistrata.","textChars":48,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":8,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretariat, CP.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretari...","textChars":144,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/fil0rqd4","slide":8,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/83itgfml","slide":8,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/xobm58z2","slide":8,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/mtwra5gb","slide":8,"text":"versionare regulament","textPreview":"versionare regulament","textChars":21,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/fepkzupw","slide":8,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":8,"text":"flux de avizare si aprobare","textPreview":"flux de avizare si aprobare","textChars":27,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/ih4byhgn","slide":8,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":8,"text":"stare de publicare","textPreview":"stare de publicare","textChars":18,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/0nuxc3yl","slide":8,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/7ed8bat4","slide":8,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":8,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,508,187.6,28]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":8,"text":"/education/compliance","textPreview":"/education/compliance","textChars":21,"textLines":1,"bbox":[981.6,508,187.6,28]}
+{"kind":"shape","id":"sh/0z61032l","slide":8,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":8,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  rof-roi","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  rof-roi","textChars":62,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/i5sneloj","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/849o8v","slide":8,"text":""}
+{"kind":"slide","id":"sl/4umigo","slide":9,"title":"Capitol 07 / 13  |  director, secretariat, membri CA","textShapes":21}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":9,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/g7adsji5","slide":9,"text":"Capitol 07 / 13  |  director, secretariat, membri CA","textPreview":"Capitol 07 / 13  |  director, secretariat, membri CA","textChars":52,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":9,"text":"CA complet","textPreview":"CA complet","textChars":10,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":9,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/rytsvu9k","slide":9,"text":"Sedintele CA includ membri, participanti, voturi, minute, hotarari si sumar procedural. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Sedintele CA includ membri, participanti, voturi, minute, hotarari si sumar procedural. In aplicatie, acest capitol este tratat ca un flu...","textChars":239,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/gfmlkjm1","slide":9,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/90je9cvi","slide":9,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":9,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/r65wjudg","slide":9,"text":"Deschide CA si creeaza sedinta din wizard.","textPreview":"Deschide CA si creeaza sedinta din wizard.","textChars":42,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/vahoza1g","slide":9,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/6tovahoz","slide":9,"text":"Verifica participanti, cvorum si voturi.","textPreview":"Verifica participanti, cvorum si voturi.","textChars":40,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":9,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":9,"text":"Finalizeaza prin minute si hotarari.","textPreview":"Finalizeaza prin minute si hotarari.","textChars":36,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":9,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretariat, membri CA.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretari...","textChars":151,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/6hcrmhk3","slide":9,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":9,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/onyd0z61","slide":9,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":9,"text":"proces-verbal CA","textPreview":"proces-verbal CA","textChars":16,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/6dcbulwv","slide":9,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":9,"text":"hotarari si minute","textPreview":"hotarari si minute","textChars":18,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/32lszqtc","slide":9,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":9,"text":"sumar procedural","textPreview":"sumar procedural","textChars":16,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/l87ed8ba","slide":9,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":9,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":9,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,508,187.6,28]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":9,"text":"/education/governance/ca-wizard","textPreview":"/education/governance/ca-wizard","textChars":31,"textLines":1,"bbox":[786,544,263.6,28]}
+{"kind":"shape","id":"sh/lkjm1cfa","slide":9,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":9,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  ca-complete","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  ca-complete","textChars":66,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/4umigo","slide":9,"text":""}
+{"kind":"slide","id":"sl/1y3bat","slide":10,"title":"Capitol 08 / 13  |  director, CP, secretariat","textShapes":21}
+{"kind":"shape","id":"sh/0fepkzup","slide":10,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/bulwval8","slide":10,"text":"Capitol 08 / 13  |  director, CP, secretariat","textPreview":"Capitol 08 / 13  |  director, CP, secretariat","textChars":45,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":10,"text":"CP complet","textPreview":"CP complet","textChars":10,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/tovahoza","slide":10,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/032lszqt","slide":10,"text":"Consiliul profesoral este organizat procedural, cu modele si documente oficiale de sedinta. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Consiliul profesoral este organizat procedural, cu modele si documente oficiale de sedinta. In aplicatie, acest capitol este tratat ca un...","textChars":243,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/bi9s36hc","slide":10,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":10,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":10,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":10,"text":"Deschide CP din guvernanta.","textPreview":"Deschide CP din guvernanta.","textChars":27,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":10,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/bulwval8","slide":10,"text":"Urmeaza ordinea de zi si documentele de sedinta.","textPreview":"Urmeaza ordinea de zi si documentele de sedinta.","textChars":48,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":10,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":10,"text":"Leaga minutele de hotararile consemnate.","textPreview":"Leaga minutele de hotararile consemnate.","textChars":40,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":10,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, CP, secretariat.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, CP, secre...","textChars":144,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/bi9s36hc","slide":10,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/032lszqt","slide":10,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/tovahoza","slide":10,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":10,"text":"proces-verbal CP","textPreview":"proces-verbal CP","textChars":16,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/b6xkf6dc","slide":10,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":10,"text":"documente de sedinta","textPreview":"documente de sedinta","textChars":20,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":10,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":10,"text":"raport de sedinta","textPreview":"raport de sedinta","textChars":17,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/sneloj2t","slide":10,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":10,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":10,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,508,187.6,28]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":10,"text":"/education/governance/ca-wizard","textPreview":"/education/governance/ca-wizard","textChars":31,"textLines":1,"bbox":[786,544,263.6,28]}
+{"kind":"shape","id":"sh/szqtcj6t","slide":10,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":10,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  cp-complete","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  cp-complete","textChars":66,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/1y3bat","slide":10,"text":""}
+{"kind":"slide","id":"sl/j3ft40","slide":11,"title":"Capitol 09 / 13  |  director, responsabil comisie, evaluator","textShapes":21}
+{"kind":"shape","id":"sh/h4byhgn2","slide":11,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":11,"text":"Capitol 09 / 13  |  director, responsabil comisie, evaluator","textPreview":"Capitol 09 / 13  |  director, responsabil comisie, evaluator","textChars":60,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/3ylc7u54","slide":11,"text":"Comisii si comisia de evaluare","textPreview":"Comisii si comisia de evaluare","textChars":30,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":11,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":11,"text":"Comisiile au membri, mandat, rezultate si nevoie de raportare si documente dedicate. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Comisiile au membri, mandat, rezultate si nevoie de raportare si documente dedicate. In aplicatie, acest capitol este tratat ca un flux o...","textChars":236,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/a5gbq1or","slide":11,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":11,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":11,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/hoza1gvy","slide":11,"text":"Deschide resursele de comisie din educatie.","textPreview":"Deschide resursele de comisie din educatie.","textChars":43,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":11,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":11,"text":"Verifica componenta si mandatul.","textPreview":"Verifica componenta si mandatul.","textChars":32,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":11,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":11,"text":"Urmareste raportul si documentele rezultate.","textPreview":"Urmareste raportul si documentele rezultate.","textChars":44,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":11,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, responsabil comisie, evaluator.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, responsab...","textChars":159,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":11,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":11,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/y90je9cv","slide":11,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/5sneloj2","slide":11,"text":"comisie completata","textPreview":"comisie completata","textChars":18,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/cbulwval","slide":11,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":11,"text":"mandat si raport","textPreview":"mandat si raport","textChars":16,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":11,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":11,"text":"urmarire operationala","textPreview":"urmarire operationala","textChars":21,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/j2t83itg","slide":11,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":11,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":11,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,508,187.6,28]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":11,"text":"/education/personnel","textPreview":"/education/personnel","textChars":20,"textLines":1,"bbox":[981.6,508,180,28]}
+{"kind":"shape","id":"sh/jqh0fepk","slide":11,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":11,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  committees","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  committees","textChars":65,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/j3ft40","slide":11,"text":""}
+{"kind":"slide","id":"sl/759znp","slide":12,"title":"Capitol 10 / 13  |  profesor, evaluator, secretariat","textShapes":21}
+{"kind":"shape","id":"sh/1orytsvu","slide":12,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":12,"text":"Capitol 10 / 13  |  profesor, evaluator, secretariat","textPreview":"Capitol 10 / 13  |  profesor, evaluator, secretariat","textChars":52,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":12,"text":"Comunicarea rezultatului evaluarii","textPreview":"Comunicarea rezultatului evaluarii","textChars":34,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":12,"text":"Acoperit","textPreview":"Acoperit","textChars":8,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/1032lszq","slide":12,"text":"Rezultatul evaluarii are flux, document si expunere clara in dosarul personal. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Rezultatul evaluarii are flux, document si expunere clara in dosarul personal. In aplicatie, acest capitol este tratat ca un flux operati...","textChars":230,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/u9knih4b","slide":12,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/judg7ads","slide":12,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":12,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/54zidony","slide":12,"text":"Deschide evaluarea si rezultatului comunicat.","textPreview":"Deschide evaluarea si rezultatului comunicat.","textChars":45,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":12,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":12,"text":"Verifica starea contestatiilor si a finalizarii.","textPreview":"Verifica starea contestatiilor si a finalizarii.","textChars":48,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":12,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":12,"text":"Consultati PDF-ul si documentele aferente.","textPreview":"Consultati PDF-ul si documentele aferente.","textChars":42,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":12,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, evaluator, secretariat.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru profesor, evaluator...","textChars":151,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/0rqd4vmt","slide":12,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":12,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/il0rqd4v","slide":12,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/tovahoza","slide":12,"text":"comunicare rezultat","textPreview":"comunicare rezultat","textChars":19,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/032lszqt","slide":12,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/czed8v6p","slide":12,"text":"PDF dedicat","textPreview":"PDF dedicat","textChars":11,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/5kb6xkf6","slide":12,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/ytsvu9kn","slide":12,"text":"oglindire in dosar personal","textPreview":"oglindire in dosar personal","textChars":27,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/neloj2t8","slide":12,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/cbulwval","slide":12,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/5sneloj2","slide":12,"text":"/education/personnel","textPreview":"/education/personnel","textChars":20,"textLines":1,"bbox":[786,508,180,28]}
+{"kind":"textbox","id":"sh/u54zidon","slide":12,"text":"/education/personnel/evaluations-wizard","textPreview":"/education/personnel/evaluations-wizard","textChars":39,"textLines":1,"bbox":[786,544,324.4,28]}
+{"kind":"shape","id":"sh/nqxs72x4","slide":12,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":12,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  evaluation-communication","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  evaluation-communication","textChars":79,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/759znp","slide":12,"text":""}
+{"kind":"slide","id":"sl/jpigad","slide":13,"title":"Capitol 11 / 13  |  director, director adjunct, secretariat","textShapes":21}
+{"kind":"shape","id":"sh/je9cvixc","slide":13,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":13,"text":"Capitol 11 / 13  |  director, director adjunct, secretariat","textPreview":"Capitol 11 / 13  |  director, director adjunct, secretariat","textChars":59,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/1gvy90je","slide":13,"text":"Portofoliul directorului si directorului adjunct","textPreview":"Portofoliul directorului si directorului adjunct","textChars":48,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":13,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":13,"text":"Portofoliul managerial este separat de dosarul personal si are documente si verticala proprie. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Portofoliul managerial este separat de dosarul personal si are documente si verticala proprie. In aplicatie, acest capitol este tratat ca...","textChars":246,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/87ed8bat","slide":13,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":13,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":13,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":13,"text":"Deschide registrul managerial si filtreaza pe director sau adjunct.","textPreview":"Deschide registrul managerial si filtreaza pe director sau adjunct.","textChars":67,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":13,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/e1w7mp0b","slide":13,"text":"Verifica documentele aprobate si in avizare.","textPreview":"Verifica documentele aprobate si in avizare.","textChars":44,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":13,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":13,"text":"Urmareste checklistul managerial si publicarea.","textPreview":"Urmareste checklistul managerial si publicarea.","textChars":47,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":13,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, director adjunct, secretariat.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, director ...","textChars":158,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/epkzupwb","slide":13,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":13,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/wval87ed","slide":13,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":13,"text":"documente manageriale","textPreview":"documente manageriale","textChars":21,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/eloj2t83","slide":13,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":13,"text":"workflow de avizare","textPreview":"workflow de avizare","textChars":19,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/bat47y1k","slide":13,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":13,"text":"sumar de portofoliu managerial","textPreview":"sumar de portofoliu managerial","textChars":30,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":13,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":13,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":13,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,508,187.6,28]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":13,"text":"/education/dashboard/director","textPreview":"/education/dashboard/director","textChars":29,"textLines":1,"bbox":[786,544,248.4,28]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":13,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":13,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  director-portfolio","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  director-portfolio","textChars":73,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/jpigad","slide":13,"text":""}
+{"kind":"slide","id":"sl/debgb3","slide":14,"title":"Capitol 12 / 13  |  secretariat, director","textShapes":22}
+{"kind":"shape","id":"sh/fu18jqh0","slide":14,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/4fu18jqh","slide":14,"text":"Capitol 12 / 13  |  secretariat, director","textPreview":"Capitol 12 / 13  |  secretariat, director","textChars":41,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/x0nuxc3y","slide":14,"text":"Documente-model si PDF-uri oficiale","textPreview":"Documente-model si PDF-uri oficiale","textChars":35,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":14,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":14,"text":"Sunt acoperite documente PDF pentru mai multe fluxuri, dar mai raman sabloane oficiale dedicate. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Sunt acoperite documente PDF pentru mai multe fluxuri, dar mai raman sabloane oficiale dedicate. In aplicatie, acest capitol este tratat ...","textChars":248,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/83itgfml","slide":14,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/xobm58z2","slide":14,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/mtwra5gb","slide":14,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":14,"text":"Deschide generarea PDF din resursa relevanta.","textPreview":"Deschide generarea PDF din resursa relevanta.","textChars":45,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":14,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/epkzupwb","slide":14,"text":"Alege documentul formal aferent fluxului.","textPreview":"Alege documentul formal aferent fluxului.","textChars":41,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":14,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/wval87ed","slide":14,"text":"Verifica trasabilitatea, numarul si statusul.","textPreview":"Verifica trasabilitatea, numarul si statusul.","textChars":45,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":14,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, director.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru secretariat, director.","textChars":140,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":14,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":14,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/w7mp0bi9","slide":14,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/7u54zido","slide":14,"text":"PDF-uri pe fluxuri","textPreview":"PDF-uri pe fluxuri","textChars":18,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/ed8bat47","slide":14,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":14,"text":"documente model","textPreview":"documente model","textChars":15,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":14,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":14,"text":"exporturi oficiale","textPreview":"exporturi oficiale","textChars":18,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/t83itgfm","slide":14,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":14,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":14,"text":"/education/dashboard/director/reports","textPreview":"/education/dashboard/director/reports","textChars":37,"textLines":1,"bbox":[786,508,309.2,28]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":14,"text":"/education/governance","textPreview":"/education/governance","textChars":21,"textLines":1,"bbox":[786,544,187.6,28]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":14,"text":"/education/portfolio","textPreview":"/education/portfolio","textChars":20,"textLines":1,"bbox":[981.6,544,180,28]}
+{"kind":"shape","id":"sh/m1cfa9w3","slide":14,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":14,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  official-pdfs","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  official-pdfs","textChars":68,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/debgb3","slide":14,"text":""}
+{"kind":"slide","id":"sl/y6v7h4","slide":15,"title":"Capitol 13 / 13  |  director, secretariat, inspector","textShapes":21}
+{"kind":"shape","id":"sh/idonyd0z","slide":15,"bbox":[0,0,1280,10]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":15,"text":"Capitol 13 / 13  |  director, secretariat, inspector","textPreview":"Capitol 13 / 13  |  director, secretariat, inspector","textChars":52,"textLines":1,"bbox":[48,30,320,24]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":15,"text":"Rapoarte manageriale strict necesare","textPreview":"Rapoarte manageriale strict necesare","textChars":36,"textLines":1,"bbox":[48,58,820,92]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":15,"text":"De rafinat","textPreview":"De rafinat","textChars":10,"textLines":1,"bbox":[1030,48,172,32]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":15,"text":"Rapoartele trebuie sa arate starea operativa a scolii: sedinte, hotarari, portofolii, evaluari si conformitate. In aplicatie, acest capitol este tratat ca un flux operational: vezi starea, pasul urmator si documentele rezultate fara sa treci prin ecrane separate.","textPreview":"Rapoartele trebuie sa arate starea operativa a scolii: sedinte, hotarari, portofolii, evaluari si conformitate. In aplicatie, acest capit...","textChars":263,"textLines":1,"bbox":[48,146,1184,74]}
+{"kind":"shape","id":"sh/tcj6tova","slide":15,"bbox":[48,236,690,344]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":15,"text":"Flux in aplicatie","textPreview":"Flux in aplicatie","textChars":17,"textLines":1,"bbox":[64,250,110,28]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":15,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[64,290,30,30]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":15,"text":"Deschide rapoartele standard din cockpitul directorului.","textPreview":"Deschide rapoartele standard din cockpitul directorului.","textChars":56,"textLines":1,"bbox":[106,286,616,56]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":15,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[64,366,30,30]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":15,"text":"Filtreaza pe an scolar, organism si status.","textPreview":"Filtreaza pe an scolar, organism si status.","textChars":43,"textLines":1,"bbox":[106,362,616,56]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":15,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[64,442,30,30]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":15,"text":"Exporta PDF sau CSV pentru analiza si arhivare.","textPreview":"Exporta PDF sau CSV pentru analiza si arhivare.","textChars":47,"textLines":1,"bbox":[106,438,616,56]}
+{"kind":"textbox","id":"sh/sji5snel","slide":15,"text":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretariat, inspector.","textPreview":"Capitolul se foloseste cand ai nevoie sa vezi exact ce lipseste, ce urmeaza si ce trebuie transmis mai departe pentru director, secretari...","textChars":151,"textLines":1,"bbox":[64,518,658,42]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":15,"bbox":[770,236,462,214]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":15,"text":"Iesiri asteptate","textPreview":"Iesiri asteptate","textChars":16,"textLines":1,"bbox":[786,250,130,28]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":15,"bbox":[788,299,10,10]}
+{"kind":"textbox","id":"sh/svu9knih","slide":15,"text":"rapoarte standard","textPreview":"rapoarte standard","textChars":17,"textLines":1,"bbox":[806,291,410,40]}
+{"kind":"shape","id":"sh/hgn29gr2","slide":15,"bbox":[788,353,10,10]}
+{"kind":"textbox","id":"sh/l87ed8ba","slide":15,"text":"exporturi contextuale","textPreview":"exporturi contextuale","textChars":21,"textLines":1,"bbox":[806,345,410,40]}
+{"kind":"shape","id":"sh/sneloj2t","slide":15,"bbox":[788,407,10,10]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":15,"text":"cockpit de management","textPreview":"cockpit de management","textChars":21,"textLines":1,"bbox":[806,399,410,40]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":15,"bbox":[770,464,462,132]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":15,"text":"Rute in aplicatie","textPreview":"Rute in aplicatie","textChars":17,"textLines":1,"bbox":[786,478,140,20]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":15,"text":"/education/dashboard/director/reports","textPreview":"/education/dashboard/director/reports","textChars":37,"textLines":1,"bbox":[786,508,309.2,28]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":15,"text":"/education/dashboard/director","textPreview":"/education/dashboard/director","textChars":29,"textLines":1,"bbox":[786,544,248.4,28]}
+{"kind":"shape","id":"sh/at47y1kr","slide":15,"bbox":[48,656,1184,1]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":15,"text":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  managerial-reports","textPreview":"Sursa: Metodologie portofoliu CD + fisier-6107.pdf  |  managerial-reports","textChars":73,"textLines":1,"bbox":[48,662,820,18]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1160,662,72,18]}
+{"kind":"notes","id":"nt/y6v7h4","slide":15,"text":""}
