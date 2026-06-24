@@ -67,6 +67,14 @@ export class AuthService {
     this.cleanupLegacyStorage();
     this.setupVisibilityRefresh();
 
+    const e2eSession = this.readE2ESession();
+    if (e2eSession) {
+      this.profileSignal.set(e2eSession.profile);
+      this.accessTokenSignal.set(e2eSession.accessToken);
+      this.expiresAtSignal.set(e2eSession.expiresAt);
+      return;
+    }
+
     if (this.config.useDPoP) {
       await this.ensureDpopHandle();
     }
@@ -482,5 +490,36 @@ export class AuthService {
     }
     localStorage.removeItem('egueducation.tokens');
     localStorage.removeItem('egueducation-dpop-es256');
+  }
+
+  private readE2ESession(): { profile: UserProfile; accessToken: string; expiresAt: number } | null {
+    if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
+      return null;
+    }
+
+    const raw = localStorage.getItem('egueducation_e2e_session');
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        profile?: UserProfile;
+        accessToken?: string;
+        expiresAt?: number;
+      };
+
+      if (!parsed.profile || !parsed.accessToken || !parsed.expiresAt) {
+        return null;
+      }
+
+      return {
+        profile: parsed.profile,
+        accessToken: parsed.accessToken,
+        expiresAt: parsed.expiresAt,
+      };
+    } catch {
+      return null;
+    }
   }
 }

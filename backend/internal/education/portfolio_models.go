@@ -191,6 +191,32 @@ type CreatePortfolioReviewEventRequest struct {
 	Notes            string `json:"notes"`
 }
 
+type PortfolioValorificationEvent struct {
+	ID                 string `json:"id"`
+	PortfolioID        string `json:"portfolio_id"`
+	ValorificationCode string `json:"valorification_code"`
+	Scope              string `json:"scope"`
+	Status             string `json:"status"`
+	RequestedBy        string `json:"requested_by"`
+	TargetInstitution  string `json:"target_institution"`
+	TargetReference    string `json:"target_reference"`
+	StartedOn          string `json:"started_on"`
+	CompletedOn        string `json:"completed_on"`
+	InstitutionID      string `json:"institution_id"`
+	Notes              string `json:"notes"`
+}
+
+type CreatePortfolioValorificationEventRequest struct {
+	Scope             string `json:"scope"`
+	Status            string `json:"status"`
+	RequestedBy       string `json:"requested_by"`
+	TargetInstitution string `json:"target_institution"`
+	TargetReference   string `json:"target_reference"`
+	StartedOn         string `json:"started_on"`
+	CompletedOn       string `json:"completed_on"`
+	Notes             string `json:"notes"`
+}
+
 type PortfolioOpisEntry struct {
 	ID                 string `json:"id"`
 	PortfolioID        string `json:"portfolio_id"`

@@ -74,6 +74,12 @@ export class AppShellComponent {
           label: 'Acasă',
           route: '/',
         },
+        {
+          id: 'help',
+          icon: 'pi pi-question-circle',
+          label: 'Ajutor',
+          route: '/help',
+        },
       ],
     },
     {

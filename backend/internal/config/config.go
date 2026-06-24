@@ -1,6 +1,9 @@
 package config
 
 import (
+	"bufio"
+	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -50,6 +53,8 @@ type Config struct {
 
 func Load() Config {
 	_ = godotenv.Load(".env", "backend/.env")
+	loadPlainEnvFile(".env")
+	loadPlainEnvFile("backend/.env")
 
 	frontendOrigin := env("FRONTEND_ORIGIN", "http://localhost:4200")
 	desktopClientID := env("OIDC_DESKTOP_CLIENT_ID", env("DESKTOP_CLIENT_ID", "egueducation-desktop"))
@@ -59,7 +64,7 @@ func Load() Config {
 		FrontendOrigin:       frontendOrigin,
 		FrontendOrigins:      parseCSV(os.Getenv("FRONTEND_ORIGINS")),
 		Environment:          env("APP_ENV", env("NODE_ENV", "development")),
-		DatabaseURL:          env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/egueducation?sslmode=disable"),
+		DatabaseURL:          databaseURL(),
 		MigrationDatabaseURL: env("MIGRATION_DATABASE_URL", ""),
 		BackendURL:           env("BACKEND_URL", "http://localhost:8080"),
 		CustomerName:         env("CUSTOMER_NAME", "EguEducation"),
@@ -168,4 +173,68 @@ func defaultRPID(frontendOrigin string) string {
 		return "localhost"
 	}
 	return value
+}
+
+func databaseURL() string {
+	if value := strings.TrimSpace(os.Getenv("DATABASE_URL")); value != "" {
+		return value
+	}
+
+	host := strings.TrimSpace(os.Getenv("DATABASE_HOST"))
+	port := strings.TrimSpace(os.Getenv("DATABASE_PORT"))
+	name := strings.TrimSpace(os.Getenv("DATABASE_NAME"))
+	username := strings.TrimSpace(os.Getenv("DATABASE_USERNAME"))
+	password := os.Getenv("DATABASE_PASSWORD")
+	sslMode := strings.TrimSpace(os.Getenv("DATABASE_SSLMODE"))
+
+	if host == "" || name == "" || username == "" {
+		return "postgres://postgres:postgres@localhost:5432/egueducation?sslmode=disable"
+	}
+	if port == "" {
+		port = "5432"
+	}
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	dsn := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(username, password),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+		Path:   name,
+	}
+	query := url.Values{}
+	query.Set("sslmode", sslMode)
+	dsn.RawQuery = query.Encode()
+	return dsn.String()
+}
+
+func loadPlainEnvFile(path string) {
+	file, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(strings.TrimPrefix(scanner.Text(), "\uFEFF"))
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		index := strings.IndexByte(line, '=')
+		if index <= 0 {
+			continue
+		}
+
+		key := strings.TrimSpace(line[:index])
+		if key == "" || os.Getenv(key) != "" {
+			continue
+		}
+
+		value := strings.TrimSpace(line[index+1:])
+		value = strings.Trim(value, `"'`)
+		_ = os.Setenv(key, value)
+	}
 }

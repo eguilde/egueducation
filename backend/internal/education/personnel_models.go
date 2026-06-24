@@ -37,6 +37,57 @@ type PersonnelStats struct {
 	MobilityCases     int `json:"mobility_cases"`
 }
 
+type PersonnelPortfolioDossierSummary struct {
+	Personnel PersonnelPortfolioDossierSubject    `json:"personnel"`
+	Dossier   PersonnelPortfolioDossierStats      `json:"dossier"`
+	Portfolio PersonnelPortfolioAggregate         `json:"portfolio"`
+	Relation  PersonnelPortfolioRelationRules     `json:"relation"`
+	Readiness PersonnelPortfolioRelationReadiness `json:"readiness"`
+}
+
+type PersonnelPortfolioDossierSubject struct {
+	ID           string `json:"id"`
+	FullName     string `json:"full_name"`
+	RoleTitle    string `json:"role_title"`
+	SchoolYear   string `json:"school_year"`
+	HasPortfolio bool   `json:"has_portfolio"`
+}
+
+type PersonnelPortfolioDossierStats struct {
+	TotalDocuments               int `json:"total_documents"`
+	PersonalFileDocuments        int `json:"personal_file_documents"`
+	DirectorFileDocuments        int `json:"director_file_documents"`
+	AdjunctDirectorFileDocuments int `json:"adjunct_director_file_documents"`
+	SensitiveDocuments           int `json:"sensitive_documents"`
+	DocumentsMarkedForPortfolio  int `json:"documents_marked_for_portfolio"`
+	EvaluationDocuments          int `json:"evaluation_documents"`
+	AdministrativeCareerDocs     int `json:"administrative_career_documents"`
+}
+
+type PersonnelPortfolioAggregate struct {
+	MatchedRecords          int    `json:"matched_records"`
+	ValidatedRecords        int    `json:"validated_records"`
+	TotalDocuments          int    `json:"total_documents"`
+	PortfolioScopeDocuments int    `json:"portfolio_scope_documents"`
+	PersonnelScopeDocuments int    `json:"personnel_scope_documents"`
+	VerifiedDocuments       int    `json:"verified_documents"`
+	LastUpdatedOn           string `json:"last_updated_on"`
+}
+
+type PersonnelPortfolioRelationRules struct {
+	MirroredFileReferences               int      `json:"mirrored_file_references"`
+	EvaluationResultsEnterPersonnelFile  bool     `json:"evaluation_results_enter_personnel_file"`
+	AdministrativeDocsEnterPersonnelFile bool     `json:"administrative_docs_enter_personnel_file"`
+	InstitutionMayDuplicateOrSeparate    bool     `json:"institution_may_duplicate_or_separate"`
+	DuplicationMode                      string   `json:"duplication_mode"`
+	Rules                                []string `json:"rules"`
+}
+
+type PersonnelPortfolioRelationReadiness struct {
+	ClearDelimitation bool     `json:"clear_delimitation"`
+	Blockers          []string `json:"blockers"`
+}
+
 type CreatePersonnelRecordRequest struct {
 	FullName         string `json:"full_name"`
 	RoleTitle        string `json:"role_title"`

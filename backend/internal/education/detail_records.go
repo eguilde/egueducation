@@ -24,12 +24,12 @@ func (s *Service) GovernanceMeetingParticipants(w http.ResponseWriter, r *http.R
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"full_name":          {},
-			"role_name":          {},
-			"member_type":        {},
-			"attendance_status":  {},
-			"signature_present":  {},
-			"voting_right":       {},
+			"full_name":         {},
+			"role_name":         {},
+			"member_type":       {},
+			"attendance_status": {},
+			"signature_present": {},
+			"voting_right":      {},
 		},
 		[]string{"full_name", "role_name", "member_type", "attendance_status", "signature_present", "voting_right"},
 	)
@@ -226,13 +226,13 @@ func (s *Service) CreateGovernanceMeetingParticipant(w http.ResponseWriter, r *h
 	}
 
 	s.logAudit(r, "education.governance.participant.create", "governance_meeting_participant", item.ID, "Meeting participant created.", map[string]any{
-		"meeting_id":         item.MeetingID,
-		"full_name":          item.FullName,
-		"role_name":          item.RoleName,
-		"member_type":        item.MemberType,
-		"attendance_status":  item.AttendanceStatus,
-		"signature_present":  item.SignaturePresent,
-		"voting_right":       item.VotingRight,
+		"meeting_id":        item.MeetingID,
+		"full_name":         item.FullName,
+		"role_name":         item.RoleName,
+		"member_type":       item.MemberType,
+		"attendance_status": item.AttendanceStatus,
+		"signature_present": item.SignaturePresent,
+		"voting_right":      item.VotingRight,
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
@@ -314,13 +314,13 @@ func (s *Service) UpdateGovernanceMeetingParticipant(w http.ResponseWriter, r *h
 	}
 
 	s.logAudit(r, "education.governance.participant.update", "governance_meeting_participant", item.ID, "Meeting participant updated.", map[string]any{
-		"meeting_id":         item.MeetingID,
-		"full_name":          item.FullName,
-		"role_name":          item.RoleName,
-		"member_type":        item.MemberType,
-		"attendance_status":  item.AttendanceStatus,
-		"signature_present":  item.SignaturePresent,
-		"voting_right":       item.VotingRight,
+		"meeting_id":        item.MeetingID,
+		"full_name":         item.FullName,
+		"role_name":         item.RoleName,
+		"member_type":       item.MemberType,
+		"attendance_status": item.AttendanceStatus,
+		"signature_present": item.SignaturePresent,
+		"voting_right":      item.VotingRight,
 	})
 
 	httpx.JSON(w, http.StatusOK, item)
@@ -507,7 +507,7 @@ func (s *Service) CreateGovernanceMeetingDocument(w http.ResponseWriter, r *http
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_meeting_document_fields"})
 		return
 	}
-	if !containsString([]string{"convocator", "ordine_de_zi", "prezenta", "proces_verbal", "anexa", "hotarare", "material_sedinta", "delegare"}, req.DocumentType) {
+	if !containsString([]string{"convocator", "convocator_ca", "convocator_cp", "ordine_de_zi", "prezenta", "proces_verbal", "proces_verbal_ca", "proces_verbal_cp", "registru_ca", "registru_cp", "numire_secretar_cp", "anexa", "hotarare", "material_sedinta", "delegare"}, req.DocumentType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_document_type"})
 		return
 	}
@@ -586,12 +586,12 @@ func (s *Service) CreateGovernanceMeetingDocument(w http.ResponseWriter, r *http
 	}
 
 	s.logAudit(r, "education.governance.document.create", "governance_meeting_document", item.ID, "Meeting document created.", map[string]any{
-		"meeting_id":          item.MeetingID,
-		"document_type":       item.DocumentType,
-		"title":               item.Title,
-		"document_number":     item.DocumentNumber,
-		"publication_status":  item.PublicationStatus,
-		"issued_on":           item.IssuedOn,
+		"meeting_id":         item.MeetingID,
+		"document_type":      item.DocumentType,
+		"title":              item.Title,
+		"document_number":    item.DocumentNumber,
+		"publication_status": item.PublicationStatus,
+		"issued_on":          item.IssuedOn,
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
@@ -620,7 +620,7 @@ func (s *Service) UpdateGovernanceMeetingDocument(w http.ResponseWriter, r *http
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_meeting_document_fields"})
 		return
 	}
-	if !containsString([]string{"convocator", "ordine_de_zi", "prezenta", "proces_verbal", "anexa", "hotarare", "material_sedinta", "delegare"}, req.DocumentType) {
+	if !containsString([]string{"convocator", "convocator_ca", "convocator_cp", "ordine_de_zi", "prezenta", "proces_verbal", "proces_verbal_ca", "proces_verbal_cp", "registru_ca", "registru_cp", "numire_secretar_cp", "anexa", "hotarare", "material_sedinta", "delegare"}, req.DocumentType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_document_type"})
 		return
 	}
@@ -687,12 +687,12 @@ func (s *Service) UpdateGovernanceMeetingDocument(w http.ResponseWriter, r *http
 	}
 
 	s.logAudit(r, "education.governance.document.update", "governance_meeting_document", item.ID, "Meeting document updated.", map[string]any{
-		"meeting_id":          item.MeetingID,
-		"document_type":       item.DocumentType,
-		"title":               item.Title,
-		"document_number":     item.DocumentNumber,
-		"publication_status":  item.PublicationStatus,
-		"issued_on":           item.IssuedOn,
+		"meeting_id":         item.MeetingID,
+		"document_type":      item.DocumentType,
+		"title":              item.Title,
+		"document_number":    item.DocumentNumber,
+		"publication_status": item.PublicationStatus,
+		"issued_on":          item.IssuedOn,
 	})
 
 	httpx.JSON(w, http.StatusOK, item)
@@ -861,6 +861,10 @@ func (s *Service) GovernanceMeetingVoteDetail(w http.ResponseWriter, r *http.Req
 
 func (s *Service) CreateGovernanceMeetingVote(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
+	if meetingID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_id"})
+		return
+	}
 	var req CreateGovernanceMeetingVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_payload"})
@@ -882,6 +886,9 @@ func (s *Service) CreateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 	}
 	if !containsString([]string{"adoptat", "respins", "amanat"}, req.Outcome) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_outcome"})
+		return
+	}
+	if !s.ensureGovernanceMeetingVoteAccess(w, r, meetingID) {
 		return
 	}
 
@@ -955,14 +962,14 @@ func (s *Service) CreateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 	}
 
 	s.logAudit(r, "education.governance.vote.create", "governance_meeting_vote", item.ID, "Meeting vote created.", map[string]any{
-		"meeting_id":        item.MeetingID,
-		"subject_title":     item.SubjectTitle,
-		"agenda_order":      item.AgendaOrder,
-		"decision_type":     item.DecisionType,
-		"outcome":           item.Outcome,
-		"votes_for":         item.VotesFor,
-		"votes_against":     item.VotesAgainst,
-		"abstentions":       item.Abstentions,
+		"meeting_id":    item.MeetingID,
+		"subject_title": item.SubjectTitle,
+		"agenda_order":  item.AgendaOrder,
+		"decision_type": item.DecisionType,
+		"outcome":       item.Outcome,
+		"votes_for":     item.VotesFor,
+		"votes_against": item.VotesAgainst,
+		"abstentions":   item.Abstentions,
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
@@ -971,6 +978,10 @@ func (s *Service) CreateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 func (s *Service) UpdateGovernanceMeetingVote(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
 	voteID := strings.TrimSpace(chi.URLParam(r, "voteID"))
+	if meetingID == "" || voteID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_id"})
+		return
+	}
 	var req CreateGovernanceMeetingVoteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_payload"})
@@ -992,6 +1003,9 @@ func (s *Service) UpdateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 	}
 	if !containsString([]string{"adoptat", "respins", "amanat"}, req.Outcome) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_outcome"})
+		return
+	}
+	if !s.ensureGovernanceMeetingVoteAccess(w, r, meetingID) {
 		return
 	}
 
@@ -1052,14 +1066,14 @@ func (s *Service) UpdateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 	}
 
 	s.logAudit(r, "education.governance.vote.update", "governance_meeting_vote", item.ID, "Meeting vote updated.", map[string]any{
-		"meeting_id":        item.MeetingID,
-		"subject_title":     item.SubjectTitle,
-		"agenda_order":      item.AgendaOrder,
-		"decision_type":     item.DecisionType,
-		"outcome":           item.Outcome,
-		"votes_for":         item.VotesFor,
-		"votes_against":     item.VotesAgainst,
-		"abstentions":       item.Abstentions,
+		"meeting_id":    item.MeetingID,
+		"subject_title": item.SubjectTitle,
+		"agenda_order":  item.AgendaOrder,
+		"decision_type": item.DecisionType,
+		"outcome":       item.Outcome,
+		"votes_for":     item.VotesFor,
+		"votes_against": item.VotesAgainst,
+		"abstentions":   item.Abstentions,
 	})
 
 	httpx.JSON(w, http.StatusOK, item)
@@ -1068,6 +1082,13 @@ func (s *Service) UpdateGovernanceMeetingVote(w http.ResponseWriter, r *http.Req
 func (s *Service) DeleteGovernanceMeetingVote(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
 	voteID := strings.TrimSpace(chi.URLParam(r, "voteID"))
+	if meetingID == "" || voteID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_vote_id"})
+		return
+	}
+	if !s.ensureGovernanceMeetingVoteAccess(w, r, meetingID) {
+		return
+	}
 	tag, err := s.pool.Exec(r.Context(), `
 		delete from education_meeting_votes
 		where id = $1 and meeting_id = $2 and institution_id = $3
@@ -1098,15 +1119,15 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"section_code":         {},
-			"component_code":       {},
-			"document_title":       {},
-			"source_scope":         {},
-			"evidence_type":        {},
-			"issued_on":            {},
-			"chronological_index":  {},
-			"sensitive_data":       {},
-			"authenticity_status":  {},
+			"section_code":        {},
+			"component_code":      {},
+			"document_title":      {},
+			"source_scope":        {},
+			"evidence_type":       {},
+			"issued_on":           {},
+			"chronological_index": {},
+			"sensitive_data":      {},
+			"authenticity_status": {},
 		},
 		[]string{"section_code", "component_code", "document_title", "source_scope", "evidence_type", "issued_on", "sensitive_data", "authenticity_status"},
 	)
@@ -1247,6 +1268,9 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 	}
 
 	normalizePortfolioDocumentRequest(&req)
+	if req.AddedOn == "" {
+		req.AddedOn = time.Now().Format("2006-01-02")
+	}
 
 	if req.SectionCode == "" || req.ComponentCode == "" || req.DocumentTitle == "" || req.SourceScope == "" || req.EvidenceType == "" || req.IssuedOn == "" || req.AddedOn == "" || req.AuthenticityStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_document_fields"})
@@ -1351,14 +1375,19 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 	}
 
 	s.logAudit(r, "education.portfolios.document.create", "portfolio_document", item.ID, "Portfolio document created.", map[string]any{
-		"portfolio_id":          item.PortfolioID,
-		"section_code":          item.SectionCode,
-		"component_code":        item.ComponentCode,
-		"document_title":        item.DocumentTitle,
-		"source_scope":          item.SourceScope,
-		"authenticity_status":   item.AuthenticityStatus,
-		"chronological_index":   item.ChronologicalIndex,
+		"portfolio_id":        item.PortfolioID,
+		"section_code":        item.SectionCode,
+		"component_code":      item.ComponentCode,
+		"document_title":      item.DocumentTitle,
+		"source_scope":        item.SourceScope,
+		"authenticity_status": item.AuthenticityStatus,
+		"chronological_index": item.ChronologicalIndex,
 	})
+
+	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_opis_sync_failed"})
+		return
+	}
 
 	httpx.JSON(w, http.StatusCreated, item)
 }
@@ -1462,14 +1491,19 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 	}
 
 	s.logAudit(r, "education.portfolios.document.update", "portfolio_document", item.ID, "Portfolio document updated.", map[string]any{
-		"portfolio_id":          item.PortfolioID,
-		"section_code":          item.SectionCode,
-		"component_code":        item.ComponentCode,
-		"document_title":        item.DocumentTitle,
-		"source_scope":          item.SourceScope,
-		"authenticity_status":   item.AuthenticityStatus,
-		"chronological_index":   item.ChronologicalIndex,
+		"portfolio_id":        item.PortfolioID,
+		"section_code":        item.SectionCode,
+		"component_code":      item.ComponentCode,
+		"document_title":      item.DocumentTitle,
+		"source_scope":        item.SourceScope,
+		"authenticity_status": item.AuthenticityStatus,
+		"chronological_index": item.ChronologicalIndex,
 	})
+
+	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_opis_sync_failed"})
+		return
+	}
 
 	httpx.JSON(w, http.StatusOK, item)
 }
@@ -1493,6 +1527,11 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 	s.logAudit(r, "education.portfolios.document.delete", "portfolio_document", documentID, "Portfolio document deleted.", map[string]any{
 		"portfolio_id": recordID,
 	})
+
+	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_opis_sync_failed"})
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -1736,12 +1775,12 @@ func (s *Service) CreatePortfolioChecklistItem(w http.ResponseWriter, r *http.Re
 	}
 
 	s.logAudit(r, "education.portfolios.checklist.create", "portfolio_checklist_item", item.ID, "Portfolio checklist item created.", map[string]any{
-		"portfolio_id":      item.PortfolioID,
-		"requirement_code":  item.RequirementCode,
-		"section_code":      item.SectionCode,
-		"source_scope":      item.SourceScope,
-		"status":            item.Status,
-		"document_count":    item.DocumentCount,
+		"portfolio_id":     item.PortfolioID,
+		"requirement_code": item.RequirementCode,
+		"section_code":     item.SectionCode,
+		"source_scope":     item.SourceScope,
+		"status":           item.Status,
+		"document_count":   item.DocumentCount,
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
@@ -1835,12 +1874,12 @@ func (s *Service) UpdatePortfolioChecklistItem(w http.ResponseWriter, r *http.Re
 	}
 
 	s.logAudit(r, "education.portfolios.checklist.update", "portfolio_checklist_item", item.ID, "Portfolio checklist item updated.", map[string]any{
-		"portfolio_id":      item.PortfolioID,
-		"requirement_code":  item.RequirementCode,
-		"section_code":      item.SectionCode,
-		"source_scope":      item.SourceScope,
-		"status":            item.Status,
-		"document_count":    item.DocumentCount,
+		"portfolio_id":     item.PortfolioID,
+		"requirement_code": item.RequirementCode,
+		"section_code":     item.SectionCode,
+		"source_scope":     item.SourceScope,
+		"status":           item.Status,
+		"document_count":   item.DocumentCount,
 	})
 
 	httpx.JSON(w, http.StatusOK, item)

@@ -49,6 +49,56 @@ type GovernanceStats struct {
 	PublishedMeetings int `json:"published_meetings"`
 }
 
+type GovernanceMeetingFinalizationSummary struct {
+	Meeting      GovernanceMeeting                      `json:"meeting"`
+	Participants GovernanceMeetingFinalizationPeople    `json:"participants"`
+	Votes        GovernanceMeetingFinalizationVotes     `json:"votes"`
+	Minutes      GovernanceMeetingFinalizationMinutes   `json:"minutes"`
+	Resolutions  GovernanceMeetingFinalizationRecords   `json:"resolutions"`
+	Documents    GovernanceMeetingFinalizationDocs      `json:"documents"`
+	Readiness    GovernanceMeetingFinalizationReadiness `json:"readiness"`
+}
+
+type GovernanceMeetingFinalizationPeople struct {
+	RecordedParticipants int `json:"recorded_participants"`
+	PresentParticipants  int `json:"present_participants"`
+	SignedParticipants   int `json:"signed_participants"`
+	VotingParticipants   int `json:"voting_participants"`
+}
+
+type GovernanceMeetingFinalizationVotes struct {
+	Total              int `json:"total"`
+	Adopted            int `json:"adopted"`
+	RequiresFollowUp   int `json:"requires_follow_up"`
+	MissingResolutions int `json:"missing_resolutions"`
+}
+
+type GovernanceMeetingFinalizationMinutes struct {
+	Total               int `json:"total"`
+	RequiresPublication int `json:"requires_publication"`
+	OpenFollowUpItems   int `json:"open_follow_up_items"`
+}
+
+type GovernanceMeetingFinalizationRecords struct {
+	Total                int `json:"total"`
+	ReadyForPublication  int `json:"ready_for_publication"`
+	Published            int `json:"published"`
+	PendingPublication   int `json:"pending_publication"`
+	PendingAnonymization int `json:"pending_anonymization"`
+}
+
+type GovernanceMeetingFinalizationDocs struct {
+	Total                   int `json:"total"`
+	ProcessVerbalDocuments  int `json:"process_verbal_documents"`
+	PublishedProcessVerbals int `json:"published_process_verbals"`
+}
+
+type GovernanceMeetingFinalizationReadiness struct {
+	ReadyToClose   bool     `json:"ready_to_close"`
+	ReadyToPublish bool     `json:"ready_to_publish"`
+	Blockers       []string `json:"blockers"`
+}
+
 type CreateGovernanceMeetingRequest struct {
 	SchoolYear        string `json:"school_year"`
 	Organism          string `json:"organism"`

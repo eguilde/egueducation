@@ -46,6 +46,7 @@ export interface EducationDetailChildResourceConfig {
   listEndpoint: (parentRow: EducationRow) => string;
   detailEndpoint?: (parentRow: EducationRow, childRow: EducationRow) => string;
   createEndpoint: (parentRow: EducationRow) => string;
+  createWizardRoute?: (parentRow: EducationRow) => string;
   allowCreate?: boolean;
   readPermission: string;
   managePermission?: string;
@@ -64,6 +65,9 @@ export interface EducationResourceConfig {
   description: string;
   endpoint: string;
   createEndpoint: string;
+  createWizardRoute?: string;
+  detailSummaryKind?: 'governance-finalization' | 'personnel-portfolio-dossier' | 'portfolio-transfer-summary' | 'regulation-procedural' | 'governance-body-completeness' | 'committee-completeness' | 'managerial-portfolio';
+  detailSummaryEndpoint?: (row: EducationRow) => string;
   allowCreate?: boolean;
   readPermission: string;
   managePermission?: string;

@@ -1,0 +1,302 @@
+{
+  "title": "Ajutor si manual de lucru",
+  "subtitle": "Ghid operational pentru modulul education, construit ca manual in-app si aliniat la cele doua documente sursa.",
+  "sources": [
+    {
+      "label": "Metodologie portofoliu CD",
+      "short": "Portofoliu profesional, opis, transfer, valoare metodologica.",
+      "pdf": "Proiect_Metodologie_portofoliu_CD.pdf"
+    },
+    {
+      "label": "Ghid directori unitati de invatamant",
+      "short": "Management educational, documente, rapoarte, cockpit.",
+      "pdf": "fisier-6107.pdf"
+    }
+  ],
+  "quickLinks": [
+    { "label": "Panou educatie", "route": "/education/dashboard", "icon": "pi pi-chart-bar" },
+    { "label": "Portofoliul meu", "route": "/education/portfolio/me", "icon": "pi pi-folder-open" },
+    { "label": "Guvernanta", "route": "/education/governance", "icon": "pi pi-users" },
+    { "label": "Personal", "route": "/education/personnel", "icon": "pi pi-id-card" },
+    { "label": "Conformitate", "route": "/education/compliance", "icon": "pi pi-shield" },
+    { "label": "Rapoarte standard", "route": "/education/dashboard/director/reports", "icon": "pi pi-book" }
+  ],
+  "chapters": [
+    {
+      "id": "portfolio-professional",
+      "status": "partial",
+      "title": "Portofoliul profesional al cadrului didactic",
+      "audience": "profesor, director, secretariat",
+      "summary": "Registrul portofoliilor, structura pe sectiuni, documentele, checklistul, custodia, transferul si revizuirea.",
+      "inAppSteps": [
+        "Deschide Portofoliul meu sau lista de Portofolii CD.",
+        "Verifica starea, sectiunile si lipsurile din portofoliu.",
+        "Trimite la verificare sau revino la completare din fluxul ghidat."
+      ],
+      "outputs": [
+        "PDF principal de portofoliu",
+        "sumar de transfer si custodie",
+        "stare operationala pentru verificare si validare"
+      ],
+      "routes": [
+        "/education/portfolio/me",
+        "/education/portfolio/workflow",
+        "/education/portfolio"
+      ]
+    },
+    {
+      "id": "opis-indexare-datare",
+      "status": "covered",
+      "title": "Opis, indexare si datare",
+      "audience": "profesor, secretariat, director",
+      "summary": "Opisul este indexat cronologic, regenerator automat din documente si afisat cu datare vizibila.",
+      "inAppSteps": [
+        "Deschide opisul din detaliul portofoliului.",
+        "Regeneraza opisul dupa modificari de documente.",
+        "Urmareste datarea automata si numarul de inregistrari."
+      ],
+      "outputs": [
+        "opis structurat",
+        "referinte document",
+        "datare si ordonare cronologica"
+      ],
+      "routes": [
+        "/education/portfolio/me",
+        "/education/portfolio"
+      ]
+    },
+    {
+      "id": "portfolio-vs-dossier",
+      "status": "partial",
+      "title": "Delimitarea portofoliu versus dosar personal",
+      "audience": "secretariat, director, HR",
+      "summary": "Portofoliul profesional si dosarul personal raman entitati distincte, dar corelabile si auditate.",
+      "inAppSteps": [
+        "Urmareste sumarul consolidat de relatie dintre portofoliu si dosarul personal.",
+        "Verifica documentele oglindite si blocajele institutionale.",
+        "Aplica reguli interne pentru separare sau dublare de documente."
+      ],
+      "outputs": [
+        "sumar relatie portofoliu-dosar",
+        "reguli de oglindire",
+        "audit de acces si trasabilitate"
+      ],
+      "routes": [
+        "/education/personnel",
+        "/education/portfolio",
+        "/education/compliance"
+      ]
+    },
+    {
+      "id": "transfer-mobility",
+      "status": "partial",
+      "title": "Transfer digital si mobilitate",
+      "audience": "secretariat, director, profesor",
+      "summary": "Transferurile sunt urmarite procedural, cu custodie, predare, receptie si legaturi cu mobilitatea.",
+      "inAppSteps": [
+        "Deschide sumarul de transfer al portofoliului.",
+        "Verifica stadiul: pregatit, trimis, receptionat sau inchis.",
+        "Urmareste unitatea de baza si unitatea curenta."
+      ],
+      "outputs": [
+        "sumar transfer",
+        "istoric de predare si receptie",
+        "stare de mobilitate"
+      ],
+      "routes": [
+        "/education/portfolio",
+        "/education/personnel"
+      ]
+    },
+    {
+      "id": "valorification",
+      "status": "partial",
+      "title": "Fluxurile de valorificare a portofoliului",
+      "audience": "profesor, director, inspector",
+      "summary": "Portofoliul poate fi utilizat in evaluare, mobilitate, gradatii, inspectii si dezvoltare profesionala.",
+      "inAppSteps": [
+        "Deschide sumarul de valorificare al portofoliului.",
+        "Urmareste contextul metodologic relevant.",
+        "Filtreaza traseele pe evaluare, mobilitate sau gradatie."
+      ],
+      "outputs": [
+        "istoric de valorificare",
+        "stare pe context",
+        "raport contextual"
+      ],
+      "routes": [
+        "/education/portfolio",
+        "/education/personnel"
+      ]
+    },
+    {
+      "id": "rof-roi",
+      "status": "partial",
+      "title": "ROF si ROI",
+      "audience": "director, secretariat, CP",
+      "summary": "Regulamentele au versiuni, avizare, aprobare, publicare si arhivare, cu sumar procedural.",
+      "inAppSteps": [
+        "Deschide registrul de regulamente.",
+        "Verifica starea versiunii si a workflow-ului.",
+        "Publica doar versiunea aprobata si inregistrata."
+      ],
+      "outputs": [
+        "versionare regulament",
+        "flux de avizare si aprobare",
+        "stare de publicare"
+      ],
+      "routes": [
+        "/education/governance",
+        "/education/compliance"
+      ]
+    },
+    {
+      "id": "ca-complete",
+      "status": "partial",
+      "title": "CA complet",
+      "audience": "director, secretariat, membri CA",
+      "summary": "Sedintele CA includ membri, participanti, voturi, minute, hotarari si sumar procedural.",
+      "inAppSteps": [
+        "Deschide CA si creeaza sedinta din wizard.",
+        "Verifica participanti, cvorum si voturi.",
+        "Finalizeaza prin minute si hotarari."
+      ],
+      "outputs": [
+        "proces-verbal CA",
+        "hotarari si minute",
+        "sumar procedural"
+      ],
+      "routes": [
+        "/education/governance",
+        "/education/governance/ca-wizard"
+      ]
+    },
+    {
+      "id": "cp-complete",
+      "status": "partial",
+      "title": "CP complet",
+      "audience": "director, CP, secretariat",
+      "summary": "Consiliul profesoral este organizat procedural, cu modele si documente oficiale de sedinta.",
+      "inAppSteps": [
+        "Deschide CP din guvernanta.",
+        "Urmeaza ordinea de zi si documentele de sedinta.",
+        "Leaga minutele de hotararile consemnate."
+      ],
+      "outputs": [
+        "proces-verbal CP",
+        "documente de sedinta",
+        "raport de sedinta"
+      ],
+      "routes": [
+        "/education/governance",
+        "/education/governance/ca-wizard"
+      ]
+    },
+    {
+      "id": "committees",
+      "status": "partial",
+      "title": "Comisii si comisia de evaluare",
+      "audience": "director, responsabil comisie, evaluator",
+      "summary": "Comisiile au membri, mandat, rezultate si nevoie de raportare si documente dedicate.",
+      "inAppSteps": [
+        "Deschide resursele de comisie din educatie.",
+        "Verifica componenta si mandatul.",
+        "Urmareste raportul si documentele rezultate."
+      ],
+      "outputs": [
+        "comisie completata",
+        "mandat si raport",
+        "urmarire operationala"
+      ],
+      "routes": [
+        "/education/governance",
+        "/education/personnel"
+      ]
+    },
+    {
+      "id": "evaluation-communication",
+      "status": "covered",
+      "title": "Comunicarea rezultatului evaluarii",
+      "audience": "profesor, evaluator, secretariat",
+      "summary": "Rezultatul evaluarii are flux, document si expunere clara in dosarul personal.",
+      "inAppSteps": [
+        "Deschide evaluarea si rezultatului comunicat.",
+        "Verifica starea contestatiilor si a finalizarii.",
+        "Consultati PDF-ul si documentele aferente."
+      ],
+      "outputs": [
+        "comunicare rezultat",
+        "PDF dedicat",
+        "oglindire in dosar personal"
+      ],
+      "routes": [
+        "/education/personnel",
+        "/education/personnel/evaluations-wizard"
+      ]
+    },
+    {
+      "id": "director-portfolio",
+      "status": "partial",
+      "title": "Portofoliul directorului si al directorului adjunct",
+      "audience": "director, director adjunct, secretariat",
+      "summary": "Portofoliul managerial este separat de dosarul personal si are documente si verticala proprie.",
+      "inAppSteps": [
+        "Deschide registrul managerial si filtreaza pe director sau adjunct.",
+        "Verifica documentele aprobate si in avizare.",
+        "Urmareste checklistul managerial si publicarea."
+      ],
+      "outputs": [
+        "documente manageriale",
+        "workflow de avizare",
+        "sumar de portofoliu managerial"
+      ],
+      "routes": [
+        "/education/governance",
+        "/education/dashboard/director"
+      ]
+    },
+    {
+      "id": "official-pdfs",
+      "status": "partial",
+      "title": "Documente-model si PDF-uri oficiale",
+      "audience": "secretariat, director",
+      "summary": "Sunt acoperite documente PDF pentru mai multe fluxuri, dar mai raman sabloane oficiale dedicate.",
+      "inAppSteps": [
+        "Deschide generarea PDF din resursa relevanta.",
+        "Alege documentul formal aferent fluxului.",
+        "Verifica trasabilitatea, numarul si statusul."
+      ],
+      "outputs": [
+        "PDF-uri pe fluxuri",
+        "documente model",
+        "exporturi oficiale"
+      ],
+      "routes": [
+        "/education/dashboard/director/reports",
+        "/education/governance",
+        "/education/portfolio"
+      ]
+    },
+    {
+      "id": "managerial-reports",
+      "status": "partial",
+      "title": "Rapoarte manageriale strict necesare",
+      "audience": "director, secretariat, inspector",
+      "summary": "Rapoartele trebuie sa arate starea operativa a scolii: sedinte, hotarari, portofolii, evaluari si conformitate.",
+      "inAppSteps": [
+        "Deschide rapoartele standard din cockpitul directorului.",
+        "Filtreaza pe an scolar, organism si status.",
+        "Exporta PDF sau CSV pentru analiza si arhivare."
+      ],
+      "outputs": [
+        "rapoarte standard",
+        "exporturi contextuale",
+        "cockpit de management"
+      ],
+      "routes": [
+        "/education/dashboard/director/reports",
+        "/education/dashboard/director"
+      ]
+    }
+  ]
+}

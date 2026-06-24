@@ -160,6 +160,11 @@ export const routes: Routes = [
           import('./features/profile/profile-page.component').then((m) => m.ProfilePageComponent),
       },
       {
+        path: 'help',
+        loadComponent: () =>
+          import('./features/help/help-center-page.component').then((m) => m.HelpCenterPageComponent),
+      },
+      {
         path: 'education',
         canActivate: [permissionGuard],
         data: {

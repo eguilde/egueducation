@@ -138,6 +138,10 @@ func (s *Service) GovernanceMinuteItemDetail(w http.ResponseWriter, r *http.Requ
 
 func (s *Service) CreateGovernanceMinuteItem(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
+	if meetingID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_id"})
+		return
+	}
 	var req CreateGovernanceMinuteItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_minute_payload"})
@@ -160,6 +164,9 @@ func (s *Service) CreateGovernanceMinuteItem(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		dueOn = req.DueOn
+	}
+	if req.RequiresPublication && !s.ensureGovernancePublicationAccess(w, r, meetingID, "education.governance.minutes.publish", "education_governance_minutes_publish_forbidden") {
+		return
 	}
 
 	var item GovernanceMinuteItem
@@ -206,6 +213,10 @@ func (s *Service) CreateGovernanceMinuteItem(w http.ResponseWriter, r *http.Requ
 func (s *Service) UpdateGovernanceMinuteItem(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	if meetingID == "" || recordID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_minute_id"})
+		return
+	}
 	var req CreateGovernanceMinuteItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_minute_payload"})
@@ -228,6 +239,9 @@ func (s *Service) UpdateGovernanceMinuteItem(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		dueOn = req.DueOn
+	}
+	if req.RequiresPublication && !s.ensureGovernancePublicationAccess(w, r, meetingID, "education.governance.minutes.publish", "education_governance_minutes_publish_forbidden") {
+		return
 	}
 
 	var item GovernanceMinuteItem

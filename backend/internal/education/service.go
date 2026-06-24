@@ -2895,6 +2895,11 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_date"})
 		return
 	}
+	if req.Status == "held" || req.Status == "published" {
+		if !s.ensureGovernanceMeetingCloseAccess(w, r, meetingID) {
+			return
+		}
+	}
 
 	var item GovernanceMeeting
 	err = s.pool.QueryRow(r.Context(), `
@@ -4463,6 +4468,189 @@ func (s *Service) GovernanceMeetingDetail(w http.ResponseWriter, r *http.Request
 		return
 	}
 	httpx.JSON(w, http.StatusOK, item)
+}
+
+func (s *Service) GovernanceMeetingFinalizationSummary(w http.ResponseWriter, r *http.Request) {
+	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
+	if meetingID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_id"})
+		return
+	}
+
+	var response GovernanceMeetingFinalizationSummary
+	err := s.pool.QueryRow(r.Context(), `
+		select
+			id::text,
+			school_year,
+			organism,
+			title,
+			meeting_type,
+			status,
+			quorum_required,
+			participants_count,
+			to_char(meeting_date, 'YYYY-MM-DD'),
+			location,
+			chairperson,
+			secretary_name,
+			institution_id,
+			summary
+		from education_meetings
+		where id = $1::uuid and institution_id = $2
+	`, meetingID, s.institutionID(r)).Scan(
+		&response.Meeting.ID,
+		&response.Meeting.SchoolYear,
+		&response.Meeting.Organism,
+		&response.Meeting.Title,
+		&response.Meeting.MeetingType,
+		&response.Meeting.Status,
+		&response.Meeting.QuorumRequired,
+		&response.Meeting.ParticipantsCount,
+		&response.Meeting.MeetingDate,
+		&response.Meeting.Location,
+		&response.Meeting.Chairperson,
+		&response.Meeting.SecretaryName,
+		&response.Meeting.InstitutionID,
+		&response.Meeting.Summary,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_meeting_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_meeting_finalization_summary_failed"})
+		return
+	}
+
+	err = s.pool.QueryRow(r.Context(), `
+		with participant_stats as (
+			select
+				count(*) as recorded_participants,
+				count(*) filter (where attendance_status = 'prezent') as present_participants,
+				count(*) filter (where signature_present) as signed_participants,
+				count(*) filter (where voting_right) as voting_participants
+			from education_meeting_participants
+			where meeting_id = $1::uuid and institution_id = $2
+		),
+		vote_stats as (
+			select
+				count(*) as total_votes,
+				count(*) filter (where outcome = 'adoptat') as adopted_votes,
+				count(*) filter (where requires_follow_up) as follow_up_votes
+			from education_meeting_votes
+			where meeting_id = $1::uuid and institution_id = $2
+		),
+		minute_stats as (
+			select
+				count(*) as total_minutes,
+				count(*) filter (where requires_publication) as requires_publication_minutes,
+				count(*) filter (where follow_up_status not in ('realizat', 'inchis')) as open_follow_up_minutes
+			from education_meeting_minutes
+			where meeting_id = $1::uuid and institution_id = $2
+		),
+		resolution_stats as (
+			select
+				count(*) as total_resolutions,
+				count(*) filter (where publication_status in ('pregatit_publicare', 'publicat')) as ready_for_publication,
+				count(*) filter (where publication_status = 'publicat') as published_resolutions,
+				count(*) filter (where publication_status <> 'publicat') as pending_publication,
+				count(*) filter (where anonymization_state = 'necesara') as pending_anonymization
+			from education_meeting_resolutions
+			where meeting_id = $1::uuid and institution_id = $2
+		),
+		document_stats as (
+			select
+				count(*) as total_documents,
+				count(*) filter (where document_type = 'proces_verbal') as process_verbal_documents,
+				count(*) filter (where document_type = 'proces_verbal' and publication_status = 'publicat') as published_process_verbals
+			from education_meeting_documents
+			where meeting_id = $1::uuid and institution_id = $2
+		)
+		select
+			ps.recorded_participants,
+			ps.present_participants,
+			ps.signed_participants,
+			ps.voting_participants,
+			vs.total_votes,
+			vs.adopted_votes,
+			vs.follow_up_votes,
+			ms.total_minutes,
+			ms.requires_publication_minutes,
+			ms.open_follow_up_minutes,
+			rs.total_resolutions,
+			rs.ready_for_publication,
+			rs.published_resolutions,
+			rs.pending_publication,
+			rs.pending_anonymization,
+			ds.total_documents,
+			ds.process_verbal_documents,
+			ds.published_process_verbals
+		from participant_stats ps
+		cross join vote_stats vs
+		cross join minute_stats ms
+		cross join resolution_stats rs
+		cross join document_stats ds
+	`, meetingID, s.institutionID(r)).Scan(
+		&response.Participants.RecordedParticipants,
+		&response.Participants.PresentParticipants,
+		&response.Participants.SignedParticipants,
+		&response.Participants.VotingParticipants,
+		&response.Votes.Total,
+		&response.Votes.Adopted,
+		&response.Votes.RequiresFollowUp,
+		&response.Minutes.Total,
+		&response.Minutes.RequiresPublication,
+		&response.Minutes.OpenFollowUpItems,
+		&response.Resolutions.Total,
+		&response.Resolutions.ReadyForPublication,
+		&response.Resolutions.Published,
+		&response.Resolutions.PendingPublication,
+		&response.Resolutions.PendingAnonymization,
+		&response.Documents.Total,
+		&response.Documents.ProcessVerbalDocuments,
+		&response.Documents.PublishedProcessVerbals,
+	)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_meeting_finalization_summary_failed"})
+		return
+	}
+
+	response.Votes.MissingResolutions = max(0, response.Votes.Adopted-response.Resolutions.Total)
+
+	blockers := make([]string, 0, 6)
+	if response.Participants.PresentParticipants < response.Meeting.QuorumRequired {
+		blockers = append(blockers, "quorum_incomplete")
+	}
+	if response.Participants.SignedParticipants < response.Participants.PresentParticipants {
+		blockers = append(blockers, "signatures_missing")
+	}
+	if response.Votes.Total == 0 {
+		blockers = append(blockers, "votes_missing")
+	}
+	if response.Minutes.Total == 0 {
+		blockers = append(blockers, "minutes_missing")
+	}
+	if response.Votes.MissingResolutions > 0 {
+		blockers = append(blockers, "resolutions_missing_for_adopted_votes")
+	}
+	if response.Resolutions.PendingAnonymization > 0 {
+		blockers = append(blockers, "resolution_anonymization_pending")
+	}
+	if response.Minutes.RequiresPublication > 0 && response.Documents.ProcessVerbalDocuments == 0 {
+		blockers = append(blockers, "published_minute_document_missing")
+	}
+
+	response.Readiness.ReadyToClose = response.Participants.PresentParticipants >= response.Meeting.QuorumRequired &&
+		response.Participants.SignedParticipants >= response.Participants.PresentParticipants &&
+		response.Votes.Total > 0 &&
+		response.Minutes.Total > 0
+	response.Readiness.ReadyToPublish = response.Readiness.ReadyToClose &&
+		response.Votes.MissingResolutions == 0 &&
+		response.Resolutions.PendingPublication == 0 &&
+		response.Resolutions.PendingAnonymization == 0 &&
+		(response.Minutes.RequiresPublication == 0 || response.Documents.PublishedProcessVerbals > 0)
+	response.Readiness.Blockers = blockers
+
+	httpx.JSON(w, http.StatusOK, response)
 }
 
 func (s *Service) GovernanceDecisionDetail(w http.ResponseWriter, r *http.Request) {

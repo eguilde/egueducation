@@ -48,6 +48,8 @@ const MANAGERIAL_TYPE_OPTIONS: EducationOption[] = [
   { label: 'Plan de incadrare', value: 'staffing_plan' },
   { label: 'Orar', value: 'timetable' },
   { label: 'Raport de comisie', value: 'commission_report' },
+  { label: 'Portofoliu director', value: 'director_portfolio' },
+  { label: 'Portofoliu director adjunct', value: 'adjunct_director_portfolio' },
 ];
 
 const MANAGERIAL_STATUS_OPTIONS: EducationOption[] = [
@@ -499,9 +501,16 @@ const MEETING_ATTENDANCE_OPTIONS: EducationOption[] = [
 
 const MEETING_DOCUMENT_TYPE_OPTIONS: EducationOption[] = [
   { label: 'Convocator', value: 'convocator' },
+  { label: 'Convocator CA', value: 'convocator_ca' },
+  { label: 'Convocator CP', value: 'convocator_cp' },
   { label: 'Ordine de zi', value: 'ordine_de_zi' },
   { label: 'Lista prezenta', value: 'prezenta' },
   { label: 'Proces-verbal', value: 'proces_verbal' },
+  { label: 'Proces-verbal CA', value: 'proces_verbal_ca' },
+  { label: 'Proces-verbal CP', value: 'proces_verbal_cp' },
+  { label: 'Registru CA', value: 'registru_ca' },
+  { label: 'Registru CP', value: 'registru_cp' },
+  { label: 'Decizie numire secretar CP', value: 'numire_secretar_cp' },
   { label: 'Anexa', value: 'anexa' },
   { label: 'Hotarare', value: 'hotarare' },
   { label: 'Material sedinta', value: 'material_sedinta' },
@@ -564,6 +573,38 @@ const GOVERNANCE_MEMBERSHIP_STATUS_OPTIONS: EducationOption[] = [
   { label: 'Expirat', value: 'expirat' },
 ];
 
+const COMMITTEE_TYPE_OPTIONS: EducationOption[] = [
+  { label: 'Evaluare personal didactic', value: 'evaluare_personal_didactic' },
+  { label: 'Permanenta', value: 'permanenta' },
+  { label: 'Temporara', value: 'temporara' },
+  { label: 'Curriculum', value: 'curriculum' },
+  { label: 'Mentorat', value: 'mentorat' },
+  { label: 'Securitate', value: 'securitate' },
+  { label: 'Burse', value: 'burse' },
+  { label: 'Alta', value: 'alta' },
+];
+
+const COMMITTEE_STATUS_OPTIONS: EducationOption[] = [
+  { label: 'Draft', value: 'draft' },
+  { label: 'Activa', value: 'active' },
+  { label: 'Finalizata', value: 'completed' },
+  { label: 'Arhivata', value: 'archived' },
+];
+
+const COMMITTEE_MEMBER_TYPE_OPTIONS: EducationOption[] = [
+  { label: 'Presedinte', value: 'presedinte' },
+  { label: 'Secretar', value: 'secretar' },
+  { label: 'Membru', value: 'membru' },
+  { label: 'Observator', value: 'observator' },
+  { label: 'Invitat', value: 'invitat' },
+];
+
+const COMMITTEE_MEMBER_STATUS_OPTIONS: EducationOption[] = [
+  { label: 'Activ', value: 'active' },
+  { label: 'Inactiv', value: 'inactive' },
+  { label: 'Inlocuit', value: 'replaced' },
+];
+
 const GOVERNANCE_RESOLUTION_TYPE_OPTIONS: EducationOption[] = [
   { label: 'Hotarare', value: 'hotarare' },
   { label: 'Decizie', value: 'decizie' },
@@ -607,6 +648,29 @@ const PORTFOLIO_REVIEW_OUTCOME_OPTIONS: EducationOption[] = [
   { label: 'Acceptat', value: 'acceptat' },
   { label: 'Completari', value: 'completari' },
   { label: 'Respins', value: 'respins' },
+];
+
+const PORTFOLIO_VALORIFICATION_SCOPE_OPTIONS: EducationOption[] = [
+  { label: 'Licentiere', value: 'licentiere' },
+  { label: 'Debut', value: 'debut' },
+  { label: 'Definitivat', value: 'definitivat' },
+  { label: 'Grad didactic II', value: 'grad_ii' },
+  { label: 'Grad didactic I', value: 'grad_i' },
+  { label: 'Evaluare profesionala', value: 'evaluare_profesionala' },
+  { label: 'Mobilitate', value: 'mobilitate' },
+  { label: 'Dezvoltare profesionala', value: 'dezvoltare_profesionala' },
+  { label: 'Inspectie scolara', value: 'inspectie_scolara' },
+  { label: 'Evaluare externa a calitatii', value: 'evaluare_externa_calitate' },
+  { label: 'Gradatie de merit', value: 'gradatie_merit' },
+  { label: 'Distinctie / premiu', value: 'distinctie_premiu' },
+];
+
+const PORTFOLIO_VALORIFICATION_STATUS_OPTIONS: EducationOption[] = [
+  { label: 'Planificat', value: 'planificat' },
+  { label: 'In pregatire', value: 'in_pregatire' },
+  { label: 'Transmis', value: 'transmis' },
+  { label: 'Validat', value: 'validat' },
+  { label: 'Finalizat', value: 'finalizat' },
 ];
 
 const MEETING_MINUTE_FOLLOW_UP_OPTIONS: EducationOption[] = [
@@ -740,6 +804,9 @@ const MEETING_DOCUMENTS_CHILD: EducationDetailChildResourceConfig = {
   listEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/documents`,
   detailEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/documents/${childRow['id']}`,
   createEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/documents`,
+  pdfEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/documents/${childRow['id']}/pdf`,
+  pdfFilename: (_parentRow, childRow) => `document-sedinta-${String(childRow['document_number'] ?? childRow['id'] ?? 'sedinta')}.pdf`,
+  pdfActionLabel: 'Document PDF',
   readPermission: 'education.governance.read',
   managePermission: 'education.governance.manage',
   columns: [
@@ -772,6 +839,7 @@ const MEETING_VOTES_CHILD: EducationDetailChildResourceConfig = {
   listEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/votes`,
   detailEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/votes/${childRow['id']}`,
   createEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/votes`,
+  createWizardRoute: (parentRow) => `/education/governance/votes-wizard?meetingId=${encodeURIComponent(String(parentRow['id'] ?? ''))}`,
   readPermission: 'education.governance.read',
   managePermission: 'education.governance.manage',
   columns: [
@@ -807,8 +875,12 @@ const MEETING_RESOLUTIONS_CHILD: EducationDetailChildResourceConfig = {
   listEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/resolutions`,
   detailEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/resolutions/${childRow['id']}`,
   createEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/resolutions`,
+  createWizardRoute: (parentRow) => `/education/governance/resolutions-wizard?meetingId=${encodeURIComponent(String(parentRow['id'] ?? ''))}`,
   readPermission: 'education.governance.read',
   managePermission: 'education.governance.manage',
+  pdfEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/resolutions/${childRow['id']}/pdf`,
+  pdfFilename: (_parentRow, childRow) => `hotarare-${String(childRow['resolution_code'] ?? childRow['id'] ?? 'sedinta')}.pdf`,
+  pdfActionLabel: 'Hotarare PDF',
   columns: [
     { field: 'resolution_code', header: 'Cod', sortable: true, filter: 'text', width: '11rem' },
     { field: 'title', header: 'Titlu', sortable: true, filter: 'text', width: '22rem' },
@@ -857,8 +929,12 @@ const MEETING_MINUTES_CHILD: EducationDetailChildResourceConfig = {
   listEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/minutes`,
   detailEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/minutes/${childRow['id']}`,
   createEndpoint: (parentRow) => `/api/education/governance/meetings/${parentRow['id']}/minutes`,
+  createWizardRoute: (parentRow) => `/education/governance/minutes-wizard?meetingId=${encodeURIComponent(String(parentRow['id'] ?? ''))}`,
   readPermission: 'education.governance.read',
   managePermission: 'education.governance.manage',
+  pdfEndpoint: (parentRow, childRow) => `/api/education/governance/meetings/${parentRow['id']}/minutes/${childRow['id']}/pdf`,
+  pdfFilename: (_parentRow, childRow) => `proces-verbal-${String(childRow['agenda_order'] ?? 'punct')}-${String(childRow['id'] ?? 'sedinta')}.pdf`,
+  pdfActionLabel: 'Proces-verbal PDF',
   columns: [
     { field: 'agenda_order', header: 'Ordine', type: 'number', sortable: true, filter: 'text', width: '7rem' },
     { field: 'topic_title', header: 'Subiect', sortable: true, filter: 'text', width: '20rem' },
@@ -889,6 +965,9 @@ const MANAGERIAL_DOCUMENTS_CHILD: EducationDetailChildResourceConfig = {
   listEndpoint: (parentRow) => `/api/education/managerial/records/${parentRow['id']}/documents`,
   detailEndpoint: (parentRow, childRow) => `/api/education/managerial/records/${parentRow['id']}/documents/${childRow['id']}`,
   createEndpoint: (parentRow) => `/api/education/managerial/records/${parentRow['id']}/documents`,
+  pdfEndpoint: (parentRow, childRow) => `/api/education/managerial/records/${parentRow['id']}/documents/${childRow['id']}/pdf`,
+  pdfFilename: (_parentRow, childRow) => `document-managerial-${String(childRow['document_code'] ?? childRow['id'] ?? 'dosar')}.pdf`,
+  pdfActionLabel: 'Document PDF',
   readPermission: 'education.managerial.read',
   managePermission: 'education.managerial.manage',
   columns: [
@@ -1769,6 +1848,39 @@ const PORTFOLIO_REVIEWS_CHILD: EducationDetailChildResourceConfig = {
   emptyText: 'Nu exista verificari inregistrate pentru portofoliul selectat.',
 };
 
+const PORTFOLIO_VALORIFICATIONS_CHILD: EducationDetailChildResourceConfig = {
+  key: 'portfolio_valorifications',
+  label: 'Fluxuri de valorificare',
+  icon: 'pi pi-sitemap',
+  description: 'Situatiile procedurale in care portofoliul este folosit, transmis, evaluat sau prezentat institutional.',
+  listEndpoint: (parentRow) => `/api/education/portfolios/records/${parentRow['id']}/valorifications`,
+  detailEndpoint: (parentRow, childRow) => `/api/education/portfolios/records/${parentRow['id']}/valorifications/${childRow['id']}`,
+  createEndpoint: (parentRow) => `/api/education/portfolios/records/${parentRow['id']}/valorifications`,
+  readPermission: 'education.portfolios.read',
+  managePermission: 'education.portfolios.manage',
+  columns: [
+    { field: 'valorification_code', header: 'Cod', sortable: true, filter: 'text', width: '11rem' },
+    { field: 'scope', header: 'Scop', type: 'tag', sortable: true, filter: 'select', options: PORTFOLIO_VALORIFICATION_SCOPE_OPTIONS, width: '16rem' },
+    { field: 'status', header: 'Status', type: 'tag', sortable: true, filter: 'select', options: PORTFOLIO_VALORIFICATION_STATUS_OPTIONS, width: '10rem' },
+    { field: 'requested_by', header: 'Initiat de', sortable: true, filter: 'text', width: '14rem' },
+    { field: 'target_institution', header: 'Tinta institutionala', sortable: true, filter: 'text', width: '18rem' },
+    { field: 'target_reference', header: 'Referinta', sortable: true, filter: 'text', width: '12rem' },
+    { field: 'started_on', header: 'Pornit la', sortable: true, width: '9rem' },
+    { field: 'completed_on', header: 'Finalizat la', sortable: true, width: '10rem' },
+  ],
+  createFields: [
+    { field: 'scope', label: 'Scop procedural', type: 'select', options: PORTFOLIO_VALORIFICATION_SCOPE_OPTIONS, defaultValue: 'evaluare_profesionala', required: true },
+    { field: 'status', label: 'Status', type: 'select', options: PORTFOLIO_VALORIFICATION_STATUS_OPTIONS, defaultValue: 'planificat', required: true },
+    { field: 'requested_by', label: 'Initiat de', type: 'text' },
+    { field: 'target_institution', label: 'Institutie / comisie tinta', type: 'text', wide: true },
+    { field: 'target_reference', label: 'Referinta procedurala', type: 'text' },
+    { field: 'started_on', label: 'Data pornirii', type: 'date', required: true },
+    { field: 'completed_on', label: 'Data finalizarii', type: 'date' },
+    { field: 'notes', label: 'Note', type: 'textarea', wide: true },
+  ],
+  emptyText: 'Nu exista fluxuri de valorificare pentru portofoliul selectat.',
+};
+
 const PORTFOLIO_OPIS_CHILD: EducationDetailChildResourceConfig = {
   key: 'portfolio_opis',
   label: 'Opis si index cronologic',
@@ -1945,6 +2057,9 @@ const MEETINGS_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-calendar',
   endpoint: '/api/education/governance/meetings',
   createEndpoint: '/api/education/governance/meetings',
+  createWizardRoute: '/education/governance/ca-wizard',
+  detailSummaryKind: 'governance-finalization',
+  detailSummaryEndpoint: (row) => `/api/education/governance/meetings/${String(row['id'] ?? '')}/finalization-summary`,
   readPermission: 'education.governance.read',
   managePermission: 'education.governance.manage',
   description: 'Convocare, prezenta, cvorum, agenda, minute, anexe, vot si semnaturi.',
@@ -1973,6 +2088,23 @@ const MEETINGS_RESOURCE: EducationResourceConfig = {
   ],
   emptyText: 'Nu exista sedinte pentru filtrele curente.',
   detailChildren: [MEETING_PARTICIPANTS_CHILD, MEETING_DOCUMENTS_CHILD, MEETING_VOTES_CHILD, MEETING_MINUTES_CHILD, MEETING_RESOLUTIONS_CHILD],
+};
+
+const CP_MEETINGS_RESOURCE: EducationResourceConfig = {
+  ...MEETINGS_RESOURCE,
+  key: 'cp_meetings',
+  label: 'CP complet',
+  description: 'Sedinte, documente oficiale si trasee procedurale pentru Consiliul Profesoral.',
+  endpoint: '/api/education/governance/meetings?filter.organism=cp',
+  createWizardRoute: '/education/governance/ca-wizard?organism=cp',
+  columns: [
+    { field: 'school_year', header: 'An scolar', sortable: true, filter: 'text', width: '9rem' },
+    { field: 'organism', header: 'Organism', type: 'tag', sortable: true, filter: 'select', options: ORGANISM_OPTIONS, width: '10rem' },
+    { field: 'title', header: 'Titlu', sortable: true, filter: 'text', width: '24rem' },
+    { field: 'status', header: 'Status', type: 'tag', sortable: true, filter: 'select', options: MEETING_STATUS_OPTIONS, width: '10rem' },
+    { field: 'meeting_date', header: 'Data', sortable: true, width: '9rem' },
+    { field: 'participants_count', header: 'Participanti', type: 'number', sortable: true, width: '8rem' },
+  ],
 };
 
 const GOVERNANCE_MEMBERSHIPS_RESOURCE: EducationResourceConfig = {
@@ -2006,6 +2138,129 @@ const GOVERNANCE_MEMBERSHIPS_RESOURCE: EducationResourceConfig = {
     { field: 'notes', label: 'Observatii', type: 'textarea', wide: true },
   ],
   emptyText: 'Nu exista membri configurati pentru organismele de guvernanta.',
+};
+
+const GOVERNANCE_BODY_MEMBERSHIPS_CHILD: EducationDetailChildResourceConfig = {
+  key: 'body_memberships',
+  label: 'Membri organism',
+  icon: 'pi pi-users',
+  description: 'Membrii activi si istoricul mandatelor pentru organismul selectat.',
+  listEndpoint: (parentRow) => `/api/education/governance/memberships?filter.school_year=${encodeURIComponent(String(parentRow['school_year'] ?? ''))}&filter.organism=${encodeURIComponent(String(parentRow['organism'] ?? ''))}`,
+  detailEndpoint: (_parentRow, childRow) => `/api/education/governance/memberships/${childRow['id']}`,
+  createEndpoint: () => '/api/education/governance/memberships',
+  allowCreate: false,
+  readPermission: 'education.governance.read',
+  managePermission: 'education.governance.manage',
+  columns: GOVERNANCE_MEMBERSHIPS_RESOURCE.columns,
+  createFields: GOVERNANCE_MEMBERSHIPS_RESOURCE.createFields,
+  emptyText: 'Nu exista membri pentru organismul selectat.',
+};
+
+const GOVERNANCE_BODY_MEETINGS_CHILD: EducationDetailChildResourceConfig = {
+  key: 'body_meetings',
+  label: 'Sedinte organism',
+  icon: 'pi pi-calendar',
+  description: 'Sedintele asociate organismului selectat.',
+  listEndpoint: (parentRow) => `/api/education/governance/meetings?filter.school_year=${encodeURIComponent(String(parentRow['school_year'] ?? ''))}&filter.organism=${encodeURIComponent(String(parentRow['organism'] ?? ''))}`,
+  detailEndpoint: (_parentRow, childRow) => `/api/education/governance/meetings/${childRow['id']}`,
+  createEndpoint: () => '/api/education/governance/meetings',
+  allowCreate: false,
+  readPermission: 'education.governance.read',
+  managePermission: 'education.governance.manage',
+  columns: MEETINGS_RESOURCE.columns,
+  createFields: MEETINGS_RESOURCE.createFields,
+  emptyText: 'Nu exista sedinte pentru organismul selectat.',
+};
+
+const GOVERNANCE_BODIES_RESOURCE: EducationResourceConfig = {
+  key: 'governance_bodies',
+  label: 'CA / CP / CEAC',
+  icon: 'pi pi-building-columns',
+  endpoint: '/api/education/governance/bodies',
+  createEndpoint: '',
+  allowCreate: false,
+  detailSummaryKind: 'governance-body-completeness',
+  detailSummaryEndpoint: (row) => `/api/education/governance/bodies/${String(row['id'] ?? '')}/completeness-summary`,
+  readPermission: 'education.governance.read',
+  description: 'Constituire si operabilitate pentru Consiliul de Administratie, Consiliul Profesoral si celelalte organisme.',
+  columns: [
+    { field: 'school_year', header: 'An scolar', sortable: true, filter: 'text', width: '9rem' },
+    { field: 'organism', header: 'Organism', type: 'tag', sortable: true, filter: 'select', options: ORGANISM_OPTIONS, width: '10rem' },
+    { field: 'active_members', header: 'Membri activi', type: 'number', sortable: true, width: '8rem' },
+    { field: 'voting_members', header: 'Membri cu vot', type: 'number', sortable: true, width: '8rem' },
+    { field: 'held_meetings', header: 'Sedinte tinute', type: 'number', sortable: true, width: '8rem' },
+    { field: 'latest_meeting_on', header: 'Ultima sedinta', sortable: true, width: '9rem' },
+    { field: 'readiness_status', header: 'Stare', type: 'tag', sortable: true, width: '9rem' },
+  ],
+  createFields: [],
+  detailChildren: [GOVERNANCE_BODY_MEMBERSHIPS_CHILD, GOVERNANCE_BODY_MEETINGS_CHILD],
+  emptyText: 'Nu exista organisme constituite pentru filtrele curente.',
+};
+
+const COMMITTEE_MEMBERS_CHILD: EducationDetailChildResourceConfig = {
+  key: 'committee_members',
+  label: 'Membri comisie',
+  icon: 'pi pi-users',
+  description: 'Componenta nominala, roluri si drept de vot pentru comisia selectata.',
+  listEndpoint: (parentRow) => `/api/education/committees/records/${parentRow['id']}/members`,
+  detailEndpoint: (parentRow, childRow) => `/api/education/committees/records/${parentRow['id']}/members/${childRow['id']}`,
+  createEndpoint: (parentRow) => `/api/education/committees/records/${parentRow['id']}/members`,
+  readPermission: 'education.governance.read',
+  managePermission: 'education.governance.manage',
+  columns: [
+    { field: 'full_name', header: 'Nume', sortable: true, filter: 'text', width: '18rem' },
+    { field: 'role_name', header: 'Rol', sortable: true, filter: 'text', width: '14rem' },
+    { field: 'member_type', header: 'Tip membru', type: 'tag', sortable: true, filter: 'select', options: COMMITTEE_MEMBER_TYPE_OPTIONS, width: '12rem' },
+    { field: 'status', header: 'Status', type: 'tag', sortable: true, filter: 'select', options: COMMITTEE_MEMBER_STATUS_OPTIONS, width: '10rem' },
+    { field: 'voting_right', header: 'Vot', type: 'boolean', sortable: true, width: '7rem' },
+    { field: 'appointed_on', header: 'Numit la', sortable: true, width: '9rem' },
+  ],
+  createFields: [
+    { field: 'full_name', label: 'Nume complet', type: 'text', wide: true, required: true },
+    { field: 'role_name', label: 'Rol / functie', type: 'text', required: true },
+    { field: 'member_type', label: 'Tip membru', type: 'select', options: COMMITTEE_MEMBER_TYPE_OPTIONS, defaultValue: 'membru', required: true },
+    { field: 'status', label: 'Status', type: 'select', options: COMMITTEE_MEMBER_STATUS_OPTIONS, defaultValue: 'active', required: true },
+    { field: 'voting_right', label: 'Are drept de vot', type: 'boolean', defaultValue: true },
+    { field: 'appointed_on', label: 'Numit la', type: 'date', required: true },
+    { field: 'released_on', label: 'Eliberat la', type: 'date' },
+    { field: 'notes', label: 'Observatii', type: 'textarea', wide: true },
+  ],
+  emptyText: 'Nu exista membri pentru comisia selectata.',
+};
+
+const COMMITTEES_RESOURCE: EducationResourceConfig = {
+  key: 'committees',
+  label: 'Comisii',
+  icon: 'pi pi-briefcase',
+  endpoint: '/api/education/committees/records',
+  createEndpoint: '/api/education/committees/records',
+  detailSummaryKind: 'committee-completeness',
+  detailSummaryEndpoint: (row) => `/api/education/committees/records/${String(row['id'] ?? '')}/completeness-summary`,
+  readPermission: 'education.governance.read',
+  managePermission: 'education.governance.manage',
+  description: 'Comisii institutionale si comisia de evaluare a personalului didactic.',
+  columns: [
+    { field: 'committee_code', header: 'Cod', sortable: true, filter: 'text', width: '11rem' },
+    { field: 'school_year', header: 'An', sortable: true, filter: 'text', width: '8rem' },
+    { field: 'committee_type', header: 'Tip', type: 'tag', sortable: true, filter: 'select', options: COMMITTEE_TYPE_OPTIONS, width: '14rem' },
+    { field: 'title', header: 'Titlu', sortable: true, filter: 'text', width: '22rem' },
+    { field: 'status', header: 'Status', type: 'tag', sortable: true, filter: 'select', options: COMMITTEE_STATUS_OPTIONS, width: '10rem' },
+    { field: 'starts_on', header: 'De la', sortable: true, width: '9rem' },
+    { field: 'evaluation_scope', header: 'Evaluare', type: 'boolean', sortable: true, width: '8rem' },
+  ],
+  createFields: [
+    { field: 'school_year', label: 'An scolar', type: 'text', defaultValue: '2025-2026', required: true },
+    { field: 'committee_type', label: 'Tip comisie', type: 'select', options: COMMITTEE_TYPE_OPTIONS, defaultValue: 'evaluare_personal_didactic', required: true },
+    { field: 'title', label: 'Titlu', type: 'text', wide: true, required: true },
+    { field: 'status', label: 'Status', type: 'select', options: COMMITTEE_STATUS_OPTIONS, defaultValue: 'active', required: true },
+    { field: 'decision_reference', label: 'Decizie / referinta', type: 'text' },
+    { field: 'starts_on', label: 'Data inceput', type: 'date', required: true },
+    { field: 'ends_on', label: 'Data finalizare', type: 'date' },
+    { field: 'evaluation_scope', label: 'Acopera evaluarea', type: 'boolean', defaultValue: false },
+    { field: 'notes', label: 'Observatii', type: 'textarea', wide: true },
+  ],
+  detailChildren: [COMMITTEE_MEMBERS_CHILD],
+  emptyText: 'Nu exista comisii pentru filtrele curente.',
 };
 
 const DECISION_ISSUANCES_CHILD: EducationDetailChildResourceConfig = {
@@ -2151,9 +2406,15 @@ const MANAGERIAL_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-briefcase',
   endpoint: '/api/education/managerial/records',
   createEndpoint: '/api/education/managerial/records',
+  createWizardRoute: '/education/governance/managerial-wizard',
+  detailSummaryKind: 'managerial-portfolio',
+  detailSummaryEndpoint: (row) => `/api/education/managerial/records/${String(row['id'] ?? '')}/portfolio-summary`,
+  pdfEndpoint: (row) => `/api/education/managerial/records/${row['id']}/pdf`,
+  pdfFilename: (row) => `dosar-managerial-${String(row['dossier_code'] ?? row['id'] ?? 'managerial')}.pdf`,
+  pdfActionLabel: 'Dosar PDF',
   readPermission: 'education.managerial.read',
   managePermission: 'education.managerial.manage',
-  description: 'PDI/PAS, plan anual, RAEI, rapoarte, organigrama, incadrare si orar.',
+  description: 'PDI/PAS, plan anual, RAEI, organigrama, incadrare, orar si portofoliile manageriale ale conducerii.',
   columns: [
     { field: 'dossier_code', header: 'Cod', sortable: true, filter: 'text', width: '10rem' },
     { field: 'school_year', header: 'An', sortable: true, filter: 'text', width: '8rem' },
@@ -2177,12 +2438,32 @@ const MANAGERIAL_RESOURCE: EducationResourceConfig = {
   emptyText: 'Nu exista dosare manageriale pentru filtrele curente.',
 };
 
+const DIRECTOR_PORTFOLIO_RESOURCE: EducationResourceConfig = {
+  ...MANAGERIAL_RESOURCE,
+  key: 'director_portfolio',
+  label: 'Portofoliu director',
+  endpoint: '/api/education/managerial/records?filter.dossier_type=director_portfolio',
+  createWizardRoute: '/education/governance/managerial-wizard?dossierType=director_portfolio',
+  description: 'Portofoliul directorului cu documente, workflow, avizare si publicare urmarite separat.',
+};
+
+const ADJUNCT_DIRECTOR_PORTFOLIO_RESOURCE: EducationResourceConfig = {
+  ...MANAGERIAL_RESOURCE,
+  key: 'adjunct_director_portfolio',
+  label: 'Portofoliu director adjunct',
+  endpoint: '/api/education/managerial/records?filter.dossier_type=adjunct_director_portfolio',
+  createWizardRoute: '/education/governance/managerial-wizard?dossierType=adjunct_director_portfolio',
+  description: 'Portofoliul directorului adjunct cu documente, workflow, avizare si publicare urmarite separat.',
+};
+
 const REGULATIONS_RESOURCE: EducationResourceConfig = {
   key: 'regulations',
   label: 'ROF / ROI',
   icon: 'pi pi-book',
   endpoint: '/api/education/regulations/records',
   createEndpoint: '/api/education/regulations/records',
+  detailSummaryKind: 'regulation-procedural',
+  detailSummaryEndpoint: (row) => `/api/education/regulations/records/${String(row['id'] ?? '')}/procedural-summary`,
   readPermission: 'education.regulations.read',
   managePermission: 'education.regulations.manage',
   description: 'Regulamente, consultare, aprobare, publicare si revizuire periodica.',
@@ -2216,6 +2497,9 @@ const PERSONNEL_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-id-card',
   endpoint: '/api/education/personnel/records',
   createEndpoint: '/api/education/personnel/records',
+  createWizardRoute: '/education/personnel/wizard',
+  detailSummaryKind: 'personnel-portfolio-dossier',
+  detailSummaryEndpoint: (row) => `/api/education/personnel/records/${String(row['id'] ?? '')}/portfolio-dossier-summary`,
   readPermission: 'education.personnel.read',
   managePermission: 'education.personnel.manage',
   description: 'Fise de personal, incadrare, statut, evaluare, mobilitate si portofoliu.',
@@ -2252,6 +2536,7 @@ const EVALUATIONS_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-list',
   endpoint: '/api/education/evaluations/records',
   createEndpoint: '/api/education/evaluations/records',
+  createWizardRoute: '/education/personnel/evaluations-wizard',
   readPermission: 'education.evaluations.read',
   managePermission: 'education.evaluations.manage',
   pdfEndpoint: (row) => `/api/education/evaluations/records/${row['id']}/pdf`,
@@ -2288,6 +2573,7 @@ const DECLARATIONS_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-list',
   endpoint: '/api/education/declarations/records',
   createEndpoint: '/api/education/declarations/records',
+  createWizardRoute: '/education/personnel/declarations-wizard',
   readPermission: 'education.declarations.read',
   managePermission: 'education.declarations.manage',
   description: 'Declaratii si adeverinte asociate cadrului didactic.',
@@ -2318,6 +2604,7 @@ const MOBILITY_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-list',
   endpoint: '/api/education/mobility/records',
   createEndpoint: '/api/education/mobility/records',
+  createWizardRoute: '/education/personnel/mobility-wizard',
   pdfEndpoint: (row) => `/api/education/mobility/records/${row['id']}/pdf`,
   pdfFilename: (row) => `mobilitate-${row['case_code'] ?? row['id']}.pdf`,
   pdfActionLabel: 'Dosar PDF',
@@ -2355,6 +2642,7 @@ const MERIT_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-list',
   endpoint: '/api/education/gradatii/records',
   createEndpoint: '/api/education/gradatii/records',
+  createWizardRoute: '/education/personnel/merit-wizard',
   pdfEndpoint: (row) => `/api/education/gradatii/records/${row['id']}/pdf`,
   pdfFilename: (row) => `gradatie-merit-${row['grant_code'] ?? row['id']}.pdf`,
   pdfActionLabel: 'Dosar PDF',
@@ -2391,6 +2679,9 @@ const PORTFOLIOS_RESOURCE: EducationResourceConfig = {
   icon: 'pi pi-folder-open',
   endpoint: '/api/education/portfolios/records',
   createEndpoint: '/api/education/portfolios/records',
+  createWizardRoute: '/education/portfolio/wizard',
+  detailSummaryKind: 'portfolio-transfer-summary',
+  detailSummaryEndpoint: (row) => `/api/education/portfolios/records/${String(row['id'] ?? '')}/transfer-summary`,
   pdfEndpoint: (row) => `/api/education/portfolios/records/${row['id']}/pdf`,
   pdfFilename: (row) => `portofoliu-cd-${row['portfolio_code'] ?? row['id']}.pdf`,
   pdfActionLabel: 'Portofoliu PDF',
@@ -2422,7 +2713,7 @@ const PORTFOLIOS_RESOURCE: EducationResourceConfig = {
     { field: 'notes', label: 'Note', type: 'textarea', wide: true },
   ],
   emptyText: 'Nu exista portofolii pentru filtrele curente.',
-  detailChildren: [PORTFOLIO_DOCUMENTS_CHILD, PORTFOLIO_CHECKLIST_CHILD, PORTFOLIO_OPIS_CHILD, PORTFOLIO_CUSTODY_CHILD, PORTFOLIO_TRANSFERS_CHILD, PORTFOLIO_REVIEWS_CHILD],
+  detailChildren: [PORTFOLIO_DOCUMENTS_CHILD, PORTFOLIO_CHECKLIST_CHILD, PORTFOLIO_OPIS_CHILD, PORTFOLIO_CUSTODY_CHILD, PORTFOLIO_TRANSFERS_CHILD, PORTFOLIO_REVIEWS_CHILD, PORTFOLIO_VALORIFICATIONS_CHILD],
 };
 
 const PORTFOLIO_SECTIONS_RESOURCE: EducationResourceConfig = {
@@ -2497,10 +2788,15 @@ export const EDUCATION_GOVERNANCE_SECTION: EducationSectionConfig = {
   icon: 'pi pi-users',
   description: 'Componenta organismelor, sedinte, hotarari, decizii, dosare manageriale si regulamente institutionale.',
   resources: [
+    GOVERNANCE_BODIES_RESOURCE,
     GOVERNANCE_MEMBERSHIPS_RESOURCE,
     MEETINGS_RESOURCE,
+    CP_MEETINGS_RESOURCE,
+    COMMITTEES_RESOURCE,
     DECISIONS_RESOURCE,
     MANAGERIAL_RESOURCE,
+    DIRECTOR_PORTFOLIO_RESOURCE,
+    ADJUNCT_DIRECTOR_PORTFOLIO_RESOURCE,
     REGULATIONS_RESOURCE,
   ],
 };

@@ -35,6 +35,13 @@ export class AuthzService {
   }
 
   async reload(): Promise<void> {
+    const e2eSession = this.readE2ESession();
+    if (e2eSession) {
+      this.sessionSignal.set(e2eSession);
+      this.initializedSignal.set(true);
+      return;
+    }
+
     try {
       const session = await firstValueFrom(this.http.get<SessionContext>('/api/me'));
       this.sessionSignal.set(session ?? null);
@@ -113,5 +120,23 @@ export class AuthzService {
 
   private normalizeRoleCode(role: string): string {
     return role.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
+  private readE2ESession(): SessionContext | null {
+    if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
+      return null;
+    }
+
+    const raw = localStorage.getItem('egueducation_e2e_session');
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { session?: SessionContext };
+      return parsed.session ?? null;
+    } catch {
+      return null;
+    }
   }
 }

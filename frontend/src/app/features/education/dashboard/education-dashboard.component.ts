@@ -88,6 +88,78 @@ interface DashboardCardState {
             <p class="m-0 text-sm text-muted-color">
               Modulul este acum impartit pe domenii functionale separate, fiecare cu tabele PrimeNG server-side, filtre in antet si dialoguri dedicate.
             </p>
+            @if (authz.hasRole('director')) {
+              <div class="rounded-2xl border border-surface p-4">
+                <div class="space-y-2">
+                  <div class="font-semibold">Cockpit director</div>
+                  <p class="m-0 text-sm text-muted-color">
+                    Vedere operationala orientata pe management educational, cu semnale si trasee recomandate.
+                  </p>
+                </div>
+                <div class="mt-3">
+                  <p-button
+                    [routerLink]="['/education', 'dashboard', 'director']"
+                    label="Deschide cockpitul"
+                    icon="pi pi-briefcase"
+                    size="small"
+                  />
+                </div>
+              </div>
+            }
+            @if (authz.hasAnyRole(['secretar', 'registrator'])) {
+              <div class="rounded-2xl border border-surface p-4">
+                <div class="space-y-2">
+                  <div class="font-semibold">Cockpit secretariat</div>
+                  <p class="m-0 text-sm text-muted-color">
+                    Acces rapid la sedinte, inregistrari, portofolii si verificari filtrate dupa rolul operational curent.
+                  </p>
+                </div>
+                <div class="mt-3">
+                  <p-button
+                    [routerLink]="['/education', 'dashboard', 'secretariat']"
+                    label="Deschide cockpitul"
+                    icon="pi pi-inbox"
+                    size="small"
+                  />
+                </div>
+              </div>
+            }
+            @if (authz.hasAnyRole(['registrator', 'gdpr_officer', 'inspector']) || authz.hasPermission('education.read')) {
+              <div class="rounded-2xl border border-surface p-4">
+                <div class="space-y-2">
+                  <div class="font-semibold">Cockpit conformitate</div>
+                  <p class="m-0 text-sm text-muted-color">
+                    Intrare orientata pe cerinte, publicari, dovada, anonimizare si trasee institutionale de control.
+                  </p>
+                </div>
+                <div class="mt-3">
+                  <p-button
+                    [routerLink]="['/education', 'dashboard', 'compliance']"
+                    label="Deschide cockpitul"
+                    icon="pi pi-shield"
+                    size="small"
+                  />
+                </div>
+              </div>
+            }
+            @if (authz.hasRole('profesor')) {
+              <div class="rounded-2xl border border-surface p-4">
+                <div class="space-y-2">
+                  <div class="font-semibold">Cockpit profesor</div>
+                  <p class="m-0 text-sm text-muted-color">
+                    Intrare orientata pe portofoliu, evaluare, declaratii si traseele personale ale cadrului didactic.
+                  </p>
+                </div>
+                <div class="mt-3">
+                  <p-button
+                    [routerLink]="['/education', 'dashboard', 'teacher']"
+                    label="Deschide cockpitul"
+                    icon="pi pi-user"
+                    size="small"
+                  />
+                </div>
+              </div>
+            }
             <div class="grid gap-2">
               @for (tab of tabs(); track tab.path) {
                 <a
@@ -110,7 +182,7 @@ interface DashboardCardState {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EducationDashboardComponent {
-  private readonly authz = inject(AuthzService);
+  protected readonly authz = inject(AuthzService);
   private readonly cardResources = EDUCATION_DASHBOARD_CARDS.map((card) => {
     const resource = this.authz.hasPermission(card.permission)
       ? httpResource<{ stats: Record<string, number> }>(() => ({

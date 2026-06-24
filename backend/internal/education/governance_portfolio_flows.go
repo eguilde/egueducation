@@ -398,6 +398,10 @@ func (s *Service) GovernanceResolutionDetail(w http.ResponseWriter, r *http.Requ
 
 func (s *Service) CreateGovernanceResolution(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
+	if meetingID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_id"})
+		return
+	}
 	var req CreateGovernanceResolutionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_resolution_payload"})
@@ -422,6 +426,9 @@ func (s *Service) CreateGovernanceResolution(w http.ResponseWriter, r *http.Requ
 	}
 	if _, err := time.Parse("2006-01-02", req.IssuedOn); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_resolution_issued_on"})
+		return
+	}
+	if req.PublicationStatus != "intern" && !s.ensureGovernancePublicationAccess(w, r, meetingID, "education.governance.resolution.publish", "education_governance_resolution_publish_forbidden") {
 		return
 	}
 	code := fmt.Sprintf("HTR-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
@@ -455,6 +462,10 @@ func (s *Service) CreateGovernanceResolution(w http.ResponseWriter, r *http.Requ
 func (s *Service) UpdateGovernanceResolution(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	if meetingID == "" || recordID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_resolution_id"})
+		return
+	}
 	var req CreateGovernanceResolutionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_resolution_payload"})
@@ -471,6 +482,9 @@ func (s *Service) UpdateGovernanceResolution(w http.ResponseWriter, r *http.Requ
 	}
 	if _, err := time.Parse("2006-01-02", req.IssuedOn); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_resolution_issued_on"})
+		return
+	}
+	if req.PublicationStatus != "intern" && !s.ensureGovernancePublicationAccess(w, r, meetingID, "education.governance.resolution.publish", "education_governance_resolution_publish_forbidden") {
 		return
 	}
 	var item GovernanceResolution
@@ -639,6 +653,10 @@ func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 	s.logAudit(r, "education.portfolios.transfer.create", "portfolio_transfer", item.ID, "Portfolio transfer created.", map[string]any{
 		"portfolio_id": item.PortfolioID, "transfer_code": item.TransferCode, "status": item.Status,
 	})
+	if err := s.syncPortfolioTransferStatus(r.Context(), recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_create_failed"})
+		return
+	}
 	httpx.JSON(w, http.StatusCreated, item)
 }
 
@@ -696,6 +714,10 @@ func (s *Service) UpdatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 	s.logAudit(r, "education.portfolios.transfer.update", "portfolio_transfer", item.ID, "Portfolio transfer updated.", map[string]any{
 		"portfolio_id": item.PortfolioID, "transfer_code": item.TransferCode, "status": item.Status,
 	})
+	if err := s.syncPortfolioTransferStatus(r.Context(), recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_update_failed"})
+		return
+	}
 	httpx.JSON(w, http.StatusOK, item)
 }
 
@@ -712,6 +734,10 @@ func (s *Service) DeletePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		return
 	}
 	s.logAudit(r, "education.portfolios.transfer.delete", "portfolio_transfer", itemID, "Portfolio transfer deleted.", map[string]any{"portfolio_id": recordID})
+	if err := s.syncPortfolioTransferStatus(r.Context(), recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_delete_failed"})
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
