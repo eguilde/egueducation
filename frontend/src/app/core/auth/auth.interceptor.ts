@@ -26,7 +26,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
 
   const oidcPrefix = config.oidcPathPrefix ?? '/api/oidc/';
   if (req.url.startsWith(oidcPrefix) || req.url.includes(oidcPrefix)) {
-    return next(req.clone({ setHeaders: { 'Accept-Language': theme.language() } }));
+    return next(req.clone({ setHeaders: { 'Accept-Language': theme.language() }, withCredentials: true }));
   }
 
   const secureRoutes = config.secureRoutes ?? ['/api'];
@@ -52,7 +52,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
   };
 
   if (!isSecure) {
-    return next(req.clone({ url: apiUrl, setHeaders: baseHeaders })).pipe(
+    return next(req.clone({ url: apiUrl, setHeaders: baseHeaders, withCredentials: true })).pipe(
       catchError((error: unknown) => {
         if (error instanceof HttpErrorResponse) {
           unauthorizedHandler(error);
@@ -64,7 +64,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
 
   const token = auth.accessToken();
   if (!token) {
-    return next(req.clone({ url: apiUrl, setHeaders: baseHeaders })).pipe(
+    return next(req.clone({ url: apiUrl, setHeaders: baseHeaders, withCredentials: true })).pipe(
       catchError((error: unknown) => {
         if (error instanceof HttpErrorResponse) {
           unauthorizedHandler(error);
@@ -83,7 +83,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
 
   return from(auth.authHeaders(req.method, apiUrl)).pipe(
     switchMap((headers): Observable<HttpEvent<unknown>> =>
-      next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...headers } })).pipe(
+      next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...headers }, withCredentials: true })).pipe(
         tap({
           next: (event: HttpEvent<unknown>) => {
             const nonce = (event as { headers?: { get(name: string): string | null } })?.headers?.get?.('DPoP-Nonce');
@@ -107,7 +107,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
           ) {
             return from(auth.authHeaders(req.method, apiUrl)).pipe(
               switchMap((retryHeaders): Observable<HttpEvent<unknown>> =>
-                next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...retryHeaders } })),
+                next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...retryHeaders }, withCredentials: true })),
               ),
             );
           }
@@ -121,7 +121,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
                 }
                 return from(auth.authHeaders(req.method, apiUrl)).pipe(
                   switchMap((retryHeaders): Observable<HttpEvent<unknown>> =>
-                    next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...retryHeaders } })),
+                    next(req.clone({ url: apiUrl, setHeaders: { ...baseHeaders, ...retryHeaders }, withCredentials: true })),
                   ),
                 );
               }),

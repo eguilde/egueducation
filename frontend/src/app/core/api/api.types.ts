@@ -472,6 +472,8 @@ export interface RegistraturaDocument {
   status: string;
   correspondent: string;
   assigned_to: string;
+  correspondent_party_id?: string | null;
+  assigned_party_id?: string | null;
   institution_id: string;
   confidentiality: string;
   summary: string;
@@ -562,6 +564,8 @@ export interface CreateRegistraturaDocumentRequest {
   status: string;
   correspondent: string;
   assigned_to: string;
+  correspondent_party_id?: string | null;
+  assigned_party_id?: string | null;
   confidentiality: string;
   summary: string;
   due_date?: string | null;
@@ -575,6 +579,8 @@ export interface UpdateRegistraturaDocumentRequest {
   status: string;
   correspondent: string;
   assigned_to: string;
+  correspondent_party_id?: string | null;
+  assigned_party_id?: string | null;
   confidentiality: string;
   summary: string;
   due_date?: string | null;
@@ -594,6 +600,8 @@ export interface BatchCreateRegistraturaDocumentRequest {
   status: string;
   correspondent: string;
   assigned_to: string;
+  correspondent_party_id?: string | null;
+  assigned_party_id?: string | null;
   confidentiality: string;
   summary: string;
   due_date?: string | null;
@@ -603,6 +611,76 @@ export interface ExportRegistraturaDocumentsRequest {
   registru_id?: number | null;
   start_date?: string | null;
   end_date?: string | null;
+}
+
+export interface RegistraturaParty {
+  id: string;
+  code: string;
+  party_type: 'physical' | 'legal' | 'institution' | string;
+  display_name: string;
+  short_name: string;
+  first_name: string;
+  last_name: string;
+  legal_name: string;
+  identifier_code: string;
+  tax_id: string;
+  phone_number: string;
+  email: string;
+  address_line1: string;
+  address_line2: string;
+  locality: string;
+  county: string;
+  country: string;
+  notes: string;
+  is_default_organization: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRegistraturaPartyRequest {
+  code?: string;
+  institution_id: string;
+  party_type: 'physical' | 'legal' | 'institution' | string;
+  display_name: string;
+  short_name?: string;
+  first_name?: string;
+  last_name?: string;
+  legal_name?: string;
+  identifier_code?: string;
+  tax_id?: string;
+  phone_number?: string;
+  email?: string;
+  address_line1?: string;
+  address_line2?: string;
+  locality?: string;
+  county?: string;
+  country?: string;
+  notes?: string;
+  is_default_organization: boolean;
+  active: boolean;
+}
+
+export interface UpdateRegistraturaPartyRequest {
+  code?: string;
+  party_type?: 'physical' | 'legal' | 'institution' | string;
+  display_name?: string;
+  short_name?: string;
+  first_name?: string;
+  last_name?: string;
+  legal_name?: string;
+  identifier_code?: string;
+  tax_id?: string;
+  phone_number?: string;
+  email?: string;
+  address_line1?: string;
+  address_line2?: string;
+  locality?: string;
+  county?: string;
+  country?: string;
+  notes?: string;
+  is_default_organization?: boolean;
+  active?: boolean;
 }
 
 export interface CreateRegistraturaDocumentVersionRequest {

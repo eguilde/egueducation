@@ -8,7 +8,7 @@ import { TabsModule } from 'primeng/tabs';
   imports: [InputTextModule, TableModule, TabsModule],
   template: `
     <section class="flex h-[calc(100dvh-6rem)] min-h-0 flex-col gap-3">
-      <header class="rounded-3xl border border-surface-200 bg-white p-4 shadow-sm dark:border-surface-800 dark:bg-surface-900">
+      <header class="rounded-3xl border border-surface-200 bg-surface-0 p-4 shadow-sm dark:border-surface-800 dark:bg-surface-900">
         <h1 class="m-0 text-2xl font-black tracking-[-0.035em]">GDPR</h1>
         <p class="m-0 mt-1 text-sm text-surface-500">Solicitari, politici de retentie, export si publicare controlata.</p>
       </header>
@@ -22,7 +22,7 @@ import { TabsModule } from 'primeng/tabs';
         <p-tabpanels class="min-h-0 flex-1 overflow-hidden">
           @for (tab of ['requests','retention','exports','publication']; track tab) {
             <p-tabpanel [value]="tab" class="h-full min-h-0">
-              <div class="h-full rounded-3xl border border-surface-200 bg-white shadow-sm dark:border-surface-800 dark:bg-surface-900">
+              <div class="h-full rounded-3xl border border-surface-200 bg-surface-0 shadow-sm dark:border-surface-800 dark:bg-surface-900">
                 <p-table [value]="[]" [paginator]="true" [rows]="25" [scrollable]="true" scrollHeight="flex" styleClass="p-datatable-sm p-datatable-gridlines">
                   <ng-template pTemplate="header">
                     <tr><th>Cod</th><th>Subiect</th><th>Status</th><th>Termen</th><th>Actiuni</th></tr>

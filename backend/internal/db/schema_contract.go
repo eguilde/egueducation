@@ -85,6 +85,7 @@ func SchemaContract() []TableContract {
 		tenantTable("app_org_units", "Organization units are tenant-scoped."),
 		tenantTable("app_memberships", "Memberships are tenant-scoped."),
 		institutionTable("registratura_documents", "Incoming/outgoing registry documents."),
+		institutionTable("app_parties", "Physical persons, legal entities and institutions used by registratura."),
 		institutionTable("archive_records", "Electronic archive records."),
 		institutionTable("workflow_instances", "Runtime workflow instances."),
 		institutionTable("education_meetings", "Governance meetings."),

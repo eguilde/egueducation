@@ -60,6 +60,7 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 		}
 
 		branding := tenant.ResolveBranding(r.Host, session.InstitutionName, session.InstitutionID)
+		tenantCode := tenant.DefaultTenantCode(session.InstitutionID, branding.Subdomain)
 		isSuperAdmin := false
 		for _, role := range session.User.Roles {
 			if strings.EqualFold(role, "super_admin") {
@@ -68,7 +69,7 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			}
 		}
 		sessionCtx, release, err := appdb.AcquireRequestConn(r.Context(), s.db.Raw(), appdb.SessionConfig{
-			TenantID:        session.InstitutionID,
+			TenantID:        tenantCode,
 			InstitutionID:   session.InstitutionID,
 			InstitutionName: session.InstitutionName,
 			TenantSubdomain: branding.Subdomain,

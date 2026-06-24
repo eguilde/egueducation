@@ -1,6 +1,8 @@
 # Local Development
 
-This project can run locally without the Forgejo build pipeline.
+This project can run locally without Docker and without the Forgejo build pipeline.
+
+The default local tenant is `Școala Gimnazială nr. 1 Balotești`.
 
 ## Backend
 
@@ -48,13 +50,17 @@ cd E:\dev\egueducation
 .\scripts\start-frontend.ps1
 ```
 
-The frontend listens on `http://localhost:4200` and proxies `/api` to `http://localhost:8080`.
+The frontend listens on `http://localhost:4200` and talks directly to `http://localhost:8080` for `/api` and OIDC endpoints, so no proxy is needed.
 
-## Docker Compose
+Angular now uses CSS by default for new components in this repository, so no new SCSS files should appear in the frontend workflow.
 
-The compose stack also reads `backend/.env`:
+The OIDC client is already seeded for `http://localhost:4200/auth/callback`, so the local login flow works with the same backend OIDC provider as production.
+
+## One-Command Local Start
+
+To start both services for the Balotești tenant:
 
 ```powershell
-cd E:\dev\egueducation\ops
-docker compose up --build
+cd E:\dev\egueducation
+.\scripts\start-local-dev.ps1
 ```

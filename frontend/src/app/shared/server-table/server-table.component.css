@@ -5,11 +5,27 @@
 }
 
 :host ::ng-deep .professional-table {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   height: 100%;
+}
+
+:host ::ng-deep .professional-table .p-datatable-wrapper,
+:host ::ng-deep .professional-table .p-datatable-table-container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 :host ::ng-deep .professional-table .p-datatable-wrapper {
   min-height: 0;
+}
+
+:host ::ng-deep .professional-table .p-datatable-table {
+  width: 100%;
+  min-width: 100%;
 }
 
 :host ::ng-deep .professional-table .p-datatable-thead > tr > th {
@@ -33,6 +49,7 @@
   z-index: 4;
   border-top: 1px solid var(--p-content-border-color);
   background: var(--p-surface-0);
+  padding-block: 0.35rem;
 }
 
 :host ::ng-deep .professional-table .p-datatable-tbody > tr.server-table__selected-row > td {

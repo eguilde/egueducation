@@ -1,25 +1,31 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { ButtonGroupModule } from 'primeng/buttongroup';
+import { AutoCompleteModule, AutoCompleteCompleteEvent, AutoCompleteSelectEvent } from 'primeng/autocomplete';
 import { CardModule } from 'primeng/card';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { DrawerModule } from 'primeng/drawer';
+import { FieldsetModule } from 'primeng/fieldset';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
+import { ToastModule } from 'primeng/toast';
 import { TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
-import { catchError, forkJoin, of } from 'rxjs';
+import { MessageService } from 'primeng/api';
+import { catchError, forkJoin, firstValueFrom, of } from 'rxjs';
 
 import {
   BatchCreateRegistraturaDocumentRequest,
   CancelRegistraturaDocumentRequest,
+  CreateRegistraturaPartyRequest,
   CreateRegistraturaDocumentRequest,
   CreateDocumentLinkRequest,
   ExportRegistraturaDocumentsRequest,
@@ -29,12 +35,16 @@ import {
   RegistraturaDocumentAttachment,
   RegistraturaDocumentFilters,
   RegistraturaDocumentVersion,
+  RegistraturaParty,
   RegistraturaRegistry,
   UpdateRegistraturaDocumentRequest,
   TableQuery,
 } from '../../core/api/api.types';
 import { DocumentLinksApiService } from '../../core/api/document-links-api.service';
+import { AppApiService } from '../../core/api/app-api.service';
 import { RegistraturaApiService } from '../../core/api/registratura-api.service';
+import { AuthzService } from '../../core/authz/authz.service';
+import { AppBootstrapConfig } from '../../core/branding/app-branding.types';
 
 interface FilterState {
   registry_number: string;
@@ -58,6 +68,8 @@ const emptyNewDocument = (): CreateRegistraturaDocumentRequest => ({
   status: 'draft',
   correspondent: '',
   assigned_to: '',
+  correspondent_party_id: null,
+  assigned_party_id: null,
   confidentiality: 'normal',
   summary: '',
   due_date: null,
@@ -72,6 +84,8 @@ const emptyBatchDocument = (): BatchCreateRegistraturaDocumentRequest => ({
   status: 'draft',
   correspondent: '',
   assigned_to: '',
+  correspondent_party_id: null,
+  assigned_party_id: null,
   confidentiality: 'normal',
   summary: '',
   due_date: null,
@@ -91,10 +105,49 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
   status: 'draft',
   correspondent: '',
   assigned_to: '',
+  correspondent_party_id: null,
+  assigned_party_id: null,
   confidentiality: 'normal',
   summary: '',
   due_date: null,
   change_notes: '',
+});
+
+const emptyPartyForm = (): CreateRegistraturaPartyRequest => ({
+  institution_id: '',
+  code: '',
+  party_type: 'physical',
+  display_name: '',
+  short_name: '',
+  first_name: '',
+  last_name: '',
+  legal_name: '',
+  identifier_code: '',
+  tax_id: '',
+  phone_number: '',
+  email: '',
+  address_line1: '',
+  address_line2: '',
+  locality: '',
+  county: '',
+  country: 'RO',
+  notes: '',
+  is_default_organization: false,
+  active: true,
+});
+
+const defaultRegistryFallback = (): RegistraturaRegistry => ({
+  id: 1,
+  nume: 'Registru General',
+  prefix_nr: 'RG',
+  nr_inceput: 1,
+  nr_curent: '1',
+  nr_urmator: '2',
+  data_resetare: null,
+  tip_registru: 'general',
+  isDefault: true,
+  created_at: '',
+  updated_at: '',
 });
 
 @Component({
@@ -102,12 +155,14 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
   imports: [
     CommonModule,
     FormsModule,
-    ButtonModule,
-    ButtonGroupModule,
-    CardModule,
+  ButtonModule,
+  ButtonGroupModule,
+  AutoCompleteModule,
+  CardModule,
     DatePickerModule,
     DialogModule,
     DrawerModule,
+    FieldsetModule,
     InputTextModule,
     SelectModule,
     TableModule,
@@ -115,9 +170,12 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
     TagModule,
     TextareaModule,
     TooltipModule,
+    ToastModule,
   ],
+  providers: [MessageService],
   template: `
     <section class="document-workspace flex h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden">
+      <p-toast />
       <p-tabs value="registratura" class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <p-tablist class="shrink-0">
           <p-tab value="registratura">Registratură</p-tab>
@@ -127,106 +185,174 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
 
         <p-tabpanels class="min-h-0 flex-1 overflow-hidden p-0">
           <p-tabpanel value="registratura" class="flex min-h-0 flex-1 overflow-hidden p-0">
-            <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
-              <div class="grid shrink-0 gap-3 lg:grid-cols-[minmax(18rem,1fr)_auto_auto] lg:items-center">
-                <label class="flex min-w-0 flex-col gap-1">
-                  <span class="text-xs font-semibold uppercase tracking-wide text-muted-color">Registru activ</span>
-                  <p-select
-                    appendTo="body"
-                    [options]="registryOptions()"
-                    optionLabel="nume"
-                    optionValue="id"
-                    [ngModel]="selectedRegistryId()"
-                    (ngModelChange)="onRegistryChange($event)"
-                    placeholder="Alege registru"
-                    [showClear]="false"
+            <div class="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+              <section class="registry-header grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+                <div class="flex shrink-0 items-center justify-start">
+                  <p-button
+                    icon="pi pi-search"
+                    severity="secondary"
+                    [rounded]="true"
+                    [text]="true"
+                    ariaLabel="Filtre"
+                    pTooltip="Filtre"
+                    (onClick)="searchPanelOpen.set(true)"
                   />
-                </label>
-
-                <div class="flex items-center gap-2 justify-self-start lg:justify-self-center">
-                  <p-button icon="pi pi-filter" label="Filtre" severity="secondary" [outlined]="!searchPanelOpen()" size="small" (onClick)="searchPanelOpen.update((value) => !value)" />
-                  <span class="text-sm text-muted-color">{{ totalRecords() }} documente</span>
                 </div>
 
-                <p-buttongroup styleClass="justify-self-start lg:justify-self-end">
-                  <p-button icon="pi pi-file-plus" label="Nou" severity="secondary" size="small" (onClick)="openDocumentCreatePage()" />
-                  <p-button icon="pi pi-download" label="Intrare" severity="info" size="small" (onClick)="openCreateDialog('intrare')" />
-                  <p-button icon="pi pi-upload" label="Ieșire" severity="success" size="small" (onClick)="openCreateDialog('iesire')" />
-                  <p-button icon="pi pi-clone" label="Multiplu" severity="secondary" size="small" (onClick)="openBatchDialog()" />
-                  <p-button icon="pi pi-file-pdf" label="Export PDF" severity="secondary" [outlined]="true" size="small" (onClick)="openExportDialog()" />
-                </p-buttongroup>
-              </div>
+                <div class="flex min-w-0 items-center justify-center gap-2">
+                  <p-buttongroup>
+                    <p-button icon="pi pi-download" label="Intrare" severity="info" (onClick)="openCreateDialog('intrare')" />
+                    <p-button icon="pi pi-upload" label="Ieșire" severity="success" (onClick)="openCreateDialog('iesire')" />
+                    <p-button icon="pi pi-clone" label="Multiplu" severity="secondary" [outlined]="true" (onClick)="openBatchDialog()" />
+                  </p-buttongroup>
+                </div>
 
-              @if (searchPanelOpen()) {
-                <section class="search-panel shrink-0">
-                  <header class="search-panel-header">
-                    <div class="flex items-center gap-2 font-semibold">
-                      <i class="pi pi-filter"></i>
-                      <span>Filtrare documente</span>
-                    </div>
-                    <p-button icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" size="small" (onClick)="searchPanelOpen.set(false)" />
-                  </header>
+                <div class="flex shrink-0 items-center justify-end gap-2">
+                  <label class="registry-selector flex shrink-0 flex-col gap-1">
+                    <span class="sr-only">Registru activ</span>
+                    <p-select
+                      class="w-full"
+                      appendTo="body"
+                      [options]="registryOptions()"
+                      optionLabel="nume"
+                      optionValue="id"
+                      [(ngModel)]="selectedRegistryModel"
+                      (ngModelChange)="onRegistryChange($event)"
+                      placeholder="Alege registru"
+                      [showClear]="false"
+                    />
+                  </label>
+                  <p-button
+                    icon="pi pi-file-pdf"
+                    severity="secondary"
+                    [rounded]="true"
+                    [text]="true"
+                    ariaLabel="Export PDF"
+                    pTooltip="Export PDF"
+                    (onClick)="openExportDialog()"
+                  />
+                </div>
+              </section>
 
-                  <div class="search-panel-content">
-                    <div class="search-row">
-                      <label class="search-field">
-                        <span><i class="pi pi-hashtag"></i> Nr. document</span>
-                        <input pInputText [(ngModel)]="filters.registry_number" placeholder="ex: REG-2026-0001" />
-                      </label>
-                      <label class="search-field">
-                        <span><i class="pi pi-tag"></i> Tip document</span>
-                        <p-select appendTo="body" [options]="documentTypeOptions()" [(ngModel)]="filters.document_type" placeholder="Toate" [showClear]="true" />
-                      </label>
-                      <label class="search-field">
-                        <span><i class="pi pi-file"></i> Direcție</span>
-                        <p-select appendTo="body" [options]="directionOptions()" [(ngModel)]="filters.direction" placeholder="Toate" [showClear]="true" />
-                      </label>
-                    </div>
-                    <div class="search-row">
-                      <label class="search-field">
-                        <span><i class="pi pi-send"></i> Emitent</span>
-                        <input pInputText [(ngModel)]="filters.correspondent" placeholder="Caută emitent..." />
-                      </label>
-                      <label class="search-field">
-                        <span><i class="pi pi-inbox"></i> Destinatar</span>
-                        <input pInputText [(ngModel)]="filters.assigned_to" placeholder="Caută destinatar..." />
-                      </label>
-                      <label class="search-field">
-                        <span><i class="pi pi-shield"></i> Confidențialitate</span>
-                        <p-select appendTo="body" [options]="confidentialityOptions()" [(ngModel)]="filters.confidentiality" placeholder="Toate" [showClear]="true" />
-                      </label>
-                    </div>
-                    <div class="search-row">
-                      <label class="search-field">
-                        <span><i class="pi pi-calendar-plus"></i> Data intrare</span>
-                        <div class="date-range">
-                          <p-datepicker appendTo="body" [(ngModel)]="filters.registered_at_from" dateFormat="yy-mm-dd" placeholder="De la" [showIcon]="true" />
-                          <span>—</span>
-                          <p-datepicker appendTo="body" [(ngModel)]="filters.registered_at_to" dateFormat="yy-mm-dd" placeholder="Până la" [showIcon]="true" />
+              <p-drawer
+                [visible]="searchPanelOpen()"
+                (visibleChange)="searchPanelOpen.set($event)"
+                [modal]="true"
+                [dismissible]="true"
+                [showCloseIcon]="true"
+                position="right"
+                styleClass="workspace-filter-drawer"
+              >
+                <ng-template pTemplate="headless">
+                  <p-fieldset legend="Filtrare documente" class="workspace-panel h-full">
+                    <div class="flex h-full min-h-0 flex-col">
+                      <div class="search-panel-content flex-1 overflow-auto">
+                        <div class="search-row">
+                          <label class="search-field">
+                            <span><i class="pi pi-hashtag"></i> Nr. document</span>
+                            <input pInputText [(ngModel)]="filters.registry_number" placeholder="ex: REG-2026-0001" />
+                          </label>
+                          <label class="search-field">
+                            <span><i class="pi pi-tag"></i> Tip document</span>
+                            <p-select appendTo="body" [options]="documentTypeOptions()" [(ngModel)]="filters.document_type" placeholder="Toate" [showClear]="true" />
+                          </label>
+                          <label class="search-field">
+                            <span><i class="pi pi-file"></i> Direcție</span>
+                            <p-select appendTo="body" [options]="directionOptions()" [(ngModel)]="filters.direction" placeholder="Toate" [showClear]="true" />
+                          </label>
                         </div>
-                      </label>
-                      <label class="search-field">
-                        <span><i class="pi pi-calendar-minus"></i> Data scadență</span>
-                        <div class="date-range">
-                          <p-datepicker appendTo="body" [(ngModel)]="filters.due_date_from" dateFormat="yy-mm-dd" placeholder="De la" [showIcon]="true" />
-                          <span>—</span>
-                          <p-datepicker appendTo="body" [(ngModel)]="filters.due_date_to" dateFormat="yy-mm-dd" placeholder="Până la" [showIcon]="true" />
+                        <div class="search-row">
+                        <label class="search-field">
+                          <span><i class="pi pi-send"></i> Emitent</span>
+                          <p-autoComplete
+                            appendTo="body"
+                            [(ngModel)]="selectedEmitentSearch"
+                            [ngModelOptions]="{ standalone: true }"
+                            [suggestions]="filteredEmitentiSearch()"
+                            [forceSelection]="false"
+                            [dropdown]="false"
+                            [minLength]="1"
+                            [delay]="150"
+                            [optionLabel]="getEntityDisplayText"
+                            placeholder="Caută emitent..."
+                            (completeMethod)="filterEmitentiSearch($event)"
+                            (onSelect)="onEmitentSearchSelect($event)"
+                            (onClear)="clearEmitentSearch()"
+                          >
+                            <ng-template let-entity pTemplate="item">
+                              <div class="flex items-center gap-2">
+                                <i [class]="getEntityTypeIcon(entity) + ' text-xs'"></i>
+                                <span>{{ formatEntityDisplay(entity) }}</span>
+                                <span class="ml-auto text-xs text-muted-color">{{ getEntityTypeBadge(entity) }}</span>
+                              </div>
+                            </ng-template>
+                          </p-autoComplete>
+                        </label>
+                        <label class="search-field">
+                          <span><i class="pi pi-inbox"></i> Destinatar</span>
+                          <p-autoComplete
+                            appendTo="body"
+                            [(ngModel)]="selectedDestinatarSearch"
+                            [ngModelOptions]="{ standalone: true }"
+                            [suggestions]="filteredDestinatariSearch()"
+                            [forceSelection]="false"
+                            [dropdown]="false"
+                            [minLength]="1"
+                            [delay]="150"
+                            [optionLabel]="getEntityDisplayText"
+                            placeholder="Caută destinatar..."
+                            (completeMethod)="filterDestinatariSearch($event)"
+                            (onSelect)="onDestinatarSearchSelect($event)"
+                            (onClear)="clearDestinatarSearch()"
+                          >
+                            <ng-template let-entity pTemplate="item">
+                              <div class="flex items-center gap-2">
+                                <i [class]="getEntityTypeIcon(entity) + ' text-xs'"></i>
+                                <span>{{ formatEntityDisplay(entity) }}</span>
+                                <span class="ml-auto text-xs text-muted-color">{{ getEntityTypeBadge(entity) }}</span>
+                              </div>
+                            </ng-template>
+                          </p-autoComplete>
+                        </label>
+                          <label class="search-field">
+                            <span><i class="pi pi-shield"></i> Confidențialitate</span>
+                            <p-select appendTo="body" [options]="confidentialityOptions()" [(ngModel)]="filters.confidentiality" placeholder="Toate" [showClear]="true" />
+                          </label>
                         </div>
-                      </label>
-                    </div>
-                  </div>
+                        <div class="search-row">
+                          <label class="search-field">
+                            <span><i class="pi pi-calendar-plus"></i> Data intrare</span>
+                            <div class="date-range">
+                              <p-datepicker appendTo="body" [(ngModel)]="filters.registered_at_from" dateFormat="yy-mm-dd" placeholder="De la" [showIcon]="true" />
+                              <span>—</span>
+                              <p-datepicker appendTo="body" [(ngModel)]="filters.registered_at_to" dateFormat="yy-mm-dd" placeholder="Până la" [showIcon]="true" />
+                            </div>
+                          </label>
+                          <label class="search-field">
+                            <span><i class="pi pi-calendar-minus"></i> Data scadență</span>
+                            <div class="date-range">
+                              <p-datepicker appendTo="body" [(ngModel)]="filters.due_date_from" dateFormat="yy-mm-dd" placeholder="De la" [showIcon]="true" />
+                              <span>—</span>
+                              <p-datepicker appendTo="body" [(ngModel)]="filters.due_date_to" dateFormat="yy-mm-dd" placeholder="Până la" [showIcon]="true" />
+                            </div>
+                          </label>
+                        </div>
+                      </div>
 
-                  <footer class="search-panel-footer">
-                    <p-button icon="pi pi-refresh" label="Resetare" severity="secondary" [outlined]="true" size="small" (onClick)="resetFilters()" />
-                    <p-button icon="pi pi-search" label="Caută documente" severity="primary" size="small" (onClick)="loadDocuments()" />
-                  </footer>
-                </section>
-              }
+                      <footer class="search-panel-footer">
+                        <p-button icon="pi pi-refresh" label="Resetare" severity="secondary" [outlined]="true" size="small" (onClick)="resetFilters()" />
+                        <p-button icon="pi pi-search" label="Caută documente" severity="primary" size="small" (onClick)="loadDocuments()" />
+                      </footer>
+                    </div>
+                  </p-fieldset>
+                </ng-template>
+              </p-drawer>
 
               <p-table
-                class="flex min-h-0 flex-1 flex-col overflow-hidden"
+                class="app-data-table-shell mt-3 flex min-h-0 flex-1 flex-col overflow-hidden workspace-table"
                 styleClass="p-datatable-sm p-datatable-gridlines registry-table"
                 [value]="documents()"
+                [tableStyle]="{ width: '100%', 'min-width': '100%' }"
                 [lazy]="true"
                 [loading]="loading()"
                 [scrollable]="true"
@@ -333,11 +459,63 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
                     <h3>Părți și detalii</h3>
                     <label class="search-field">
                       <span>Emitent <strong class="text-primary">*</strong></span>
-                      <input pInputText [(ngModel)]="newDocument.correspondent" placeholder="Caută sau adaugă emitent" />
+                      <div class="flex gap-2">
+                        <p-autoComplete
+                        appendTo="body"
+                        class="flex-1"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="newCorrespondentParty"
+                          [forceSelection]="true"
+                          [dropdown]="false"
+                          [showClear]="true"
+                          [minLength]="1"
+                          [delay]="150"
+                          placeholder="Alege emitent"
+                          (completeMethod)="filterParties($event)"
+                          (onSelect)="onPartySelected('new', 'correspondent', $event)"
+                          (onClear)="clearPartySelection('new', 'correspondent')"
+                        >
+                          <ng-template let-party pTemplate="item">
+                            <div class="flex items-center gap-2">
+                              <i [class]="partyTypeIcon(party.party_type)"></i>
+                              <span>{{ formatPartyDisplay(party) }}</span>
+                              <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                            </div>
+                          </ng-template>
+                        </p-autoComplete>
+                        <p-button icon="pi pi-plus" severity="secondary" [rounded]="true" [text]="true" pTooltip="Parte nouă" (onClick)="openPartyDialog('physical', 'correspondent')" />
+                      </div>
                     </label>
                     <label class="search-field">
                       <span>Destinatar</span>
-                      <input pInputText [(ngModel)]="newDocument.assigned_to" placeholder="Caută sau adaugă destinatar" />
+                      <div class="flex gap-2">
+                        <p-autoComplete
+                        appendTo="body"
+                        class="flex-1"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="newAssignedParty"
+                          [forceSelection]="true"
+                          [dropdown]="false"
+                          [showClear]="true"
+                          [minLength]="1"
+                          [delay]="150"
+                          placeholder="Alege destinatar"
+                          (completeMethod)="filterParties($event)"
+                          (onSelect)="onPartySelected('new', 'assigned', $event)"
+                          (onClear)="clearPartySelection('new', 'assigned')"
+                        >
+                          <ng-template let-party pTemplate="item">
+                            <div class="flex items-center gap-2">
+                              <i [class]="partyTypeIcon(party.party_type)"></i>
+                              <span>{{ formatPartyDisplay(party) }}</span>
+                              <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                            </div>
+                          </ng-template>
+                        </p-autoComplete>
+                        <p-button icon="pi pi-plus" severity="secondary" [rounded]="true" [text]="true" pTooltip="Parte nouă" (onClick)="openPartyDialog('physical', 'assigned')" />
+                      </div>
                     </label>
                     <label class="search-field">
                       <span>Observații</span>
@@ -386,11 +564,63 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
                   </label>
                   <label class="search-field">
                     <span>Emitent</span>
-                    <input pInputText [(ngModel)]="batchDocument.correspondent" />
+                    <div class="flex gap-2">
+                      <p-autoComplete
+                        appendTo="body"
+                        class="flex-1"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="batchCorrespondentParty"
+                        [forceSelection]="true"
+                        [dropdown]="false"
+                        [showClear]="true"
+                        [minLength]="1"
+                        [delay]="150"
+                        placeholder="Alege emitent"
+                        (completeMethod)="filterParties($event)"
+                        (onSelect)="onPartySelected('batch', 'correspondent', $event)"
+                        (onClear)="clearPartySelection('batch', 'correspondent')"
+                      >
+                        <ng-template let-party pTemplate="item">
+                          <div class="flex items-center gap-2">
+                            <i [class]="partyTypeIcon(party.party_type)"></i>
+                            <span>{{ formatPartyDisplay(party) }}</span>
+                            <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                          </div>
+                        </ng-template>
+                      </p-autoComplete>
+                      <p-button icon="pi pi-plus" severity="secondary" [rounded]="true" [text]="true" pTooltip="Parte nouă" (onClick)="openPartyDialog('physical', 'correspondent')" />
+                    </div>
                   </label>
                   <label class="search-field">
                     <span>Destinatar</span>
-                    <input pInputText [(ngModel)]="batchDocument.assigned_to" />
+                    <div class="flex gap-2">
+                      <p-autoComplete
+                        appendTo="body"
+                        class="flex-1"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="batchAssignedParty"
+                        [forceSelection]="true"
+                        [dropdown]="false"
+                        [showClear]="true"
+                        [minLength]="1"
+                        [delay]="150"
+                        placeholder="Alege destinatar"
+                        (completeMethod)="filterParties($event)"
+                        (onSelect)="onPartySelected('batch', 'assigned', $event)"
+                        (onClear)="clearPartySelection('batch', 'assigned')"
+                      >
+                        <ng-template let-party pTemplate="item">
+                          <div class="flex items-center gap-2">
+                            <i [class]="partyTypeIcon(party.party_type)"></i>
+                            <span>{{ formatPartyDisplay(party) }}</span>
+                            <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                          </div>
+                        </ng-template>
+                      </p-autoComplete>
+                      <p-button icon="pi pi-plus" severity="secondary" [rounded]="true" [text]="true" pTooltip="Parte nouă" (onClick)="openPartyDialog('physical', 'assigned')" />
+                    </div>
                   </label>
                   <label class="search-field md:col-span-2">
                     <span>Conținut comun</span>
@@ -437,6 +667,89 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
                   <div class="flex justify-end gap-2">
                     <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="exportDialogOpen.set(false)" />
                     <p-button label="Exportă PDF" icon="pi pi-file-pdf" (onClick)="downloadPdf()" />
+                  </div>
+                </ng-template>
+              </p-dialog>
+
+              <p-dialog
+                [visible]="partyDialogOpen()"
+                (visibleChange)="partyDialogOpen.set($event)"
+                [modal]="true"
+                [draggable]="false"
+                header="Parte nouă"
+                styleClass="registry-dialog"
+                [style]="{ width: 'min(54rem, 94vw)' }"
+              >
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="search-field">
+                    <span>Tip parte</span>
+                    <p-select appendTo="body" [options]="partyTypeDialogOptions" [(ngModel)]="partyForm.party_type" optionLabel="label" optionValue="value" />
+                  </label>
+                  <label class="search-field">
+                    <span>Denumire afișată</span>
+                    <input pInputText [(ngModel)]="partyForm.display_name" />
+                  </label>
+                  @if (partyForm.party_type === 'physical') {
+                    <label class="search-field">
+                      <span>Nume scurt</span>
+                      <input pInputText [(ngModel)]="partyForm.short_name" />
+                    </label>
+                    <label class="search-field">
+                      <span>Prenume</span>
+                      <input pInputText [(ngModel)]="partyForm.first_name" />
+                    </label>
+                    <label class="search-field">
+                      <span>Nume</span>
+                      <input pInputText [(ngModel)]="partyForm.last_name" />
+                    </label>
+                  }
+                  @if (partyForm.party_type === 'legal' || partyForm.party_type === 'institution') {
+                    <label class="search-field">
+                      <span>Cod intern</span>
+                      <input pInputText [(ngModel)]="partyForm.code" />
+                    </label>
+                    <label class="search-field">
+                      <span>Nume scurt</span>
+                      <input pInputText [(ngModel)]="partyForm.short_name" />
+                    </label>
+                    <label class="search-field">
+                      <span>Denumire legală</span>
+                      <input pInputText [(ngModel)]="partyForm.legal_name" />
+                    </label>
+                    <label class="search-field">
+                      <span>ID / CNP / CUI</span>
+                      <input pInputText [(ngModel)]="partyForm.identifier_code" />
+                    </label>
+                  }
+                  <label class="search-field">
+                    <span>Telefon</span>
+                    <input pInputText [(ngModel)]="partyForm.phone_number" />
+                  </label>
+                  <label class="search-field">
+                    <span>Email</span>
+                    <input pInputText [(ngModel)]="partyForm.email" />
+                  </label>
+                  <label class="search-field md:col-span-2">
+                    <span>Adresă</span>
+                    <input pInputText [(ngModel)]="partyForm.address_line1" />
+                  </label>
+                  @if (partyForm.party_type === 'physical') {
+                    <label class="search-field md:col-span-2">
+                      <span>Observații</span>
+                      <textarea pTextarea rows="4" [(ngModel)]="partyForm.notes"></textarea>
+                    </label>
+                  } @else {
+                    <label class="search-field md:col-span-2">
+                      <span>Observații</span>
+                      <textarea pTextarea rows="4" [(ngModel)]="partyForm.notes"></textarea>
+                    </label>
+                  }
+                </div>
+
+                <ng-template pTemplate="footer">
+                  <div class="flex justify-end gap-2">
+                    <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="partyDialogOpen.set(false)" />
+                    <p-button label="Salvează parte" icon="pi pi-check" (onClick)="saveParty()" />
                   </div>
                 </ng-template>
               </p-dialog>
@@ -697,16 +1010,60 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
               <p-select appendTo="body" [options]="registryOptions()" [(ngModel)]="editDocument.registru_id" optionLabel="nume" optionValue="id" />
             </label>
           </section>
-          <section class="dialog-section">
-            <h3>Părți și notițe</h3>
-            <label class="search-field">
-              <span>Emitent</span>
-              <input pInputText [(ngModel)]="editDocument.correspondent" />
-            </label>
-            <label class="search-field">
-              <span>Destinatar</span>
-              <input pInputText [(ngModel)]="editDocument.assigned_to" />
-            </label>
+                  <section class="dialog-section">
+                    <h3>Părți și notițe</h3>
+                    <label class="search-field">
+                      <span>Emitent</span>
+                      <p-autoComplete
+                        appendTo="body"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="editCorrespondentParty"
+                        [forceSelection]="true"
+                        [dropdown]="false"
+                        [showClear]="true"
+                        [minLength]="1"
+                        [delay]="150"
+                        placeholder="Alege emitent"
+                        (completeMethod)="filterParties($event)"
+                        (onSelect)="onPartySelected('edit', 'correspondent', $event)"
+                        (onClear)="clearPartySelection('edit', 'correspondent')"
+                      >
+                        <ng-template let-party pTemplate="item">
+                          <div class="flex items-center gap-2">
+                            <i [class]="partyTypeIcon(party.party_type)"></i>
+                            <span>{{ formatPartyDisplay(party) }}</span>
+                            <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                          </div>
+                        </ng-template>
+                      </p-autoComplete>
+                    </label>
+                    <label class="search-field">
+                      <span>Destinatar</span>
+                      <p-autoComplete
+                        appendTo="body"
+                        [suggestions]="partySuggestions()"
+                        optionLabel="display_name"
+                        [(ngModel)]="editAssignedParty"
+                        [forceSelection]="true"
+                        [dropdown]="false"
+                        [showClear]="true"
+                        [minLength]="1"
+                        [delay]="150"
+                        placeholder="Alege destinatar"
+                        (completeMethod)="filterParties($event)"
+                        (onSelect)="onPartySelected('edit', 'assigned', $event)"
+                        (onClear)="clearPartySelection('edit', 'assigned')"
+                      >
+                        <ng-template let-party pTemplate="item">
+                          <div class="flex items-center gap-2">
+                            <i [class]="partyTypeIcon(party.party_type)"></i>
+                            <span>{{ formatPartyDisplay(party) }}</span>
+                            <span class="ml-auto text-xs text-muted-color">{{ partyTypeLabel(party.party_type) }}</span>
+                          </div>
+                        </ng-template>
+                      </p-autoComplete>
+                    </label>
             <label class="search-field">
               <span>Motiv schimbare</span>
               <textarea pTextarea [(ngModel)]="editDocument.change_notes" rows="5"></textarea>
@@ -772,10 +1129,50 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
       min-height: 0;
     }
 
+    :host ::ng-deep .workspace-table .p-datatable-wrapper {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+    }
+
+    :host ::ng-deep .workspace-table .p-datatable-table-container {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    :host ::ng-deep .workspace-table .p-datatable-paginator {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      border-top: 1px solid var(--p-content-border-color);
+      background: var(--p-content-background);
+    }
+
     :host ::ng-deep .p-datatable-thead {
       position: sticky;
       top: 0;
       z-index: 3;
+    }
+
+    :host ::ng-deep .workspace-panel.p-fieldset {
+      margin: 0;
+      border-radius: 1.25rem;
+      border-color: var(--p-content-border-color);
+      background: var(--p-content-background);
+      overflow: hidden;
+    }
+
+    :host ::ng-deep .workspace-panel .p-fieldset-legend {
+      margin-left: 1rem;
+      padding-inline: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    :host-context(.app-dark) ::ng-deep .workspace-panel.p-fieldset {
+      background: var(--p-surface-900);
     }
 
     :host ::ng-deep .registry-table .p-datatable-thead > tr > th {
@@ -819,6 +1216,11 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
     .search-panel-footer {
       border-top: 1px solid var(--p-content-border-color);
       justify-content: flex-end;
+    }
+
+    .workspace-actions {
+      align-self: stretch;
+      padding: 0.25rem 0;
     }
 
     .search-panel-content {
@@ -871,6 +1273,38 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
       font-weight: 700;
     }
 
+    .workspace-table {
+      border-radius: 1.25rem;
+    }
+
+    .registry-header {
+      grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .registry-selector {
+      width: 12rem;
+    }
+
+    :host ::ng-deep .workspace-table .p-datatable,
+    :host ::ng-deep .workspace-table .p-datatable-wrapper,
+    :host ::ng-deep .workspace-table .p-datatable-table-container {
+      display: flex;
+      min-height: 0;
+      flex: 1 1 auto;
+      flex-direction: column;
+    }
+
+    :host ::ng-deep .workspace-table .p-datatable-table {
+      width: 100%;
+      min-width: 100%;
+    }
+
+    :host ::ng-deep .workspace-table .p-datatable-paginator {
+      padding-block: 0.125rem;
+      min-height: 2.4rem;
+      row-gap: 0.125rem;
+    }
+
     :host-context(.app-dark) .dialog-section {
       background: var(--p-surface-900);
     }
@@ -880,11 +1314,15 @@ const emptyEditDocument = (): UpdateRegistraturaDocumentRequest => ({
 export class DocumenteWorkspaceComponent {
   private readonly api = inject(RegistraturaApiService);
   private readonly linksApi = inject(DocumentLinksApiService);
+  private readonly authz = inject(AuthzService);
+  private readonly messages = inject(MessageService);
   private readonly router = inject(Router);
+  private readonly appApi = inject(AppApiService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly registryStorageKey = 'egueducation.registratura.selectedRegistryId';
 
   protected readonly loading = signal(false);
-  protected readonly searchPanelOpen = signal(true);
+  protected readonly searchPanelOpen = signal(false);
   protected readonly createDialogOpen = signal(false);
   protected readonly batchDialogOpen = signal(false);
   protected readonly exportDialogOpen = signal(false);
@@ -892,6 +1330,7 @@ export class DocumenteWorkspaceComponent {
   protected readonly editDialogOpen = signal(false);
   protected readonly cancelDialogOpen = signal(false);
   protected readonly registries = signal<RegistraturaRegistry[]>([]);
+  protected readonly parties = signal<RegistraturaParty[]>([]);
   protected readonly filtersResponse = signal<RegistraturaDocumentFilters | null>(null);
   protected readonly documents = signal<RegistraturaDocument[]>([]);
   protected readonly workflowDocuments = signal<RegistraturaDocument[]>([]);
@@ -902,6 +1341,11 @@ export class DocumenteWorkspaceComponent {
   protected readonly selectedDocumentAttachments = signal<RegistraturaDocumentAttachment[]>([]);
   protected readonly selectedDocumentLinks = signal<LinkedDocument[]>([]);
   protected readonly linkDialogOpen = signal(false);
+  protected readonly partyDialogOpen = signal(false);
+  protected readonly partyDialogTarget = signal<'correspondent' | 'assigned' | null>(null);
+  protected readonly filteredNrDocSuggestions = signal<string[]>([]);
+  protected readonly filteredEmitentiSearch = signal<RegistraturaParty[]>([]);
+  protected readonly filteredDestinatariSearch = signal<RegistraturaParty[]>([]);
   protected readonly linkSearchQuery = signal('');
   protected readonly linkLookupResults = signal<DocumentLookupItem[]>([]);
   protected readonly selectedArchiveDocument = signal<RegistraturaDocument | null>(null);
@@ -909,6 +1353,7 @@ export class DocumenteWorkspaceComponent {
   protected readonly page = signal(1);
   protected readonly pageSize = signal(20);
   protected readonly selectedRegistryId = signal<number | null>(this.loadSavedRegistryId());
+  protected selectedRegistryModel: number | null = this.loadSavedRegistryId();
   protected readonly filters: FilterState = {
     registry_number: '',
     subject: '',
@@ -928,6 +1373,7 @@ export class DocumenteWorkspaceComponent {
   protected batchDocument = emptyBatchDocument();
   protected exportRequest = emptyExportRequest();
   protected editDocument = emptyEditDocument();
+  protected partyForm = emptyPartyForm();
   protected cancelReason = '';
 
   protected readonly registryOptions = computed(() => this.registries());
@@ -939,10 +1385,26 @@ export class DocumenteWorkspaceComponent {
   protected readonly directionOptions = computed(() => this.toOptions(this.filtersResponse()?.directions ?? []));
   protected readonly statusOptions = computed(() => this.toOptions(this.filtersResponse()?.statuses ?? []));
   protected readonly confidentialityOptions = computed(() => this.toOptions(this.filtersResponse()?.confidentialities ?? []));
+  protected readonly partyTypeDialogOptions = [
+    { label: 'Persoană fizică', value: 'physical' },
+    { label: 'Persoană juridică', value: 'legal' },
+    { label: 'Instituție', value: 'institution' },
+  ];
+  protected readonly partySuggestions = signal<RegistraturaParty[]>([]);
+
+  protected newCorrespondentParty: RegistraturaParty | null = null;
+  protected newAssignedParty: RegistraturaParty | null = null;
+  protected batchCorrespondentParty: RegistraturaParty | null = null;
+  protected batchAssignedParty: RegistraturaParty | null = null;
+  protected editCorrespondentParty: RegistraturaParty | null = null;
+  protected editAssignedParty: RegistraturaParty | null = null;
+  protected selectedEmitentSearch: RegistraturaParty | null = null;
+  protected selectedDestinatarSearch: RegistraturaParty | null = null;
 
   constructor() {
     effect(() => {
       const id = this.selectedRegistryId();
+      this.selectedRegistryModel = id;
       if (id) {
         localStorage.setItem(this.registryStorageKey, String(id));
       } else {
@@ -956,6 +1418,7 @@ export class DocumenteWorkspaceComponent {
   }
 
   protected onRegistryChange(registryId: number | null): void {
+    this.selectedRegistryModel = registryId ?? null;
     this.selectedRegistryId.set(registryId ?? null);
     this.newDocument.registru_id = registryId ?? null;
     this.batchDocument.registru_id = registryId ?? 0;
@@ -974,6 +1437,8 @@ export class DocumenteWorkspaceComponent {
     this.newDocument.status = this.statusOptions()[0]?.value ?? 'draft';
     this.newDocument.confidentiality = this.confidentialityOptions()[0]?.value ?? 'normal';
     this.newDocument.registru_id = this.selectedRegistryId();
+    this.applyDefaultParties(this.newDocument, mode);
+    this.syncPartySelectionsFromDocument('new', this.newDocument);
     this.createDialogOpen.set(true);
   }
 
@@ -983,6 +1448,8 @@ export class DocumenteWorkspaceComponent {
     this.batchDocument.document_type = this.documentTypeOptions()[0]?.value ?? '';
     this.batchDocument.status = this.statusOptions()[0]?.value ?? 'draft';
     this.batchDocument.confidentiality = this.confidentialityOptions()[0]?.value ?? 'normal';
+    this.applyDefaultParties(this.batchDocument, this.batchDocument.direction);
+    this.syncPartySelectionsFromDocument('batch', this.batchDocument);
     this.batchDialogOpen.set(true);
   }
 
@@ -1014,6 +1481,11 @@ export class DocumenteWorkspaceComponent {
     this.filters.registered_at_to = '';
     this.filters.due_date_from = '';
     this.filters.due_date_to = '';
+    this.selectedEmitentSearch = null;
+    this.selectedDestinatarSearch = null;
+    this.filteredEmitentiSearch.set([]);
+    this.filteredDestinatariSearch.set([]);
+    this.filteredNrDocSuggestions.set([]);
     this.loadDocuments();
   }
 
@@ -1174,7 +1646,7 @@ export class DocumenteWorkspaceComponent {
       document_id: target.id,
       source_module: 'registratura',
       source_record_id: sourceDocument.id,
-      relation_type: 'related_to',
+      relation_type: 'supporting',
     };
 
     this.linksApi.createLink(payload).subscribe({
@@ -1210,11 +1682,14 @@ export class DocumenteWorkspaceComponent {
       status: document.status,
       correspondent: document.correspondent,
       assigned_to: document.assigned_to,
+      correspondent_party_id: document.correspondent_party_id ?? null,
+      assigned_party_id: document.assigned_party_id ?? null,
       confidentiality: document.confidentiality,
       summary: document.summary,
       due_date: document.due_date ?? null,
       change_notes: '',
     };
+    this.syncPartySelectionsFromDocument('edit', this.editDocument);
     this.editDialogOpen.set(true);
   }
 
@@ -1229,6 +1704,8 @@ export class DocumenteWorkspaceComponent {
     if (!document) {
       return;
     }
+
+    this.syncDocumentPartyFields('edit');
 
     const payload: UpdateRegistraturaDocumentRequest = {
       ...this.editDocument,
@@ -1277,6 +1754,8 @@ export class DocumenteWorkspaceComponent {
   }
 
   protected saveDocument(): void {
+    this.syncDocumentPartyFields('new');
+
     const payload: CreateRegistraturaDocumentRequest = {
       ...this.newDocument,
       registru_id: this.newDocument.registru_id ?? this.selectedRegistryId(),
@@ -1297,6 +1776,8 @@ export class DocumenteWorkspaceComponent {
   }
 
   protected saveBatchDocuments(): void {
+    this.syncDocumentPartyFields('batch');
+
     const payload: BatchCreateRegistraturaDocumentRequest = {
       ...this.batchDocument,
       registru_id: this.batchDocument.registru_id || this.selectedRegistryId() || 0,
@@ -1312,6 +1793,171 @@ export class DocumenteWorkspaceComponent {
       },
       error: () => {
         this.batchDialogOpen.set(false);
+      },
+    });
+  }
+
+  protected onPartySelected(scope: 'new' | 'batch' | 'edit', kind: 'correspondent' | 'assigned', event: AutoCompleteSelectEvent): void {
+    this.assignPartySelection(scope, kind, event.value as RegistraturaParty | null);
+  }
+
+  protected clearPartySelection(scope: 'new' | 'batch' | 'edit', kind: 'correspondent' | 'assigned'): void {
+    this.assignPartySelection(scope, kind, null);
+  }
+
+  protected filterNrDocSuggestions(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.trim().toLowerCase();
+    if (query.length < 1) {
+      this.filteredNrDocSuggestions.set([]);
+      return;
+    }
+    const suggestions = Array.from(
+      new Set(
+        this.documents()
+          .map((document) => document.registry_number)
+          .filter((value) => value.toLowerCase().includes(query))
+      )
+    ).slice(0, 20);
+    this.filteredNrDocSuggestions.set(suggestions);
+  }
+
+  protected onNrDocSelect(event: AutoCompleteSelectEvent): void {
+    this.filters.registry_number = String(event.value ?? '');
+  }
+
+  protected filterEmitentiSearch(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.trim();
+    if (query.length < 1) {
+      this.filteredEmitentiSearch.set([]);
+      return;
+    }
+    this.api.partiesLookup(query).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (items: RegistraturaParty[]) => this.filteredEmitentiSearch.set(items),
+      error: () => this.filteredEmitentiSearch.set([]),
+    });
+  }
+
+  protected filterDestinatariSearch(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.trim();
+    if (query.length < 1) {
+      this.filteredDestinatariSearch.set([]);
+      return;
+    }
+    this.api.partiesLookup(query).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (items: RegistraturaParty[]) => this.filteredDestinatariSearch.set(items),
+      error: () => this.filteredDestinatariSearch.set([]),
+    });
+  }
+
+  protected onEmitentSearchSelect(event: AutoCompleteSelectEvent): void {
+    const party = event.value as RegistraturaParty | null;
+    this.selectedEmitentSearch = party;
+    this.filters.correspondent = party ? this.formatPartyDisplay(party) : '';
+  }
+
+  protected onDestinatarSearchSelect(event: AutoCompleteSelectEvent): void {
+    const party = event.value as RegistraturaParty | null;
+    this.selectedDestinatarSearch = party;
+    this.filters.assigned_to = party ? this.formatPartyDisplay(party) : '';
+  }
+
+  protected clearEmitentSearch(): void {
+    this.selectedEmitentSearch = null;
+    this.filters.correspondent = '';
+  }
+
+  protected clearDestinatarSearch(): void {
+    this.selectedDestinatarSearch = null;
+    this.filters.assigned_to = '';
+  }
+
+  protected openPartyDialog(kind: 'physical' | 'legal' | 'institution', target: 'correspondent' | 'assigned'): void {
+    this.partyForm = emptyPartyForm();
+    this.partyForm.party_type = kind;
+    this.partyDialogTarget.set(target);
+    this.partyDialogOpen.set(true);
+  }
+
+  protected async saveParty(): Promise<void> {
+    if (!this.partyForm.display_name.trim()) {
+      return;
+    }
+    let institutionId = this.authz.institutionId();
+    if (!institutionId) {
+      await this.authz.reload();
+      institutionId = this.authz.institutionId();
+    }
+    if (!institutionId) {
+      try {
+        const bootstrap = (await firstValueFrom(this.appApi.config())) as AppBootstrapConfig;
+        institutionId = bootstrap.institutionId?.trim() ?? '';
+      } catch {
+        institutionId = '';
+      }
+    }
+    if (!institutionId) {
+      this.messages.add({
+        severity: 'error',
+        summary: 'Context instituțional lipsă',
+        detail: 'Nu am putut determina instituția curentă pentru această persoană.',
+      });
+      return;
+    }
+    const payload: CreateRegistraturaPartyRequest = {
+      ...this.partyForm,
+      institution_id: institutionId,
+      display_name: this.partyForm.display_name.trim(),
+      code: this.partyForm.code?.trim() || undefined,
+      short_name: this.partyForm.short_name?.trim() || undefined,
+      first_name: this.partyForm.first_name?.trim() || undefined,
+      last_name: this.partyForm.last_name?.trim() || undefined,
+      legal_name: this.partyForm.legal_name?.trim() || undefined,
+      identifier_code: this.partyForm.identifier_code?.trim() || undefined,
+      tax_id: this.partyForm.tax_id?.trim() || undefined,
+      phone_number: this.partyForm.phone_number?.trim() || undefined,
+      email: this.partyForm.email?.trim() || undefined,
+      address_line1: this.partyForm.address_line1?.trim() || undefined,
+      address_line2: this.partyForm.address_line2?.trim() || undefined,
+      locality: this.partyForm.locality?.trim() || undefined,
+      county: this.partyForm.county?.trim() || undefined,
+      country: this.partyForm.country?.trim() || 'RO',
+      notes: this.partyForm.notes?.trim() || undefined,
+    };
+
+    this.api.createParty(payload).subscribe({
+      next: (party) => {
+        this.parties.set([...this.parties(), party]);
+        if (this.partyDialogTarget() === 'correspondent') {
+          this.newDocument.correspondent_party_id = party.id;
+          this.newDocument.correspondent = party.display_name;
+          this.batchDocument.correspondent_party_id = party.id;
+          this.batchDocument.correspondent = party.display_name;
+          this.newCorrespondentParty = party;
+          this.batchCorrespondentParty = party;
+          this.editCorrespondentParty = party;
+        } else if (this.partyDialogTarget() === 'assigned') {
+          this.newDocument.assigned_party_id = party.id;
+          this.newDocument.assigned_to = party.display_name;
+          this.batchDocument.assigned_party_id = party.id;
+          this.batchDocument.assigned_to = party.display_name;
+          this.newAssignedParty = party;
+          this.batchAssignedParty = party;
+          this.editAssignedParty = party;
+        }
+        this.messages.add({
+          severity: 'success',
+          summary: 'Persoană salvată',
+          detail: party.display_name,
+        });
+        this.partyDialogOpen.set(false);
+        this.partyDialogTarget.set(null);
+      },
+      error: (error) => {
+        this.messages.add({
+          severity: 'error',
+          summary: 'Salvarea a eșuat',
+          detail: error?.error?.message ?? 'Nu am putut salva persoana.',
+        });
       },
     });
   }
@@ -1357,22 +2003,35 @@ export class DocumenteWorkspaceComponent {
   private loadBootstrapData(): void {
     this.loading.set(true);
     forkJoin({
-      registries: this.api.registries(),
-      filters: this.api.documentFilters(),
+      registries: this.api.registries().pipe(catchError(() => of([]))),
+      defaultRegistry: this.api.defaultRegistry().pipe(catchError(() => of(null))),
+      filters: this.api.documentFilters().pipe(catchError(() => of(null))),
+      parties: this.api.partiesLookup().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ registries, filters }) => {
-        this.registries.set(registries);
+      next: ({ registries, defaultRegistry, filters, parties }) => {
+        const effectiveRegistries = registries.length > 0 ? registries : [defaultRegistryFallback()];
+        this.registries.set(effectiveRegistries);
+        this.parties.set(parties);
         this.filtersResponse.set(filters);
 
         const savedId = this.selectedRegistryId();
-        const validSaved = savedId !== null && registries.some((registry) => registry.id === savedId);
+        const validSaved = savedId !== null && effectiveRegistries.some((registry) => registry.id === savedId);
         if (!validSaved) {
-          const defaultRegistry = registries.find((registry) => registry.isDefault) ?? registries[0] ?? null;
-          this.selectedRegistryId.set(defaultRegistry?.id ?? null);
+          const defaultFromList = effectiveRegistries.find((registry) => registry.isDefault) ?? null;
+          const fallbackRegistry = defaultFromList ?? defaultRegistry ?? effectiveRegistries[0] ?? defaultRegistryFallback();
+          this.selectedRegistryId.set(fallbackRegistry?.id ?? null);
+          this.selectedRegistryModel = fallbackRegistry?.id ?? null;
         }
-        this.newDocument.registru_id = this.selectedRegistryId();
-        this.batchDocument.registru_id = this.selectedRegistryId() ?? 0;
-        this.exportRequest.registru_id = this.selectedRegistryId();
+        const currentRegistryId = this.selectedRegistryId();
+        this.newDocument.registru_id = currentRegistryId;
+        this.batchDocument.registru_id = currentRegistryId ?? 0;
+        this.exportRequest.registru_id = currentRegistryId;
+        if (parties.length > 0) {
+          this.applyDefaultParties(this.newDocument, this.newDocument.direction);
+          this.applyDefaultParties(this.batchDocument, this.batchDocument.direction);
+          this.syncPartySelectionsFromDocument('new', this.newDocument);
+          this.syncPartySelectionsFromDocument('batch', this.batchDocument);
+        }
 
         this.loadDocuments();
         this.loadWorkflowDocuments();
@@ -1380,8 +2039,6 @@ export class DocumenteWorkspaceComponent {
         this.loading.set(false);
       },
       error: () => {
-        this.registries.set([]);
-        this.filtersResponse.set(null);
         this.loading.set(false);
       },
     });
@@ -1389,6 +2046,135 @@ export class DocumenteWorkspaceComponent {
 
   private toOptions(values: string[]): Array<{ label: string; value: string }> {
     return values.map((value) => ({ label: value, value }));
+  }
+
+  private applyDefaultParties(document: CreateRegistraturaDocumentRequest | BatchCreateRegistraturaDocumentRequest, direction: string): void {
+    const organization = this.parties().find((party) => party.is_default_organization) ?? null;
+    if (!organization) {
+      return;
+    }
+
+    if (direction === 'intrare') {
+      document.assigned_party_id = organization.id;
+      document.assigned_to = organization.display_name;
+    } else if (direction === 'iesire') {
+      document.correspondent_party_id = organization.id;
+      document.correspondent = organization.display_name;
+    } else if (direction === 'intern') {
+      document.assigned_party_id = organization.id;
+      document.assigned_to = organization.display_name;
+      document.correspondent_party_id = organization.id;
+      document.correspondent = organization.display_name;
+    }
+  }
+
+  private assignPartySelection(
+    scope: 'new' | 'batch' | 'edit',
+    kind: 'correspondent' | 'assigned',
+    party: RegistraturaParty | null,
+  ): void {
+    const target = scope === 'new' ? this.newDocument : scope === 'batch' ? this.batchDocument : this.editDocument;
+    if (kind === 'correspondent') {
+      target.correspondent_party_id = party?.id ?? null;
+      target.correspondent = party?.display_name ?? '';
+      if (scope === 'new') this.newCorrespondentParty = party;
+      if (scope === 'batch') this.batchCorrespondentParty = party;
+      if (scope === 'edit') this.editCorrespondentParty = party;
+    } else {
+      target.assigned_party_id = party?.id ?? null;
+      target.assigned_to = party?.display_name ?? '';
+      if (scope === 'new') this.newAssignedParty = party;
+      if (scope === 'batch') this.batchAssignedParty = party;
+      if (scope === 'edit') this.editAssignedParty = party;
+    }
+  }
+
+  private syncPartySelectionsFromDocument(
+    scope: 'new' | 'batch' | 'edit',
+    document: CreateRegistraturaDocumentRequest | BatchCreateRegistraturaDocumentRequest | UpdateRegistraturaDocumentRequest,
+  ): void {
+    this.assignPartySelection(scope, 'correspondent', this.resolveParty(document.correspondent_party_id ?? null));
+    this.assignPartySelection(scope, 'assigned', this.resolveParty(document.assigned_party_id ?? null));
+  }
+
+  private syncDocumentPartyFields(scope: 'new' | 'batch' | 'edit'): void {
+    const target = scope === 'new' ? this.newDocument : scope === 'batch' ? this.batchDocument : this.editDocument;
+    const correspondent = scope === 'new' ? this.newCorrespondentParty : scope === 'batch' ? this.batchCorrespondentParty : this.editCorrespondentParty;
+    const assigned = scope === 'new' ? this.newAssignedParty : scope === 'batch' ? this.batchAssignedParty : this.editAssignedParty;
+    target.correspondent_party_id = correspondent?.id ?? target.correspondent_party_id ?? null;
+    target.correspondent = correspondent?.display_name ?? target.correspondent ?? '';
+    target.assigned_party_id = assigned?.id ?? target.assigned_party_id ?? null;
+    target.assigned_to = assigned?.display_name ?? target.assigned_to ?? '';
+  }
+
+  protected filterParties(event: AutoCompleteCompleteEvent): void {
+    const query = event.query.trim();
+    if (query.length < 1) {
+      this.partySuggestions.set([]);
+      return;
+    }
+    this.api.partiesLookup(query).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (items: RegistraturaParty[]) => this.partySuggestions.set(items),
+      error: () => this.partySuggestions.set([]),
+    });
+  }
+
+  protected partyTypeLabel(value: string): string {
+    switch (value) {
+      case 'physical':
+        return 'Persoană fizică';
+      case 'legal':
+        return 'Persoană juridică';
+      case 'institution':
+        return 'Instituție';
+      default:
+        return value;
+    }
+  }
+
+  protected partyTypeIcon(value: string): string {
+    switch (value) {
+      case 'physical':
+        return 'pi pi-user';
+      case 'legal':
+        return 'pi pi-building';
+      case 'institution':
+        return 'pi pi-sitemap';
+      default:
+        return 'pi pi-users';
+    }
+  }
+
+  protected formatPartyDisplay(party: RegistraturaParty): string {
+    if (!party) {
+      return '';
+    }
+    if (party.party_type === 'physical') {
+      const parts = [party.first_name?.trim(), party.last_name?.trim()].filter(Boolean);
+      return parts.length > 0 ? parts.join(' ') : party.display_name;
+    }
+    return party.display_name || party.legal_name || party.short_name || party.code;
+  }
+
+  protected formatEntityDisplay(entity: RegistraturaParty): string {
+    return this.formatPartyDisplay(entity);
+  }
+
+  protected getEntityDisplayText = (entity: RegistraturaParty): string => this.formatPartyDisplay(entity);
+
+  protected getEntityTypeIcon(entity: RegistraturaParty): string {
+    return this.partyTypeIcon(entity?.party_type ?? '');
+  }
+
+  protected getEntityTypeBadge(entity: RegistraturaParty): string {
+    return this.partyTypeLabel(entity?.party_type ?? '');
+  }
+
+  private resolveParty(partyId: string | null): RegistraturaParty | null {
+    if (!partyId) {
+      return null;
+    }
+    return this.parties().find((item) => item.id === partyId) ?? null;
   }
 
   private normalizeDateOrText(value: unknown): string {

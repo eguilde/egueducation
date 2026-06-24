@@ -25,37 +25,37 @@ type EntryRoute = '/auth/start';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.18),_transparent_32rem),linear-gradient(135deg,_#fff7f8_0%,_#ffffff_46%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.28),_transparent_30rem),linear-gradient(135deg,_#19040a_0%,_#0f172a_58%,_#260711_100%)] dark:text-white">
+    <main class="app-auth-shell">
       <section class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.02fr_0.98fr] md:px-8 lg:px-10">
         <div class="space-y-8">
-          <div class="inline-flex items-center rounded-full border border-rose-200 bg-white/75 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm backdrop-blur dark:border-rose-400/30 dark:bg-white/10 dark:text-rose-100">
+          <div class="app-auth-badge px-4 py-2 text-sm font-semibold">
             {{ 'auth.register.badge' | transloco }}
           </div>
 
           <div class="space-y-5">
-            <h1 class="max-w-4xl text-4xl font-black tracking-[-0.045em] text-slate-950 md:text-6xl dark:text-white">
+            <h1 class="max-w-4xl text-4xl font-black tracking-[-0.045em] text-color md:text-6xl">
               {{ 'auth.register.title' | transloco }}
             </h1>
-            <p class="max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-200">
+            <p class="max-w-2xl text-lg leading-8 text-muted-color">
               {{ 'auth.register.subtitle' | transloco }}
             </p>
           </div>
 
           <div class="grid gap-3">
             @for (item of journey; track item.title) {
-              <article class="rounded-[1.5rem] border border-white/70 bg-white/72 p-5 shadow-lg shadow-rose-950/5 backdrop-blur dark:border-white/10 dark:bg-white/10">
+              <article class="app-auth-glass-card rounded-[1.5rem] p-5">
                 <div class="flex items-start gap-4">
-                  <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">
+                  <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
                     <i [class]="item.icon"></i>
                   </span>
                   <div class="space-y-1">
-                    <p class="text-xs font-black uppercase tracking-[0.2em] text-rose-700 dark:text-rose-200">
+                    <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
                       {{ item.kicker | transloco }}
                     </p>
-                    <h2 class="text-lg font-black text-slate-950 dark:text-white">
+                    <h2 class="text-lg font-black text-color">
                       {{ item.title | transloco }}
                     </h2>
-                    <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <p class="text-sm leading-6 text-muted-color">
                       {{ item.body | transloco }}
                     </p>
                   </div>
@@ -68,21 +68,21 @@ type EntryRoute = '/auth/start';
             <a
               routerLink="/auth/start"
               [queryParams]="{ returnUrl: returnUrl }"
-              class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-white/70 px-6 py-3 text-base font-bold text-rose-900 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-rose-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+              class="app-auth-outline-link px-6 py-3 text-base font-bold"
             >
               {{ 'auth.register.backToLogin' | transloco }}
             </a>
             <a
               routerLink="/auth/start"
               [queryParams]="{ returnUrl: returnUrl }"
-              class="inline-flex items-center justify-center rounded-2xl bg-rose-700 px-6 py-3 text-base font-bold text-white shadow-xl shadow-rose-900/20 transition hover:bg-rose-800 focus:outline-none focus:ring-4 focus:ring-rose-300"
+              class="app-auth-primary-link px-6 py-3 text-base font-bold"
             >
               {{ 'auth.register.oidcCta' | transloco }}
             </a>
           </div>
         </div>
 
-        <aside class="rounded-[2rem] border border-white/70 bg-white/72 p-4 shadow-2xl shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+        <aside class="app-auth-panel rounded-[2rem] p-4">
           <p-card styleClass="overflow-hidden rounded-[1.75rem] border border-surface bg-surface-0 shadow-xl dark:bg-surface-900">
             <ng-template pTemplate="header">
               <div class="bg-primary px-7 py-8 text-primary-contrast">
@@ -103,12 +103,8 @@ type EntryRoute = '/auth/start';
                 @for (step of steps; track step.key) {
                   <span
                     class="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
-                    [class.border-rose-200]="step.key === currentStep()"
-                    [class.bg-rose-700]="step.key === currentStep()"
-                    [class.text-white]="step.key === currentStep()"
-                    [class.border-surface]="step.key !== currentStep()"
-                    [class.bg-surface-50]="step.key !== currentStep()"
-                    [class.text-surface-600]="step.key !== currentStep()"
+                    class="app-auth-step"
+                    [class.app-auth-step--active]="step.key === currentStep()"
                   >
                     {{ step.label | transloco }}
                   </span>
@@ -120,21 +116,21 @@ type EntryRoute = '/auth/start';
                   @for (item of accountTypes; track item.code) {
                     <button
                       type="button"
-                      class="group flex h-full flex-col rounded-[1.5rem] border border-rose-100 bg-white/85 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-rose-200 dark:border-white/10 dark:bg-slate-950/40"
+                      class="app-auth-panel-inner group flex h-full flex-col rounded-[1.5rem] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
                       (click)="selectAccountType(item.code)"
                     >
                       <div class="flex items-start gap-4">
-                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">
+                        <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
                           <i [class]="item.icon"></i>
                         </span>
                         <div class="space-y-1">
-                          <p class="text-xs font-black uppercase tracking-[0.2em] text-rose-700 dark:text-rose-200">
+                          <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
                             {{ item.kicker | transloco }}
                           </p>
-                          <h3 class="text-lg font-black text-slate-950 dark:text-white">
+                          <h3 class="text-lg font-black text-color">
                             {{ item.title | transloco }}
                           </h3>
-                          <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                          <p class="text-sm leading-6 text-muted-color">
                             {{ item.body | transloco }}
                           </p>
                         </div>
@@ -166,7 +162,7 @@ type EntryRoute = '/auth/start';
 
                 <p-message severity="info" [text]="'auth.register.info' | transloco" />
 
-                <div class="grid gap-3 rounded-[1.5rem] border border-surface bg-white/70 p-4 dark:bg-white/5">
+                <div class="app-auth-panel-inner grid gap-3 rounded-[1.5rem] p-4">
                   <label class="flex items-start gap-3">
                     <p-checkbox formControlName="provisioningAcknowledged" inputId="register-provisioning" [binary]="true" />
                     <span class="text-sm leading-6 text-slate-700 dark:text-slate-200">
@@ -200,25 +196,25 @@ type EntryRoute = '/auth/start';
                   />
                 </div>
               } @else {
-                <div class="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-100">
+                <div class="app-auth-warning rounded-[1.5rem] p-4 text-sm leading-6">
                   {{ 'auth.register.entry.info' | transloco }}
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                   @for (entry of entryPoints; track entry.code) {
-                    <article class="rounded-[1.5rem] border border-rose-100 bg-white/85 p-5 shadow-sm dark:border-white/10 dark:bg-slate-950/40">
+                    <article class="app-auth-panel-inner rounded-[1.5rem] p-5 shadow-sm">
                       <div class="flex items-start gap-4">
-                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">
+                        <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
                           <i [class]="entry.icon"></i>
                         </span>
                         <div class="space-y-1">
-                          <p class="text-xs font-black uppercase tracking-[0.2em] text-rose-700 dark:text-rose-200">
+                          <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
                             {{ entry.kicker | transloco }}
                           </p>
-                          <h3 class="text-lg font-black text-slate-950 dark:text-white">
+                          <h3 class="text-lg font-black text-color">
                             {{ entry.title | transloco }}
                           </h3>
-                          <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                          <p class="text-sm leading-6 text-muted-color">
                             {{ entry.body | transloco }}
                           </p>
                         </div>
@@ -248,7 +244,7 @@ type EntryRoute = '/auth/start';
                   <a
                     routerLink="/auth/start"
                     [queryParams]="{ returnUrl: returnUrl }"
-                    class="inline-flex items-center justify-center rounded-2xl border border-rose-200 bg-white/70 px-6 py-3 text-base font-bold text-rose-900 shadow-sm backdrop-blur transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-rose-200 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+                    class="app-auth-outline-link px-6 py-3 text-base font-bold"
                   >
                     {{ 'auth.register.backToLogin' | transloco }}
                   </a>

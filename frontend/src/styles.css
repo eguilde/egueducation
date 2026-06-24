@@ -41,3 +41,166 @@ html.app-dark body {
     radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-950) 28%, transparent), transparent 30rem),
     linear-gradient(180deg, color-mix(in srgb, var(--p-surface-950) 88%, var(--p-primary-950)) 0%, var(--p-surface-950) 100%);
 }
+
+:root {
+  --app-auth-shell-background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-200) 22%, transparent), transparent 32rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--p-surface-0) 94%, var(--p-primary-50)) 0%, var(--p-surface-0) 46%, color-mix(in srgb, var(--p-surface-0) 88%, var(--p-primary-100)) 100%);
+  --app-auth-glass-background: color-mix(in srgb, var(--p-surface-0) 78%, transparent);
+  --app-auth-glass-strong-background: color-mix(in srgb, var(--p-surface-0) 90%, transparent);
+  --app-auth-glass-border: color-mix(in srgb, var(--p-surface-200) 78%, transparent);
+  --app-auth-shadow: 0 24px 60px color-mix(in srgb, var(--p-primary-950) 10%, transparent);
+}
+
+html.app-dark {
+  --app-auth-shell-background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-900) 34%, transparent), transparent 30rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--p-surface-950) 88%, var(--p-primary-950)) 0%, var(--p-surface-950) 56%, color-mix(in srgb, var(--p-surface-950) 90%, var(--p-primary-900)) 100%);
+  --app-auth-glass-background: color-mix(in srgb, var(--p-surface-950) 70%, transparent);
+  --app-auth-glass-strong-background: color-mix(in srgb, var(--p-surface-950) 84%, transparent);
+  --app-auth-glass-border: color-mix(in srgb, var(--p-surface-700) 46%, transparent);
+  --app-auth-shadow: 0 24px 60px color-mix(in srgb, var(--p-surface-950) 60%, transparent);
+}
+
+.app-auth-shell {
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--app-auth-shell-background);
+  color: var(--p-text-color);
+}
+
+.app-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--p-primary-300) 52%, var(--app-auth-glass-border));
+  background: color-mix(in srgb, var(--app-auth-glass-strong-background) 88%, var(--p-primary-50));
+  color: var(--p-primary-700);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--p-primary-950) 8%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+html.app-dark .app-auth-badge {
+  color: var(--p-primary-200);
+  background: color-mix(in srgb, var(--app-auth-glass-background) 92%, var(--p-primary-950));
+}
+
+.app-auth-glass-card {
+  border: 1px solid var(--app-auth-glass-border);
+  background: var(--app-auth-glass-background);
+  box-shadow: var(--app-auth-shadow);
+  backdrop-filter: blur(22px);
+}
+
+.app-auth-panel {
+  border: 1px solid var(--app-auth-glass-border);
+  background: var(--app-auth-glass-background);
+  box-shadow: var(--app-auth-shadow);
+  backdrop-filter: blur(24px);
+}
+
+.app-auth-panel-inner {
+  border: 1px solid color-mix(in srgb, var(--p-primary-200) 20%, var(--p-content-border-color));
+  background: color-mix(in srgb, var(--app-auth-glass-strong-background) 92%, var(--p-surface-0));
+}
+
+html.app-dark .app-auth-panel-inner {
+  background: color-mix(in srgb, var(--app-auth-glass-strong-background) 88%, var(--p-surface-950));
+}
+
+.app-auth-accent {
+  color: var(--p-primary-color);
+}
+
+.app-auth-accent-soft {
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  color: var(--p-primary-color);
+}
+
+.app-auth-outline-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--p-primary-300) 40%, var(--p-content-border-color));
+  background: color-mix(in srgb, var(--app-auth-glass-strong-background) 82%, transparent);
+  color: var(--p-text-color);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--p-primary-950) 8%, transparent);
+  backdrop-filter: blur(18px);
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.app-auth-outline-link:hover {
+  background: color-mix(in srgb, var(--app-auth-glass-strong-background) 94%, var(--p-primary-50));
+}
+
+.app-auth-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  box-shadow: 0 16px 32px color-mix(in srgb, var(--p-primary-950) 18%, transparent);
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+.app-auth-primary-link:hover {
+  filter: brightness(0.96);
+}
+
+.app-auth-step {
+  border: 1px solid var(--p-content-border-color);
+  background: color-mix(in srgb, var(--p-surface-50) 84%, var(--p-surface-0));
+  color: var(--p-text-muted-color);
+}
+
+.app-auth-step--active {
+  border-color: var(--p-primary-color);
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+}
+
+.app-auth-warning {
+  border: 1px solid color-mix(in srgb, var(--p-orange-400) 38%, var(--p-content-border-color));
+  background: color-mix(in srgb, var(--p-orange-100) 72%, var(--p-surface-0));
+  color: color-mix(in srgb, var(--p-orange-900) 82%, var(--p-text-color));
+}
+
+html.app-dark .app-auth-warning {
+  background: color-mix(in srgb, var(--p-orange-950) 48%, var(--p-surface-950));
+  color: var(--p-orange-100);
+}
+
+.app-data-table-shell .p-datatable,
+.app-data-table-shell .p-datatable-wrapper,
+.app-data-table-shell .p-datatable-table-container {
+  min-height: 0;
+}
+
+.app-data-table-shell .p-datatable-table {
+  width: 100%;
+  min-width: 100%;
+}
+
+.p-paginator {
+  gap: 0.25rem;
+  min-height: 2.5rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.p-paginator .p-paginator-current,
+.p-paginator .p-dropdown-label,
+.p-paginator .p-select-label {
+  font-size: 0.8125rem;
+}
+
+.p-paginator .p-paginator-page,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-last,
+.p-paginator .p-select {
+  min-width: 2rem;
+  height: 1.85rem;
+}

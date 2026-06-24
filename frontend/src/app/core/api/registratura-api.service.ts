@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 
 import {
   CancelRegistraturaDocumentRequest,
@@ -14,8 +15,11 @@ import {
   RegistraturaDocument,
   RegistraturaDocumentFilters,
   RegistraturaDocumentVersion,
+  RegistraturaParty,
   RegistraturaRegistry,
+  CreateRegistraturaPartyRequest,
   UpdateRegistraturaDocumentRequest,
+  UpdateRegistraturaPartyRequest,
   UpdateRegistraturaRegistryRequest,
   TableQuery,
 } from './api.types';
@@ -114,5 +118,55 @@ export class RegistraturaApiService {
 
   createDocumentAttachment(documentId: string, payload: CreateRegistraturaDocumentAttachmentRequest) {
     return this.http.post<RegistraturaDocumentAttachment>(`/api/registratura/documents/${documentId}/attachments`, payload);
+  }
+
+  partiesLookup(query?: string) {
+    let params = new HttpParams();
+    if (query && query.trim()) {
+      params = params.set('query', query.trim());
+    }
+    return this.http.get<RegistraturaParty[]>('/api/registratura/parties/lookup', { params });
+  }
+
+  partiesPage(query: TableQuery) {
+    let params = new HttpParams()
+      .set('page', String(query.page))
+      .set('pageSize', String(query.pageSize));
+    if (query.sort) {
+      params = params.set('sort', query.sort);
+    }
+    if (query.direction) {
+      params = params.set('direction', query.direction);
+    }
+    for (const [key, value] of Object.entries(query.filters ?? {})) {
+      if (value) {
+        params = params.set(`filter.${key}`, value);
+      }
+    }
+
+    return this.http.get<{ items: RegistraturaParty[]; total: number; page: number; pageSize: number }>('/api/registratura/parties', { params });
+  }
+
+  parties(query?: TableQuery): Observable<RegistraturaParty[]> | Observable<{ items: RegistraturaParty[]; total: number; page: number; pageSize: number }> {
+    if (!query) {
+      return this.partiesLookup();
+    }
+    return this.partiesPage(query);
+  }
+
+  defaultOrganizationParty() {
+    return this.http.get<RegistraturaParty>('/api/registratura/parties/default-organization');
+  }
+
+  createParty(payload: CreateRegistraturaPartyRequest) {
+    return this.http.post<RegistraturaParty>('/api/registratura/parties', payload);
+  }
+
+  updateParty(partyId: string, payload: UpdateRegistraturaPartyRequest) {
+    return this.http.patch<RegistraturaParty>(`/api/registratura/parties/${partyId}`, payload);
+  }
+
+  deleteParty(partyId: string) {
+    return this.http.delete<void>(`/api/registratura/parties/${partyId}`);
   }
 }

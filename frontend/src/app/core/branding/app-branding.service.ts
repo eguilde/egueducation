@@ -12,8 +12,12 @@ export class AppBrandingService {
   private readonly title = inject(Title);
   private readonly document = inject(DOCUMENT);
   private readonly projectTitleSignal = signal('EguEducation');
+  private readonly institutionIdSignal = signal('');
+  private readonly institutionNameSignal = signal('');
 
   readonly projectTitle = this.projectTitleSignal.asReadonly();
+  readonly institutionId = this.institutionIdSignal.asReadonly();
+  readonly institutionName = this.institutionNameSignal.asReadonly();
   readonly pageTitle = computed(() => this.projectTitleSignal());
 
   async init(): Promise<void> {
@@ -26,6 +30,8 @@ export class AppBrandingService {
       if (configuredTitle) {
         this.applyTitle(configuredTitle);
       }
+      this.institutionIdSignal.set(bootstrap.institutionId?.trim() ?? '');
+      this.institutionNameSignal.set(bootstrap.institutionName?.trim() ?? '');
     } catch {
       // Keep the hostname-derived fallback when bootstrap config is unavailable.
     }

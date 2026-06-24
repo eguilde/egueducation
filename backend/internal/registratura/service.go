@@ -25,6 +25,122 @@ func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
 
+const generalRegistryName = "Registru General"
+
+func EnsureSeedData(ctx context.Context, pool *appdb.SessionPool) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin registry seed: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	var defaultRegistryID int64
+	err = tx.QueryRow(ctx, `
+		select id
+		from registre
+		where nume = $1
+		limit 1
+	`, generalRegistryName).Scan(&defaultRegistryID)
+	if err == nil {
+		if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where id <> $1`, defaultRegistryID); err != nil {
+			return fmt.Errorf("demote registries: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `update registre set is_default = true, updated_at = now() where id = $1`, defaultRegistryID); err != nil {
+			return fmt.Errorf("promote general registry: %w", err)
+		}
+		if _, err := tx.Exec(ctx, `update registratura_documents set registru_id = $1 where registru_id is null`, defaultRegistryID); err != nil {
+			return fmt.Errorf("attach documents to general registry: %w", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("commit registry seed: %w", err)
+		}
+		return nil
+	}
+	if err != pgx.ErrNoRows {
+		return fmt.Errorf("load general registry: %w", err)
+	}
+
+	if err := tx.QueryRow(ctx, `
+		insert into registre (nume, prefix_nr, nr_inceput, nr_curent, nr_urmator, tip_registru, is_default, created_at, updated_at)
+		values ($1, $2, $3, $4, $5, $6, true, now(), now())
+		returning id
+	`, generalRegistryName, "REG", 1, "0000", "0001", "general").Scan(&defaultRegistryID); err != nil {
+		return fmt.Errorf("create general registry: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where id <> $1`, defaultRegistryID); err != nil {
+		return fmt.Errorf("normalize default registry flags: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `update registratura_documents set registru_id = $1 where registru_id is null`, defaultRegistryID); err != nil {
+		return fmt.Errorf("attach documents to created general registry: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit registry seed: %w", err)
+	}
+
+	seedTx, err := pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin party seed: %w", err)
+	}
+	defer seedTx.Rollback(ctx) //nolint:errcheck
+
+	rows, err := seedTx.Query(ctx, `
+		select code, institution_id, display_name, short_name
+		from app_tenants
+		where active = true
+		order by code asc
+	`)
+	if err != nil {
+		return fmt.Errorf("load tenant seed data: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			tenantCode     string
+			institutionID  string
+			displayName    string
+			shortName      string
+		)
+		if err := rows.Scan(&tenantCode, &institutionID, &displayName, &shortName); err != nil {
+			return fmt.Errorf("scan tenant seed data: %w", err)
+		}
+		if _, err := seedTx.Exec(ctx, `
+			insert into app_parties (
+				tenant_code,
+				institution_id,
+				code,
+				party_type,
+				display_name,
+				short_name,
+				legal_name,
+				is_default_organization,
+				active,
+				created_at,
+				updated_at
+			) values ($1, $2, 'organization', 'institution', $3, $4, $3, true, true, now(), now())
+			on conflict (tenant_code, code) do update
+			set institution_id = excluded.institution_id,
+				party_type = excluded.party_type,
+				display_name = excluded.display_name,
+				short_name = excluded.short_name,
+				legal_name = excluded.legal_name,
+				is_default_organization = excluded.is_default_organization,
+				active = excluded.active,
+				updated_at = now()
+		`, tenantCode, institutionID, displayName, shortName); err != nil {
+			return fmt.Errorf("seed organization party for %s: %w", tenantCode, err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate tenant seed data: %w", err)
+	}
+	if err := seedTx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit party seed: %w", err)
+	}
+	return nil
+}
+
 func (s *Service) logAudit(r *http.Request, action string, targetType string, targetID string, summary string, details map[string]any) {
 	_ = audit.Log(r.Context(), s.pool, audit.Event{
 		ActorSubject: authruntime.CurrentSubjectFromRequest(r),
@@ -110,7 +226,7 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 		[]string{"registry_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at"},
 	)
 
-	whereClause, args := buildDocumentFilters(query.Filters)
+	whereClause, args := buildDocumentFilters(s.institutionID(r), query.Filters)
 
 	var total int
 	countSQL := "select count(*) from registratura_documents d " + whereClause
@@ -137,6 +253,8 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 			d.status,
 			d.correspondent,
 			d.assigned_to,
+			d.correspondent_party_id::text,
+			d.assigned_party_id::text,
 			d.institution_id,
 			d.confidentiality,
 			d.summary,
@@ -162,6 +280,8 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var document Document
 		var registruID sql.NullInt64
+		var correspondentPartyID sql.NullString
+		var assignedPartyID sql.NullString
 		if err := rows.Scan(
 			&document.ID,
 			&registruID,
@@ -172,6 +292,8 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 			&document.Status,
 			&document.Correspondent,
 			&document.AssignedTo,
+			&correspondentPartyID,
+			&assignedPartyID,
 			&document.InstitutionID,
 			&document.Confidentiality,
 			&document.Summary,
@@ -187,6 +309,14 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 		if registruID.Valid {
 			value := registruID.Int64
 			document.RegistruID = &value
+		}
+		if correspondentPartyID.Valid {
+			value := strings.TrimSpace(correspondentPartyID.String)
+			document.CorrespondentPartyID = &value
+		}
+		if assignedPartyID.Valid {
+			value := strings.TrimSpace(assignedPartyID.String)
+			document.AssignedPartyID = &value
 		}
 		documents = append(documents, document)
 	}
@@ -217,7 +347,7 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	req.Confidentiality = strings.TrimSpace(req.Confidentiality)
 	req.Summary = strings.TrimSpace(req.Summary)
 
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Correspondent == "" || req.Confidentiality == "" {
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{
 			"code":    "missing_document_fields",
 			"message": "Campurile obligatorii lipsesc.",
@@ -296,7 +426,7 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 	req.Summary = strings.TrimSpace(req.Summary)
 	req.ChangeNotes = strings.TrimSpace(req.ChangeNotes)
 
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Correspondent == "" || req.Confidentiality == "" {
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_fields"})
 		return
 	}
@@ -336,6 +466,12 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	parties, err := s.resolveDocumentParties(r.Context(), tx, s.institutionID(r), req.Direction, req.Correspondent, req.AssignedTo, req.CorrespondentPartyID, req.AssignedPartyID)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "document_party_resolution_failed", "message": err.Error()})
+		return
+	}
+
 	var dueDate any
 	if req.DueDate != nil && strings.TrimSpace(*req.DueDate) != "" {
 		dueDate = strings.TrimSpace(*req.DueDate)
@@ -350,19 +486,23 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 			status = $5,
 			correspondent = $6,
 			assigned_to = $7,
-			confidentiality = $8,
-			summary = $9,
-			due_date = $10,
+			correspondent_party_id = $8,
+			assigned_party_id = $9,
+			confidentiality = $10,
+			summary = $11,
+			due_date = $12,
 			updated_at = now()
-		where id::text = $11
+		where id::text = $13
 	`,
 		resolvedRegistruID,
 		req.Subject,
 		req.DocumentType,
 		req.Direction,
 		req.Status,
-		req.Correspondent,
-		req.AssignedTo,
+		parties.Correspondent,
+		parties.AssignedTo,
+		parties.CorrespondentPartyID,
+		parties.AssignedPartyID,
 		req.Confidentiality,
 		req.Summary,
 		dueDate,
@@ -1166,9 +1306,9 @@ func (s *Service) DeleteDocumentLink(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func buildDocumentFilters(filters map[string]string) (string, []any) {
-	clauses := []string{}
-	args := []any{}
+func buildDocumentFilters(institutionID string, filters map[string]string) (string, []any) {
+	clauses := []string{"d.institution_id = $1"}
+	args := []any{strings.TrimSpace(institutionID)}
 
 	addContains := func(column string, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1227,9 +1367,6 @@ func buildDocumentFilters(filters map[string]string) (string, []any) {
 		clauses = append(clauses, fmt.Sprintf("d.due_date <= $%d::date", len(args)))
 	}
 
-	if len(clauses) == 0 {
-		return "", args
-	}
 	return "where " + strings.Join(clauses, " and "), args
 }
 
@@ -1272,6 +1409,8 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 			status,
 			correspondent,
 			assigned_to,
+			correspondent_party_id::text,
+			assigned_party_id::text,
 			institution_id,
 			confidentiality,
 			summary,
@@ -1289,6 +1428,8 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 		&document.Status,
 		&document.Correspondent,
 		&document.AssignedTo,
+		&document.CorrespondentPartyID,
+		&document.AssignedPartyID,
 		&document.InstitutionID,
 		&document.Confidentiality,
 		&document.Summary,
@@ -1316,6 +1457,8 @@ func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID stri
 			status,
 			correspondent,
 			assigned_to,
+			correspondent_party_id::text,
+			assigned_party_id::text,
 			institution_id,
 			confidentiality,
 			summary,
@@ -1333,6 +1476,8 @@ func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID stri
 		&document.Status,
 		&document.Correspondent,
 		&document.AssignedTo,
+		&document.CorrespondentPartyID,
+		&document.AssignedPartyID,
 		&document.InstitutionID,
 		&document.Confidentiality,
 		&document.Summary,

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -13,6 +14,7 @@ import { TooltipModule } from 'primeng/tooltip';
 
 import { AdminApiService } from '../../core/api/admin-api.service';
 import {
+  AdminDashboardResponse,
   AdminPositionRoleAssignment,
   AdminPositionRoleAssignmentFilters,
   AdminRole,
@@ -66,6 +68,7 @@ interface AdminPositionRoleAssignmentFilterState {
     FormsModule,
     RouterLink,
     ButtonModule,
+    CardModule,
     DialogModule,
     InputTextModule,
     SelectModule,
@@ -76,7 +79,7 @@ interface AdminPositionRoleAssignmentFilterState {
   ],
   template: `
     <section class="admin-workspace flex h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden">
-      <p-tabs value="users" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <p-tabs value="dashboard" class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <p-tablist class="shrink-0">
           @for (tab of tabs; track tab.value) {
             <p-tab [value]="tab.value">
@@ -89,6 +92,115 @@ interface AdminPositionRoleAssignmentFilterState {
         </p-tablist>
 
         <p-tabpanels class="min-h-0 flex-1 overflow-hidden p-0">
+          <p-tabpanel value="dashboard" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+              <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <p-card>
+                  <div class="text-sm text-muted-color">Utilizatori</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.users ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Membri</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.memberships ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Poziții</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.positions ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Permisiuni</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.permissions ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Fluxuri</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.workflows ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Arhivă</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.archives ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Dosare gata</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.ready_dossiers ?? 0 }}</div>
+                </p-card>
+                <p-card>
+                  <div class="text-sm text-muted-color">Dosare blocate</div>
+                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.blocked_dossiers ?? 0 }}</div>
+                </p-card>
+              </div>
+
+              <div class="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                  <div class="mb-3">
+                    <h2 class="m-0 text-lg font-semibold">Module active</h2>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Starea curentă a platformei și ariile de administrat.</p>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    @for (module of dashboard()?.modules ?? []; track module.code) {
+                      <p-tag [value]="module.code" [severity]="module.active ? 'success' : 'warn'" />
+                    }
+                  </div>
+                  <div class="mt-4">
+                    <div class="mb-2 text-sm font-semibold">Secțiuni administrative</div>
+                    <div class="flex flex-wrap gap-2">
+                      @for (section of dashboard()?.admin_sections ?? []; track section) {
+                        <p-tag [value]="section" severity="secondary" />
+                      }
+                    </div>
+                  </div>
+                </section>
+
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                  <div class="mb-3">
+                    <h2 class="m-0 text-lg font-semibold">Avertismente</h2>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Semnale de configurare sau contracte de completat.</p>
+                  </div>
+                  <div class="grid gap-2">
+                    @for (warning of dashboard()?.warnings ?? []; track warning) {
+                      <div class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-color dark:border-surface-700">
+                        {{ warning }}
+                      </div>
+                    } @empty {
+                      <div class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-muted-color dark:border-surface-700">
+                        Nu există avertismente active.
+                      </div>
+                    }
+                  </div>
+                </section>
+              </div>
+
+              <div class="grid gap-4 xl:grid-cols-2">
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="m-0 text-lg font-semibold">Acces rapid registratură</h2>
+                      <p class="m-0 mt-1 text-sm text-muted-color">Puncte de intrare către funcționalitățile deja implementate.</p>
+                    </div>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    @for (link of registraturaQuickLinks; track link.route) {
+                      <p-button [label]="link.label" [icon]="link.icon" [routerLink]="link.route" [outlined]="true" severity="secondary" styleClass="justify-start" />
+                    }
+                  </div>
+                </section>
+
+                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="m-0 text-lg font-semibold">Acces rapid educație</h2>
+                      <p class="m-0 mt-1 text-sm text-muted-color">Tab-uri către modulele educaționale existente și cele planificate.</p>
+                    </div>
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    @for (link of educationQuickLinks; track link.route) {
+                      <p-button [label]="link.label" [icon]="link.icon" [routerLink]="link.route" [outlined]="true" severity="secondary" styleClass="justify-start" />
+                    }
+                  </div>
+                </section>
+              </div>
+            </div>
+          </p-tabpanel>
+
           <p-tabpanel value="users" class="flex min-h-0 flex-1 overflow-hidden p-0">
             <div class="flex min-h-0 flex-1 flex-col gap-3 p-3">
               <div class="flex shrink-0 items-center justify-between gap-3">
@@ -178,6 +290,84 @@ interface AdminPositionRoleAssignmentFilterState {
                   </ng-template>
                 </p-table>
               </div>
+            </div>
+          </p-tabpanel>
+
+          <p-tabpanel value="registratura" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <div class="mb-3">
+                  <h2 class="m-0 text-lg font-semibold">Administrare registratură</h2>
+                  <p class="m-0 mt-1 text-sm text-muted-color">Aici intră toate punctele de administrare pentru registru, flux și arhivă.</p>
+                </div>
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  @for (link of registraturaQuickLinks; track link.route) {
+                    <p-card>
+                      <div class="flex items-start gap-3">
+                        <i [class]="link.icon + ' text-2xl text-primary'"></i>
+                        <div>
+                          <div class="font-semibold">{{ link.label }}</div>
+                          <div class="text-sm text-muted-color">{{ link.description }}</div>
+                        </div>
+                      </div>
+                      <div class="mt-4">
+                        <p-button [label]="link.action" [icon]="link.icon" [routerLink]="link.route" />
+                      </div>
+                    </p-card>
+                  }
+                </div>
+              </section>
+
+              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <div class="mb-3">
+                  <h2 class="m-0 text-lg font-semibold">Părți și nomenclatoare</h2>
+                  <p class="m-0 mt-1 text-sm text-muted-color">Nomenclatorul de părți este deja conectat în formularul de documente.</p>
+                </div>
+                <div class="grid gap-3 md:grid-cols-2">
+                  <div class="rounded-2xl border border-surface-200 p-4">
+                    <div class="font-semibold">Persoane fizice, juridice și instituții</div>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Gestionarea reală se face din formularul de documente și prin API-ul de părți; aici rămâne punctul de navigație.</p>
+                  </div>
+                  <div class="rounded-2xl border border-surface-200 p-4">
+                    <div class="font-semibold">Registre și numerotare</div>
+                    <p class="m-0 mt-1 text-sm text-muted-color">Tot ce ține de registrul activ, numerotare și export PDF este concentrat în workspace-ul de registratură.</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </p-tabpanel>
+
+          <p-tabpanel value="education" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <div class="mb-3">
+                  <h2 class="m-0 text-lg font-semibold">Administrare educație</h2>
+                  <p class="m-0 mt-1 text-sm text-muted-color">Tab-ul pregătește accesul la modulele educaționale deja expuse prin aplicație.</p>
+                </div>
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  @for (link of educationQuickLinks; track link.route) {
+                    <p-card>
+                      <div class="flex items-start gap-3">
+                        <i [class]="link.icon + ' text-2xl text-primary'"></i>
+                        <div>
+                          <div class="font-semibold">{{ link.label }}</div>
+                          <div class="text-sm text-muted-color">{{ link.description }}</div>
+                        </div>
+                      </div>
+                      <div class="mt-4">
+                        <p-button [label]="link.action" [icon]="link.icon" [routerLink]="link.route" />
+                      </div>
+                    </p-card>
+                  }
+                </div>
+              </section>
+
+              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <div class="mb-2 text-lg font-semibold">Drum de lucru viitor</div>
+                <p class="m-0 text-sm text-muted-color">
+                  Când contractele de administrare educațională vor fi completate, aici vom adăuga tabele server-side, dialoguri și acțiuni CRUD pentru structuri, portofolii, evaluări și conformitate.
+                </p>
+              </section>
             </div>
           </p-tabpanel>
 
@@ -796,10 +986,83 @@ export class AdminWorkspaceComponent {
   private readonly api = inject(AdminApiService);
   protected readonly authz = inject(AuthzService);
   protected readonly featureAccessRules = FEATURE_ACCESS_RULES;
+  protected readonly dashboard = signal<AdminDashboardResponse | null>(null);
+
+  protected readonly registraturaQuickLinks = [
+    {
+      label: 'Documente',
+      icon: 'pi pi-folder-open',
+      route: '/documente',
+      action: 'Deschide registratura',
+      description: 'Intrare, ieșire, multiplu, export și părți.',
+    },
+    {
+      label: 'Registre',
+      icon: 'pi pi-book',
+      route: '/registre',
+      action: 'Vezi registre',
+      description: 'Registrul activ, numerotare și setări operaționale.',
+    },
+    {
+      label: 'Flux documente',
+      icon: 'pi pi-sitemap',
+      route: '/workflow',
+      action: 'Deschide fluxul',
+      description: 'Etapele de aprobare și urmărire documente.',
+    },
+    {
+      label: 'eArhivă',
+      icon: 'pi pi-inbox',
+      route: '/earchiva',
+      action: 'Deschide arhiva',
+      description: 'Fișiere și documente arhivate.',
+    },
+  ];
+
+  protected readonly educationQuickLinks = [
+    {
+      label: 'Panou educație',
+      icon: 'pi pi-chart-bar',
+      route: '/education/dashboard',
+      action: 'Deschide panoul',
+      description: 'Imagine de ansamblu pentru educație.',
+    },
+    {
+      label: 'Guvernanță',
+      icon: 'pi pi-users',
+      route: '/education/governance',
+      action: 'Deschide guvernanța',
+      description: 'Decizii, regulamente și administrare managerială.',
+    },
+    {
+      label: 'Personal',
+      icon: 'pi pi-id-card',
+      route: '/education/personnel',
+      action: 'Deschide personalul',
+      description: 'Posturi, evaluări, mobilitate și dosare.',
+    },
+    {
+      label: 'Portofolii',
+      icon: 'pi pi-folder-open',
+      route: '/education/portfolio',
+      action: 'Deschide portofoliile',
+      description: 'Portofolii și conformitate documentară.',
+    },
+    {
+      label: 'Conformitate',
+      icon: 'pi pi-shield',
+      route: '/education/compliance',
+      action: 'Deschide conformitatea',
+      description: 'Cerinte, verificări și rapoarte de conformitate.',
+    },
+  ];
 
   protected readonly tabs: AdminTab[] = [
+    { value: 'dashboard', label: 'Rezumat', icon: 'pi pi-home', status: 'wired', description: 'Imagine de ansamblu administrativă.' },
     { value: 'users', label: 'Utilizatori', icon: 'pi pi-users', status: 'wired', description: 'Gestionare utilizatori.' },
     { value: 'rbac', label: 'RBAC', icon: 'pi pi-shield', status: 'wired', description: 'Catalog de roluri, permisiuni și mapări poziții.' },
+    { value: 'registratura', label: 'Registratură', icon: 'pi pi-folder-open', status: 'wired', description: 'Administrația operațională pentru documente, registre, flux și arhivă.' },
+    { value: 'education', label: 'Educație', icon: 'pi pi-graduation-cap', status: 'wired', description: 'Acces la modulele educaționale și viitoarele setări administrative.' },
     { value: 'compartimente', label: 'Compartimente', icon: 'pi pi-sitemap', status: 'contract-missing', description: 'Compartimente operaționale pentru registratură și fluxuri.' },
     { value: 'registre', label: 'Registre', icon: 'pi pi-book', status: 'contract-missing', description: 'Registre, prefixe, numerotare, registru implicit și compartimente asociate.' },
     { value: 'persoane-fizice', label: 'Persoane Fizice', icon: 'pi pi-id-card', status: 'contract-missing', description: 'Nomenclator persoane fizice folosit de emitent/destinatar.' },
@@ -872,6 +1135,7 @@ export class AdminWorkspaceComponent {
   protected readonly positionRoleFilterOptions = signal<AdminPositionRoleAssignmentFilters | null>(null);
 
   ngOnInit(): void {
+    this.loadDashboard();
     this.loadUsers();
     this.loadRoles();
     this.loadUserRoleAssignments();
@@ -880,6 +1144,13 @@ export class AdminWorkspaceComponent {
     this.loadRolePermissionAssignmentFilters();
     this.loadPositionRoleAssignmentFilters();
     this.loadAllUsersForAssignments();
+  }
+
+  protected loadDashboard(): void {
+    this.api.dashboard().subscribe({
+      next: (res) => this.dashboard.set(res),
+      error: () => this.dashboard.set(null),
+    });
   }
 
   protected loadUsers(event?: TableLazyLoadEvent): void {

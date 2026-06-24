@@ -1,4 +1,4 @@
-<div class="shell flex min-h-dvh flex-col bg-surface-50 text-color dark:bg-surface-950">
+<div class="shell flex min-h-dvh flex-col text-color" [style.background]="'var(--app-page-background)'">
   <p-toolbar styleClass="shell__toolbar">
     <ng-template pTemplate="start">
       <p-button
@@ -49,7 +49,7 @@
     styleClass="shell__drawer"
   >
     <ng-template pTemplate="headless">
-      <aside class="flex h-full min-h-0 flex-col bg-surface-0 dark:bg-surface-950">
+      <aside class="flex h-full min-h-0 flex-col" [style.background]="'var(--app-drawer-background)'">
         <div class="min-h-0 flex-1 overflow-auto p-3 pt-4">
           @if (authenticated()) {
             @for (section of drawerSections(); track section.title) {

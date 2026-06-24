@@ -12,23 +12,23 @@ import { AuthzService } from '../../core/authz/authz.service';
   standalone: true,
   imports: [TranslocoPipe, ProgressSpinnerModule],
   template: `
-    <main class="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.18),_transparent_30rem),linear-gradient(135deg,_#fff7f8_0%,_#ffffff_50%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.28),_transparent_30rem),linear-gradient(135deg,_#0f172a_0%,_#020617_56%,_#260711_100%)] dark:text-white">
+    <main class="app-auth-shell">
       <section class="mx-auto grid min-h-dvh w-full max-w-5xl items-center gap-8 px-5 py-8 md:grid-cols-[0.9fr_1.1fr] md:px-8 lg:px-10">
         <div class="space-y-6">
-          <div class="inline-flex items-center rounded-full border border-rose-200 bg-white/75 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm backdrop-blur dark:border-rose-400/30 dark:bg-white/10 dark:text-rose-100">
+          <div class="app-auth-badge px-4 py-2 text-sm font-semibold">
             {{ 'auth.redirectBadge' | transloco }}
           </div>
-          <h1 class="max-w-2xl text-4xl font-black tracking-[-0.045em] text-slate-950 md:text-6xl dark:text-white">
+          <h1 class="max-w-2xl text-4xl font-black tracking-[-0.045em] text-color md:text-6xl">
             {{ 'auth.redirecting' | transloco }}
           </h1>
-          <p class="max-w-xl text-lg leading-8 text-slate-700 dark:text-slate-200">
+          <p class="max-w-xl text-lg leading-8 text-muted-color">
             {{ 'auth.callbackMessage' | transloco }}
           </p>
         </div>
 
-        <div class="rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-2xl shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-          <div class="rounded-[1.75rem] border border-rose-100 bg-white/90 p-6 text-center dark:border-white/10 dark:bg-slate-950/45">
-            <p class="text-xs font-black uppercase tracking-[0.24em] text-rose-700 dark:text-rose-200">
+        <div class="app-auth-panel rounded-[2rem] p-6">
+          <div class="app-auth-panel-inner rounded-[1.75rem] p-6 text-center">
+            <p class="app-auth-accent text-xs font-black uppercase tracking-[0.24em]">
               Processing
             </p>
             <div class="mt-5 flex justify-center">

@@ -1,0 +1,184 @@
+:host {
+  display: block;
+  min-height: 0;
+}
+
+.home-shell {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 1rem;
+  min-height: calc(100dvh - 6.75rem);
+  padding: clamp(1rem, 1.8vw, 1.5rem);
+}
+
+.home-shell::before {
+  content: '';
+  position: absolute;
+  inset: auto;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(18px);
+  pointer-events: none;
+}
+
+.home-shell::before {
+  top: -4rem;
+  right: -10rem;
+  width: 24rem;
+  height: 24rem;
+  background: radial-gradient(circle, color-mix(in srgb, var(--p-primary-500) 28%, transparent), transparent 70%);
+}
+
+.home-shell__hero {
+  border: 1px solid color-mix(in srgb, var(--p-primary-200) 42%, var(--p-content-border-color));
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-50) 56%, transparent), transparent 16rem),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--p-primary-100) 32%, transparent), transparent 20rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--p-surface-0) 90%, var(--p-primary-50)) 0%, color-mix(in srgb, var(--p-surface-0) 84%, var(--p-primary-100)) 58%, var(--p-surface-0) 100%);
+  box-shadow: 0 28px 70px color-mix(in srgb, var(--p-primary-950) 12%, transparent);
+}
+
+:host-context(.app-dark) .home-shell__hero {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--p-primary-950) 42%, transparent), transparent 16rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--p-surface-950) 80%, var(--p-primary-950)) 0%, color-mix(in srgb, var(--p-surface-950) 90%, var(--p-primary-900)) 54%, var(--p-surface-950) 100%);
+}
+
+.home-shell__hero-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 960px) {
+  .home-shell__hero-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
+    align-items: stretch;
+  }
+}
+
+.home-shell__hero-copy,
+.home-shell__status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.home-shell__eyebrow {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--p-primary-600);
+}
+
+.home-shell__title {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3.4rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.home-shell__lead {
+  margin: 0;
+  max-width: 60ch;
+  color: color-mix(in srgb, var(--p-text-color) 72%, var(--p-text-muted-color));
+  line-height: 1.65;
+}
+
+.home-shell__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.home-shell__status-panel {
+  border: 1px solid color-mix(in srgb, var(--p-primary-200) 26%, var(--p-content-border-color));
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--p-surface-0) 88%, var(--p-primary-50)) 0%, color-mix(in srgb, var(--p-surface-0) 96%, var(--p-primary-100)) 100%);
+  padding: 1rem;
+}
+
+.home-shell__status-badge {
+  width: fit-content;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--p-primary-100) 84%, var(--p-surface-0));
+  color: var(--p-primary-700);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  padding: 0.45rem 0.75rem;
+  text-transform: uppercase;
+}
+
+.home-shell__status-value {
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.home-shell__status-note {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--p-text-muted-color);
+}
+
+.home-shell__status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.home-shell__modules {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .home-shell__modules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.home-shell__module-card {
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--p-primary-200) 18%, var(--p-content-border-color));
+  background: color-mix(in srgb, var(--p-surface-0) 92%, var(--p-primary-50));
+  box-shadow: 0 20px 48px color-mix(in srgb, var(--p-primary-950) 8%, transparent);
+}
+
+.home-shell__module-header {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.home-shell__module-icon {
+  display: inline-flex;
+  height: 3rem;
+  width: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  color: var(--p-primary-contrast-color);
+  flex: 0 0 auto;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--p-surface-0) 45%, transparent);
+}
+
+.home-shell__module-copy h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.home-shell__module-copy p {
+  margin: 0;
+  color: var(--p-text-muted-color);
+  line-height: 1.55;
+}
+
+.home-shell__module-footer {
+  margin-top: 1rem;
+}

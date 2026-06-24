@@ -61,6 +61,9 @@ func main() {
 	}
 
 	sessionDB := db.NewSessionPool(pool)
+	if err := registratura.EnsureSeedData(ctx, sessionDB); err != nil {
+		logger.Fatal("registratura seed failed", zap.Error(err))
+	}
 
 	smsService := notification.NewSMSService(pool, cfg.SMSAPIToken, cfg.SMSSenderName)
 	authService, err := auth.NewService(cfg, smsService, sessionDB)
@@ -204,6 +207,13 @@ func main() {
 			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/registre/{id}", registraturaService.UpdateRegistru)
 			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/registre/{id}", registraturaService.DeleteRegistru)
 			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/registre/{id}/set-default", registraturaService.SetDefaultRegistru)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/parties", registraturaService.ListParties)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/parties/lookup", registraturaService.LookupParties)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/parties/default-organization", registraturaService.DefaultOrganizationParty)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/parties/{id}", registraturaService.GetParty)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/parties", registraturaService.CreateParty)
+			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/parties/{id}", registraturaService.UpdateParty)
+			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/parties/{id}", registraturaService.DeleteParty)
 			r.With(authService.RequirePermissions("registratura.links.read")).Get("/registratura/document-links", registraturaService.ListDocumentLinks)
 			r.With(authService.RequirePermissions("registratura.links.manage")).Post("/registratura/document-links", registraturaService.CreateDocumentLink)
 			r.With(authService.RequirePermissions("registratura.links.manage")).Delete("/registratura/document-links/{linkID}", registraturaService.DeleteDocumentLink)
@@ -591,9 +601,10 @@ func buildBootstrapConfig(cfg config.Config, r *http.Request) map[string]any {
 		frontendOrigin = scheme + "://" + r.Host
 	}
 
-	branding := tenant.ResolveBranding(frontendOrigin, cfg.CustomerName, "")
+	defaultInstitutionID := tenant.DefaultInstitutionID(cfg.CustomerName)
+	branding := tenant.ResolveBranding(frontendOrigin, cfg.CustomerName, defaultInstitutionID)
 	if r != nil {
-		if resolved := tenant.ResolveBranding(r.Host, cfg.CustomerName, ""); resolved.Name != "" {
+		if resolved := tenant.ResolveBranding(r.Host, cfg.CustomerName, defaultInstitutionID); resolved.Name != "" {
 			branding = resolved
 		}
 	}
@@ -640,6 +651,8 @@ func buildBootstrapConfig(cfg config.Config, r *http.Request) map[string]any {
 			"websiteUrl":      customerWebsite,
 			"websiteLabel":    customerName,
 		},
+		"institutionId":   branding.InstitutionID,
+		"institutionName": branding.Name,
 		"map": map[string]any{
 			"defaultCenter": []float64{26.0765, 44.6204},
 			"defaultZoom":   13,

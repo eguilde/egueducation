@@ -175,7 +175,7 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_batch_count"})
 		return
 	}
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Correspondent == "" || req.Confidentiality == "" {
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_fields"})
 		return
 	}
@@ -197,6 +197,8 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 			Status:          req.Status,
 			Correspondent:   req.Correspondent,
 			AssignedTo:      req.AssignedTo,
+			CorrespondentPartyID: req.CorrespondentPartyID,
+			AssignedPartyID:      req.AssignedPartyID,
 			Confidentiality: req.Confidentiality,
 			Summary:         req.Summary,
 			DueDate:         req.DueDate,
@@ -232,7 +234,7 @@ func (s *Service) ExportPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docs, registry, err := s.fetchDocumentsForExport(r.Context(), req)
+	docs, registry, err := s.fetchDocumentsForExport(r.Context(), s.institutionID(r), req)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "registratura_export_failed"})
 		return
@@ -540,6 +542,11 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 		return document, err
 	}
 
+	parties, err := s.resolveDocumentParties(ctx, tx, institutionID, req.Direction, req.Correspondent, req.AssignedTo, req.CorrespondentPartyID, req.AssignedPartyID)
+	if err != nil {
+		return document, err
+	}
+
 	registryNumber, err := nextRegistryNumber(ctx, tx, registruID)
 	if err != nil {
 		return document, err
@@ -560,11 +567,13 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 			status,
 			correspondent,
 			assigned_to,
+			correspondent_party_id,
+			assigned_party_id,
 			institution_id,
 			confidentiality,
 			summary,
 			due_date
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		returning
 			id::text,
 			registru_id,
@@ -587,8 +596,10 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 		req.DocumentType,
 		req.Direction,
 		req.Status,
-		req.Correspondent,
-		req.AssignedTo,
+		parties.Correspondent,
+		parties.AssignedTo,
+		parties.CorrespondentPartyID,
+		parties.AssignedPartyID,
 		institutionID,
 		req.Confidentiality,
 		req.Summary,
@@ -611,6 +622,15 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 	)
 	if err != nil {
 		return document, err
+	}
+
+	if parties.CorrespondentPartyID != nil && strings.TrimSpace(*parties.CorrespondentPartyID) != "" {
+		value := strings.TrimSpace(*parties.CorrespondentPartyID)
+		document.CorrespondentPartyID = &value
+	}
+	if parties.AssignedPartyID != nil && strings.TrimSpace(*parties.AssignedPartyID) != "" {
+		value := strings.TrimSpace(*parties.AssignedPartyID)
+		document.AssignedPartyID = &value
 	}
 
 	if _, err := tx.Exec(ctx, `
@@ -645,8 +665,8 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 		document.DocumentType,
 		document.Direction,
 		document.Status,
-		document.Correspondent,
-		document.AssignedTo,
+		parties.Correspondent,
+		parties.AssignedTo,
 		document.Confidentiality,
 		document.Summary,
 		document.DueDate,
@@ -659,7 +679,7 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 	return document, nil
 }
 
-func (s *Service) fetchDocumentsForExport(ctx context.Context, req ExportDocumentsRequest) ([]Document, *Registru, error) {
+func (s *Service) fetchDocumentsForExport(ctx context.Context, institutionID string, req ExportDocumentsRequest) ([]Document, *Registru, error) {
 	filters := map[string]string{}
 	if req.StartDate != nil && strings.TrimSpace(*req.StartDate) != "" {
 		filters["registered_at_from"] = strings.TrimSpace(*req.StartDate)
@@ -667,7 +687,7 @@ func (s *Service) fetchDocumentsForExport(ctx context.Context, req ExportDocumen
 	if req.EndDate != nil && strings.TrimSpace(*req.EndDate) != "" {
 		filters["registered_at_to"] = strings.TrimSpace(*req.EndDate)
 	}
-	whereClause, args := buildDocumentFilters(filters)
+	whereClause, args := buildDocumentFilters(institutionID, filters)
 	if req.RegistruID != nil && *req.RegistruID > 0 {
 		if whereClause == "" {
 			whereClause = "where d.registru_id = $1"
@@ -697,6 +717,8 @@ func (s *Service) fetchDocumentsForExport(ctx context.Context, req ExportDocumen
 			d.status,
 			d.correspondent,
 			d.assigned_to,
+			d.correspondent_party_id::text,
+			d.assigned_party_id::text,
 			d.institution_id,
 			d.confidentiality,
 			d.summary,
@@ -726,6 +748,8 @@ func (s *Service) fetchDocumentsForExport(ctx context.Context, req ExportDocumen
 			&item.Status,
 			&item.Correspondent,
 			&item.AssignedTo,
+			&item.CorrespondentPartyID,
+			&item.AssignedPartyID,
 			&item.InstitutionID,
 			&item.Confidentiality,
 			&item.Summary,
@@ -777,26 +801,35 @@ func scanRegistries(rows pgx.Rows) ([]Registru, error) {
 }
 
 func nextRegistryNumber(ctx context.Context, tx pgx.Tx, registruID int64) (string, error) {
-	var prefix string
+	var (
+		prefix   string
+		nextHint string
+	)
 	if err := tx.QueryRow(ctx, `
-		select prefix_nr
+		select prefix_nr, nr_urmator
 		from registre
 		where id = $1
 		for update
-	`, registruID).Scan(&prefix); err != nil {
+	`, registruID).Scan(&prefix, &nextHint); err != nil {
 		return "", err
 	}
 
 	year := time.Now().UTC().Year()
-	var count int
+	if value, ok := normalizeRegistryNumberHint(prefix, nextHint, year); ok {
+		return value, nil
+	}
+
+	var lastNumber int
 	if err := tx.QueryRow(ctx, `
-		select count(*)
+		select coalesce(max(nullif(regexp_replace(registry_number, '^.*-(\d+)$', '\1'), '')::int), 0)
 		from registratura_documents
-		where registru_id = $1 and extract(year from registered_at) = $2
-	`, registruID, year).Scan(&count); err != nil {
+		where registru_id = $1
+			and extract(year from registered_at) = $2
+			and registry_number like $3
+	`, registruID, year, fmt.Sprintf("%s-%d-%%", prefix, year)).Scan(&lastNumber); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s-%d-%04d", prefix, year, count+1), nil
+	return fmt.Sprintf("%s-%d-%04d", prefix, year, lastNumber+1), nil
 }
 
 func nextRegistryDisplayNumber(registryNumber string) string {
@@ -811,6 +844,30 @@ func nextRegistryDisplayNumber(registryNumber string) string {
 	}
 	parts[len(parts)-1] = fmt.Sprintf("%04d", value+1)
 	return strings.Join(parts, "-")
+}
+
+func normalizeRegistryNumberHint(prefix string, raw string, year int) (string, bool) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", false
+	}
+
+	if strings.HasPrefix(value, prefix+"-") {
+		parts := strings.Split(value, "-")
+		if len(parts) == 3 {
+			if parsedYear, err := strconv.Atoi(parts[1]); err == nil && parsedYear == year {
+				if parsedIndex, err := strconv.Atoi(parts[2]); err == nil && parsedIndex > 0 {
+					return fmt.Sprintf("%s-%d-%04d", prefix, year, parsedIndex), true
+				}
+			}
+		}
+	}
+
+	if parsedIndex, err := strconv.Atoi(value); err == nil && parsedIndex > 0 {
+		return fmt.Sprintf("%s-%d-%04d", prefix, year, parsedIndex), true
+	}
+
+	return "", false
 }
 
 func exportLines(docs []Document) []string {

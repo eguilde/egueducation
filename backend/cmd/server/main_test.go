@@ -31,6 +31,10 @@ func TestBuildBootstrapConfigIncludesLegacyAndRuntimeFields(t *testing.T) {
 		t.Fatalf("apiBaseUrl = %#v, want /api", payload["apiBaseUrl"])
 	}
 
+	if got, ok := payload["institutionId"].(string); !ok || got == "" {
+		t.Fatalf("institutionId = %#v, want non-empty string", payload["institutionId"])
+	}
+
 	customer, ok := payload["customer"].(map[string]any)
 	if !ok {
 		t.Fatalf("customer = %#v, want object", payload["customer"])

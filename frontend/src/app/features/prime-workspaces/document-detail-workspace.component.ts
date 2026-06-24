@@ -12,6 +12,7 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToolbarModule } from 'primeng/toolbar';
 import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { forkJoin, catchError, of } from 'rxjs';
 
 import {
@@ -47,6 +48,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
     ToolbarModule,
     ToastModule,
   ],
+  providers: [MessageService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-toast />
@@ -57,8 +59,8 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
             <p-button icon="pi pi-arrow-left" [text]="true" severity="secondary" (onClick)="goBack()" />
             <div class="grid">
               <h1 class="m-0 text-2xl font-black tracking-[-0.03em]">
-                @if (document()) {
-                  {{ document()!.registry_number }} - {{ document()!.subject }}
+                @if (documentRecord()) {
+                  {{ documentRecord()!.registry_number }} - {{ documentRecord()!.subject }}
                 } @else {
                   Document
                 }
@@ -68,10 +70,10 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
           </div>
         </ng-template>
         <ng-template pTemplate="end">
-          @if (document()) {
+          @if (documentRecord()) {
             <div class="flex items-center gap-2">
               <p-button label="Task workflow" icon="pi pi-sitemap" severity="secondary" (onClick)="openWorkflowDialog()" />
-              @if (document()!.status !== 'archived') {
+              @if (documentRecord()!.status !== 'archived') {
                 <p-button label="Arhivează" icon="pi pi-briefcase" severity="success" (onClick)="openArchiveDialog()" />
               }
               <p-button label="Editează" icon="pi pi-pencil" severity="secondary" (onClick)="openEdit()" />
@@ -85,32 +87,32 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
         <div class="flex flex-1 items-center justify-center">
           <p-progressSpinner />
         </div>
-      } @else if (document()) {
+      } @else if (documentRecord()) {
         <div class="grid min-h-0 flex-1 gap-4 overflow-auto lg:grid-cols-[1.4fr_0.9fr]">
           <div class="grid gap-4">
             <p-card>
               <div class="grid gap-3 sm:grid-cols-2">
-                <div><span class="font-semibold">Nr. document:</span> {{ document()!.registry_number }}</div>
-                <div><span class="font-semibold">Registru:</span> {{ document()!.registru_id ?? '-' }}</div>
-                <div><span class="font-semibold">Tip:</span> {{ document()!.document_type }}</div>
-                <div><span class="font-semibold">Direcție:</span> {{ document()!.direction }}</div>
-                <div><span class="font-semibold">Status:</span> <p-tag [value]="document()!.status" [severity]="statusSeverity(document()!.status)" /></div>
-                <div><span class="font-semibold">Confidențialitate:</span> {{ document()!.confidentiality }}</div>
-                <div><span class="font-semibold">Emitent:</span> {{ document()!.correspondent }}</div>
-                <div><span class="font-semibold">Destinatar:</span> {{ document()!.assigned_to || '-' }}</div>
-                <div><span class="font-semibold">Data:</span> {{ document()!.registered_at | date:'dd.MM.yyyy HH:mm' }}</div>
-                <div><span class="font-semibold">Termen:</span> {{ document()!.due_date ? (document()!.due_date | date:'dd.MM.yyyy') : '-' }}</div>
+                <div><span class="font-semibold">Nr. document:</span> {{ documentRecord()!.registry_number }}</div>
+                <div><span class="font-semibold">Registru:</span> {{ documentRecord()!.registru_id ?? '-' }}</div>
+                <div><span class="font-semibold">Tip:</span> {{ documentRecord()!.document_type }}</div>
+                <div><span class="font-semibold">Direcție:</span> {{ documentRecord()!.direction }}</div>
+                <div><span class="font-semibold">Status:</span> <p-tag [value]="documentRecord()!.status" [severity]="statusSeverity(documentRecord()!.status)" /></div>
+                <div><span class="font-semibold">Confidențialitate:</span> {{ documentRecord()!.confidentiality }}</div>
+                <div><span class="font-semibold">Emitent:</span> {{ documentRecord()!.correspondent }}</div>
+                <div><span class="font-semibold">Destinatar:</span> {{ documentRecord()!.assigned_to || '-' }}</div>
+                <div><span class="font-semibold">Data:</span> {{ documentRecord()!.registered_at | date:'dd.MM.yyyy HH:mm' }}</div>
+                <div><span class="font-semibold">Termen:</span> {{ documentRecord()!.due_date ? (documentRecord()!.due_date | date:'dd.MM.yyyy') : '-' }}</div>
               </div>
               <div class="mt-4">
                 <div class="font-semibold">Rezumat</div>
-                <p class="whitespace-pre-wrap">{{ document()!.summary || '-' }}</p>
+                <p class="whitespace-pre-wrap">{{ documentRecord()!.summary || '-' }}</p>
               </div>
             </p-card>
 
             <p-card>
               <h3 class="m-0 mb-2 text-base font-semibold">Versiuni</h3>
               <div class="grid gap-2">
-                @for (version of versions(); track version.id) {
+                @for (version of versionItems(); track version.id) {
                   <div class="rounded-lg border border-surface-200 p-3">
                     <div class="flex items-center justify-between gap-2">
                       <strong>Versiunea {{ version.version_no }}</strong>
@@ -128,7 +130,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
             <p-card>
               <h3 class="m-0 mb-2 text-base font-semibold">Atașamente</h3>
               <div class="grid gap-2">
-                @for (file of attachments(); track file.id) {
+                @for (file of attachmentItems(); track file.id) {
                   <div class="rounded-lg border border-surface-200 p-3">
                     <div class="font-semibold">{{ file.title }}</div>
                     <div class="text-xs text-muted-color">{{ file.file_name }} • {{ file.mime_type }}</div>
@@ -144,7 +146,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
             <p-card>
               <h3 class="m-0 mb-2 text-base font-semibold">Legături</h3>
               <div class="grid gap-2">
-                @for (link of links(); track link.link_id) {
+                @for (link of linkedDocuments(); track link.link_id) {
                   <div class="rounded-lg border border-surface-200 p-3">
                     <div class="font-semibold">{{ link.registry_number }}</div>
                     <div class="text-sm">{{ link.subject }}</div>
@@ -160,7 +162,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
       }
     </section>
 
-    <p-dialog [visible]="cancelDialogOpen()" (visibleChange)="cancelDialogOpen.set($event)" [modal]="true" [draggable]="false" header="Anulează document" [style]="{ width: 'min(40rem, 94vw)' }">
+    <p-dialog [visible]="cancelDialogOpen" (visibleChange)="cancelDialogOpen = $event" [modal]="true" [draggable]="false" header="Anulează document" [style]="{ width: 'min(40rem, 94vw)' }">
       <div class="grid gap-3">
         <label class="grid gap-1">
           <span class="text-sm font-semibold">Motiv</span>
@@ -169,17 +171,17 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
       </div>
       <ng-template pTemplate="footer">
         <div class="flex justify-end gap-2">
-          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="cancelDialogOpen.set(false)" />
+          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="cancelDialogOpen = false" />
           <p-button label="Anulează" severity="danger" (onClick)="cancelDocument()" />
         </div>
       </ng-template>
     </p-dialog>
 
-    <p-dialog [visible]="workflowDialogOpen()" (visibleChange)="workflowDialogOpen.set($event)" [modal]="true" [draggable]="false" header="Task workflow" [style]="{ width: 'min(42rem, 94vw)' }">
+    <p-dialog [visible]="workflowDialogOpen" (visibleChange)="workflowDialogOpen = $event" [modal]="true" [draggable]="false" header="Task workflow" [style]="{ width: 'min(42rem, 94vw)' }">
       <div class="grid gap-3">
         <label class="grid gap-1">
           <span class="text-sm font-semibold">Definiție</span>
-          <p-select appendTo="body" [options]="workflowDefinitionOptions()" optionLabel="label" optionValue="value" [(ngModel)]="workflowDefinitionCode"></p-select>
+          <p-select appendTo="body" [options]="workflowDefinitionOptions" optionLabel="label" optionValue="value" [(ngModel)]="workflowDefinitionCode"></p-select>
         </label>
         <label class="grid gap-1">
           <span class="text-sm font-semibold">Prioritate</span>
@@ -192,13 +194,13 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
       </div>
       <ng-template pTemplate="footer">
         <div class="flex justify-end gap-2">
-          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="workflowDialogOpen.set(false)" />
+          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="workflowDialogOpen = false" />
           <p-button label="Creează task" icon="pi pi-check" (onClick)="createWorkflowTask()" />
         </div>
       </ng-template>
     </p-dialog>
 
-    <p-dialog [visible]="archiveDialogOpen()" (visibleChange)="archiveDialogOpen.set($event)" [modal]="true" [draggable]="false" header="Arhivează document" [style]="{ width: 'min(48rem, 94vw)' }">
+    <p-dialog [visible]="archiveDialogOpen" (visibleChange)="archiveDialogOpen = $event" [modal]="true" [draggable]="false" header="Arhivează document" [style]="{ width: 'min(48rem, 94vw)' }">
       <div class="grid gap-3">
         <div class="grid gap-3 md:grid-cols-2">
           <label class="grid gap-1">
@@ -245,7 +247,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
       </div>
       <ng-template pTemplate="footer">
         <div class="flex justify-end gap-2">
-          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="archiveDialogOpen.set(false)" />
+          <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="archiveDialogOpen = false" />
           <p-button label="Arhivează" icon="pi pi-briefcase" severity="success" (onClick)="archiveDocument()" />
         </div>
       </ng-template>
@@ -259,15 +261,14 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
   private readonly archiveApi = inject(EarchivaApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-
   protected readonly loading = signal(false);
-  protected readonly document = signal<RegistraturaDocument | null>(null);
-  protected readonly versions = signal<RegistraturaDocumentVersion[]>([]);
-  protected readonly attachments = signal<RegistraturaDocumentAttachment[]>([]);
-  protected readonly links = signal<LinkedDocument[]>([]);
-  protected readonly workflowDialogOpen = signal(false);
-  protected readonly archiveDialogOpen = signal(false);
-  protected readonly workflowDefinitions = signal<WorkflowDefinition[]>([]);
+  protected readonly documentRecord = signal<RegistraturaDocument | null>(null);
+  protected readonly versionItems = signal<RegistraturaDocumentVersion[]>([]);
+  protected readonly attachmentItems = signal<RegistraturaDocumentAttachment[]>([]);
+  protected readonly linkedDocuments = signal<LinkedDocument[]>([]);
+  protected workflowDialogOpen = false;
+  protected archiveDialogOpen = false;
+  protected workflowDefinitions: WorkflowDefinition[] = [];
   protected workflowDefinitionCode = '';
   protected workflowPriority = 'medium';
   protected workflowSummary = '';
@@ -285,9 +286,9 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
     archived_at: new Date().toISOString().slice(0, 10),
     notes: '',
   };
-  protected readonly cancelDialogOpen = signal(false);
+  protected cancelDialogOpen = false;
   protected cancelReason = '';
-  protected readonly workflowDefinitionOptions = signal<Array<{ label: string; value: string }>>([]);
+  protected workflowDefinitionOptions: Array<{ label: string; value: string }> = [];
   protected readonly priorityOptions = [
     { label: 'Mică', value: 'low' },
     { label: 'Medie', value: 'medium' },
@@ -315,12 +316,12 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
       definitions: this.workflowApi.definitions().pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ document, versions, attachments, links, definitions }) => {
-        this.document.set(document);
-        this.versions.set(versions);
-        this.attachments.set(attachments);
-        this.links.set(links);
-        this.workflowDefinitions.set(definitions);
-        this.workflowDefinitionOptions.set(definitions.map((item) => ({ label: item.name, value: item.code })));
+        this.documentRecord.set(document);
+        this.versionItems.set(versions);
+        this.attachmentItems.set(attachments);
+        this.linkedDocuments.set(links);
+        this.workflowDefinitions = definitions;
+        this.workflowDefinitionOptions = definitions.map((item) => ({ label: item.name, value: item.code }));
         this.workflowDefinitionCode = definitions[0]?.code ?? '';
         this.workflowSummary = document.summary || document.subject;
         this.archiveForm = {
@@ -342,26 +343,26 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
   }
 
   protected openEdit(): void {
-    const documentId = this.document()?.id;
+    const documentId = this.documentRecord()?.id;
     if (!documentId) return;
     void this.router.navigate(['/documente', documentId, 'edit']);
   }
 
   protected openCancelDialog(): void {
     this.cancelReason = '';
-    this.cancelDialogOpen.set(true);
+    this.cancelDialogOpen = true;
   }
 
   protected openWorkflowDialog(): void {
-    this.workflowDialogOpen.set(true);
+    this.workflowDialogOpen = true;
   }
 
   protected openArchiveDialog(): void {
-    this.archiveDialogOpen.set(true);
+    this.archiveDialogOpen = true;
   }
 
   protected createWorkflowTask(): void {
-    const document = this.document();
+    const document = this.documentRecord();
     if (!document || !this.workflowDefinitionCode) {
       return;
     }
@@ -377,13 +378,13 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
       due_date: null,
     };
     this.workflowApi.createTask(payload).subscribe({
-      next: () => this.workflowDialogOpen.set(false),
-      error: () => this.workflowDialogOpen.set(false),
+      next: () => this.workflowDialogOpen = false,
+      error: () => this.workflowDialogOpen = false,
     });
   }
 
   protected archiveDocument(): void {
-    const document = this.document();
+    const document = this.documentRecord();
     if (!document) {
       return;
     }
@@ -394,13 +395,13 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
       notes: this.archiveForm.notes || document.summary || '',
     };
     this.archiveApi.createRecord(payload).subscribe({
-      next: () => this.archiveDialogOpen.set(false),
-      error: () => this.archiveDialogOpen.set(false),
+      next: () => this.archiveDialogOpen = false,
+      error: () => this.archiveDialogOpen = false,
     });
   }
 
   protected cancelDocument(): void {
-    const documentId = this.document()?.id;
+    const documentId = this.documentRecord()?.id;
     if (!documentId) return;
 
     const payload: CancelRegistraturaDocumentRequest = {
@@ -408,12 +409,12 @@ export class DocumentDetailWorkspaceComponent implements OnInit {
     };
     this.api.cancelDocument(documentId, payload).subscribe({
       next: (updated) => {
-        this.document.set(updated);
-        this.cancelDialogOpen.set(false);
+        this.documentRecord.set(updated);
+        this.cancelDialogOpen = false;
         this.load();
       },
       error: () => {
-        this.cancelDialogOpen.set(false);
+        this.cancelDialogOpen = false;
       },
     });
   }

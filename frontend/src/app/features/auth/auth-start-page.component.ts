@@ -9,32 +9,32 @@ import { AuthService } from '../../core/auth/auth.service';
   standalone: true,
   imports: [TranslocoPipe],
   template: `
-    <main class="min-h-dvh overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.18),_transparent_30rem),linear-gradient(135deg,_#fff7f8_0%,_#ffffff_50%,_#ffe4e9_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,_rgba(244,63,94,0.28),_transparent_30rem),linear-gradient(135deg,_#0f172a_0%,_#020617_56%,_#260711_100%)] dark:text-white">
+    <main class="app-auth-shell">
       <section class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.05fr_0.95fr] md:px-8 lg:px-10">
         <div class="space-y-7">
-          <div class="inline-flex items-center rounded-full border border-rose-200 bg-white/75 px-4 py-2 text-sm font-semibold text-rose-700 shadow-sm backdrop-blur dark:border-rose-400/30 dark:bg-white/10 dark:text-rose-100">
+          <div class="app-auth-badge px-4 py-2 text-sm font-semibold">
             {{ 'auth.redirectBadge' | transloco }}
           </div>
 
           <div class="space-y-5">
-            <h1 class="max-w-4xl text-4xl font-black tracking-[-0.045em] text-slate-950 md:text-6xl dark:text-white">
+            <h1 class="max-w-4xl text-4xl font-black tracking-[-0.045em] text-color md:text-6xl">
               {{ 'auth.redirecting' | transloco }}
             </h1>
-            <p class="max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-200">
+            <p class="max-w-2xl text-lg leading-8 text-muted-color">
               {{ 'auth.callbackMessage' | transloco }}
             </p>
           </div>
 
           <div class="grid gap-3 sm:grid-cols-3">
             @for (item of highlights; track item.title) {
-              <article class="rounded-[1.35rem] border border-white/70 bg-white/75 p-4 shadow-lg shadow-rose-950/5 backdrop-blur dark:border-white/10 dark:bg-white/10">
-                <p class="text-xs font-black uppercase tracking-[0.18em] text-rose-700 dark:text-rose-200">
+              <article class="app-auth-glass-card rounded-[1.35rem] p-4">
+                <p class="app-auth-accent text-xs font-black uppercase tracking-[0.18em]">
                   {{ item.kicker }}
                 </p>
-                <h2 class="mt-2 text-sm font-black text-slate-950 dark:text-white">
+                <h2 class="mt-2 text-sm font-black text-color">
                   {{ item.title }}
                 </h2>
-                <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p class="mt-2 text-sm leading-6 text-muted-color">
                   {{ item.body }}
                 </p>
               </article>
@@ -42,31 +42,31 @@ import { AuthService } from '../../core/auth/auth.service';
           </div>
         </div>
 
-        <aside class="rounded-[2rem] border border-white/70 bg-white/72 p-5 shadow-2xl shadow-rose-950/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
-          <div class="rounded-[1.75rem] border border-rose-100 bg-white/90 p-6 dark:border-white/10 dark:bg-slate-950/45">
-            <p class="text-xs font-black uppercase tracking-[0.24em] text-rose-700 dark:text-rose-200">
+        <aside class="app-auth-panel rounded-[2rem] p-5">
+          <div class="app-auth-panel-inner rounded-[1.75rem] p-6">
+            <p class="app-auth-accent text-xs font-black uppercase tracking-[0.24em]">
               {{ 'auth.redirectBadge' | transloco }}
             </p>
-            <h2 class="mt-3 text-2xl font-black tracking-[-0.035em] text-slate-950 dark:text-white">
+            <h2 class="mt-3 text-2xl font-black tracking-[-0.035em] text-color">
               {{ 'auth.redirecting' | transloco }}
             </h2>
-            <p class="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+            <p class="mt-3 text-sm leading-7 text-muted-color">
               {{ 'auth.callbackMessage' | transloco }}
             </p>
 
             <div class="mt-6 grid gap-3">
-              <div class="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">1</span>
+              <div class="app-auth-panel-inner flex items-center gap-3 rounded-2xl px-4 py-3">
+                <span class="app-auth-accent-soft flex h-10 w-10 items-center justify-center rounded-2xl">1</span>
                 <div>
-                  <p class="text-sm font-bold text-slate-950 dark:text-white">OIDC handshake</p>
-                  <p class="text-xs leading-5 text-slate-600 dark:text-slate-300">Cererea este transferată către providerul de identitate.</p>
+                  <p class="text-sm font-bold text-color">OIDC handshake</p>
+                  <p class="text-xs leading-5 text-muted-color">Cererea este transferată către providerul de identitate.</p>
                 </div>
               </div>
-              <div class="flex items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">2</span>
+              <div class="app-auth-panel-inner flex items-center gap-3 rounded-2xl px-4 py-3">
+                <span class="app-auth-accent-soft flex h-10 w-10 items-center justify-center rounded-2xl">2</span>
                 <div>
-                  <p class="text-sm font-bold text-slate-950 dark:text-white">Secure redirect</p>
-                  <p class="text-xs leading-5 text-slate-600 dark:text-slate-300">Vei reveni la exact același return URL după autentificare.</p>
+                  <p class="text-sm font-bold text-color">Secure redirect</p>
+                  <p class="text-xs leading-5 text-muted-color">Vei reveni la exact același return URL după autentificare.</p>
                 </div>
               </div>
             </div>

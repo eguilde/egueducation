@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, NgZone, computed, inject, signal } from '@angular/core';
 import * as oauth from 'oauth4webapi';
 
+import { APP_ENVIRONMENT } from '../config/app-environment';
 import { ThemeService } from '../ui/theme.service';
 import { AUTH_CONFIG, AuthConfig, StoredTokens, UserProfile } from './auth.types';
 import { DPoPProofService } from './dpop-proof.service';
@@ -22,6 +23,7 @@ import { clearKeyPair, loadOrCreateKeyPair } from './dpop-key-store';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly config = inject(AUTH_CONFIG);
+  private readonly environment = inject(APP_ENVIRONMENT);
   private readonly dpopProof = inject(DPoPProofService);
   private readonly theme = inject(ThemeService);
   private readonly document = inject(DOCUMENT);
@@ -93,14 +95,36 @@ export class AuthService {
       }
     }
 
-    const legacyRefreshToken = this.readStorage('refresh_token');
-    if (legacyRefreshToken) {
-      this.currentRefreshToken = legacyRefreshToken;
-      this.removeStorage('refresh_token');
+    const storedAccessToken = this.readStorage('access_token');
+    const storedExpiresAt = this.readStorage('expires_at');
+    let hasValidStoredAccessToken = false;
+    if (storedAccessToken && storedExpiresAt) {
+      const parsedExpiresAt = Number(storedExpiresAt);
+      if (Number.isFinite(parsedExpiresAt) && parsedExpiresAt > Date.now() / 1000) {
+        this.accessTokenSignal.set(storedAccessToken);
+        this.expiresAtSignal.set(parsedExpiresAt);
+        this.scheduleRenewal(parsedExpiresAt);
+        hasValidStoredAccessToken = true;
+      } else {
+        this.removeStorage('access_token');
+        this.removeStorage('expires_at');
+      }
+    }
+
+    const storedRefreshToken = this.readStorage('refresh_token');
+    if (storedRefreshToken) {
+      this.currentRefreshToken = storedRefreshToken;
+    }
+
+    if (hasValidStoredAccessToken && !storedRefreshToken) {
+      return;
     }
 
     const refreshed = await this.tryRefresh();
     if (!refreshed) {
+      if (hasValidStoredAccessToken) {
+        return;
+      }
       this.clearLocalSession();
     }
   }
@@ -175,7 +199,7 @@ export class AuthService {
 
     if (accessToken) {
       try {
-        await fetch('/api/auth/logout', {
+        await fetch(this.resolveApiUrl('/api/auth/logout'), {
           method: 'POST',
           headers: { Authorization: `Bearer ${accessToken}` },
           credentials: 'include',
@@ -273,6 +297,13 @@ export class AuthService {
     this.expiresAtSignal.set(tokens.expires_at);
     this.currentRefreshToken = tokens.refresh_token ?? null;
     this.writeStorage('has_session', '1');
+    this.writeStorage('access_token', tokens.access_token);
+    this.writeStorage('expires_at', String(tokens.expires_at));
+    if (tokens.refresh_token) {
+      this.writeStorage('refresh_token', tokens.refresh_token);
+    } else {
+      this.removeStorage('refresh_token');
+    }
     if (tokens.id_token) {
       this.writeStorage('id_token', tokens.id_token);
       this.profileSignal.set(parseIdTokenClaims(tokens.id_token));
@@ -281,6 +312,14 @@ export class AuthService {
 
   private absoluteAuthority(authority: string): string {
     return new URL(authority, window.location.origin).toString();
+  }
+
+  private resolveApiUrl(requestUrl: string): string {
+    const apiBaseUrl = this.environment.apiBaseUrl.replace(/\/$/, '');
+    if (/^https?:\/\//i.test(apiBaseUrl)) {
+      return `${apiBaseUrl}${requestUrl.slice('/api'.length)}`;
+    }
+    return requestUrl;
   }
 
   storeReturnUrl(returnUrl?: string): void {
@@ -443,7 +482,5 @@ export class AuthService {
     }
     localStorage.removeItem('egueducation.tokens');
     localStorage.removeItem('egueducation-dpop-es256');
-    this.removeStorage('access_token');
-    this.removeStorage('expires_at');
   }
 }

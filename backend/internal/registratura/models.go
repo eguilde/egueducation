@@ -24,11 +24,83 @@ type Document struct {
 	Status          string  `json:"status"`
 	Correspondent   string  `json:"correspondent"`
 	AssignedTo      string  `json:"assigned_to"`
+	CorrespondentPartyID *string `json:"correspondent_party_id,omitempty"`
+	AssignedPartyID      *string `json:"assigned_party_id,omitempty"`
 	InstitutionID   string  `json:"institution_id"`
 	Confidentiality string  `json:"confidentiality"`
 	Summary         string  `json:"summary"`
 	RegisteredAt    string  `json:"registered_at"`
 	DueDate         *string `json:"due_date"`
+}
+
+type Party struct {
+	ID                    string `json:"id"`
+	Code                  string `json:"code"`
+	PartyType             string `json:"party_type"`
+	DisplayName           string `json:"display_name"`
+	ShortName             string `json:"short_name"`
+	FirstName             string `json:"first_name"`
+	LastName              string `json:"last_name"`
+	LegalName             string `json:"legal_name"`
+	IdentifierCode        string `json:"identifier_code"`
+	TaxID                 string `json:"tax_id"`
+	PhoneNumber           string `json:"phone_number"`
+	Email                 string `json:"email"`
+	AddressLine1          string `json:"address_line1"`
+	AddressLine2          string `json:"address_line2"`
+	Locality              string `json:"locality"`
+	County                string `json:"county"`
+	Country               string `json:"country"`
+	Notes                 string `json:"notes"`
+	IsDefaultOrganization bool   `json:"is_default_organization"`
+	Active                bool   `json:"active"`
+	CreatedAt             string `json:"created_at"`
+	UpdatedAt             string `json:"updated_at"`
+}
+
+type CreatePartyRequest struct {
+	Code                  string `json:"code"`
+	InstitutionID         string `json:"institution_id"`
+	PartyType             string `json:"party_type"`
+	DisplayName           string `json:"display_name"`
+	ShortName             string `json:"short_name"`
+	FirstName             string `json:"first_name"`
+	LastName              string `json:"last_name"`
+	LegalName             string `json:"legal_name"`
+	IdentifierCode        string `json:"identifier_code"`
+	TaxID                 string `json:"tax_id"`
+	PhoneNumber           string `json:"phone_number"`
+	Email                 string `json:"email"`
+	AddressLine1          string `json:"address_line1"`
+	AddressLine2          string `json:"address_line2"`
+	Locality              string `json:"locality"`
+	County                string `json:"county"`
+	Country               string `json:"country"`
+	Notes                 string `json:"notes"`
+	IsDefaultOrganization bool   `json:"is_default_organization"`
+	Active                bool   `json:"active"`
+}
+
+type UpdatePartyRequest struct {
+	Code                  *string `json:"code"`
+	PartyType             *string `json:"party_type"`
+	DisplayName           *string `json:"display_name"`
+	ShortName             *string `json:"short_name"`
+	FirstName             *string `json:"first_name"`
+	LastName              *string `json:"last_name"`
+	LegalName             *string `json:"legal_name"`
+	IdentifierCode        *string `json:"identifier_code"`
+	TaxID                 *string `json:"tax_id"`
+	PhoneNumber           *string `json:"phone_number"`
+	Email                 *string `json:"email"`
+	AddressLine1          *string `json:"address_line1"`
+	AddressLine2          *string `json:"address_line2"`
+	Locality              *string `json:"locality"`
+	County                *string `json:"county"`
+	Country               *string `json:"country"`
+	Notes                 *string `json:"notes"`
+	IsDefaultOrganization *bool   `json:"is_default_organization"`
+	Active                *bool   `json:"active"`
 }
 
 type DocumentVersion struct {
@@ -79,6 +151,8 @@ type CreateDocumentRequest struct {
 	Status          string  `json:"status"`
 	Correspondent   string  `json:"correspondent"`
 	AssignedTo      string  `json:"assigned_to"`
+	CorrespondentPartyID *string `json:"correspondent_party_id"`
+	AssignedPartyID      *string `json:"assigned_party_id"`
 	Confidentiality string  `json:"confidentiality"`
 	Summary         string  `json:"summary"`
 	DueDate         *string `json:"due_date"`
@@ -92,6 +166,8 @@ type UpdateDocumentRequest struct {
 	Status          string  `json:"status"`
 	Correspondent   string  `json:"correspondent"`
 	AssignedTo      string  `json:"assigned_to"`
+	CorrespondentPartyID *string `json:"correspondent_party_id"`
+	AssignedPartyID      *string `json:"assigned_party_id"`
 	Confidentiality string  `json:"confidentiality"`
 	Summary         string  `json:"summary"`
 	DueDate         *string `json:"due_date"`
@@ -111,6 +187,8 @@ type BatchCreateDocumentsRequest struct {
 	Status          string  `json:"status"`
 	Correspondent   string  `json:"correspondent"`
 	AssignedTo      string  `json:"assigned_to"`
+	CorrespondentPartyID *string `json:"correspondent_party_id"`
+	AssignedPartyID      *string `json:"assigned_party_id"`
 	Confidentiality string  `json:"confidentiality"`
 	Summary         string  `json:"summary"`
 	DueDate         *string `json:"due_date"`

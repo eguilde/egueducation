@@ -2,14 +2,18 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
+import { AuthService } from '../auth/auth.service';
 import { AppApiService } from '../api/app-api.service';
+import { AppBrandingService } from '../branding/app-branding.service';
 import { SessionContext } from './authz.types';
 import { RoleCatalogItem, RolePositionItem } from '../api/api.types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthzService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly api = inject(AppApiService);
+  private readonly branding = inject(AppBrandingService);
   private readonly sessionSignal = signal<SessionContext | null>(null);
   private readonly roleCatalogSignal = signal<RoleCatalogItem[]>([]);
   private readonly rolePositionsSignal = signal<RolePositionItem[]>([]);
@@ -20,9 +24,10 @@ export class AuthzService {
   readonly rolePositions = this.rolePositionsSignal.asReadonly();
   readonly permissions = computed(() => this.sessionSignal()?.permissions ?? []);
   readonly modules = computed(() => this.sessionSignal()?.modules ?? []);
-  readonly user = computed(() => this.sessionSignal()?.user ?? null);
-  readonly roles = computed(() => this.sessionSignal()?.user?.roles ?? []);
-  readonly institutionName = computed(() => this.sessionSignal()?.institution_name ?? '');
+  readonly user = computed(() => this.sessionSignal()?.user ?? this.auth.profile() ?? null);
+  readonly roles = computed(() => this.sessionSignal()?.user?.roles ?? this.auth.profile()?.roles ?? []);
+  readonly institutionId = computed(() => this.sessionSignal()?.institution_id ?? this.branding.institutionId() ?? '');
+  readonly institutionName = computed(() => this.sessionSignal()?.institution_name ?? this.branding.institutionName() ?? '');
   readonly initialized = this.initializedSignal.asReadonly();
 
   async init(): Promise<void> {
