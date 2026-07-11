@@ -70,37 +70,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: egueducation-backend
-            source_image: egueducation-backend
-            gitops_file: namespaces/education/egueducation/backend/kustomization.yaml
-          - image: egueducation-frontend
-            source_image: egueducation-frontend
-            gitops_file: namespaces/education/egueducation/frontend/kustomization.yaml
-    steps:
-      - name: Check out GitOps repository
-        uses: actions/checkout@v4
-        with:
-          repository: eguilde/gitops
-          ref: main
-          token: ${{ secrets.GITOPS_TOKEN }}
-          path: gitops
-      - name: Update deployed image and push GitOps
+          - name: Update deployed image in GitOps
         shell: bash
         env:
+          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
           IMAGE: ${{ matrix.image }}
           SOURCE_IMAGE: ${{ matrix.source_image }}
           FILE: ${{ matrix.gitops_file }}
         run: |
           set -euo pipefail
-          cd gitops
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          sed -E -i "s#(forge\\.eguilde\\.cloud|registry\\.eguilde\\.cloud)/eguilde/${SOURCE_IMAGE}(:[^[:space:]]+)?#ghcr.io/eguilde/${IMAGE}:${GITHUB_SHA}#g" "${FILE}"
-          git add "${FILE}"
-          git diff --cached --quiet && exit 0
-          git commit -m "chore(${IMAGE}): deploy ${GITHUB_SHA}"
-          for attempt in 1 2 3 4 5; do
-            git pull --rebase origin main && git push origin HEAD:main && exit 0
-            sleep $((attempt * 3))
+          for attempt in 1 2 3 4 5 6 7; do
+            response="$(gh api "repos/eguilde/gitops/contents/${FILE}?ref=main")"
+            sha="$(jq -r '.sha' <<<"${response}")"
+            current="$(jq -r '.content' <<<"${response}" | tr -d '\n' | base64 --decode)"
+            updated="$(printf '%s' "${current}" | sed -E "s#(ghcr\\.io|forge\\.eguilde\\.cloud|registry\\.eguilde\\.cloud)/eguilde/${SOURCE_IMAGE}(:[^[:space:]]+)?#ghcr.io/eguilde/${IMAGE}:${GITHUB_SHA}#g")"
+            if [ "${updated}" = "${current}" ]; then
+              echo "GitOps already points at ${IMAGE}:${GITHUB_SHA}"
+              exit 0
+            fi
+            content="$(printf '%s' "${updated}" | base64 -w0)"
+            payload="$(jq -n --arg message "chore(${IMAGE}): deploy ${GITHUB_SHA}" --arg content "${content}" --arg sha "${sha}" '{message:$message,content:$content,sha:$sha,branch:"main"}')"
+            if gh api --method PUT "repos/eguilde/gitops/contents/${FILE}" --input - <<<"${payload}" >/dev/null; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
           done
+          echo 'GitOps update failed after retries' >&2
           exit 1
