@@ -1,3 +1,7 @@
+create or replace function immutable_jsonb_to_text(jb jsonb) returns text
+    language sql immutable strict parallel safe
+    return jb::text;
+
 create table if not exists archive_taxonomy_nodes (
 	id uuid primary key default gen_random_uuid(),
 	institution_id text not null,
@@ -40,7 +44,7 @@ create table if not exists archive_documents (
 				source_kind,
 				source_system,
 				external_reference,
-				coalesce(metadata::text, '')
+				coalesce(immutable_jsonb_to_text(metadata), '')
 			)
 		)
 	) stored,
