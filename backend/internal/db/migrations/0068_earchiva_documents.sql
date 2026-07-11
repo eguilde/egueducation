@@ -2,6 +2,8 @@ create or replace function immutable_jsonb_to_text(jb jsonb) returns text
     language sql immutable strict parallel safe
     return jb::text;
 
+-- v2: force rebuild with immutable jsonb cast wrapper
+
 create table if not exists archive_taxonomy_nodes (
 	id uuid primary key default gen_random_uuid(),
 	institution_id text not null,
