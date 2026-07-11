@@ -70,7 +70,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Update deployed image in GitOps
+          - image: egueducation-backend
+            source_image: egueducation-backend
+            gitops_file: namespaces/education/egueducation/backend/kustomization.yaml
+          - image: egueducation-frontend
+            source_image: egueducation-frontend
+            gitops_file: namespaces/education/egueducation/frontend/kustomization.yaml
+    steps:
+      - name: Update deployed image in GitOps
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
