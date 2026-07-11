@@ -1,0 +1,8 @@
+{"type":"session_start","session_id":"archive_documents_20260705_165610","created_at":"2026-07-05T16:56:10+03:00"}
+{"type":"command","timestamp":"2026-07-05T17:29:17+03:00","command":"doc","args":[],"intention":"","execution_ms":109,"status":"failure"}
+{"type":"command","timestamp":"2026-07-05T17:29:17+03:00","command":"doc","args":[],"intention":"","execution_ms":103,"status":"failure"}
+{"type":"command","timestamp":"2026-07-05T17:29:17+03:00","command":"doc","args":[],"intention":"","execution_ms":99,"status":"failure"}
+{"type":"command","timestamp":"2026-07-05T17:42:16+03:00","command":"changes","args":[],"intention":"","execution_ms":7710,"status":"success"}
+{"type":"command","timestamp":"2026-07-05T17:44:47+03:00","command":"review","args":[],"intention":"","execution_ms":13723,"status":"success"}
+{"type":"command","timestamp":"2026-07-05T17:44:47+03:00","command":"stale","args":[],"intention":"","execution_ms":13416,"status":"success"}
+{"type":"command","timestamp":"2026-07-05T17:44:47+03:00","command":"risk","args":[],"intention":"","execution_ms":14006,"status":"success"}
