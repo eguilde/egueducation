@@ -30,7 +30,8 @@ import (
 
 func main() {
 	cfg := config.Load()
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -70,9 +71,19 @@ func main() {
 	if err != nil {
 		logger.Fatal("auth service initialization failed", zap.Error(err))
 	}
+	archiveStorage, err := earchiva.NewArchiveStorage(ctx, cfg)
+	if err != nil {
+		logger.Fatal("archive storage initialization failed", zap.Error(err))
+	}
+	archiveTextract, err := earchiva.NewArchiveTextract(ctx, cfg)
+	if err != nil {
+		logger.Fatal("archive textract initialization failed", zap.Error(err))
+	}
 	adminService := admin.NewService(cfg, sessionDB)
 	educationService := education.NewService(sessionDB)
 	earchivaService := earchiva.NewService(sessionDB)
+	archiveDocumentService := earchiva.NewDocumentService(sessionDB, archiveStorage)
+	archiveWorker := earchiva.NewIngestionWorker(sessionDB, archiveStorage, archiveTextract, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second)
 	gdprService := gdpr.NewService(sessionDB)
 	registraturaService := registratura.NewService(sessionDB)
 	workflowService := workflow.NewService(sessionDB)
@@ -230,6 +241,15 @@ func main() {
 			r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/records/filters", earchivaService.Filters)
 			r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/nomenclatures", earchivaService.Nomenclatures)
 			r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/records", earchivaService.CreateRecord)
+
+			r.Group(func(r chi.Router) {
+				r.Use(educationService.RequireInstitutionContext)
+				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/documents", archiveDocumentService.SearchDocuments)
+				r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/documents", archiveDocumentService.UploadDocument)
+				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/documents/{documentID}", archiveDocumentService.GetDocument)
+				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/documents/{documentID}/versions", archiveDocumentService.ListDocumentVersions)
+				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/taxonomy", archiveDocumentService.ListTaxonomyNodes)
+			})
 
 			r.Group(func(r chi.Router) {
 				r.Use(educationService.RequireInstitutionContext)
@@ -599,6 +619,10 @@ func main() {
 		})
 	})
 
+	if cfg.ArchiveWorkerEnabled {
+		archiveWorker.Start(ctx)
+	}
+
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           router,
@@ -618,10 +642,11 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
+	cancel()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer shutdownCancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("server shutdown failed", zap.Error(err))
 	}
 }

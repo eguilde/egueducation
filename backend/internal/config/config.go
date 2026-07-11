@@ -21,34 +21,44 @@ type OIDCClientConfig struct {
 }
 
 type Config struct {
-	Port                  string
-	FrontendOrigin        string
-	FrontendOrigins       []string
-	Environment           string
-	DatabaseURL           string
-	MigrationDatabaseURL  string
-	BackendURL            string
-	CustomerName          string
-	CustomerDomain        string
-	OIDCIssuer            string
-	OIDCClientID          string
-	OIDCDesktopClient     string
-	OIDCAudience          string
-	OIDCDevMode           bool
-	AdditionalOIDCClients []OIDCClientConfig
-	SMSAPIToken           string
-	SMSSenderName         string
-	EnablePasskeys        bool
-	EnableWallet          bool
-	EnableSMSOTP          bool
-	EnableGDPRFeatures    bool
-	ForceSecureCookies    bool
-	JWTKeyRotationDays    int
-	JWTKeyOverlapHours    int
-	Origin                string
-	RPID                  string
-	WalletVerifierURL     string
-	WalletRPClientID      string
+	Port                       string
+	FrontendOrigin             string
+	FrontendOrigins            []string
+	Environment                string
+	DatabaseURL                string
+	MigrationDatabaseURL       string
+	BackendURL                 string
+	CustomerName               string
+	CustomerDomain             string
+	OIDCIssuer                 string
+	OIDCClientID               string
+	OIDCDesktopClient          string
+	OIDCAudience               string
+	OIDCDevMode                bool
+	AdditionalOIDCClients      []OIDCClientConfig
+	SMSAPIToken                string
+	SMSSenderName              string
+	EnablePasskeys             bool
+	EnableWallet               bool
+	EnableSMSOTP               bool
+	EnableGDPRFeatures         bool
+	ForceSecureCookies         bool
+	JWTKeyRotationDays         int
+	JWTKeyOverlapHours         int
+	Origin                     string
+	RPID                       string
+	WalletVerifierURL          string
+	WalletRPClientID           string
+	ArchiveStorageEndpoint     string
+	ArchiveStorageRegion       string
+	ArchiveStorageBucket       string
+	ArchiveStorageAccessKey    string
+	ArchiveStorageSecretKey    string
+	ArchiveStorageUsePathStyle bool
+	ArchiveTextractBucket      string
+	ArchiveTextractRegion      string
+	ArchiveWorkerEnabled       bool
+	ArchiveWorkerPollInterval  int
 }
 
 func Load() Config {
@@ -60,33 +70,43 @@ func Load() Config {
 	desktopClientID := env("OIDC_DESKTOP_CLIENT_ID", env("DESKTOP_CLIENT_ID", "egueducation-desktop"))
 
 	return Config{
-		Port:                 env("PORT", "8080"),
-		FrontendOrigin:       frontendOrigin,
-		FrontendOrigins:      parseCSV(os.Getenv("FRONTEND_ORIGINS")),
-		Environment:          env("APP_ENV", env("NODE_ENV", "development")),
-		DatabaseURL:          databaseURL(),
-		MigrationDatabaseURL: env("MIGRATION_DATABASE_URL", ""),
-		BackendURL:           env("BACKEND_URL", "http://localhost:8080"),
-		CustomerName:         env("CUSTOMER_NAME", "EguEducation"),
-		CustomerDomain:       env("CUSTOMER_DOMAIN", ""),
-		OIDCIssuer:           env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
-		OIDCClientID:         env("OIDC_CLIENT_ID", "egueducation-spa"),
-		OIDCDesktopClient:    desktopClientID,
-		OIDCAudience:         env("OIDC_AUDIENCE", ""),
-		OIDCDevMode:          envBool("OIDC_DEV_MODE", false),
-		SMSAPIToken:          os.Getenv("SMSAPI_TOKEN"),
-		SMSSenderName:        env("SMS_SENDER_NAME", env("SMSAPI_SENDER", "EguEducation")),
-		EnablePasskeys:       envBool("ENABLE_PASSKEYS", true),
-		EnableWallet:         envBool("ENABLE_EUDI_WALLET", true),
-		EnableSMSOTP:         envBool("ENABLE_SMS_OTP", true),
-		EnableGDPRFeatures:   envBool("ENABLE_GDPR_FEATURES", true),
-		ForceSecureCookies:   envBool("FORCE_SECURE_COOKIES", false),
-		JWTKeyRotationDays:   envInt("JWT_KEY_ROTATION_DAYS", 90),
-		JWTKeyOverlapHours:   envInt("JWT_KEY_OVERLAP_HOURS", 24),
-		Origin:               env("ORIGIN", env("BACKEND_URL", "http://localhost:8080")),
-		RPID:                 env("RP_ID", defaultRPID(frontendOrigin)),
-		WalletVerifierURL:    env("WALLET_VERIFIER_URL", ""),
-		WalletRPClientID:     env("WALLET_RP_CLIENT_ID", "egueducation"),
+		Port:                       env("PORT", "8080"),
+		FrontendOrigin:             frontendOrigin,
+		FrontendOrigins:            parseCSV(os.Getenv("FRONTEND_ORIGINS")),
+		Environment:                env("APP_ENV", env("NODE_ENV", "development")),
+		DatabaseURL:                databaseURL(),
+		MigrationDatabaseURL:       env("MIGRATION_DATABASE_URL", ""),
+		BackendURL:                 env("BACKEND_URL", "http://localhost:8080"),
+		CustomerName:               env("CUSTOMER_NAME", "EguEducation"),
+		CustomerDomain:             env("CUSTOMER_DOMAIN", ""),
+		OIDCIssuer:                 env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
+		OIDCClientID:               env("OIDC_CLIENT_ID", "egueducation-spa"),
+		OIDCDesktopClient:          desktopClientID,
+		OIDCAudience:               env("OIDC_AUDIENCE", ""),
+		OIDCDevMode:                envBool("OIDC_DEV_MODE", false),
+		SMSAPIToken:                os.Getenv("SMSAPI_TOKEN"),
+		SMSSenderName:              env("SMS_SENDER_NAME", env("SMSAPI_SENDER", "EguEducation")),
+		EnablePasskeys:             envBool("ENABLE_PASSKEYS", true),
+		EnableWallet:               envBool("ENABLE_EUDI_WALLET", true),
+		EnableSMSOTP:               envBool("ENABLE_SMS_OTP", true),
+		EnableGDPRFeatures:         envBool("ENABLE_GDPR_FEATURES", true),
+		ForceSecureCookies:         envBool("FORCE_SECURE_COOKIES", false),
+		JWTKeyRotationDays:         envInt("JWT_KEY_ROTATION_DAYS", 90),
+		JWTKeyOverlapHours:         envInt("JWT_KEY_OVERLAP_HOURS", 24),
+		Origin:                     env("ORIGIN", env("BACKEND_URL", "http://localhost:8080")),
+		RPID:                       env("RP_ID", defaultRPID(frontendOrigin)),
+		WalletVerifierURL:          env("WALLET_VERIFIER_URL", ""),
+		WalletRPClientID:           env("WALLET_RP_CLIENT_ID", "egueducation"),
+		ArchiveStorageEndpoint:     env("ARCHIVE_STORAGE_ENDPOINT", ""),
+		ArchiveStorageRegion:       env("ARCHIVE_STORAGE_REGION", "us-east-1"),
+		ArchiveStorageBucket:       env("ARCHIVE_STORAGE_BUCKET", "archive-documents"),
+		ArchiveStorageAccessKey:    env("ARCHIVE_STORAGE_ACCESS_KEY", ""),
+		ArchiveStorageSecretKey:    env("ARCHIVE_STORAGE_SECRET_KEY", ""),
+		ArchiveStorageUsePathStyle: envBool("ARCHIVE_STORAGE_USE_PATH_STYLE", false),
+		ArchiveTextractBucket:      env("ARCHIVE_TEXTRACT_BUCKET", ""),
+		ArchiveTextractRegion:      env("ARCHIVE_TEXTRACT_REGION", "us-east-1"),
+		ArchiveWorkerEnabled:       envBool("ARCHIVE_WORKER_ENABLED", true),
+		ArchiveWorkerPollInterval:  envInt("ARCHIVE_WORKER_POLL_INTERVAL_SECONDS", 5),
 	}
 }
 

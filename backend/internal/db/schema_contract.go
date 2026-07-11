@@ -55,6 +55,15 @@ func institutionTable(name, notes string) TableContract {
 	}
 }
 
+func institutionTableWithColumns(name, notes string, requiredColumns ...string) TableContract {
+	return TableContract{
+		Name:            name,
+		Scope:           SchemaScopeInstitution,
+		RequiredColumns: append([]string{"institution_id"}, requiredColumns...),
+		Notes:           notes,
+	}
+}
+
 func tenantTable(name, notes string) TableContract {
 	return TableContract{
 		Name:            name,
@@ -87,6 +96,13 @@ func SchemaContract() []TableContract {
 		institutionTable("registratura_documents", "Incoming/outgoing registry documents."),
 		institutionTable("app_parties", "Physical persons, legal entities and institutions used by registratura."),
 		institutionTable("archive_records", "Electronic archive records."),
+		institutionTable("archive_documents", "Independent archive document registry."),
+		institutionTableWithColumns("archive_document_versions", "Immutable archive document versions.", "search_embedding"),
+		institutionTable("archive_document_chunks", "Searchable text chunks for archive documents."),
+		institutionTable("archive_document_entities", "Extracted archive document entities."),
+		institutionTable("archive_document_relations", "Archive document relations."),
+		institutionTable("archive_taxonomy_nodes", "Archive taxonomy nodes."),
+		institutionTable("archive_ingestion_jobs", "Archive document ingestion jobs."),
 		institutionTable("workflow_instances", "Runtime workflow instances."),
 		institutionTable("education_meetings", "Governance meetings."),
 		institutionTable("education_personnel", "Personnel master data."),
