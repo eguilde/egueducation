@@ -1,26 +1,24 @@
-name: Publish containers
+name: Build, publish, and deploy
 
 on:
   push:
-    branches:
-      - main
-      - master
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
-  actions: write
 
 concurrency:
-  group: publish-containers-${{ github.ref }}
+  group: deploy-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  REGISTRY: ghcr.io
+  OWNER: eguilde
+
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,29 +33,24 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PUBLISH_TOKEN }}
-
       - name: Extract image metadata
         id: metadata
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+          images: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}
           tags: |
-            type=sha
+            type=raw,value=${{ github.sha }}
             type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch }}
-
       - name: Build and publish image
         uses: docker/build-push-action@v6
         with:
@@ -69,3 +62,45 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  update-gitops:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: egueducation-backend
+            source_image: egueducation-backend
+            gitops_file: namespaces/education/egueducation/backend/kustomization.yaml
+          - image: egueducation-frontend
+            source_image: egueducation-frontend
+            gitops_file: namespaces/education/egueducation/frontend/kustomization.yaml
+    steps:
+      - name: Check out GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: eguilde/gitops
+          ref: main
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+      - name: Update deployed image and push GitOps
+        shell: bash
+        env:
+          IMAGE: ${{ matrix.image }}
+          SOURCE_IMAGE: ${{ matrix.source_image }}
+          FILE: ${{ matrix.gitops_file }}
+        run: |
+          set -euo pipefail
+          cd gitops
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          sed -E -i "s#(forge\\.eguilde\\.cloud|registry\\.eguilde\\.cloud)/eguilde/${SOURCE_IMAGE}(:[^[:space:]]+)?#ghcr.io/eguilde/${IMAGE}:${GITHUB_SHA}#g" "${FILE}"
+          git add "${FILE}"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(${IMAGE}): deploy ${GITHUB_SHA}"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 3))
+          done
+          exit 1
