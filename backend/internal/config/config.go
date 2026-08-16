@@ -42,6 +42,11 @@ type Config struct {
 	EnablePasskeys             bool
 	EnableWallet               bool
 	EnableSMSOTP               bool
+	EnableTestOTPFixture       bool
+	TestOTPFixtureCode         string
+	TestOTPFixtureIdentifier   string
+	TestOTPFixtureSubject      string
+	TestOTPFixtureTenantCode   string
 	EnableGDPRFeatures         bool
 	ForceSecureCookies         bool
 	JWTKeyRotationDays         int
@@ -92,6 +97,11 @@ func Load() Config {
 		EnablePasskeys:             envBool("ENABLE_PASSKEYS", true),
 		EnableWallet:               envBool("ENABLE_EUDI_WALLET", true),
 		EnableSMSOTP:               envBool("ENABLE_SMS_OTP", true),
+		EnableTestOTPFixture:       envBool("ENABLE_TEST_OTP_FIXTURE", false),
+		TestOTPFixtureCode:         strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_CODE")),
+		TestOTPFixtureIdentifier:   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_IDENTIFIER")),
+		TestOTPFixtureSubject:      strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_SUBJECT")),
+		TestOTPFixtureTenantCode:   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_TENANT_CODE")),
 		EnableGDPRFeatures:         envBool("ENABLE_GDPR_FEATURES", true),
 		ForceSecureCookies:         envBool("FORCE_SECURE_COOKIES", false),
 		JWTKeyRotationDays:         envInt("JWT_KEY_ROTATION_DAYS", 90),
@@ -128,6 +138,53 @@ func (c Config) TLSEnabled() bool {
 func (c Config) IsProduction() bool {
 	value := strings.ToLower(strings.TrimSpace(c.Environment))
 	return value == "production" || value == "prod"
+}
+
+// TestOTPFixtureEnabled is deliberately narrower than a development switch.
+// A deterministic OTP is accepted only by an explicitly configured test
+// process; production and development deployments always return false.
+func (c Config) TestOTPFixtureEnabled() bool {
+	return c.ValidateTestOTPFixture() == nil && c.testOTPFixtureConfigured()
+}
+
+// ValidateTestOTPFixture rejects a test fixture configuration unless it can
+// only be used by a loopback test server. NewService invokes this during
+// startup, preventing a public deployment from silently accepting test OTPs.
+func (c Config) ValidateTestOTPFixture() error {
+	if !c.testOTPFixtureConfigured() {
+		return nil
+	}
+	if !c.EnableTestOTPFixture || !strings.EqualFold(strings.TrimSpace(c.Environment), "test") {
+		return fmt.Errorf("test OTP fixture requires APP_ENV=test and ENABLE_TEST_OTP_FIXTURE=true")
+	}
+	if !loopbackURL(c.FrontendOrigin) || !loopbackURL(c.BackendURL) || !loopbackURL(c.OIDCIssuer) {
+		return fmt.Errorf("test OTP fixture requires loopback FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
+	}
+	if !strings.HasSuffix(strings.ToLower(c.TestOTPFixtureIdentifier), "@example.test") || strings.TrimSpace(c.TestOTPFixtureSubject) == "" || strings.TrimSpace(c.TestOTPFixtureTenantCode) == "" {
+		return fmt.Errorf("test OTP fixture requires a synthetic example.test identifier, subject, and tenant code")
+	}
+	if len(c.TestOTPFixtureCode) != 6 {
+		return fmt.Errorf("test OTP fixture code must contain six digits")
+	}
+	for _, digit := range c.TestOTPFixtureCode {
+		if digit < '0' || digit > '9' {
+			return fmt.Errorf("test OTP fixture code must contain six digits")
+		}
+	}
+	return nil
+}
+
+func (c Config) testOTPFixtureConfigured() bool {
+	return c.EnableTestOTPFixture || c.TestOTPFixtureCode != "" || c.TestOTPFixtureIdentifier != "" || c.TestOTPFixtureSubject != "" || c.TestOTPFixtureTenantCode != ""
+}
+
+func loopbackURL(raw string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme != "http" || parsed.Hostname() == "" {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
 func env(key, fallback string) string {

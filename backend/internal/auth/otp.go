@@ -39,7 +39,25 @@ func (s *otpService) Generate(ctx context.Context, userID uuid.UUID, purpose otp
 	if err != nil {
 		return "", fmt.Errorf("otp: generate: %w", err)
 	}
+	return s.store(ctx, userID, purpose, code)
+}
 
+// GenerateFixture stores an already validated deterministic code for an
+// automated test. Callers must apply their own test-environment and synthetic
+// identity gate before using it; this method has no production configuration.
+func (s *otpService) GenerateFixture(ctx context.Context, userID uuid.UUID, purpose otpPurpose, code string) (string, error) {
+	if len(code) != otpLength {
+		return "", errors.New("otp: invalid fixture code")
+	}
+	for _, digit := range code {
+		if digit < '0' || digit > '9' {
+			return "", errors.New("otp: invalid fixture code")
+		}
+	}
+	return s.store(ctx, userID, purpose, code)
+}
+
+func (s *otpService) store(ctx context.Context, userID uuid.UUID, purpose otpPurpose, code string) (string, error) {
 	result, err := s.db.Exec(ctx, `
 		insert into oidc_otp_codes (user_id, purpose, code_hash, expires_at, attempts)
 		values ($1::uuid, $2, $3, $4, 0)

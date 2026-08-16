@@ -25,6 +25,66 @@ func TestOTPLoginUIMessageDoesNotExposeCodeWhenSMSIsConfigured(t *testing.T) {
 	}
 }
 
+func TestTestOTPFixtureFailsClosedUnlessExplicitLoopbackConfigurationAndExactIdentity(t *testing.T) {
+	valid := config.Config{
+		Environment:              "test",
+		FrontendOrigin:           "http://127.0.0.1:4173",
+		BackendURL:               "http://127.0.0.1:8080",
+		OIDCIssuer:               "http://127.0.0.1:8080/api/oidc",
+		EnableTestOTPFixture:     true,
+		TestOTPFixtureCode:       "173829",
+		TestOTPFixtureIdentifier: "oidc.browser.fixture@example.test",
+		TestOTPFixtureSubject:    "oidc-browser-fixture-subject",
+		TestOTPFixtureTenantCode: "tenant-egueducation",
+	}
+	user := oidcLoginUser{Email: valid.TestOTPFixtureIdentifier, Subject: valid.TestOTPFixtureSubject}
+	if !testOTPFixtureAllowed(&valid, user, valid.TestOTPFixtureTenantCode) {
+		t.Fatal("explicit loopback fixture configuration must allow the exact synthetic identity")
+	}
+
+	tests := []struct {
+		name   string
+		cfg    config.Config
+		user   oidcLoginUser
+		tenant string
+	}{
+		{name: "production is rejected", cfg: withFixtureEnvironment(valid, "production"), user: user, tenant: valid.TestOTPFixtureTenantCode},
+		{name: "public frontend is rejected", cfg: withFixtureFrontend(valid, "https://school.example.test"), user: user, tenant: valid.TestOTPFixtureTenantCode},
+		{name: "malformed code is rejected", cfg: withFixtureCode(valid, "12x829"), user: user, tenant: valid.TestOTPFixtureTenantCode},
+		{name: "wrong user is rejected", cfg: valid, user: oidcLoginUser{Email: "other@example.test", Subject: valid.TestOTPFixtureSubject}, tenant: valid.TestOTPFixtureTenantCode},
+		{name: "wrong tenant is rejected", cfg: valid, user: user, tenant: "tenant-other"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := test.cfg.ValidateTestOTPFixture(); test.name == "wrong user is rejected" || test.name == "wrong tenant is rejected" {
+				if err != nil {
+					t.Fatalf("valid fixture configuration rejected: %v", err)
+				}
+			} else if err == nil {
+				t.Fatal("unsafe fixture configuration must fail startup validation")
+			} else if service, serviceErr := NewService(test.cfg, nil, nil); serviceErr == nil || service != nil {
+				t.Fatal("unsafe fixture configuration must fail service initialization")
+			}
+			if testOTPFixtureAllowed(&test.cfg, test.user, test.tenant) {
+				t.Fatal("fixture must fail closed")
+			}
+		})
+	}
+}
+
+func withFixtureEnvironment(cfg config.Config, environment string) config.Config {
+	cfg.Environment = environment
+	return cfg
+}
+func withFixtureFrontend(cfg config.Config, origin string) config.Config {
+	cfg.FrontendOrigin = origin
+	return cfg
+}
+func withFixtureCode(cfg config.Config, code string) config.Config {
+	cfg.TestOTPFixtureCode = code
+	return cfg
+}
+
 func TestOIDCRevocationAllowListIncludesOnlyConfiguredFirstPartyClients(t *testing.T) {
 	allowed := oidcClientAllowedRevocation(&config.Config{
 		OIDCClientID:      "first-party-spa",
