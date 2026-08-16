@@ -112,9 +112,12 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if discoveryResponse.StatusCode != http.StatusOK {
 		t.Fatalf("OIDC discovery status = %d, want 200", discoveryResponse.StatusCode)
 	}
-	var discovery map[string]string
+	var discovery struct {
+		RevocationEndpoint string `json:"revocation_endpoint"`
+		EndSessionEndpoint string `json:"end_session_endpoint"`
+	}
 	decodeJSONResponse(t, discoveryResponse.Body, &discovery)
-	if discovery["revocation_endpoint"] != cfg.OIDCIssuer+"/revoke" || discovery["end_session_endpoint"] != cfg.OIDCIssuer+"/session/end" {
+	if discovery.RevocationEndpoint != cfg.OIDCIssuer+"/revoke" || discovery.EndSessionEndpoint != cfg.OIDCIssuer+"/session/end" {
 		t.Fatalf("OIDC discovery did not publish RFC 7009/RP logout endpoints: %#v", discovery)
 	}
 
