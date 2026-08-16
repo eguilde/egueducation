@@ -49,8 +49,14 @@ func TestDatabaseResolverIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed third host: %v", err)
 	}
+	if _, err = tx.Exec(ctx, `savepoint duplicate_hostname_check`); err != nil {
+		t.Fatalf("create duplicate-hostname savepoint: %v", err)
+	}
 	if _, err = tx.Exec(ctx, `insert into app_tenant_hostnames(tenant_code, hostname, active) values ('tenant-third', 'THIRD.EXAMPLE.TEST.', true)`); err == nil {
 		t.Fatal("canonicalized duplicate hostname must be rejected")
+	}
+	if _, err = tx.Exec(ctx, `rollback to savepoint duplicate_hostname_check`); err != nil {
+		t.Fatalf("restore after expected duplicate hostname: %v", err)
 	}
 	if err = tx.Commit(ctx); err != nil {
 		t.Fatalf("commit seed: %v", err)
