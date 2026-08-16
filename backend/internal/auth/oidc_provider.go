@@ -901,10 +901,11 @@ func renderConsentStep(
 		Scopes:       buildScopeItems(sess.Scopes),
 		Theme:        resolveOIDCThemeSettings(r, sess),
 	}
-	if r.Method == http.MethodGet {
+	action := r.FormValue("action")
+	if r.Method == http.MethodGet || (action != "allow" && action != "deny") {
 		return renderOIDCStep(w, tmpl, data)
 	}
-	if r.FormValue("action") == "deny" {
+	if action == "deny" {
 		return goidc.StatusFailure, nil
 	}
 
