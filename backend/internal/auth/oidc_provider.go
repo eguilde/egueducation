@@ -867,6 +867,12 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 			and (
 				lower(sub) = lower($1)
 				or lower(email) = lower($1)
+				or exists (
+					select 1
+					from app_user_login_aliases aliases
+					where aliases.user_id = app_users.id
+						and lower(aliases.alias) = lower($1)
+				)
 				or regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($2::text[])
 			)
 			and exists (
