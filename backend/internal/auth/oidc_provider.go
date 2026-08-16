@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -79,7 +80,7 @@ func newOIDCProviderHandler(
 		return nil, nil, fmt.Errorf("provider.New: %w", err)
 	}
 
-	handler := wrapRegisterPage(wrapLogoutPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg), cfg)
+	handler := wrapRegisterPage(wrapLogoutPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg, db), cfg)
 	verifier := NewJWTVerifier(cfg.OIDCIssuer, strings.TrimRight(cfg.OIDCIssuer, "/")+"/jwks", cfg.OIDCAudience)
 	verifier.loader = func(context.Context) (*jose.JSONWebKeySet, error) {
 		active := keyManager.ActiveJWKS()
@@ -419,7 +420,12 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		}
 		preferredInstitution = branding.InstitutionID
 
-		roles, _ := loadRolesForSubject(r.Context(), db, subject)
+		tenantCode := tenant.DefaultTenantCode(preferredInstitution, branding.Subdomain)
+		var tenantMembership bool
+		if err := db.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id = $1::uuid and tenant_code = $2 and active = true)`, userID, tenantCode).Scan(&tenantMembership); err != nil || !tenantMembership {
+			return errors.New("authenticated user is not a member of the requested tenant")
+		}
+		roles, _ := loadRolesForSubject(r.Context(), db, subject, tenantCode)
 		audience := tokenAudiences(grant, cfg.OIDCAudience)
 
 		if grant.AdditionalTokenClaims == nil {
@@ -450,6 +456,7 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 			grant.AdditionalIDTokenClaims[key] = value
 			grant.AdditionalUserInfoClaims[key] = value
 		}
+		grant.AdditionalTokenClaims["token_use"] = "access"
 		return nil
 	}
 }
@@ -499,10 +506,14 @@ func buildProviderErrorRenderer(cfg *config.Config) goidc.RenderErrorFunc {
 	return func(w http.ResponseWriter, r *http.Request, err error) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
+		detail := ""
+		if !cfg.IsProduction() {
+			detail = err.Error()
+		}
 		return tmpl.Execute(w, map[string]string{
 			"CustomerName": tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name,
 			"Error":        "Sesiunea de autentificare a expirat sau cererea OIDC este invalidă. Vă rugăm să încercați din nou.",
-			"Detail":       err.Error(),
+			"Detail":       detail,
 		})
 	}
 }
@@ -649,11 +660,25 @@ func renderOTPIdentifierStep(
 		data.Error = "Introduceți utilizatorul, emailul sau numărul de telefon."
 		return renderOIDCStep(w, tmpl, data)
 	}
-	user, err := findLoginUser(r.Context(), db, identifier)
+	loginBranding := tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(strings.TrimSpace(cfg.CustomerDomain+" "+cfg.CustomerName)))
+	user, err := findLoginUser(r.Context(), db, identifier, tenant.DefaultTenantCode(loginBranding.InstitutionID, loginBranding.Subdomain))
 	if err != nil {
-		data.Error = "Contul nu a putut fi localizat pentru autentificare."
-		data.Identifier = identifier
-		return renderOIDCStep(w, tmpl, data)
+		if smsService == nil || !smsService.Configured() {
+			data.Error = "Serviciul SMS nu este disponibil momentan."
+			data.Identifier = identifier
+			return renderOIDCStep(w, tmpl, data)
+		}
+		// Keep the public response indistinguishable from a valid identifier.
+		// The random UUID has no OTP row, so the verification step still fails closed.
+		sess.StoreParameter("step", "otp")
+		sess.StoreParameter("otp_user_id", uuid.New().String())
+		sess.StoreParameter("identifier", identifier)
+		return renderOIDCStep(w, tmpl, oidcLoginData{
+			Step: "otp", StepLabel: "Pasul 3", CustomerName: customerName,
+			FormAction: formAction, Identifier: identifier,
+			Message: "Dacă există un cont eligibil, codul OTP a fost trimis. Valabil 10 minute.",
+			Theme:   resolveOIDCThemeSettings(r, sess),
+		})
 	}
 	code, err := otp.Generate(r.Context(), user.ID, otpPurposeLogin)
 	if err != nil {
@@ -661,22 +686,20 @@ func renderOTPIdentifierStep(
 		data.Identifier = identifier
 		return renderOIDCStep(w, tmpl, data)
 	}
-	message := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
-	if smsService != nil && smsService.Configured() {
-		if _, err := smsService.Send(r.Context(), user.PhoneNumber, message); err != nil {
+	smsConfigured := smsService != nil && smsService.Configured()
+	message, canContinue := otpLoginUIMessage(cfg, code, smsConfigured)
+	if smsConfigured {
+		smsMessage := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
+		if _, err := smsService.Send(r.Context(), user.PhoneNumber, smsMessage); err != nil {
 			data.Error = "Nu am putut trimite codul OTP prin SMS."
 			data.Identifier = identifier
 			return renderOIDCStep(w, tmpl, data)
 		}
-	} else if !cfg.IsProduction() {
-		message = fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code)
 	}
-	if smsService == nil || !smsService.Configured() {
-		if cfg.IsProduction() {
-			data.Error = "Serviciul SMS nu este configurat pe acest mediu."
-			data.Identifier = identifier
-			return renderOIDCStep(w, tmpl, data)
-		}
+	if !canContinue {
+		data.Error = "Serviciul SMS nu este configurat pe acest mediu."
+		data.Identifier = identifier
+		return renderOIDCStep(w, tmpl, data)
 	}
 
 	sess.StoreParameter("step", "otp")
@@ -691,6 +714,27 @@ func renderOTPIdentifierStep(
 		Message:      message,
 		Theme:        resolveOIDCThemeSettings(r, sess),
 	})
+}
+
+func otpLoginUIMessage(cfg *config.Config, code string, smsConfigured bool) (string, bool) {
+	if smsConfigured {
+		return "Codul OTP a fost trimis la numărul asociat contului. Valabil 10 minute.", true
+	}
+	if !developmentOTPDisplayAllowed(cfg) {
+		return "", false
+	}
+	return fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code), true
+}
+
+func developmentOTPDisplayAllowed(cfg *config.Config) bool {
+	if cfg == nil || cfg.IsProduction() {
+		return false
+	}
+	origin, err := url.Parse(strings.TrimSpace(cfg.FrontendOrigin))
+	if err != nil || origin.Scheme == "" || origin.Hostname() == "" {
+		return false
+	}
+	return tenant.IsLocalHost(origin.Hostname())
 }
 
 func renderOTPStep(
@@ -805,7 +849,7 @@ type oidcLoginUser struct {
 	PhoneNumber string
 }
 
-func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string) (oidcLoginUser, error) {
+func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, tenantCode string) (oidcLoginUser, error) {
 	identifier = strings.TrimSpace(identifier)
 	if identifier == "" {
 		return oidcLoginUser{}, errors.New("missing identifier")
@@ -825,9 +869,13 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string) (oi
 				or lower(email) = lower($1)
 				or regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($2::text[])
 			)
+			and exists (
+				select 1 from app_memberships m
+				where m.user_id = app_users.id and m.tenant_code = $3 and m.active = true
+			)
 		order by updated_at desc
 		limit 1
-	`, identifier, candidates).Scan(&user.ID, &user.Subject, &user.PhoneNumber)
+	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.PhoneNumber)
 	if err != nil {
 		return oidcLoginUser{}, err
 	}
@@ -835,7 +883,7 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string) (oi
 	return user, nil
 }
 
-func loadRolesForSubject(ctx context.Context, db *pgxpool.Pool, subject string) ([]string, error) {
+func loadRolesForSubject(ctx context.Context, db *pgxpool.Pool, subject string, tenantCode string) ([]string, error) {
 	rows, err := db.Query(ctx, `
 		select distinct role_code
 		from (
@@ -843,6 +891,7 @@ func loadRolesForSubject(ctx context.Context, db *pgxpool.Pool, subject string) 
 			from app_user_roles ur
 			join app_users u on u.id = ur.user_id
 			where lower(u.sub) = lower($1)
+			  and ur.tenant_code = $2
 			union
 			select pr.role_code
 			from app_memberships m
@@ -850,9 +899,10 @@ func loadRolesForSubject(ctx context.Context, db *pgxpool.Pool, subject string) 
 			join app_position_roles pr on pr.position_code = m.position_code
 			where lower(u.sub) = lower($1)
 				and m.active = true
+				and m.tenant_code = $2
 		) roles
 		order by role_code
-	`, subject)
+	`, subject, tenantCode)
 	if err != nil {
 		return nil, err
 	}

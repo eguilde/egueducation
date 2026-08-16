@@ -6,9 +6,11 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/eguilde/egueducation/internal/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func wrapRefreshTokenCookie(next http.Handler, cfg *config.Config) http.Handler {
@@ -116,7 +118,7 @@ func wrapRegisterPage(next http.Handler, cfg *config.Config) http.Handler {
 	})
 }
 
-func wrapLogoutPage(next http.Handler, cfg *config.Config) http.Handler {
+func wrapLogoutPage(next http.Handler, cfg *config.Config, db *pgxpool.Pool) http.Handler {
 	tmpl := template.Must(template.New("oidc_logout").Parse(oidcLogoutHTML))
 	secure := cfg.TLSEnabled()
 
@@ -127,8 +129,11 @@ func wrapLogoutPage(next http.Handler, cfg *config.Config) http.Handler {
 		}
 
 		returnTo := strings.TrimSpace(r.URL.Query().Get("returnTo"))
-		if returnTo == "" {
+		if !allowedLogoutReturnTo(returnTo, cfg.FrontendOrigin) {
 			returnTo = cfg.FrontendOrigin
+		}
+		if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
+			_, _ = db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value)
 		}
 
 		http.SetCookie(w, &http.Cookie{
@@ -147,6 +152,18 @@ func wrapLogoutPage(next http.Handler, cfg *config.Config) http.Handler {
 			"ReturnTo":     returnTo,
 		})
 	})
+}
+
+func allowedLogoutReturnTo(candidate, frontendOrigin string) bool {
+	candidateURL, err := url.Parse(strings.TrimSpace(candidate))
+	if err != nil || !candidateURL.IsAbs() || candidateURL.User != nil {
+		return false
+	}
+	frontendURL, err := url.Parse(strings.TrimSpace(frontendOrigin))
+	if err != nil || !frontendURL.IsAbs() {
+		return false
+	}
+	return strings.EqualFold(candidateURL.Scheme, frontendURL.Scheme) && strings.EqualFold(candidateURL.Host, frontendURL.Host)
 }
 
 const oidcRegisterHTML = `<!DOCTYPE html>

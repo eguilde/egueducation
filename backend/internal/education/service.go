@@ -1457,10 +1457,7 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 	httpx.JSON(w, http.StatusCreated, item)
 }
 
-func (s *Service) EvaluationDashboard(w http.ResponseWriter, r *http.Request) {
-	institutionID := s.institutionID(r)
-	var response PersonnelEvaluationDashboardResponse
-	err := s.pool.QueryRow(r.Context(), `
+const evaluationDashboardQuery = `
 		select
 			count(*) as total_evaluations,
 			count(*) filter (where status = 'submitted') as submitted_evaluations,
@@ -1473,9 +1470,14 @@ func (s *Service) EvaluationDashboard(w http.ResponseWriter, r *http.Request) {
 					and eeri.institution_id = ee.institution_id
 					and eeri.delivery_status in ('transmis', 'confirmat')
 			)) as communicated_results
-		from education_evaluations
-		where institution_id = $1
-	`, institutionID).Scan(
+		from education_evaluations ee
+		where ee.institution_id = $1
+	`
+
+func (s *Service) EvaluationDashboard(w http.ResponseWriter, r *http.Request) {
+	institutionID := s.institutionID(r)
+	var response PersonnelEvaluationDashboardResponse
+	err := s.pool.QueryRow(r.Context(), evaluationDashboardQuery, institutionID).Scan(
 		&response.Stats.TotalEvaluations,
 		&response.Stats.SubmittedEvaluations,
 		&response.Stats.ApprovedEvaluations,

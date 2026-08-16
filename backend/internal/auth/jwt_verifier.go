@@ -20,6 +20,8 @@ type AccessTokenClaims struct {
 	Audience      []string          `json:"aud"`
 	ExpiresAt     int64             `json:"exp"`
 	IssuedAt      int64             `json:"iat"`
+	NotBefore     int64             `json:"nbf,omitempty"`
+	TokenUse      string            `json:"token_use,omitempty"`
 	Email         string            `json:"email,omitempty"`
 	UserUUID      string            `json:"user_id,omitempty"`
 	TenantID      string            `json:"tenant_id,omitempty"`
@@ -99,10 +101,19 @@ func (v *JWTVerifier) Verify(ctx context.Context, rawToken string) (*AccessToken
 	if time.Now().Unix() > claims.ExpiresAt {
 		return nil, errors.New("jwt: token expired")
 	}
+	if claims.NotBefore != 0 && time.Now().Unix() < claims.NotBefore {
+		return nil, errors.New("jwt: token not active")
+	}
+	if claims.TokenUse != "access" {
+		return nil, errors.New("jwt: token is not an access token")
+	}
 	if claims.Issuer != v.issuer {
 		return nil, fmt.Errorf("jwt: unexpected issuer %q", claims.Issuer)
 	}
-	if v.audience != "" {
+	if v.audience == "" {
+		return nil, errors.New("jwt: expected audience is not configured")
+	}
+	{
 		found := false
 		for _, item := range claims.Audience {
 			if item == v.audience {

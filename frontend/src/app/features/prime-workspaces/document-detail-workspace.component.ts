@@ -7,7 +7,7 @@ import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -41,7 +41,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
     CardModule,
     DialogModule,
     InputTextModule,
-    ProgressSpinnerModule,
+    ProgressSpinner,
     SelectModule,
     TagModule,
     TextareaModule,
@@ -85,7 +85,7 @@ import { WorkflowApiService } from '../../core/api/workflow-api.service';
 
       @if (loading()) {
         <div class="flex flex-1 items-center justify-center">
-          <p-progressSpinner />
+          <p-progress-spinner />
         </div>
       } @else if (documentRecord()) {
         <div class="grid min-h-0 flex-1 gap-4 overflow-auto lg:grid-cols-[1.4fr_0.9fr]">

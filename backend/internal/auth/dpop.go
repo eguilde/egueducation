@@ -2,12 +2,14 @@ package auth
 
 import (
 	gocrypto "crypto"
+	gocryptoRand "crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-jose/go-jose/v4"
@@ -25,6 +27,11 @@ type DPoPProof struct {
 	PublicKey  *jose.JSONWebKey
 	Thumbprint string
 }
+
+var dpopReplayCache = struct {
+	sync.Mutex
+	seen map[string]time.Time
+}{seen: make(map[string]time.Time)}
 
 func VerifyDPoPProof(r *http.Request, accessToken string) (*DPoPProof, error) {
 	rawProof := r.Header.Get(headerDPoP)
@@ -63,6 +70,7 @@ func VerifyDPoPProof(r *http.Request, accessToken string) (*DPoPProof, error) {
 		HTTPURL    string `json:"htu"`
 		IssuedAt   int64  `json:"iat"`
 		ATH        string `json:"ath,omitempty"`
+		JTI        string `json:"jti"`
 	}
 	if err := tok.Claims(jwk.Key, &claims); err != nil {
 		return nil, fmt.Errorf("dpop: verify signature: %w", err)
@@ -80,7 +88,13 @@ func VerifyDPoPProof(r *http.Request, accessToken string) (*DPoPProof, error) {
 	if now.Before(issued.Add(-maxClockSkew)) || now.After(issued.Add(proofMaxAge)) {
 		return nil, errors.New("dpop: proof expired or not yet valid")
 	}
-	if accessToken != "" && claims.ATH != "" {
+	if strings.TrimSpace(claims.JTI) == "" {
+		return nil, errors.New("dpop: missing jti")
+	}
+	if accessToken != "" {
+		if claims.ATH == "" {
+			return nil, errors.New("dpop: missing ath")
+		}
 		expected := accessTokenHash(accessToken)
 		if claims.ATH != expected {
 			return nil, errors.New("dpop: ath mismatch")
@@ -91,15 +105,37 @@ func VerifyDPoPProof(r *http.Request, accessToken string) (*DPoPProof, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dpop: thumbprint: %w", err)
 	}
+	thumbprint := base64.RawURLEncoding.EncodeToString(tp)
+	if !rememberDPoPProof(thumbprint+":"+claims.JTI, now) {
+		return nil, errors.New("dpop: proof replayed")
+	}
 
 	return &DPoPProof{
 		PublicKey:  jwk,
-		Thumbprint: base64.RawURLEncoding.EncodeToString(tp),
+		Thumbprint: thumbprint,
 	}, nil
 }
 
+func rememberDPoPProof(key string, now time.Time) bool {
+	dpopReplayCache.Lock()
+	defer dpopReplayCache.Unlock()
+	for existing, expiresAt := range dpopReplayCache.seen {
+		if !expiresAt.After(now) {
+			delete(dpopReplayCache.seen, existing)
+		}
+	}
+	if expiresAt, exists := dpopReplayCache.seen[key]; exists && expiresAt.After(now) {
+		return false
+	}
+	dpopReplayCache.seen[key] = now.Add(proofMaxAge + maxClockSkew)
+	return true
+}
+
 func WriteDPoPNonce(w http.ResponseWriter) {
-	w.Header().Set(headerNonce, base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().Unix()))))
+	random := make([]byte, 32)
+	if _, err := gocryptoRand.Read(random); err == nil {
+		w.Header().Set(headerNonce, base64.RawURLEncoding.EncodeToString(random))
+	}
 }
 
 func accessTokenHash(token string) string {

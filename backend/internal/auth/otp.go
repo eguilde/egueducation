@@ -19,10 +19,11 @@ import (
 type otpPurpose string
 
 const (
-	otpPurposeLogin otpPurpose = "login"
-	otpLength                  = 6
-	otpTTL                     = 10 * time.Minute
-	otpMaxAttempts             = 5
+	otpPurposeLogin   otpPurpose = "login"
+	otpLength                    = 6
+	otpTTL                       = 10 * time.Minute
+	otpMaxAttempts               = 5
+	otpResendCooldown            = 60 * time.Second
 )
 
 type otpService struct {
@@ -39,7 +40,7 @@ func (s *otpService) Generate(ctx context.Context, userID uuid.UUID, purpose otp
 		return "", fmt.Errorf("otp: generate: %w", err)
 	}
 
-	_, err = s.db.Exec(ctx, `
+	result, err := s.db.Exec(ctx, `
 		insert into oidc_otp_codes (user_id, purpose, code_hash, expires_at, attempts)
 		values ($1::uuid, $2, $3, $4, 0)
 		on conflict (user_id, purpose) do update
@@ -47,25 +48,35 @@ func (s *otpService) Generate(ctx context.Context, userID uuid.UUID, purpose otp
 			expires_at = excluded.expires_at,
 			attempts = 0,
 			updated_at = now()
-	`, userID, string(purpose), hashOTPCode(code), time.Now().Add(otpTTL))
+		where oidc_otp_codes.updated_at <= now() - make_interval(secs => $5)
+	`, userID, string(purpose), hashOTPCode(code), time.Now().Add(otpTTL), int(otpResendCooldown.Seconds()))
 	if err != nil {
 		return "", fmt.Errorf("otp: store: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return "", errors.New("otp: resend cooldown active")
 	}
 
 	return code, nil
 }
 
 func (s *otpService) Verify(ctx context.Context, userID uuid.UUID, purpose otpPurpose, code string) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("otp: begin: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
 	var (
 		storedCode string
 		expiresAt  time.Time
 		attempts   int
 	)
 
-	err := s.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		select code_hash, expires_at, attempts
 		from oidc_otp_codes
 		where user_id = $1::uuid and purpose = $2
+		for update
 	`, userID, string(purpose)).Scan(&storedCode, &expiresAt, &attempts)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return errors.New("otp: no code found")
@@ -80,21 +91,29 @@ func (s *otpService) Verify(ctx context.Context, userID uuid.UUID, purpose otpPu
 		return errors.New("otp: code expired")
 	}
 	if subtle.ConstantTimeCompare([]byte(hashOTPCode(code)), []byte(storedCode)) != 1 {
-		_, _ = s.db.Exec(ctx, `
+		if _, err := tx.Exec(ctx, `
 			update oidc_otp_codes
 			set attempts = attempts + 1,
 				updated_at = now()
 			where user_id = $1::uuid and purpose = $2
-		`, userID, string(purpose))
+		`, userID, string(purpose)); err != nil {
+			return fmt.Errorf("otp: increment attempts: %w", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("otp: commit attempt: %w", err)
+		}
 		return errors.New("otp: invalid code")
 	}
 
-	_, err = s.db.Exec(ctx, `
+	_, err = tx.Exec(ctx, `
 		delete from oidc_otp_codes
 		where user_id = $1::uuid and purpose = $2
 	`, userID, string(purpose))
 	if err != nil {
 		return fmt.Errorf("otp: delete after verify: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("otp: commit: %w", err)
 	}
 	return nil
 }

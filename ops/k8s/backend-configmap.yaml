@@ -9,6 +9,7 @@ data:
   FRONTEND_ORIGIN: "https://scoalabalotesti.eguilde.cloud"
   OIDC_ISSUER: "https://scoalabalotesti.eguilde.cloud/api/oidc"
   OIDC_CLIENT_ID: "egueducation-spa"
+  OIDC_AUDIENCE: "egueducation-api"
   OIDC_DESKTOP_CLIENT_ID: "egueducation-desktop"
   SMS_SENDER_NAME: "EguEducation"
   ENABLE_SMS_OTP: "true"

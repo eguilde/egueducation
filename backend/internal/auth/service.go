@@ -178,10 +178,7 @@ func (s *Service) SessionContext(w http.ResponseWriter, r *http.Request) {
 
 	session, err := s.loadSessionContext(r.Context(), r.Host, subject)
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]string{
-			"code":    "session_load_failed",
-			"message": err.Error(),
-		})
+		httpx.JSON(w, http.StatusInternalServerError, map[string]string{"code": "session_load_failed"})
 		return
 	}
 
@@ -216,6 +213,7 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		update app_users
 		set name = $2,
 			phone_number = $3,
+			phone_number_verified = case when phone_number is distinct from $3 then false else phone_number_verified end,
 			locale = $4,
 			updated_at = now()
 		where id = $1::uuid
@@ -274,6 +272,10 @@ func (s *Service) ListPasskeys(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) BeginPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnablePasskeys {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "passkey_disabled"})
+		return
+	}
 	session, ok := sessionFromContext(r.Context())
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
@@ -329,6 +331,10 @@ func (s *Service) BeginPasskeyRegistration(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnablePasskeys {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "passkey_disabled"})
+		return
+	}
 	session, ok := sessionFromContext(r.Context())
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
@@ -357,12 +363,10 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 
 	var challenge string
 	err := s.db.QueryRow(r.Context(), `
-		select challenge
-		from app_passkey_challenges
-		where user_id = $1::uuid and kind = 'registration' and expires_at > now()
-		order by created_at desc
-		limit 1
-	`, session.User.ID).Scan(&challenge)
+		delete from app_passkey_challenges
+		where user_id = $1::uuid and kind = 'registration' and challenge = $2 and expires_at > now()
+		returning challenge
+	`, session.User.ID, req.Challenge).Scan(&challenge)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_challenge_expired"})
 		return
@@ -399,9 +403,13 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_attestation_required"})
 		return
 	}
-	publicKey, signCount, err := extractPasskeyRegistrationMaterial(attestationObject, passkeyRPID(s.cfg.FrontendOrigin))
+	publicKey, signCount, attestedCredentialID, err := extractPasskeyRegistrationMaterial(attestationObject, passkeyRPID(s.cfg.FrontendOrigin))
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_attestation_invalid"})
+		return
+	}
+	if attestedCredentialID != req.CredentialID {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_credential_mismatch"})
 		return
 	}
 	payload, err := json.Marshal(map[string]any{
@@ -422,19 +430,15 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 	err = s.db.QueryRow(r.Context(), `
 		insert into app_passkeys (user_id, credential_id, device_name, credential_payload)
 		values ($1::uuid, $2, $3, $4::jsonb)
-		on conflict (credential_id) do update
-		set device_name = excluded.device_name,
-			credential_payload = excluded.credential_payload
+		on conflict (credential_id) do nothing
 		returning id::text, credential_id, device_name, created_at::text, coalesce(last_used_at::text, '')
 	`, session.User.ID, req.CredentialID, req.DeviceName, string(payload)).Scan(
 		&saved.ID, &saved.CredentialID, &saved.DeviceName, &saved.CreatedAt, &saved.LastUsedAt,
 	)
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "passkey_save_failed"})
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "passkey_credential_exists"})
 		return
 	}
-	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_challenges where user_id = $1::uuid and kind = 'registration'`, session.User.ID)
-
 	s.logAudit(r.Context(), session.User.Sub, "profile.passkey.register", "user", session.User.ID, "success", "User registered a passkey.", map[string]any{
 		"credential_id": req.CredentialID,
 		"device_name":   req.DeviceName,
@@ -444,6 +448,10 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Service) BeginPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnablePasskeys {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "passkey_disabled"})
+		return
+	}
 	challengeBytes := make([]byte, 32)
 	if _, err := rand.Read(challengeBytes); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "passkey_challenge_failed"})
@@ -453,7 +461,7 @@ func (s *Service) BeginPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 	challenge := base64.RawURLEncoding.EncodeToString(challengeBytes)
 	expiresAt := time.Now().Add(passkeyChallengeTTL)
 
-	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_login_challenges`)
+	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_login_challenges where expires_at <= now()`)
 
 	_, err := s.db.Exec(r.Context(), `
 		insert into app_passkey_login_challenges (challenge, expires_at)
@@ -478,6 +486,10 @@ func (s *Service) BeginPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnablePasskeys {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "passkey_disabled"})
+		return
+	}
 	var req FinishPasskeyAuthenticationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_passkey_request"})
@@ -492,12 +504,10 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 
 	var storedChallenge string
 	err := s.db.QueryRow(r.Context(), `
-		select challenge
-		from app_passkey_login_challenges
-		where expires_at > now()
-		order by created_at desc
-		limit 1
-	`).Scan(&storedChallenge)
+		delete from app_passkey_login_challenges
+		where challenge = $1 and expires_at > now()
+		returning challenge
+	`, req.Challenge).Scan(&storedChallenge)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_challenge_expired"})
 		return
@@ -531,7 +541,9 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	subject, userID, deviceName, publicKey, storedSignCount, err := s.lookupPasskeySubjectByCredentialID(r.Context(), req.CredentialID)
+	branding := tenant.ResolveBranding(r.Host, s.cfg.CustomerName, tenant.DefaultInstitutionID(strings.TrimSpace(s.cfg.CustomerDomain+" "+s.cfg.CustomerName)))
+	tenantCode := tenant.DefaultTenantCode(branding.InstitutionID, branding.Subdomain)
+	subject, userID, deviceName, publicKey, storedSignCount, err := s.lookupPasskeySubjectByCredentialID(r.Context(), req.CredentialID, tenantCode)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_invalid"})
 		return
@@ -560,8 +572,6 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 		where lower(sub) = lower($1)
 	`, subject)
 
-	_, _ = s.db.Exec(r.Context(), `delete from app_passkey_login_challenges where challenge = $1`, req.Challenge)
-
 	nonce, err := s.storePasskeyLoginNonce(r.Context(), userID)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "passkey_login_failed"})
@@ -578,6 +588,10 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
+	if !s.cfg.EnableWallet {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "eudi_wallet_disabled"})
+		return
+	}
 	session, ok := sessionFromContext(r.Context())
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
@@ -603,6 +617,18 @@ func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	subject := s.currentSubject(r)
+	if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
+		_, _ = s.db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value)
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "egueducation_rt",
+		Value:    "",
+		Path:     "/api/oidc",
+		HttpOnly: true,
+		Secure:   s.cfg.TLSEnabled(),
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
 	s.logAudit(r.Context(), subject, "auth.session.logout", "session", subject, "success", "OIDC-backed API session signed out.", nil)
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
@@ -612,6 +638,9 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) loadSessionContext(ctx context.Context, host string, subject string) (SessionContext, error) {
 	var session SessionContext
+	configuredTenantHint := strings.TrimSpace(s.cfg.CustomerDomain + " " + s.cfg.CustomerName)
+	branding := tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+	tenantCode := tenant.DefaultTenantCode(branding.InstitutionID, branding.Subdomain)
 	err := s.db.QueryRow(ctx, `
 		select
 			u.id::text,
@@ -629,9 +658,13 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			sc.gdpr_capabilities
 		from app_users u
 		join app_session_context sc on sc.user_id = u.id
-		where lower(u.sub) = lower($1)
-		   or u.id::text = $1
-	`, subject).Scan(
+		where (lower(u.sub) = lower($1) or u.id::text = $1)
+		  and u.status = 'active'
+		  and exists (
+			select 1 from app_memberships membership
+			where membership.user_id = u.id and membership.tenant_code = $2 and membership.active = true
+		  )
+	`, subject, tenantCode).Scan(
 		&session.User.ID,
 		&session.User.Sub,
 		&session.User.Name,
@@ -650,17 +683,8 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 		return SessionContext{}, err
 	}
 
-	branding := tenant.ResolveBranding(host, session.InstitutionName, session.InstitutionID)
-	configuredTenantHint := strings.TrimSpace(s.cfg.CustomerDomain + " " + s.cfg.CustomerName)
-	if tenant.IsLocalHost(host) {
-		branding = tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
-	}
-	if branding.InstitutionID == "" {
-		branding = tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
-	}
 	session.InstitutionID = branding.InstitutionID
 	session.InstitutionName = branding.Name
-	tenantCode := tenant.DefaultTenantCode(session.InstitutionID, branding.Subdomain)
 
 	roleRows, err := s.db.Query(ctx, `
 		select distinct role_code
@@ -669,15 +693,15 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			from app_user_roles ur
 			join app_users u on u.id = ur.user_id
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
+			  and ur.tenant_code = $2
 			union
 			select pr.role_code
 			from app_memberships m
 			join app_users u on u.id = m.user_id
 			join app_position_roles pr on pr.position_code = m.position_code
-			left join app_org_units ou on ou.code = m.org_unit_code
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
-				and coalesce(ou.tenant_code, '') = $2
+				and m.tenant_code = $2
 		) roles
 		order by role_code
 	`, session.User.ID, tenantCode)
@@ -704,12 +728,14 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			from app_user_permissions up
 			join app_users u on u.id = up.user_id
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
+			  and up.tenant_code = $2
 			union
 			select rp.permission_code
 			from app_user_roles ur
 			join app_users u on u.id = ur.user_id
 			join app_role_permissions rp on rp.role_code = ur.role_code
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
+			  and ur.tenant_code = $2
 			union
 			select pp.permission_code
 			from app_memberships m
@@ -717,6 +743,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			join app_position_permissions pp on pp.position_code = m.position_code
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
+				and m.tenant_code = $2
 			union
 			select rp.permission_code
 			from app_memberships m
@@ -725,9 +752,10 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			join app_role_permissions rp on rp.role_code = pr.role_code
 			where (u.id::text = $1 or lower(u.sub) = lower($1))
 				and m.active = true
+				and m.tenant_code = $2
 		) permissions
 		order by permission_code
-	`, session.User.ID)
+	`, session.User.ID, tenantCode)
 	if err != nil {
 		return SessionContext{}, err
 	}
@@ -750,8 +778,9 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 		join app_modules m on m.code = um.module_code
 		join app_users u on u.id = um.user_id
 		where lower(u.sub) = lower($1)
+		  and um.tenant_code = $2
 		order by m.code
-	`, subject)
+	`, subject, tenantCode)
 	if err != nil {
 		return SessionContext{}, err
 	}
@@ -818,7 +847,7 @@ func (s *Service) runtimeCapability(code string) bool {
 	}
 }
 
-func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, credentialID string) (string, string, string, *passkeyPublicKey, uint32, error) {
+func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, credentialID string, tenantCode string) (string, string, string, *passkeyPublicKey, uint32, error) {
 	var (
 		subject    string
 		userID     string
@@ -831,7 +860,8 @@ func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, creden
 		join app_users u on u.id = p.user_id
 		where p.credential_id = $1
 			and u.status = 'active'
-	`, credentialID).Scan(&subject, &userID, &deviceName, &payload)
+			and exists (select 1 from app_memberships m where m.user_id = u.id and m.tenant_code = $2 and m.active = true)
+	`, credentialID, tenantCode).Scan(&subject, &userID, &deviceName, &payload)
 	if err != nil {
 		return "", "", "", nil, 0, err
 	}
@@ -875,6 +905,19 @@ func CurrentInstitutionIDFromRequest(r *http.Request) string {
 		}
 	}
 	return ""
+}
+
+func IsPlatformSuperAdminFromRequest(r *http.Request) bool {
+	session, ok := sessionFromContext(r.Context())
+	if !ok || tenant.DefaultTenantCode(session.InstitutionID, tenant.ResolveBranding(r.Host, "", session.InstitutionID).Subdomain) != "tenant-egueducation" {
+		return false
+	}
+	for _, role := range session.User.Roles {
+		if strings.EqualFold(role, "super_admin") {
+			return true
+		}
+	}
+	return false
 }
 
 func phoneNumberCandidates(phoneNumber string) []string {

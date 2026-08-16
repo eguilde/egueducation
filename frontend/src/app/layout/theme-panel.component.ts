@@ -1,21 +1,23 @@
-import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslocoPipe } from '@jsverse/transloco';
-import { ButtonModule } from 'primeng/button';
-import { DividerModule } from 'primeng/divider';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { TooltipModule } from 'primeng/tooltip';
 
 import { ThemeService } from '../core/ui/theme.service';
 
 @Component({
   selector: 'app-theme-panel',
-  imports: [TitleCasePipe, FormsModule, TranslocoPipe, ButtonModule, DividerModule, SelectButtonModule, TooltipModule],
+  imports: [FormsModule, TranslocoPipe, SelectButtonModule],
   template: `
-    <div class="flex flex-col gap-3 text-sm" role="group" [attr.aria-label]="'appearance.title' | transloco">
-      <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
-        <legend class="font-medium" id="theme-mode-label">{{ 'appearance.mode' | transloco }}</legend>
+    <div
+      class="flex flex-col gap-4 text-sm"
+      role="group"
+      [attr.aria-label]="'appearance.title' | transloco"
+    >
+      <fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+        <legend class="font-medium" id="theme-mode-label">
+          {{ 'appearance.mode' | transloco }}
+        </legend>
         <p-selectbutton
           [options]="colorSchemeOptions"
           [ngModel]="theme.colorScheme()"
@@ -29,84 +31,12 @@ import { ThemeService } from '../core/ui/theme.service';
             <i [class]="item.icon" aria-hidden="true"></i>
           </ng-template>
         </p-selectbutton>
-      </fieldset>
-
-      <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
-        <legend class="font-medium" id="primary-color-label">{{ 'appearance.primary' | transloco }}</legend>
-        <p class="m-0 text-xs text-muted-color">
-          Light: {{ theme.lightPrimaryColor() | titlecase }} • Dark: {{ theme.darkPrimaryColor() | titlecase }}
+        <p class="m-0 text-xs leading-5 text-muted-color">
+          Aura is the application theme; only its light and dark color schemes are selectable.
         </p>
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-color">Light mode</span>
-            <span class="text-xs text-muted-color">{{ theme.lightPrimaryColor() | titlecase }}</span>
-          </div>
-          <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="primary-color-label">
-            @for (color of theme.primaryColors; track color.name) {
-              <button
-                type="button"
-                role="radio"
-                class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
-                [class.outline-primary]="theme.lightPrimaryColor() === color.name"
-                [class.outline-transparent]="theme.lightPrimaryColor() !== color.name"
-                [style.backgroundColor]="color.palette['500']"
-                [pTooltip]="color.name | titlecase"
-                tooltipPosition="top"
-                [attr.aria-checked]="theme.lightPrimaryColor() === color.name"
-                [attr.aria-label]="('appearance.primary' | transloco) + ': ' + (color.name | titlecase)"
-                (click)="theme.setLightPrimaryColor(color.name)"
-              ></button>
-            }
-          </div>
-
-          <p-divider />
-
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-color">Dark mode</span>
-            <span class="text-xs text-muted-color">{{ theme.darkPrimaryColor() | titlecase }}</span>
-          </div>
-          <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="primary-color-label">
-            @for (color of theme.primaryColors; track color.name) {
-              <button
-                type="button"
-                role="radio"
-                class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
-                [class.outline-primary]="theme.darkPrimaryColor() === color.name"
-                [class.outline-transparent]="theme.darkPrimaryColor() !== color.name"
-                [style.backgroundColor]="color.palette['500']"
-                [pTooltip]="color.name | titlecase"
-                tooltipPosition="top"
-                [attr.aria-checked]="theme.darkPrimaryColor() === color.name"
-                [attr.aria-label]="('appearance.primary' | transloco) + ': ' + (color.name | titlecase)"
-                (click)="theme.setDarkPrimaryColor(color.name)"
-              ></button>
-            }
-          </div>
-        </div>
       </fieldset>
 
-      <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
-        <legend class="font-medium" id="surface-color-label">{{ 'appearance.surface' | transloco }}</legend>
-        <div class="flex flex-wrap gap-1" role="radiogroup" aria-labelledby="surface-color-label">
-          @for (surface of theme.surfaces; track surface.name) {
-            <button
-              type="button"
-              role="radio"
-              class="size-7 cursor-pointer rounded-full border-0 outline outline-1 outline-offset-1 transition-all"
-              [class.outline-primary]="theme.selectedSurface() === surface.name"
-              [class.outline-transparent]="theme.selectedSurface() !== surface.name"
-              [style.backgroundColor]="surface.palette['500']"
-              [pTooltip]="surface.name | titlecase"
-              tooltipPosition="top"
-              [attr.aria-checked]="theme.selectedSurface() === surface.name"
-              [attr.aria-label]="('appearance.surface' | transloco) + ': ' + (surface.name | titlecase)"
-              (click)="theme.setSurface(surface.name)"
-            ></button>
-          }
-        </div>
-      </fieldset>
-
-      <div class="flex items-center justify-between gap-3 pt-1">
+      <div class="flex items-center justify-between gap-3 border-t border-surface pt-4">
         <span class="font-medium">{{ 'appearance.language' | transloco }}</span>
         <p-selectbutton
           [options]="languageOptions"

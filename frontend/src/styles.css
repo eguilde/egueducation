@@ -204,3 +204,49 @@ html.app-dark .app-auth-warning {
   min-width: 2rem;
   height: 1.85rem;
 }
+
+.app-document-workspace .p-tabs,
+.app-document-workspace .p-tabpanels,
+.app-document-workspace .p-tabpanel,
+.workspace-table .p-datatable,
+.workspace-table .p-datatable-wrapper,
+.workspace-table .p-datatable-table-container {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.workspace-table .p-datatable-table-container {
+  overflow: auto;
+}
+
+.workspace-table .p-datatable-paginator {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  min-height: 2.4rem;
+  border-top: 1px solid var(--p-content-border-color);
+  background: var(--p-content-background);
+}
+
+.app-document-workspace .p-datatable-thead {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.app-document-filter-panel .p-fieldset-legend {
+  margin-left: 1rem;
+  padding-inline: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.registry-table .p-datatable-thead > tr > th {
+  background: var(--p-surface-50);
+}
+
+.app-dark .registry-table .p-datatable-thead > tr > th {
+  background: var(--p-surface-800);
+}

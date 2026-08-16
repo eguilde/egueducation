@@ -85,7 +85,8 @@ func main() {
 	archiveDocumentService := earchiva.NewDocumentService(sessionDB, archiveStorage)
 	archiveWorker := earchiva.NewIngestionWorker(sessionDB, archiveStorage, archiveTextract, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second)
 	gdprService := gdpr.NewService(sessionDB)
-	registraturaService := registratura.NewService(sessionDB)
+	registraturaService := registratura.NewService(sessionDB, archiveStorage)
+	registraturaService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
 	workflowService := workflow.NewService(sessionDB)
 
 	router := chi.NewRouter()
@@ -96,18 +97,9 @@ func main() {
 	router.Use(httprate.LimitByIP(120, time.Minute))
 	router.Use(cors(cfg.FrontendOrigin))
 
-	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		dbStatus := "ok"
-		if err := pool.Ping(r.Context()); err != nil {
-			dbStatus = "error"
-		}
-		httpx.JSON(w, http.StatusOK, map[string]any{
-			"status":   "ok",
-			"service":  "egueducation-api",
-			"database": dbStatus,
-			"time":     time.Now().UTC(),
-		})
-	})
+	router.Get("/health", readinessHandler(pool))
+	router.Get("/readyz", readinessHandler(pool))
+	router.Get("/healthz", livenessHandler)
 
 	router.HandleFunc("/logout", authService.HandleLogoutAlias)
 
@@ -208,9 +200,16 @@ func main() {
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/lookup", registraturaService.LookupDocuments)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}", registraturaService.GetDocument)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/versions", registraturaService.ListDocumentVersions)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/workflow-history", registraturaService.GetDocumentWorkflowHistory)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/print-pdf", registraturaService.PrintDocumentPDF)
+			r.With(authService.RequireAnyPermissions("registratura.manage", "workflow.manage")).Get("/registratura/workflow-assignees", registraturaService.WorkflowAssignees)
+			r.With(authService.RequireAnyPermissions("registratura.manage", "workflow.manage")).Post("/registratura/documents/{documentID}/workflow-actions", registraturaService.ApplyDocumentWorkflowAction)
 			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/versions", registraturaService.CreateDocumentVersion)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/attachments", registraturaService.ListDocumentAttachments)
 			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/attachments", registraturaService.CreateDocumentAttachment)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/attachments/stage", registraturaService.StageDocumentAttachment)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/attachments/upload", registraturaService.UploadDocumentAttachment)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/attachments/{attachmentID}/download", registraturaService.DownloadDocumentAttachment)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/registre", registraturaService.ListRegistries)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/registre/default", registraturaService.GetDefaultRegistry)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/registre/{id}", registraturaService.GetRegistry)
@@ -225,6 +224,21 @@ func main() {
 			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/parties", registraturaService.CreateParty)
 			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/parties/{id}", registraturaService.UpdateParty)
 			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/parties/{id}", registraturaService.DeleteParty)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/admin/departments", registraturaService.ListDepartments)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/admin/departments", registraturaService.CreateDepartment)
+			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/admin/departments/{id}", registraturaService.UpdateDepartment)
+			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/admin/departments/{id}", registraturaService.DeleteDepartment)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/admin/organizations", registraturaService.ListOrganizations)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/admin/organizations", registraturaService.CreateOrganization)
+			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/admin/organizations/{id}", registraturaService.UpdateOrganization)
+			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/admin/organizations/{id}", registraturaService.DeleteOrganization)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/admin/organization-chart", registraturaService.OrganizationChart)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/admin/users/{id}/assignments", registraturaService.GetUserAssignments)
+			r.With(authService.RequirePermissions("registratura.manage")).Put("/registratura/admin/users/{id}/assignments", registraturaService.PutUserAssignments)
+			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/admin/registries", registraturaService.ListAdminRegistries)
+			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/admin/registries", registraturaService.SaveAdminRegistry)
+			r.With(authService.RequirePermissions("registratura.manage")).Patch("/registratura/admin/registries/{id}", registraturaService.SaveAdminRegistry)
+			r.With(authService.RequirePermissions("registratura.manage")).Delete("/registratura/admin/registries/{id}", registraturaService.DeleteRegistru)
 			r.With(authService.RequirePermissions("registratura.links.read")).Get("/registratura/document-links", registraturaService.ListDocumentLinks)
 			r.With(authService.RequirePermissions("registratura.links.manage")).Post("/registratura/document-links", registraturaService.CreateDocumentLink)
 			r.With(authService.RequirePermissions("registratura.links.manage")).Delete("/registratura/document-links/{linkID}", registraturaService.DeleteDocumentLink)
@@ -649,6 +663,37 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error("server shutdown failed", zap.Error(err))
 	}
+}
+
+type databasePinger interface {
+	Ping(context.Context) error
+}
+
+func readinessHandler(pool databasePinger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status := http.StatusOK
+		healthStatus := "ok"
+		dbStatus := "ok"
+		if err := pool.Ping(r.Context()); err != nil {
+			status = http.StatusServiceUnavailable
+			healthStatus = "error"
+			dbStatus = "error"
+		}
+		httpx.JSON(w, status, map[string]any{
+			"status":   healthStatus,
+			"service":  "egueducation-api",
+			"database": dbStatus,
+			"time":     time.Now().UTC(),
+		})
+	}
+}
+
+func livenessHandler(w http.ResponseWriter, _ *http.Request) {
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"status":  "ok",
+		"service": "egueducation-api",
+		"time":    time.Now().UTC(),
+	})
 }
 
 func buildBootstrapConfig(cfg config.Config, r *http.Request) map[string]any {

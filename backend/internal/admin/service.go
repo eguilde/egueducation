@@ -99,6 +99,19 @@ func (s *Service) institutionName(r *http.Request) string {
 	return tenant.ResolveBranding(r.Host, s.cfg.CustomerName, s.institutionID(r)).Name
 }
 
+func (s *Service) tenantCode(r *http.Request) string {
+	branding := tenant.ResolveBranding(r.Host, s.cfg.CustomerName, s.institutionID(r))
+	return tenant.DefaultTenantCode(s.institutionID(r), branding.Subdomain)
+}
+
+func requirePlatformSuperAdmin(w http.ResponseWriter, r *http.Request) bool {
+	if authruntime.IsPlatformSuperAdminFromRequest(r) {
+		return true
+	}
+	httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "platform_admin_required"})
+	return false
+}
+
 func (s *Service) scalarCount(sql string) int {
 	var count int
 	if s.pool == nil {
@@ -189,8 +202,9 @@ func (s *Service) ListUsers(w http.ResponseWriter, r *http.Request) {
 		[]string{"name", "email", "position", "status", "locale"},
 	)
 
-	clauses := []string{"1 = 1"}
-	args := []any{}
+	tenantCode := s.tenantCode(r)
+	clauses := []string{"exists (select 1 from app_memberships tm where tm.user_id = u.id and tm.tenant_code = $1 and tm.active = true)"}
+	args := []any{tenantCode}
 	addContains := func(column string, value string) {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, column+" like $"+strconv.Itoa(len(args)))
@@ -221,7 +235,7 @@ func (s *Service) ListUsers(w http.ResponseWriter, r *http.Request) {
 	if err := s.pool.QueryRow(r.Context(), `
 		select count(*)
 		from app_users u
-		left join app_memberships pm on pm.user_id = u.id and pm.is_primary = true
+		left join app_memberships pm on pm.user_id = u.id and pm.is_primary = true and pm.tenant_code = $1
 		left join app_positions pp on pp.code = pm.position_code
 		`+whereClause, args...).Scan(&total); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_users_failed"})
@@ -258,7 +272,7 @@ func (s *Service) ListUsers(w http.ResponseWriter, r *http.Request) {
 			u.preferred_otp_channel,
 			coalesce(to_char(u.last_login_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), '')
 		from app_users u
-		left join app_memberships pm on pm.user_id = u.id and pm.is_primary = true
+		left join app_memberships pm on pm.user_id = u.id and pm.is_primary = true and pm.tenant_code = $1
 		left join app_positions pp on pp.code = pm.position_code
 		`+whereClause+`
 		order by `+sortField+` `+strings.ToUpper(query.Direction)+`, u.name
@@ -308,6 +322,18 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 	institutionID := s.institutionID(r)
 	institutionName := s.institutionName(r)
+	if req.ID != "" && !authruntime.IsPlatformSuperAdminFromRequest(r) {
+		var sharedIdentity bool
+		if err := s.pool.QueryRow(r.Context(), `
+			select exists(
+				select 1 from app_memberships
+				where user_id = $1::uuid and active = true and tenant_code <> $2
+			)
+		`, req.ID, s.tenantCode(r)).Scan(&sharedIdentity); err != nil || sharedIdentity {
+			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "shared_identity_platform_admin_required"})
+			return
+		}
+	}
 
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
@@ -342,8 +368,9 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 				preferred_otp_channel = $10,
 				updated_at = now()
 			where id::text = $1
+			  and exists (select 1 from app_memberships m where m.user_id = app_users.id and m.tenant_code = $11 and m.active = true)
 			returning id::text, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel
-		`, req.ID, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, req.EmailVerified, req.PhoneVerified, req.PreferredOTPChannel).Scan(
+		`, req.ID, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, req.EmailVerified, req.PhoneVerified, req.PreferredOTPChannel, s.tenantCode(r)).Scan(
 			&item.ID, &item.Sub, &item.Name, &item.Email, &item.Phone, &item.Locale, &item.Status, &item.EmailVerified, &item.PhoneVerified, &item.PreferredOTPChannel,
 		)
 	}
@@ -362,12 +389,12 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := tx.Exec(r.Context(), `
-		insert into app_user_modules(user_id, module_code)
-		select $1::uuid, code
+		insert into app_user_modules(user_id, module_code, tenant_code)
+		select $1::uuid, code, $2
 		from app_modules
 		where active = true
 		on conflict do nothing
-	`, item.ID); err != nil {
+	`, item.ID, s.tenantCode(r)); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 		return
 	}
@@ -486,6 +513,9 @@ func (s *Service) ListRoles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) UpsertRole(w http.ResponseWriter, r *http.Request) {
+	if !requirePlatformSuperAdmin(w, r) {
+		return
+	}
 	var req UpsertRoleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_role"})
@@ -524,8 +554,8 @@ func (s *Service) ListUserRoleAssignments(w http.ResponseWriter, r *http.Request
 		[]string{"user_name", "role_code"},
 	)
 
-	clauses := []string{"1 = 1"}
-	args := []any{}
+	clauses := []string{"ur.tenant_code = $1"}
+	args := []any{s.tenantCode(r)}
 	if value := strings.TrimSpace(query.Filters["user_name"]); value != "" {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, "(lower(u.name) like $"+strconv.Itoa(len(args))+" or lower(u.email) like $"+strconv.Itoa(len(args))+")")
@@ -603,21 +633,31 @@ func (s *Service) UpsertUserRoleAssignment(w http.ResponseWriter, r *http.Reques
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_role_assignment"})
 		return
 	}
+	tenantCode := s.tenantCode(r)
+	if req.RoleCode == "super_admin" {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "platform_role_protected"})
+		return
+	}
+	var targetInTenant bool
+	if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id = $1::uuid and tenant_code = $2 and active = true)`, req.UserID, tenantCode).Scan(&targetInTenant); err != nil || !targetInTenant {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "target_outside_tenant"})
+		return
+	}
 
 	if req.Assigned {
 		if _, err := s.pool.Exec(r.Context(), `
-			insert into app_user_roles (user_id, role_code)
-			values ($1::uuid, $2)
+			insert into app_user_roles (user_id, role_code, tenant_code)
+			values ($1::uuid, $2, $3)
 			on conflict do nothing
-		`, req.UserID, req.RoleCode); err != nil {
+		`, req.UserID, req.RoleCode, tenantCode); err != nil {
 			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_assignment_save_failed"})
 			return
 		}
 	} else {
 		if _, err := s.pool.Exec(r.Context(), `
 			delete from app_user_roles
-			where user_id = $1::uuid and role_code = $2
-		`, req.UserID, req.RoleCode); err != nil {
+			where user_id = $1::uuid and role_code = $2 and tenant_code = $3
+		`, req.UserID, req.RoleCode, tenantCode); err != nil {
 			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_assignment_save_failed"})
 			return
 		}
@@ -635,7 +675,8 @@ func (s *Service) UpsertUserRoleAssignment(w http.ResponseWriter, r *http.Reques
 		from app_users u
 		join app_roles r on r.code = $2
 		where u.id = $1::uuid
-	`, req.UserID, req.RoleCode).Scan(&item.ID, &item.UserID, &item.UserName, &item.UserEmail, &item.RoleCode, &item.RoleLabel); err != nil {
+		  and exists (select 1 from app_memberships m where m.user_id = u.id and m.tenant_code = $3 and m.active = true)
+	`, req.UserID, req.RoleCode, tenantCode).Scan(&item.ID, &item.UserID, &item.UserName, &item.UserEmail, &item.RoleCode, &item.RoleLabel); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_role_assignment_save_failed"})
 		return
 	}
@@ -806,8 +847,8 @@ func (s *Service) ListMemberships(w http.ResponseWriter, r *http.Request) {
 		[]string{"user_name", "position_name", "organization_name", "start_date"},
 	)
 
-	clauses := []string{"1 = 1"}
-	args := []any{}
+	clauses := []string{"m.tenant_code = $1"}
+	args := []any{s.tenantCode(r)}
 	if value := strings.TrimSpace(query.Filters["user_name"]); value != "" {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		clauses = append(clauses, "lower(u.name) like $"+strconv.Itoa(len(args)))
@@ -933,13 +974,14 @@ func (s *Service) UpsertMembership(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
-	if err := tx.QueryRow(r.Context(), `select name from app_org_units where code = $1 and active = true`, req.OrgUnitCode).Scan(&req.OrganizationName); err != nil {
+	tenantCode := s.tenantCode(r)
+	if err := tx.QueryRow(r.Context(), `select name from app_org_units where code = $1 and tenant_code = $2 and active = true`, req.OrgUnitCode, tenantCode).Scan(&req.OrganizationName); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_membership"})
 		return
 	}
 
 	if req.IsPrimary {
-		if _, err := tx.Exec(r.Context(), `update app_memberships set is_primary = false, updated_at = now() where user_id::text = $1`, req.UserID); err != nil {
+		if _, err := tx.Exec(r.Context(), `update app_memberships set is_primary = false, updated_at = now() where user_id::text = $1 and tenant_code = $2`, req.UserID, tenantCode); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_membership_save_failed"})
 			return
 		}
@@ -948,14 +990,15 @@ func (s *Service) UpsertMembership(w http.ResponseWriter, r *http.Request) {
 	var item Membership
 	if req.ID == "" {
 		err = tx.QueryRow(r.Context(), `
-			insert into app_memberships (user_id, position_code, org_unit_code, organization_name, is_primary, active, start_date, end_date)
-			select $1::uuid, $2, $3, $4, $5, $6, $7::date, nullif($8, '')::date
+			insert into app_memberships (user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date, end_date)
+			select $1::uuid, $9, $2, $3, $4, $5, $6, $7::date, nullif($8, '')::date
 			returning id::text
-		`, req.UserID, req.PositionCode, req.OrgUnitCode, req.OrganizationName, req.IsPrimary, req.Active, req.StartDate, req.EndDate).Scan(&item.ID)
+		`, req.UserID, req.PositionCode, req.OrgUnitCode, req.OrganizationName, req.IsPrimary, req.Active, req.StartDate, req.EndDate, tenantCode).Scan(&item.ID)
 	} else {
 		err = tx.QueryRow(r.Context(), `
 			update app_memberships
 			set user_id = $2::uuid,
+				tenant_code = $10,
 				position_code = $3,
 				org_unit_code = $4,
 				organization_name = $5,
@@ -964,9 +1007,9 @@ func (s *Service) UpsertMembership(w http.ResponseWriter, r *http.Request) {
 				start_date = $8::date,
 				end_date = nullif($9, '')::date,
 				updated_at = now()
-			where id::text = $1
+			where id::text = $1 and tenant_code = $10
 			returning id::text
-		`, req.ID, req.UserID, req.PositionCode, req.OrgUnitCode, req.OrganizationName, req.IsPrimary, req.Active, req.StartDate, req.EndDate).Scan(&item.ID)
+		`, req.ID, req.UserID, req.PositionCode, req.OrgUnitCode, req.OrganizationName, req.IsPrimary, req.Active, req.StartDate, req.EndDate, tenantCode).Scan(&item.ID)
 	}
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_membership_save_failed"})
@@ -974,12 +1017,12 @@ func (s *Service) UpsertMembership(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := tx.Exec(r.Context(), `
-		insert into app_user_modules(user_id, module_code)
-		select $1::uuid, scope_module
+		insert into app_user_modules(user_id, module_code, tenant_code)
+		select $1::uuid, scope_module, $3
 		from app_positions
 		where code = $2 and active = true
 		on conflict do nothing
-	`, req.UserID, req.PositionCode); err != nil {
+	`, req.UserID, req.PositionCode, tenantCode); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_membership_save_failed"})
 		return
 	}
@@ -1336,6 +1379,9 @@ func (s *Service) ListPermissionAssignments(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Service) UpsertPermissionAssignment(w http.ResponseWriter, r *http.Request) {
+	if !requirePlatformSuperAdmin(w, r) {
+		return
+	}
 	var req UpsertPermissionAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_permission_assignment"})
@@ -1529,6 +1575,9 @@ func (s *Service) ListRolePermissionAssignments(w http.ResponseWriter, r *http.R
 }
 
 func (s *Service) UpsertRolePermissionAssignment(w http.ResponseWriter, r *http.Request) {
+	if !requirePlatformSuperAdmin(w, r) {
+		return
+	}
 	var req UpsertRolePermissionAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_role_permission_assignment"})
@@ -1720,6 +1769,9 @@ func (s *Service) ListPositionRoleAssignments(w http.ResponseWriter, r *http.Req
 }
 
 func (s *Service) UpsertPositionRoleAssignment(w http.ResponseWriter, r *http.Request) {
+	if !requirePlatformSuperAdmin(w, r) {
+		return
+	}
 	var req UpsertPositionRoleAssignmentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_position_role_assignment"})

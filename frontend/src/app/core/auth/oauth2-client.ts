@@ -1,6 +1,6 @@
 import * as oauth from 'oauth4webapi';
 
-import { AuthConfig, StoredTokens, UserProfile } from './auth.types';
+import { AuthConfig, StoredTokens } from './auth.types';
 
 let cachedServer: oauth.AuthorizationServer | null = null;
 let cachedAuthority = '';
@@ -66,18 +66,13 @@ export async function buildAuthorizationUrl(
   codeVerifier: string,
   extraParams?: Record<string, string>,
   dpop?: oauth.DPoPHandle,
-): Promise<{ url: URL; state: string }> {
+): Promise<{ url: URL; state: string; nonce: string }> {
   const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
   const state = oauth.generateRandomState();
-  const params = new URLSearchParams({
-    client_id: config.clientId,
-    redirect_uri: config.redirectUri,
-    response_type: 'code',
-    scope: config.scope,
-    code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
-    state,
-  });
+  // A nonce binds the ID Token returned at the token endpoint to this browser
+  // login attempt. Keep it with the PKCE verifier, never in persistent storage.
+  const nonce = oauth.generateRandomNonce();
+  const params = authorizationParameters(config, codeChallenge, state, nonce);
   if (extraParams) {
     for (const [key, value] of Object.entries(extraParams)) {
       params.set(key, value);
@@ -99,12 +94,30 @@ export async function buildAuthorizationUrl(
     const url = new URL(server.authorization_endpoint!);
     url.searchParams.set('client_id', config.clientId);
     url.searchParams.set('request_uri', result.request_uri);
-    return { url, state };
+    return { url, state, nonce };
   }
 
   const url = new URL(server.authorization_endpoint!);
   params.forEach((value, key) => url.searchParams.set(key, value));
-  return { url, state };
+  return { url, state, nonce };
+}
+
+export function authorizationParameters(
+  config: Pick<AuthConfig, 'clientId' | 'redirectUri' | 'scope'>,
+  codeChallenge: string,
+  state: string,
+  nonce: string,
+): URLSearchParams {
+  return new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
+    response_type: 'code',
+    scope: config.scope,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
+    state,
+    nonce,
+  });
 }
 
 export function validateAuthResponse(
@@ -121,6 +134,7 @@ export async function exchangeCode(
   config: AuthConfig,
   params: URLSearchParams,
   codeVerifier: string,
+  expectedNonce: string,
   dpop?: oauth.DPoPHandle,
 ): Promise<StoredTokens> {
   const doGrant = () =>
@@ -138,13 +152,19 @@ export async function exchangeCode(
   let result: oauth.TokenEndpointResponse;
 
   try {
-    result = await oauth.processAuthorizationCodeResponse(server, client(config), response);
+    result = await oauth.processAuthorizationCodeResponse(server, client(config), response, {
+      expectedNonce,
+      requireIdToken: true,
+    });
   } catch (error) {
     if (!oauth.isDPoPNonceError(error)) {
       throw error;
     }
     response = await doGrant();
-    result = await oauth.processAuthorizationCodeResponse(server, client(config), response);
+    result = await oauth.processAuthorizationCodeResponse(server, client(config), response, {
+      expectedNonce,
+      requireIdToken: true,
+    });
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -207,24 +227,4 @@ export async function revokeToken(
     { ...tokenRequestOptions(config.authority), ...(dpop ? { DPoP: dpop } : {}) } as oauth.RevocationRequestOptions,
   );
   await oauth.processRevocationResponse(response);
-}
-
-export function parseIdTokenClaims(idToken: string): UserProfile {
-  const parts = idToken.split('.');
-  if (parts.length !== 3) {
-    throw new Error('Invalid JWT format');
-  }
-  const payload = parts[1];
-  const claims = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as Record<string, unknown>;
-  return {
-    sub: String(claims['sub']),
-    email: typeof claims['email'] === 'string' ? claims['email'] : undefined,
-    name:
-      typeof claims['name'] === 'string'
-        ? claims['name']
-        : [claims['given_name'], claims['family_name']].filter(Boolean).join(' ') || undefined,
-    phone_number: typeof claims['phone_number'] === 'string' ? claims['phone_number'] : undefined,
-    initials: typeof claims['initials'] === 'string' ? claims['initials'] : undefined,
-    roles: Array.isArray(claims['roles']) ? claims['roles'].filter((value): value is string => typeof value === 'string') : [],
-  };
 }

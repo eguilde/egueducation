@@ -117,28 +117,12 @@ func (s *Service) authorizeGovernanceMeetingAction(r *http.Request, meetingID st
 	}
 
 	allowed, err := s.currentSubjectHasPermission(r, subject, permission)
-	if err != nil || allowed {
-		return allowed, err
-	}
-
-	actorName, err := s.currentActorName(r, subject)
-	if err != nil || actorName == "" {
-		return false, err
-	}
-
-	meeting, err := s.loadGovernanceMeetingAccessContext(r, meetingID)
-	if err != nil {
-		return false, err
-	}
-
-	if rule.AllowMeetingChair && normalizedEducationIdentity(actorName) == normalizedEducationIdentity(meeting.Chairperson) {
-		return true, nil
-	}
-	if rule.AllowMeetingSecretary && normalizedEducationIdentity(actorName) == normalizedEducationIdentity(meeting.SecretaryName) {
-		return true, nil
-	}
-
-	return s.actorMatchesGovernanceMembership(r, actorName, meeting, rule)
+	// Meeting names and governance membership names are mutable display data, not
+	// stable identities. Contextual authorization must remain fail-closed until
+	// those records carry an immutable app_user/membership identifier.
+	_ = meetingID
+	_ = rule
+	return allowed, err
 }
 
 func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, permission string) (bool, error) {
@@ -151,12 +135,14 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 				from app_user_permissions up
 				join app_users u on u.id = up.user_id
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
+				  and up.tenant_code = public.current_tenant_code()
 				union
 				select rp.permission_code
 				from app_user_roles ur
 				join app_users u on u.id = ur.user_id
 				join app_role_permissions rp on rp.role_code = ur.role_code
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
+				  and ur.tenant_code = public.current_tenant_code()
 				union
 				select pp.permission_code
 				from app_memberships m
@@ -164,6 +150,7 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 				join app_position_permissions pp on pp.position_code = m.position_code
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
 					and m.active = true
+					and m.tenant_code = public.current_tenant_code()
 				union
 				select rp.permission_code
 				from app_memberships m
@@ -172,6 +159,7 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 				join app_role_permissions rp on rp.role_code = pr.role_code
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
 					and m.active = true
+					and m.tenant_code = public.current_tenant_code()
 			) permissions
 			where permission_code = $2
 		)

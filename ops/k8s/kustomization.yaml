@@ -6,7 +6,9 @@ resources:
   - certificate.yaml
   - backend-configmap.yaml
   - backend-deployment.yaml
+  - backend-poddisruptionbudget.yaml
   - backend-service.yaml
   - frontend-deployment.yaml
+  - frontend-poddisruptionbudget.yaml
   - frontend-service.yaml
   - ingressroute.yaml

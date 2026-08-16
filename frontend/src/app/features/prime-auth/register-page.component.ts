@@ -25,10 +25,14 @@ type EntryRoute = '/auth/start';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <main class="app-auth-shell">
-      <section class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.02fr_0.98fr] md:px-8 lg:px-10">
+    <main class="min-h-dvh overflow-hidden bg-surface-50 text-color dark:bg-surface-950">
+      <section
+        class="mx-auto grid min-h-dvh w-full max-w-7xl items-center gap-8 px-5 py-8 md:grid-cols-[1.02fr_0.98fr] md:px-8 lg:px-10"
+      >
         <div class="space-y-8">
-          <div class="app-auth-badge px-4 py-2 text-sm font-semibold">
+          <div
+            class="inline-flex items-center rounded-full border border-primary bg-surface-0 px-4 py-2 text-sm font-semibold text-primary shadow-sm dark:bg-surface-900"
+          >
             {{ 'auth.register.badge' | transloco }}
           </div>
 
@@ -43,13 +47,17 @@ type EntryRoute = '/auth/start';
 
           <div class="grid gap-3">
             @for (item of journey; track item.title) {
-              <article class="app-auth-glass-card rounded-[1.5rem] p-5">
+              <article
+                class="rounded-[1.5rem] border border-surface bg-surface-0 p-5 shadow-sm dark:bg-surface-900"
+              >
                 <div class="flex items-start gap-4">
-                  <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                  <span
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-200"
+                  >
                     <i [class]="item.icon"></i>
                   </span>
                   <div class="space-y-1">
-                    <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
+                    <p class="text-xs font-black uppercase tracking-[0.2em] text-primary">
                       {{ item.kicker | transloco }}
                     </p>
                     <h2 class="text-lg font-black text-color">
@@ -66,24 +74,31 @@ type EntryRoute = '/auth/start';
 
           <div class="flex flex-col gap-3 sm:flex-row">
             <a
+              pButton
               routerLink="/auth/start"
               [queryParams]="{ returnUrl: returnUrl }"
-              class="app-auth-outline-link px-6 py-3 text-base font-bold"
+              severity="secondary"
+              class="justify-center px-6 py-3 text-base font-bold"
             >
               {{ 'auth.register.backToLogin' | transloco }}
             </a>
             <a
+              pButton
               routerLink="/auth/start"
               [queryParams]="{ returnUrl: returnUrl }"
-              class="app-auth-primary-link px-6 py-3 text-base font-bold"
+              class="justify-center px-6 py-3 text-base font-bold"
             >
               {{ 'auth.register.oidcCta' | transloco }}
             </a>
           </div>
         </div>
 
-        <aside class="app-auth-panel rounded-[2rem] p-4">
-          <p-card styleClass="overflow-hidden rounded-[1.75rem] border border-surface bg-surface-0 shadow-xl dark:bg-surface-900">
+        <aside
+          class="rounded-[2rem] border border-surface bg-surface-0 p-4 shadow-lg dark:bg-surface-900"
+        >
+          <p-card
+            styleClass="overflow-hidden rounded-[1.75rem] border border-surface bg-surface-0 shadow-xl dark:bg-surface-900"
+          >
             <ng-template pTemplate="header">
               <div class="bg-primary px-7 py-8 text-primary-contrast">
                 <p class="text-sm font-semibold uppercase tracking-[0.24em] opacity-75">
@@ -92,7 +107,7 @@ type EntryRoute = '/auth/start';
                 <h2 class="mt-3 text-3xl font-black tracking-tight">
                   {{ 'auth.register.cardTitle' | transloco }}
                 </h2>
-                <p class="mt-3 max-w-[24rem] text-sm leading-6 text-white/80">
+                <p class="mt-3 max-w-[24rem] text-sm leading-6 text-primary-contrast/80">
                   {{ 'auth.register.cardSubtitle' | transloco }}
                 </p>
               </div>
@@ -102,9 +117,11 @@ type EntryRoute = '/auth/start';
               <div class="flex flex-wrap gap-2">
                 @for (step of steps; track step.key) {
                   <span
-                    class="rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]"
-                    class="app-auth-step"
-                    [class.app-auth-step--active]="step.key === currentStep()"
+                    [class]="
+                      step.key === currentStep()
+                        ? 'rounded-full border border-primary bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary-contrast'
+                        : 'rounded-full border border-surface bg-surface-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-color dark:bg-surface-900'
+                    "
                   >
                     {{ step.label | transloco }}
                   </span>
@@ -115,16 +132,20 @@ type EntryRoute = '/auth/start';
                 <div class="grid gap-4 sm:grid-cols-2">
                   @for (item of accountTypes; track item.code) {
                     <button
+                      pButton
                       type="button"
-                      class="app-auth-panel-inner group flex h-full flex-col rounded-[1.5rem] p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none"
+                      severity="secondary"
+                      class="group flex h-full flex-col rounded-[1.5rem] border border-surface bg-surface-0 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg dark:bg-surface-950"
                       (click)="selectAccountType(item.code)"
                     >
                       <div class="flex items-start gap-4">
-                        <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                        <span
+                          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-200"
+                        >
                           <i [class]="item.icon"></i>
                         </span>
                         <div class="space-y-1">
-                          <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
+                          <p class="text-xs font-black uppercase tracking-[0.2em] text-primary">
                             {{ item.kicker | transloco }}
                           </p>
                           <h3 class="text-lg font-black text-color">
@@ -139,39 +160,53 @@ type EntryRoute = '/auth/start';
                   }
                 </div>
 
-                <p-message severity="info" [text]="'auth.register.info' | transloco" />
+                <p-message severity="info">{{ 'auth.register.info' | transloco }}</p-message>
               } @else if (currentStep() === 'consent') {
-                <div class="rounded-[1.5rem] border border-surface bg-surface-50 p-4 dark:bg-white/5">
-                  <p class="text-xs font-black uppercase tracking-[0.2em] text-rose-700 dark:text-rose-200">
+                <div
+                  class="rounded-[1.5rem] border border-surface bg-surface-50 p-4 dark:bg-surface-900"
+                >
+                  <p class="text-xs font-black uppercase tracking-[0.2em] text-primary">
                     {{ 'auth.register.selectedAccount' | transloco }}
                   </p>
                   <div class="mt-3 flex items-start gap-3">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-700/10 text-rose-700 dark:bg-white/10 dark:text-rose-100">
+                    <span
+                      class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-200"
+                    >
                       <i [class]="selectedAccount()?.icon ?? ''"></i>
                     </span>
                     <div class="space-y-1">
-                      <h3 class="text-lg font-black text-slate-950 dark:text-white">
+                      <h3 class="text-lg font-black text-color">
                         {{ selectedAccount()?.title | transloco }}
                       </h3>
-                      <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      <p class="text-sm leading-6 text-muted-color">
                         {{ selectedAccount()?.body | transloco }}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <p-message severity="info" [text]="'auth.register.info' | transloco" />
+                <p-message severity="info">{{ 'auth.register.info' | transloco }}</p-message>
 
-                <div class="app-auth-panel-inner grid gap-3 rounded-[1.5rem] p-4">
+                <div
+                  class="grid gap-3 rounded-[1.5rem] border border-surface bg-surface-0 p-4 dark:bg-surface-950"
+                >
                   <label class="flex items-start gap-3">
-                    <p-checkbox formControlName="provisioningAcknowledged" inputId="register-provisioning" [binary]="true" />
-                    <span class="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    <p-checkbox
+                      formControlName="provisioningAcknowledged"
+                      inputId="register-provisioning"
+                      [binary]="true"
+                    />
+                    <span class="text-sm leading-6 text-color">
                       {{ 'auth.register.consent.items.provisioning' | transloco }}
                     </span>
                   </label>
                   <label class="flex items-start gap-3">
-                    <p-checkbox formControlName="flowAcknowledged" inputId="register-flow" [binary]="true" />
-                    <span class="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    <p-checkbox
+                      formControlName="flowAcknowledged"
+                      inputId="register-flow"
+                      [binary]="true"
+                    />
+                    <span class="text-sm leading-6 text-color">
                       {{ 'auth.register.consent.items.flow' | transloco }}
                     </span>
                   </label>
@@ -196,19 +231,23 @@ type EntryRoute = '/auth/start';
                   />
                 </div>
               } @else {
-                <div class="app-auth-warning rounded-[1.5rem] p-4 text-sm leading-6">
+                <p-message severity="warn" styleClass="w-full">
                   {{ 'auth.register.entry.info' | transloco }}
-                </div>
+                </p-message>
 
                 <div class="grid gap-4 sm:grid-cols-2">
                   @for (entry of entryPoints; track entry.code) {
-                    <article class="app-auth-panel-inner rounded-[1.5rem] p-5 shadow-sm">
+                    <article
+                      class="rounded-[1.5rem] border border-surface bg-surface-0 p-5 shadow-sm dark:bg-surface-950"
+                    >
                       <div class="flex items-start gap-4">
-                        <span class="app-auth-accent-soft flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+                        <span
+                          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-700 dark:bg-primary-950 dark:text-primary-200"
+                        >
                           <i [class]="entry.icon"></i>
                         </span>
                         <div class="space-y-1">
-                          <p class="app-auth-accent text-xs font-black uppercase tracking-[0.2em]">
+                          <p class="text-xs font-black uppercase tracking-[0.2em] text-primary">
                             {{ entry.kicker | transloco }}
                           </p>
                           <h3 class="text-lg font-black text-color">
@@ -242,9 +281,11 @@ type EntryRoute = '/auth/start';
                     (onClick)="backToConsent()"
                   />
                   <a
+                    pButton
                     routerLink="/auth/start"
                     [queryParams]="{ returnUrl: returnUrl }"
-                    class="app-auth-outline-link px-6 py-3 text-base font-bold"
+                    severity="secondary"
+                    class="justify-center px-6 py-3 text-base font-bold"
                   >
                     {{ 'auth.register.backToLogin' | transloco }}
                   </a>

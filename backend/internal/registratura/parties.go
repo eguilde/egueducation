@@ -114,6 +114,12 @@ func (s *Service) ListParties(w http.ResponseWriter, r *http.Request) {
 		}
 		items = append(items, item)
 	}
+	for index := range items {
+		if err := s.enrichPartySpecialized(r.Context(), &items[index]); err != nil {
+			httpx.JSON(w, 500, map[string]any{"code": "parties_list_failed"})
+			return
+		}
+	}
 	if err := rows.Err(); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "parties_list_failed"})
 		return
@@ -172,6 +178,12 @@ func (s *Service) LookupParties(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "parties_lookup_failed"})
 		return
 	}
+	for index := range items {
+		if err := s.enrichPartySpecialized(r.Context(), &items[index]); err != nil {
+			httpx.JSON(w, 500, map[string]any{"code": "parties_lookup_failed"})
+			return
+		}
+	}
 	httpx.JSON(w, http.StatusOK, items)
 }
 
@@ -189,6 +201,10 @@ func (s *Service) GetParty(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "party_load_failed"})
+		return
+	}
+	if err := s.enrichPartySpecialized(r.Context(), item); err != nil {
+		httpx.JSON(w, 500, map[string]any{"code": "party_load_failed"})
 		return
 	}
 	httpx.JSON(w, http.StatusOK, item)
@@ -510,10 +526,14 @@ func (s *Service) createParty(ctx context.Context, req CreatePartyRequest) (*Par
 	if err != nil {
 		return nil, err
 	}
+	if _, err := tx.Exec(ctx, `update app_parties set birth_date=nullif($2,'')::date,birth_place=$3,trade_register_no=$4,legal_representative=$5,legal_form=$6,institution_type=$7,institution_level=$8,website=$9,share_capital=$10 where id=$1::uuid`, item.ID, nullableString(req.BirthDate), strings.TrimSpace(req.BirthPlace), strings.TrimSpace(req.TradeRegisterNo), strings.TrimSpace(req.LegalRepresentative), strings.TrimSpace(req.LegalForm), strings.TrimSpace(req.InstitutionType), strings.TrimSpace(req.InstitutionLevel), strings.TrimSpace(req.Website), req.ShareCapital); err != nil {
+		return nil, err
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	_ = s.enrichPartySpecialized(ctx, item)
 	return item, nil
 }
 
@@ -576,6 +596,33 @@ func (s *Service) updateParty(ctx context.Context, id string, req UpdatePartyReq
 	}
 	if req.Active != nil {
 		current.Active = *req.Active
+	}
+	if req.BirthDate != nil {
+		current.BirthDate = req.BirthDate
+	}
+	if req.BirthPlace != nil {
+		current.BirthPlace = strings.TrimSpace(*req.BirthPlace)
+	}
+	if req.TradeRegisterNo != nil {
+		current.TradeRegisterNo = strings.TrimSpace(*req.TradeRegisterNo)
+	}
+	if req.LegalRepresentative != nil {
+		current.LegalRepresentative = strings.TrimSpace(*req.LegalRepresentative)
+	}
+	if req.LegalForm != nil {
+		current.LegalForm = strings.TrimSpace(*req.LegalForm)
+	}
+	if req.InstitutionType != nil {
+		current.InstitutionType = strings.TrimSpace(*req.InstitutionType)
+	}
+	if req.InstitutionLevel != nil {
+		current.InstitutionLevel = strings.TrimSpace(*req.InstitutionLevel)
+	}
+	if req.Website != nil {
+		current.Website = strings.TrimSpace(*req.Website)
+	}
+	if req.ShareCapital != nil {
+		current.ShareCapital = req.ShareCapital
 	}
 	if current.DisplayName == "" || current.PartyType == "" {
 		return nil, fmt.Errorf("missing party fields")
@@ -649,10 +696,21 @@ func (s *Service) updateParty(ctx context.Context, id string, req UpdatePartyReq
 	if err != nil {
 		return nil, err
 	}
+	if _, err := tx.Exec(ctx, `update app_parties set birth_date=nullif($2,'')::date,birth_place=$3,trade_register_no=$4,legal_representative=$5,legal_form=$6,institution_type=$7,institution_level=$8,website=$9,share_capital=$10 where id=$1::uuid`, item.ID, nullableString(current.BirthDate), current.BirthPlace, current.TradeRegisterNo, current.LegalRepresentative, current.LegalForm, current.InstitutionType, current.InstitutionLevel, current.Website, current.ShareCapital); err != nil {
+		return nil, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
+	_ = s.enrichPartySpecialized(ctx, item)
 	return item, nil
+}
+
+func (s *Service) enrichPartySpecialized(ctx context.Context, item *Party) error {
+	if item == nil {
+		return nil
+	}
+	return s.pool.QueryRow(ctx, `select case when birth_date is null then null else to_char(birth_date,'YYYY-MM-DD') end,birth_place,trade_register_no,legal_representative,legal_form,institution_type,institution_level,website,share_capital::float8 from app_parties where id=$1::uuid`, item.ID).Scan(&item.BirthDate, &item.BirthPlace, &item.TradeRegisterNo, &item.LegalRepresentative, &item.LegalForm, &item.InstitutionType, &item.InstitutionLevel, &item.Website, &item.ShareCapital)
 }
 
 func (s *Service) deleteParty(ctx context.Context, id string) error {

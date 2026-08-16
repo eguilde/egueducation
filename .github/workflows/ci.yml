@@ -1,0 +1,96 @@
+name: Validate application
+
+on:
+  pull_request:
+    paths:
+      - backend/**
+      - frontend/**
+      - ops/**
+      - .github/workflows/**
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - frontend/**
+      - ops/**
+      - .github/workflows/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests and vulnerability scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - name: Test
+        working-directory: backend
+        run: go test ./...
+      - name: Vet
+        working-directory: backend
+        run: go vet ./...
+      - name: Reachable vulnerability scan
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  frontend:
+    name: Frontend tests, build, and audit
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test -- --watch=false
+      - name: Production build
+        run: npm run build
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+  browser:
+    name: Registratura Chromium end-to-end tests
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/registratura-parity.spec.ts --workers=1
+      - name: Upload failed browser traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  kubernetes:
+    name: Render Kubernetes manifests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: kubectl kustomize ops/k8s >/dev/null

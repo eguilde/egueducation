@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: egueducation-frontend
+  namespace: education
+spec:
+  # With one replica this blocks voluntary disruption instead of accepting a
+  # known outage. Raise replicas to two in the external GitOps source before
+  # changing this to a more permissive budget.
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: egueducation-frontend
