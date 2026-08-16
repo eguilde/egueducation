@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -70,9 +71,11 @@ func newOIDCProviderHandler(
 		provider.WithPolicies(buildLoginPolicy(db, cfg, smsService, otp, passkeyRedeemNonce)),
 		provider.WithHandleGrantFunc(buildGrantClaimsEnricher(db, cfg)),
 		provider.WithDCR(buildDCRHandler(cfg), nil),
-		provider.WithNotifyErrorFunc(func(_ context.Context, err error) {
-			// Intentionally silent here; the app logger already wraps initialization errors.
-			_ = err
+		provider.WithNotifyErrorFunc(func(ctx context.Context, err error) {
+			// Do not include request parameters here: authorization codes and other
+			// credentials must never reach logs. The provider error itself is needed
+			// to diagnose failed protocol interactions in production.
+			slog.ErrorContext(ctx, "OIDC provider request failed", "error", err)
 		}),
 		provider.WithRenderErrorFunc(buildProviderErrorRenderer(cfg)),
 	)
@@ -421,11 +424,26 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		preferredInstitution = branding.InstitutionID
 
 		tenantCode := tenant.DefaultTenantCode(preferredInstitution, branding.Subdomain)
+		tx, err := beginTenantReadTx(r.Context(), db, tenantCode, "grant claims")
+		if err != nil {
+			return err
+		}
+		defer func() { _ = tx.Rollback(r.Context()) }()
+
 		var tenantMembership bool
-		if err := db.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id = $1::uuid and tenant_code = $2 and active = true)`, userID, tenantCode).Scan(&tenantMembership); err != nil || !tenantMembership {
+		if err := tx.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id = $1::uuid and tenant_code = $2 and active = true)`, userID, tenantCode).Scan(&tenantMembership); err != nil {
+			return fmt.Errorf("verify grant tenant membership: %w", err)
+		}
+		if !tenantMembership {
 			return errors.New("authenticated user is not a member of the requested tenant")
 		}
-		roles, _ := loadRolesForSubject(r.Context(), db, subject, tenantCode)
+		roles, err := loadRolesForSubject(r.Context(), tx, subject, tenantCode)
+		if err != nil {
+			return fmt.Errorf("load grant tenant roles: %w", err)
+		}
+		if err := tx.Commit(r.Context()); err != nil {
+			return fmt.Errorf("commit tenant-scoped grant claims: %w", err)
+		}
 		audience := tokenAudiences(grant, cfg.OIDCAudience)
 
 		if grant.AdditionalTokenClaims == nil {
@@ -858,18 +876,11 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 		return oidcLoginUser{}, errors.New("missing tenant code")
 	}
 
-	tx, err := db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+	tx, err := beginTenantReadTx(ctx, db, tenantCode, "login lookup")
 	if err != nil {
-		return oidcLoginUser{}, fmt.Errorf("begin tenant-scoped login lookup: %w", err)
+		return oidcLoginUser{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, `
-		select
-			set_config('app.tenant_id', $1, true),
-			set_config('app.is_super_admin', 'false', true)
-	`, tenantCode); err != nil {
-		return oidcLoginUser{}, fmt.Errorf("scope login lookup to tenant: %w", err)
-	}
 
 	candidates := phoneNumberCandidates(identifier)
 
@@ -908,7 +919,31 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 	return user, nil
 }
 
-func loadRolesForSubject(ctx context.Context, db *pgxpool.Pool, subject string, tenantCode string) ([]string, error) {
+type oidcRowsQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+func beginTenantReadTx(ctx context.Context, db *pgxpool.Pool, tenantCode, operation string) (pgx.Tx, error) {
+	tenantCode = strings.TrimSpace(tenantCode)
+	if tenantCode == "" {
+		return nil, fmt.Errorf("%s requires a tenant code", operation)
+	}
+	tx, err := db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return nil, fmt.Errorf("begin tenant-scoped %s: %w", operation, err)
+	}
+	if _, err := tx.Exec(ctx, `
+		select
+			set_config('app.tenant_id', $1, true),
+			set_config('app.is_super_admin', 'false', true)
+	`, tenantCode); err != nil {
+		_ = tx.Rollback(ctx)
+		return nil, fmt.Errorf("scope %s to tenant: %w", operation, err)
+	}
+	return tx, nil
+}
+
+func loadRolesForSubject(ctx context.Context, db oidcRowsQuerier, subject string, tenantCode string) ([]string, error) {
 	rows, err := db.Query(ctx, `
 		select distinct role_code
 		from (
