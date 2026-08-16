@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -7,6 +7,7 @@ import {
   BatchCreateRegistraturaDocumentRequest,
   CreateRegistraturaRegistryRequest,
   CreateRegistraturaDocumentAttachmentRequest,
+  StageRegistraturaDocumentAttachmentRequest,
   CreateRegistraturaDocumentRequest,
   CreateRegistraturaDocumentVersionRequest,
   ExportRegistraturaDocumentsRequest,
@@ -15,6 +16,9 @@ import {
   RegistraturaDocument,
   RegistraturaDocumentFilters,
   RegistraturaDocumentVersion,
+  RegistraturaWorkflowActionRequest,
+  RegistraturaWorkflowHistoryEntry,
+  RegistraturaWorkflowAssigneesResponse,
   RegistraturaParty,
   RegistraturaRegistry,
   CreateRegistraturaPartyRequest,
@@ -72,6 +76,23 @@ export class RegistraturaApiService {
     return this.http.post('/api/registratura/documents/export-pdf', payload, { responseType: 'blob' as const });
   }
 
+  /** A document-specific printout; deliberately separate from registry/date-range export. */
+  printDocument(documentId: string) {
+    return this.http.get(`/api/registratura/documents/${documentId}/print-pdf`, { responseType: 'blob' as const });
+  }
+
+  documentWorkflowHistory(documentId: string) {
+    return this.http.get<RegistraturaWorkflowHistoryEntry[]>(`/api/registratura/documents/${documentId}/workflow-history`);
+  }
+
+  transitionDocumentWorkflow(documentId: string, payload: RegistraturaWorkflowActionRequest) {
+    return this.http.post<RegistraturaDocument>(`/api/registratura/documents/${documentId}/workflow-actions`, payload);
+  }
+
+  workflowAssignees() {
+    return this.http.get<RegistraturaWorkflowAssigneesResponse>('/api/registratura/workflow-assignees');
+  }
+
   registries() {
     return this.http.get<RegistraturaRegistry[]>('/api/registratura/registre');
   }
@@ -118,6 +139,21 @@ export class RegistraturaApiService {
 
   createDocumentAttachment(documentId: string, payload: CreateRegistraturaDocumentAttachmentRequest) {
     return this.http.post<RegistraturaDocumentAttachment>(`/api/registratura/documents/${documentId}/attachments`, payload);
+  }
+
+  stageDocumentAttachment(documentId: string, payload: StageRegistraturaDocumentAttachmentRequest) {
+    return this.http.post<RegistraturaDocumentAttachment>(`/api/registratura/documents/${documentId}/attachments/stage`, payload);
+  }
+
+  uploadDocumentAttachment(documentId: string, file: File, category = 'primary'): Observable<HttpEvent<RegistraturaDocumentAttachment>> {
+    const body = new FormData();
+    body.set('file', file, file.name);
+    body.set('category', category);
+    return this.http.post<RegistraturaDocumentAttachment>(`/api/registratura/documents/${documentId}/attachments/upload`, body, { observe: 'events', reportProgress: true });
+  }
+
+  downloadDocumentAttachment(documentId: string, attachmentId: string) {
+    return this.http.get(`/api/registratura/documents/${documentId}/attachments/${attachmentId}/download`, { responseType: 'blob' as const });
   }
 
   partiesLookup(query?: string) {

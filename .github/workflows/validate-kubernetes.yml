@@ -1,0 +1,23 @@
+name: Validate Kubernetes template
+
+on:
+  pull_request:
+    paths:
+      - ops/k8s/**
+      - .github/workflows/validate-kubernetes.yml
+  push:
+    branches: [main]
+    paths:
+      - ops/k8s/**
+      - .github/workflows/validate-kubernetes.yml
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render Kustomize template
+        run: kubectl kustomize ops/k8s >/dev/null

@@ -32,7 +32,13 @@ func (s *Service) ListRegistries(w http.ResponseWriter, r *http.Request) {
 			is_default,
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-		from registre
+		from registre r
+		where r.active and (r.visibility = 'public' or exists (
+			select 1 from registratura_registry_departments rd
+			join registratura_user_departments ud on ud.department_id=rd.department_id
+			join app_users u on u.id=ud.user_id
+			where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)
+		))
 		order by is_default desc, nume asc
 	`)
 	if err != nil {
@@ -164,18 +170,25 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Subject = strings.TrimSpace(req.Subject)
-	req.DocumentType = strings.TrimSpace(req.DocumentType)
-	req.Direction = strings.TrimSpace(req.Direction)
-	req.Status = strings.TrimSpace(req.Status)
 	req.Correspondent = strings.TrimSpace(req.Correspondent)
 	req.AssignedTo = strings.TrimSpace(req.AssignedTo)
 	req.Confidentiality = strings.TrimSpace(req.Confidentiality)
 	req.Summary = strings.TrimSpace(req.Summary)
-	if req.Count < 1 || req.Count > 100 {
+	if req.Count < 1 || req.Count > 20 {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_batch_count"})
 		return
 	}
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
+	if req.RegistruID <= 0 {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_registry"})
+		return
+	}
+	if req.Subject == "" {
+		req.Subject = "Document multiplu"
+	}
+	if req.Confidentiality == "" {
+		req.Confidentiality = "normal"
+	}
+	if !s.isNomenclatureAllowed(r.Context(), "registratura_confidentiality", req.Confidentiality) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_fields"})
 		return
 	}
@@ -190,18 +203,19 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 
 	for i := 0; i < req.Count; i++ {
 		createReq := CreateDocumentRequest{
-			RegistruID:      &req.RegistruID,
-			Subject:         req.Subject,
-			DocumentType:    req.DocumentType,
-			Direction:       req.Direction,
-			Status:          req.Status,
-			Correspondent:   req.Correspondent,
-			AssignedTo:      req.AssignedTo,
+			RegistruID:           &req.RegistruID,
+			Subject:              req.Subject,
+			DocumentType:         "MULTIPLU",
+			Direction:            "intern",
+			Status:               "INCOMING",
+			Correspondent:        req.Correspondent,
+			AssignedTo:           req.AssignedTo,
 			CorrespondentPartyID: req.CorrespondentPartyID,
 			AssignedPartyID:      req.AssignedPartyID,
-			Confidentiality: req.Confidentiality,
-			Summary:         req.Summary,
-			DueDate:         req.DueDate,
+			Confidentiality:      req.Confidentiality,
+			Summary:              req.Summary,
+			DueDate:              req.DueDate,
+			RecordKind:           "document",
 		}
 		if req.Count > 1 {
 			createReq.Subject = fmt.Sprintf("%s #%d", req.Subject, i+1)
@@ -446,8 +460,13 @@ func (s *Service) findRegistryByID(ctx context.Context, id int64) (*Registru, er
 			is_default,
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-		from registre
-		where id = $1
+		from registre r
+		where id = $1 and r.active and (r.visibility = 'public' or exists (
+			select 1 from registratura_registry_departments rd
+			join registratura_user_departments ud on ud.department_id=rd.department_id
+			join app_users u on u.id=ud.user_id
+			where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)
+		))
 	`, id)
 	var (
 		item         Registru
@@ -488,8 +507,13 @@ func (s *Service) findDefaultRegistry(ctx context.Context) (*Registru, error) {
 			is_default,
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-		from registre
-		where is_default = true
+		from registre r
+		where is_default = true and r.active and (r.visibility = 'public' or exists (
+			select 1 from registratura_registry_departments rd
+			join registratura_user_departments ud on ud.department_id=rd.department_id
+			join app_users u on u.id=ud.user_id
+			where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)
+		))
 		order by id asc
 		limit 1
 	`)
@@ -521,14 +545,14 @@ func (s *Service) findDefaultRegistry(ctx context.Context) (*Registru, error) {
 func (s *Service) resolveRegistryID(ctx context.Context, tx pgx.Tx, registruID *int64) (int64, error) {
 	if registruID != nil && *registruID > 0 {
 		var id int64
-		if err := tx.QueryRow(ctx, `select id from registre where id = $1`, *registruID).Scan(&id); err != nil {
+		if err := tx.QueryRow(ctx, `select id from registre r where id = $1 and r.active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)))`, *registruID).Scan(&id); err != nil {
 			return 0, err
 		}
 		return id, nil
 	}
 
 	var id int64
-	if err := tx.QueryRow(ctx, `select id from registre where is_default = true order by id asc limit 1`).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, `select id from registre r where is_default and active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))) order by id asc limit 1`).Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -559,6 +583,7 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 
 	err = tx.QueryRow(ctx, `
 		insert into registratura_documents (
+			tenant_code,
 			registru_id,
 			registry_number,
 			subject,
@@ -573,7 +598,7 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 			confidentiality,
 			summary,
 			due_date
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+		) values (public.current_tenant_code(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		returning
 			id::text,
 			registru_id,
@@ -676,7 +701,64 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 		return document, err
 	}
 
+	if err := applyDocumentParityTx(ctx, tx, document.ID, req, institutionID, createdBy); err != nil {
+		return document, err
+	}
+
 	return document, nil
+}
+
+func applyDocumentParityTx(ctx context.Context, tx pgx.Tx, documentID string, req CreateDocumentRequest, institutionID string, actor string) error {
+	var privateRegistry bool
+	if err := tx.QueryRow(ctx, `select r.visibility='private' from registratura_documents d join registre r on r.id=d.registru_id where d.id=$1::uuid`, documentID).Scan(&privateRegistry); err != nil {
+		return err
+	}
+	if privateRegistry && len(req.DepartmentIDs) == 0 {
+		return fmt.Errorf("private registry requires a department assignment")
+	}
+	recordKind := strings.TrimSpace(req.RecordKind)
+	if recordKind == "" {
+		recordKind = "document"
+	}
+	if recordKind != "document" && recordKind != "dosar" {
+		return fmt.Errorf("invalid record kind")
+	}
+	if _, err := tx.Exec(ctx, `
+		update registratura_documents set external_number=$2, external_number_date=nullif($3,'')::date,
+		entry_at=nullif($4,'')::timestamptz, exit_at=nullif($5,'')::timestamptz,
+		activity=$6, record_kind=$7, updated_at=now() where id=$1::uuid`,
+		documentID, strings.TrimSpace(req.ExternalNumber), nullableString(req.ExternalNumberDate), nullableString(req.EntryAt), nullableString(req.ExitAt), strings.TrimSpace(req.Activity), recordKind,
+	); err != nil {
+		return err
+	}
+	for _, rawID := range req.DepartmentIDs {
+		departmentID := strings.TrimSpace(rawID)
+		if departmentID == "" {
+			continue
+		}
+		var valid bool
+		if err := tx.QueryRow(ctx, `select exists(select 1 from registratura_departments d where d.id=$1::uuid and d.institution_id=$2 and d.active and (not $3 or exists(select 1 from registratura_documents x join registratura_registry_departments rd on rd.registry_id=x.registru_id where x.id=$4::uuid and rd.department_id=d.id)))`, departmentID, institutionID, privateRegistry, documentID).Scan(&valid); err != nil || !valid {
+			return fmt.Errorf("invalid document department")
+		}
+		if _, err := tx.Exec(ctx, `insert into registratura_document_departments(tenant_code,institution_id,document_id,department_id,assigned_by) values(public.current_tenant_code(),$1,$2::uuid,$3::uuid,$4) on conflict do nothing`, institutionID, documentID, departmentID, actor); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func replaceDocumentParityTx(ctx context.Context, tx pgx.Tx, documentID string, req CreateDocumentRequest, institutionID string, actor string) error {
+	if _, err := tx.Exec(ctx, `delete from registratura_document_departments where document_id=$1::uuid`, documentID); err != nil {
+		return err
+	}
+	return applyDocumentParityTx(ctx, tx, documentID, req, institutionID, actor)
+}
+
+func nullableString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }
 
 func (s *Service) fetchDocumentsForExport(ctx context.Context, institutionID string, req ExportDocumentsRequest) ([]Document, *Registru, error) {

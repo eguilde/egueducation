@@ -1,11 +1,56 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/eguilde/egueducation/internal/config"
 )
+
+type testPinger struct {
+	err error
+}
+
+func (p testPinger) Ping(context.Context) error {
+	return p.err
+}
+
+func TestReadinessHandlerReportsDatabaseFailure(t *testing.T) {
+	tests := []struct {
+		name     string
+		pinger   testPinger
+		wantCode int
+	}{
+		{name: "database ready", pinger: testPinger{}, wantCode: http.StatusOK},
+		{name: "database unavailable", pinger: testPinger{err: errors.New("unavailable")}, wantCode: http.StatusServiceUnavailable},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
+
+			readinessHandler(tt.pinger).ServeHTTP(recorder, request)
+
+			if recorder.Code != tt.wantCode {
+				t.Fatalf("status = %d, want %d", recorder.Code, tt.wantCode)
+			}
+		})
+	}
+}
+
+func TestLivenessHandlerDoesNotRequireDatabase(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	livenessHandler(recorder, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusOK)
+	}
+}
 
 func TestBuildBootstrapConfigIncludesLegacyAndRuntimeFields(t *testing.T) {
 	cfg := config.Config{

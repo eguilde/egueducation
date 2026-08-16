@@ -13,19 +13,39 @@ spec:
       labels:
         app: egueducation-backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
-        - name: backend
-          image: registry.eguilde.cloud/eguilde/egueducation-backend:latest
-          imagePullPolicy: Always
+        - name: api
+          # This is the audited production digest as of 2026-08-16. Promote a
+          # newly-built digest through the external GitOps repository; never use latest.
+          image: ghcr.io/eguilde/egueducation-backend@sha256:6ca8b3368e3573645a3d12e7d923e2b613fc52f9010106e53b45e3b3e95b7dc6
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
+          volumeMounts:
+            - name: upload-temp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           envFrom:
             - configMapRef:
                 name: egueducation-backend-config
           env:
+            - name: CLAMD_ADDRESS
+              value: 127.0.0.1:3310
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -39,20 +59,58 @@ spec:
                   optional: false
           readinessProbe:
             httpGet:
-              path: /health
+              path: /readyz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 24
           resources:
             requests:
               cpu: 150m
               memory: 256Mi
             limits:
               cpu: 1000m
-              memory: 1Gi
+              memory: 768Mi
+        - name: clamav
+          image: clamav/clamav:1.5.3-debian13-slim@sha256:741e6c447241220e0792a901befcaec1d55a755c5097fc9cd88d7fd8be251a5c
+          command: ["/init-unprivileged"]
+          ports:
+            - containerPort: 3310
+              name: clamd
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          startupProbe:
+            tcpSocket: { port: clamd }
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: { port: clamd }
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 512Mi }
+            limits: { cpu: 1000m, memory: 1280Mi }
+      volumes:
+        - name: upload-temp
+          emptyDir:
+            sizeLimit: 256Mi

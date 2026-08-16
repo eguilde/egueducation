@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { TranslocoPipe } from '@jsverse/transloco';
 
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { MessageModule } from 'primeng/message';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthzService } from '../../core/authz/authz.service';
@@ -10,12 +11,16 @@ import { AuthzService } from '../../core/authz/authz.service';
 @Component({
   selector: 'app-callback-page',
   standalone: true,
-  imports: [TranslocoPipe, ProgressSpinnerModule],
+  imports: [TranslocoPipe, ProgressSpinnerModule, MessageModule],
   template: `
-    <main class="app-auth-shell">
-      <section class="mx-auto grid min-h-dvh w-full max-w-5xl items-center gap-8 px-5 py-8 md:grid-cols-[0.9fr_1.1fr] md:px-8 lg:px-10">
+    <main class="min-h-dvh overflow-hidden bg-surface-50 text-color dark:bg-surface-950">
+      <section
+        class="mx-auto grid min-h-dvh w-full max-w-5xl items-center gap-8 px-5 py-8 md:grid-cols-[0.9fr_1.1fr] md:px-8 lg:px-10"
+      >
         <div class="space-y-6">
-          <div class="app-auth-badge px-4 py-2 text-sm font-semibold">
+          <div
+            class="inline-flex items-center rounded-full border border-primary bg-surface-0 px-4 py-2 text-sm font-semibold text-primary shadow-sm dark:bg-surface-900"
+          >
             {{ 'auth.redirectBadge' | transloco }}
           </div>
           <h1 class="max-w-2xl text-4xl font-black tracking-[-0.045em] text-color md:text-6xl">
@@ -26,36 +31,27 @@ import { AuthzService } from '../../core/authz/authz.service';
           </p>
         </div>
 
-        <div class="app-auth-panel rounded-[2rem] p-6">
-          <div class="app-auth-panel-inner rounded-[1.75rem] p-6 text-center">
-            <p class="app-auth-accent text-xs font-black uppercase tracking-[0.24em]">
-              Processing
-            </p>
+        <div
+          class="rounded-[2rem] border border-surface bg-surface-0 p-6 shadow-lg dark:bg-surface-900"
+        >
+          <div
+            class="rounded-[1.75rem] border border-surface bg-surface-0 p-6 text-center dark:bg-surface-950"
+          >
+            <p class="text-xs font-black uppercase tracking-[0.24em] text-primary">Processing</p>
             <div class="mt-5 flex justify-center">
               <p-progress-spinner strokeWidth="4" ariaLabel="loading" />
             </div>
             @if (error()) {
-              <div class="callback-page__error mt-6">
-                <p>{{ error() }}</p>
-              </div>
+              <p-message severity="error" styleClass="mt-6 w-full">{{ error() }}</p-message>
             } @else {
-              <div class="callback-page__success mt-6">
-                <p>Finalizing the OIDC session and returning you to the application.</p>
-              </div>
+              <p-message severity="info" styleClass="mt-6 w-full">
+                Finalizing the OIDC session and returning you to the application.
+              </p-message>
             }
           </div>
         </div>
       </section>
     </main>
-  `,
-  styles: `
-    .callback-page__error {
-      color: var(--p-red-600);
-    }
-
-    .callback-page__success {
-      color: var(--p-text-muted-color);
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

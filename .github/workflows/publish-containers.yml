@@ -1,25 +1,41 @@
-name: Build, publish, and deploy
+name: Build, promote, and verify containers
 
 on:
   push:
     branches: [main]
+    paths:
+      - backend/**
+      - frontend/**
+      - .github/workflows/publish-containers.yml
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
 
+# Promotion is serialized so every GitOps commit contains the backend and
+# frontend digests from one source revision.
 concurrency:
-  group: deploy-${{ github.repository }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: egueducation-production-promotion
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
   OWNER: eguilde
+  PUBLIC_ORIGIN: https://scoalabalotesti.eguilde.cloud
 
 jobs:
+  validate-local-manifests:
+    name: Validate local Kubernetes template
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render Kustomize template
+        run: kubectl kustomize ops/k8s >/dev/null
+
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.image }}
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -40,67 +56,151 @@ jobs:
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PUBLISH_TOKEN }}
-      - name: Extract image metadata
-        id: metadata
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ env.OWNER }}/${{ matrix.image }}
-          tags: |
-            type=raw,value=${{ github.sha }}
-            type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch }}
-      - name: Build and publish image
+      - name: Build and publish immutable image
+        id: build-image
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+      - name: Store promoted manifest digest
+        run: printf '%s' '${{ steps.build-image.outputs.digest }}' > image-digest.txt
+      - name: Pass digest to promotion job
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-digest-${{ matrix.image }}
+          path: image-digest.txt
+          if-no-files-found: error
+          retention-days: 1
 
-  update-gitops:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: egueducation-backend
-            source_image: egueducation-backend
-            gitops_file: namespaces/education/egueducation/backend/kustomization.yaml
-          - image: egueducation-frontend
-            source_image: egueducation-frontend
-            gitops_file: namespaces/education/egueducation/frontend/kustomization.yaml
+  promote-gitops:
+    name: Promote immutable images in GitOps
+    needs: [validate-local-manifests, build]
+    runs-on: ubuntu-24.04
     steps:
-      - name: Update deployed image in GitOps
+      - name: Download backend digest
+        uses: actions/download-artifact@v4
+        with:
+          name: image-digest-egueducation-backend
+          path: image-digests/backend
+      - name: Download frontend digest
+        uses: actions/download-artifact@v4
+        with:
+          name: image-digest-egueducation-frontend
+          path: image-digests/frontend
+      - name: Read immutable digests
+        id: digests
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-          IMAGE: ${{ matrix.image }}
-          SOURCE_IMAGE: ${{ matrix.source_image }}
-          FILE: ${{ matrix.gitops_file }}
         run: |
           set -euo pipefail
-          for attempt in 1 2 3 4 5 6 7; do
-            response="$(gh api "repos/eguilde/gitops/contents/${FILE}?ref=main")"
-            sha="$(jq -r '.sha' <<<"${response}")"
-            current="$(jq -r '.content' <<<"${response}" | tr -d '\n' | base64 --decode)"
-            updated="$(printf '%s' "${current}" | sed -E "s#(ghcr\\.io|forge\\.eguilde\\.cloud|registry\\.eguilde\\.cloud)/eguilde/${SOURCE_IMAGE}(:[^[:space:]]+)?#ghcr.io/eguilde/${IMAGE}:${GITHUB_SHA}#g")"
-            if [ "${updated}" = "${current}" ]; then
-              echo "GitOps already points at ${IMAGE}:${GITHUB_SHA}"
+          backend_digest="$(tr -d '\r\n' < image-digests/backend/image-digest.txt)"
+          frontend_digest="$(tr -d '\r\n' < image-digests/frontend/image-digest.txt)"
+          [[ "${backend_digest}" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "${frontend_digest}" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "backend=${backend_digest}" >> "$GITHUB_OUTPUT"
+          echo "frontend=${frontend_digest}" >> "$GITHUB_OUTPUT"
+      - name: Check out GitOps source of truth
+        uses: actions/checkout@v4
+        with:
+          repository: eguilde/gitops
+          ref: main
+          token: ${{ secrets.GITOPS_TOKEN }}
+          path: gitops
+      - name: Update both Kustomize image transformations by digest
+        working-directory: gitops
+        shell: bash
+        env:
+          BACKEND_DIGEST: ${{ steps.digests.outputs.backend }}
+          FRONTEND_DIGEST: ${{ steps.digests.outputs.frontend }}
+        run: |
+          set -euo pipefail
+
+          promote_image() {
+            IMAGE="$1" IMAGE_DIGEST="$2" SOURCE_IMAGE="$3" FILE="$4" ruby <<'RUBY'
+              require 'yaml'
+
+              file = ENV.fetch('FILE')
+              source_image = ENV.fetch('SOURCE_IMAGE')
+              target_image = ENV.fetch('IMAGE')
+              digest = ENV.fetch('IMAGE_DIGEST')
+              document = YAML.load_file(file, aliases: true)
+              images = document['images']
+              abort("#{file}: expected an images array") unless images.is_a?(Array)
+
+              matches = images.select do |entry|
+                [entry['name'], entry['newName']].compact.any? do |value|
+                  value.to_s.sub(/[@:].*$/, '').split('/').last == source_image
+                end
+              end
+              abort("#{file}: expected exactly one image transformation for #{source_image}") unless matches.length == 1
+
+              image = matches.first
+              # Keep name as the base-manifest match key. GitOps has used more
+              # than one registry, so only the destination is normalized.
+              image['newName'] = target_image
+              image.delete('newTag')
+              image['digest'] = digest
+
+              File.write(file, YAML.dump(document).sub(/\A---\s*\n/, ''))
+          RUBY
+          }
+
+          promote_image \
+            'ghcr.io/eguilde/egueducation-backend' \
+            "${BACKEND_DIGEST}" \
+            'egueducation-backend' \
+            'namespaces/education/egueducation/backend/kustomization.yaml'
+          promote_image \
+            'ghcr.io/eguilde/egueducation-frontend' \
+            "${FRONTEND_DIGEST}" \
+            'egueducation-frontend' \
+            'namespaces/education/egueducation/frontend/kustomization.yaml'
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add namespaces/education/egueducation/backend/kustomization.yaml \
+            namespaces/education/egueducation/frontend/kustomization.yaml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(egueducation): promote ${GITHUB_SHA} by digest"
+
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:main; then
               exit 0
             fi
-            content="$(printf '%s' "${updated}" | base64 -w0)"
-            payload="$(jq -n --arg message "chore(${IMAGE}): deploy ${GITHUB_SHA}" --arg content "${content}" --arg sha "${sha}" '{message:$message,content:$content,sha:$sha,branch:"main"}')"
-            if gh api --method PUT "repos/eguilde/gitops/contents/${FILE}" --input - <<<"${payload}" >/dev/null; then
-              exit 0
-            fi
+            git pull --rebase origin main
             sleep $((attempt * 2))
           done
-          echo 'GitOps update failed after retries' >&2
+          echo 'GitOps promotion failed after retries' >&2
+          exit 1
+
+  verify-public-availability:
+    name: Verify public availability
+    needs: promote-gitops
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Wait for public health and OIDC discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            health="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/health")" || true
+            discovery="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/api/oidc/.well-known/openid-configuration")" || true
+            if jq -e '.status == "ok" and .database == "ok"' >/dev/null <<<"${health}" \
+              && jq -e --arg issuer "${PUBLIC_ORIGIN}/api/oidc" '.issuer == $issuer and (.authorization_endpoint | type == "string") and (.token_endpoint | type == "string")' >/dev/null <<<"${discovery}"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Public availability checks did not become healthy within five minutes.' >&2
           exit 1

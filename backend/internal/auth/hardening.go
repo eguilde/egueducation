@@ -430,55 +430,56 @@ func cborNumber(value any) (int64, bool) {
 	return 0, false
 }
 
-func extractPasskeyRegistrationMaterial(attestationEncoded string, rpID string) (*passkeyPublicKey, uint32, error) {
+func extractPasskeyRegistrationMaterial(attestationEncoded string, rpID string) (*passkeyPublicKey, uint32, string, error) {
 	raw, err := decodePasskeyPayload(attestationEncoded)
 	if err != nil {
-		return nil, 0, fmt.Errorf("decode attestation object: %w", err)
+		return nil, 0, "", fmt.Errorf("decode attestation object: %w", err)
 	}
 
 	root, _, err := parseCBOR(raw)
 	if err != nil {
-		return nil, 0, fmt.Errorf("parse attestation object: %w", err)
+		return nil, 0, "", fmt.Errorf("parse attestation object: %w", err)
 	}
 	entries, ok := root.([]cborItem)
 	if !ok {
-		return nil, 0, errors.New("attestation_object_invalid")
+		return nil, 0, "", errors.New("attestation_object_invalid")
 	}
 	authDataRaw, ok := cborMapValue(entries, "authData")
 	if !ok {
-		return nil, 0, errors.New("attestation_auth_data_missing")
+		return nil, 0, "", errors.New("attestation_auth_data_missing")
 	}
 	authData, ok := authDataRaw.([]byte)
 	if !ok {
-		return nil, 0, errors.New("attestation_auth_data_invalid")
+		return nil, 0, "", errors.New("attestation_auth_data_invalid")
 	}
 	signCount, err := parsePasskeyAuthenticatorData(base64.RawURLEncoding.EncodeToString(authData), rpID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
 	if len(authData) < 55 {
-		return nil, 0, errors.New("attestation_authenticator_data_invalid")
+		return nil, 0, "", errors.New("attestation_authenticator_data_invalid")
 	}
 	flags := authData[32]
 	if flags&0x40 == 0 {
-		return nil, 0, errors.New("attestation_credential_data_missing")
+		return nil, 0, "", errors.New("attestation_credential_data_missing")
 	}
 	offset := 37
 	if len(authData) < offset+18 {
-		return nil, 0, errors.New("attestation_credential_data_invalid")
+		return nil, 0, "", errors.New("attestation_credential_data_invalid")
 	}
 	offset += 16
 	credentialLength := int(binary.BigEndian.Uint16(authData[offset : offset+2]))
 	offset += 2
 	if credentialLength <= 0 || len(authData) < offset+credentialLength {
-		return nil, 0, errors.New("attestation_credential_length_invalid")
+		return nil, 0, "", errors.New("attestation_credential_length_invalid")
 	}
+	credentialID := base64.RawURLEncoding.EncodeToString(authData[offset : offset+credentialLength])
 	offset += credentialLength
 	publicKey, err := passkeyPublicKeyFromCOSE(authData[offset:])
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
 	}
-	return publicKey, signCount, nil
+	return publicKey, signCount, credentialID, nil
 }
 
 func passkeyAssertionVerified(authenticatorData string, clientDataJSON string, signature string, publicKey *passkeyPublicKey, rpID string, storedSignCount uint32) (uint32, error) {
@@ -603,7 +604,7 @@ func ensurePasskeyPublicKey(payload map[string]any, rpID string) (*passkeyPublic
 	if attestationObject == "" {
 		return nil, 0, errors.New("passkey_attestation_missing")
 	}
-	publicKey, signCount, err := extractPasskeyRegistrationMaterial(attestationObject, rpID)
+	publicKey, signCount, _, err := extractPasskeyRegistrationMaterial(attestationObject, rpID)
 	if err != nil {
 		return nil, 0, err
 	}

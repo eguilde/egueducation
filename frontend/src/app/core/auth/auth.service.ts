@@ -13,7 +13,6 @@ import {
   createClient,
   discover,
   exchangeCode,
-  parseIdTokenClaims,
   refreshTokens,
   revokeToken,
   validateAuthResponse,
@@ -38,11 +37,15 @@ export class AuthService {
   private readonly storagePrefix = this.config.storagePrefix ?? 'egueducation_auth';
   private readonly redirectVerifierKey = this.storageKey('redirect_verifier');
   private readonly redirectStateKey = this.storageKey('redirect_state');
+  private readonly redirectNonceKey = this.storageKey('redirect_nonce');
   private readonly returnUrlKey = this.storageKey('return_url');
   private server: oauth.AuthorizationServer | null = null;
   private dpopHandle: oauth.DPoPHandle | null = null;
   private renewTimer: ReturnType<typeof setTimeout> | null = null;
   private currentRefreshToken: string | null = null;
+  // Only retained for the current tab so an OP logout can use an id_token_hint.
+  // It is never used as a source of application identity.
+  private currentIdToken: string | null = null;
   private refreshPromise: Promise<boolean> | null = null;
 
   readonly profile = this.profileSignal.asReadonly();
@@ -89,50 +92,10 @@ export class AuthService {
       return;
     }
 
-    const hasSession = this.readStorage('has_session');
-    if (!hasSession) {
-      return;
-    }
-
-    const storedIdToken = this.readStorage('id_token');
-    if (storedIdToken) {
-      try {
-        this.profileSignal.set(parseIdTokenClaims(storedIdToken));
-      } catch {
-        this.removeStorage('id_token');
-      }
-    }
-
-    const storedAccessToken = this.readStorage('access_token');
-    const storedExpiresAt = this.readStorage('expires_at');
-    let hasValidStoredAccessToken = false;
-    if (storedAccessToken && storedExpiresAt) {
-      const parsedExpiresAt = Number(storedExpiresAt);
-      if (Number.isFinite(parsedExpiresAt) && parsedExpiresAt > Date.now() / 1000) {
-        this.accessTokenSignal.set(storedAccessToken);
-        this.expiresAtSignal.set(parsedExpiresAt);
-        this.scheduleRenewal(parsedExpiresAt);
-        hasValidStoredAccessToken = true;
-      } else {
-        this.removeStorage('access_token');
-        this.removeStorage('expires_at');
-      }
-    }
-
-    const storedRefreshToken = this.readStorage('refresh_token');
-    if (storedRefreshToken) {
-      this.currentRefreshToken = storedRefreshToken;
-    }
-
-    if (hasValidStoredAccessToken && !storedRefreshToken) {
-      return;
-    }
-
+    // Access and ID tokens intentionally live only in memory. A restart gets a
+    // fresh access token using the HttpOnly refresh cookie, if one is present.
     const refreshed = await this.tryRefresh();
     if (!refreshed) {
-      if (hasValidStoredAccessToken) {
-        return;
-      }
       this.clearLocalSession();
     }
   }
@@ -148,19 +111,18 @@ export class AuthService {
       const verifier = oauth.generateRandomCodeVerifier();
       const themeScheme = this.theme.colorScheme();
       const themeDark = this.theme.isDarkMode();
-      const { url, state } = await buildAuthorizationUrl(
+      const { url, state, nonce } = await buildAuthorizationUrl(
         this.server!,
         this.resolvedConfig(),
         verifier,
         {
           ui_theme_scheme: themeScheme,
           ui_theme_dark: String(themeDark),
-          ui_theme_primary: this.theme.selectedPrimaryColor(),
-          ui_theme_surface: this.theme.selectedSurface(),
+          ui_theme_preset: 'aura',
         },
         dpop ?? undefined,
       );
-      this.storeRedirectLogin(state, verifier, returnUrl);
+      this.storeRedirectLogin(state, verifier, nonce, returnUrl);
       this.document.location.href = url.toString();
     } finally {
       this.loginInProgressSignal.set(false);
@@ -171,8 +133,9 @@ export class AuthService {
     await this.ensureServer();
     const verifier = sessionStorage.getItem(this.redirectVerifierKey);
     const state = sessionStorage.getItem(this.redirectStateKey);
-    if (!verifier || !state) {
-      throw new Error('Missing PKCE verifier or state');
+    const nonce = sessionStorage.getItem(this.redirectNonceKey);
+    if (!verifier || !state || !nonce) {
+      throw new Error('Missing PKCE verifier, state, or nonce');
     }
 
     const validated = validateAuthResponse(this.server!, this.resolvedConfig(), query, state);
@@ -182,6 +145,7 @@ export class AuthService {
         this.resolvedConfig(),
         validated,
         verifier,
+        nonce,
         this.dpopHandle ?? undefined,
       );
       this.setSession(tokens);
@@ -189,11 +153,12 @@ export class AuthService {
     } finally {
       sessionStorage.removeItem(this.redirectVerifierKey);
       sessionStorage.removeItem(this.redirectStateKey);
+      sessionStorage.removeItem(this.redirectNonceKey);
     }
   }
 
   async logout(): Promise<void> {
-    const idToken = this.readStorage('id_token');
+    const idToken = this.currentIdToken;
     const accessToken = this.accessTokenSignal();
 
     try {
@@ -203,7 +168,7 @@ export class AuthService {
       this.dpopHandle = null;
     }
 
-    const refreshToken = this.currentRefreshToken ?? this.readStorage('refresh_token');
+    const refreshToken = this.currentRefreshToken;
 
     if (accessToken) {
       try {
@@ -219,14 +184,24 @@ export class AuthService {
 
     if (refreshToken && this.server) {
       try {
-        await revokeToken(this.server, this.resolvedConfig(), refreshToken, this.dpopHandle ?? undefined);
+        await revokeToken(
+          this.server,
+          this.resolvedConfig(),
+          refreshToken,
+          this.dpopHandle ?? undefined,
+        );
       } catch {
         // Best-effort token revocation must not block logout UX.
       }
     }
     if (accessToken && this.server) {
       try {
-        await revokeToken(this.server, this.resolvedConfig(), accessToken, this.dpopHandle ?? undefined);
+        await revokeToken(
+          this.server,
+          this.resolvedConfig(),
+          accessToken,
+          this.dpopHandle ?? undefined,
+        );
       } catch {
         // Best-effort token revocation must not block logout UX.
       }
@@ -257,7 +232,10 @@ export class AuthService {
     }
 
     const logoutUrl = new URL('/logout', this.absoluteAuthority(this.config.authority));
-    logoutUrl.searchParams.set('returnTo', this.config.postLogoutRedirectUri ?? window.location.origin);
+    logoutUrl.searchParams.set(
+      'returnTo',
+      this.config.postLogoutRedirectUri ?? window.location.origin,
+    );
     this.document.location.href = logoutUrl.toString();
   }
 
@@ -266,9 +244,7 @@ export class AuthService {
     this.accessTokenSignal.set(null);
     this.expiresAtSignal.set(null);
     this.currentRefreshToken = null;
-    this.removeStorage('id_token');
-    this.removeStorage('refresh_token');
-    this.removeStorage('has_session');
+    this.currentIdToken = null;
     if (this.renewTimer) {
       clearTimeout(this.renewTimer);
       this.renewTimer = null;
@@ -304,17 +280,8 @@ export class AuthService {
     this.accessTokenSignal.set(tokens.access_token);
     this.expiresAtSignal.set(tokens.expires_at);
     this.currentRefreshToken = tokens.refresh_token ?? null;
-    this.writeStorage('has_session', '1');
-    this.writeStorage('access_token', tokens.access_token);
-    this.writeStorage('expires_at', String(tokens.expires_at));
-    if (tokens.refresh_token) {
-      this.writeStorage('refresh_token', tokens.refresh_token);
-    } else {
-      this.removeStorage('refresh_token');
-    }
     if (tokens.id_token) {
-      this.writeStorage('id_token', tokens.id_token);
-      this.profileSignal.set(parseIdTokenClaims(tokens.id_token));
+      this.currentIdToken = tokens.id_token;
     }
   }
 
@@ -361,11 +328,6 @@ export class AuthService {
 
   private async doRefresh(): Promise<boolean> {
     const refreshToken = this.currentRefreshToken;
-    const hasSession = !!this.readStorage('has_session');
-    if (!refreshToken && !hasSession) {
-      return false;
-    }
-
     try {
       await this.ensureServer();
       const refreshed = await refreshTokens(
@@ -406,10 +368,11 @@ export class AuthService {
     return this.dpopHandle;
   }
 
-  private storeRedirectLogin(state: string, verifier: string, explicitReturnUrl?: string): void {
+  private storeRedirectLogin(state: string, verifier: string, nonce: string, explicitReturnUrl?: string): void {
     this.storeReturnUrl(explicitReturnUrl);
     sessionStorage.setItem(this.redirectVerifierKey, verifier);
     sessionStorage.setItem(this.redirectStateKey, state);
+    sessionStorage.setItem(this.redirectNonceKey, nonce);
   }
 
   private resolvedConfig(): AuthConfig {
@@ -418,18 +381,6 @@ export class AuthService {
 
   private storageKey(field: string): string {
     return `${this.storagePrefix}_${field}`;
-  }
-
-  private readStorage(field: string): string | null {
-    return localStorage.getItem(this.storageKey(field));
-  }
-
-  private writeStorage(field: string, value: string): void {
-    localStorage.setItem(this.storageKey(field), value);
-  }
-
-  private removeStorage(field: string): void {
-    localStorage.removeItem(this.storageKey(field));
   }
 
   private scheduleRenewal(expiresAt: number): void {
@@ -482,6 +433,12 @@ export class AuthService {
   }
 
   private cleanupLegacyStorage(): void {
+    // Remove prior browser-persisted bearer material during the one-way
+    // migration to HttpOnly refresh cookies plus in-memory access tokens.
+    for (const field of ['access_token', 'id_token', 'refresh_token', 'expires_at', 'has_session']) {
+      localStorage.removeItem(this.storageKey(field));
+      sessionStorage.removeItem(this.storageKey(field));
+    }
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
       if (key && /^\d+-\w+-spa$/.test(key)) {
@@ -492,7 +449,11 @@ export class AuthService {
     localStorage.removeItem('egueducation-dpop-es256');
   }
 
-  private readE2ESession(): { profile: UserProfile; accessToken: string; expiresAt: number } | null {
+  private readE2ESession(): {
+    profile: UserProfile;
+    accessToken: string;
+    expiresAt: number;
+  } | null {
     if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
       return null;
     }

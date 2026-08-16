@@ -1,4 +1,4 @@
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
@@ -50,7 +50,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     providePrimeNG({
       ripple: true,
-      inputStyle: 'filled',
+      inputVariant: 'filled',
       theme: {
         preset: Aura,
         options: {
@@ -63,7 +63,7 @@ export const appConfig: ApplicationConfig = {
         },
       },
     }),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
     provideRouter(
       routes,
       withComponentInputBinding(),

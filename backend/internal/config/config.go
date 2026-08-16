@@ -59,6 +59,7 @@ type Config struct {
 	ArchiveTextractRegion      string
 	ArchiveWorkerEnabled       bool
 	ArchiveWorkerPollInterval  int
+	ClamdAddress               string
 }
 
 func Load() Config {
@@ -82,7 +83,7 @@ func Load() Config {
 		OIDCIssuer:                 env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
 		OIDCClientID:               env("OIDC_CLIENT_ID", "egueducation-spa"),
 		OIDCDesktopClient:          desktopClientID,
-		OIDCAudience:               env("OIDC_AUDIENCE", ""),
+		OIDCAudience:               env("OIDC_AUDIENCE", "egueducation-api"),
 		OIDCDevMode:                envBool("OIDC_DEV_MODE", false),
 		SMSAPIToken:                os.Getenv("SMSAPI_TOKEN"),
 		SMSSenderName:              env("SMS_SENDER_NAME", env("SMSAPI_SENDER", "EguEducation")),
@@ -107,6 +108,7 @@ func Load() Config {
 		ArchiveTextractRegion:      env("ARCHIVE_TEXTRACT_REGION", "us-east-1"),
 		ArchiveWorkerEnabled:       envBool("ARCHIVE_WORKER_ENABLED", true),
 		ArchiveWorkerPollInterval:  envInt("ARCHIVE_WORKER_POLL_INTERVAL_SECONDS", 5),
+		ClamdAddress:               env("CLAMD_ADDRESS", ""),
 	}
 }
 

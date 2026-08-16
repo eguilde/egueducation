@@ -17,6 +17,7 @@ import { TooltipModule } from 'primeng/tooltip';
 
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthzService } from '../../core/authz/authz.service';
+import { ThemePanelComponent } from '../../layout/theme-panel.component';
 
 interface UpdateProfileRequest {
   name: string;
@@ -53,6 +54,7 @@ interface ProfileDatum {
 }
 
 type ProfileUserLike = {
+  id?: string;
   sub?: string;
   email?: string;
   name?: string;
@@ -77,6 +79,7 @@ type ProfileUserLike = {
     SelectModule,
     TagModule,
     TooltipModule,
+    ThemePanelComponent,
   ],
   template: `
     <section class="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -139,7 +142,7 @@ type ProfileUserLike = {
               <p-select appendTo="body" [options]="localeOptions" formControlName="locale" />
             </label>
             <div class="md:col-span-2 flex items-center justify-between gap-3">
-              <p-message severity="success" variant="simple" size="small" [text]="profileMessage()" />
+              <p-message severity="success" variant="simple" size="small">{{ profileMessage() }}</p-message>
               <p-button type="submit" label="Salvează profilul" icon="pi pi-save" [loading]="profileSaving()" [disabled]="profileForm.invalid" />
             </div>
           </form>
@@ -166,6 +169,16 @@ type ProfileUserLike = {
                   </tr>
                 </ng-template>
               </p-table>
+              <div class="mt-4">
+                <div class="mb-2 text-sm font-semibold text-color">Compartimente atribuite</div>
+                <div class="flex flex-wrap gap-2">
+                  @for (department of assignedDepartments(); track department.id) {
+                    <p-tag [value]="department.name" severity="secondary" />
+                  } @empty {
+                    <span class="text-sm text-muted-color">Nu există compartimente atribuite pentru instituția activă.</span>
+                  }
+                </div>
+              </div>
             </div>
           </p-fieldset>
           </p-card>
@@ -182,7 +195,7 @@ type ProfileUserLike = {
                   <p-tag value="Nicio passkey activă" severity="warn" />
                 }
               </div>
-              <p-message *ngIf="passkeyMessage()" severity="info" variant="simple" size="small" [text]="passkeyMessage()" />
+              <p-message *ngIf="passkeyMessage()" severity="info" variant="simple" size="small">{{ passkeyMessage() }}</p-message>
               <button pButton type="button" class="w-fit" [disabled]="passkeyBusy()" (click)="addPasskey()">
                 <i class="pi pi-key"></i>
                 <span>{{ passkeyBusy() ? 'Se pregătește...' : 'Adaugă passkey' }}</span>
@@ -195,9 +208,15 @@ type ProfileUserLike = {
             <ng-template pTemplate="subtitle">Activează conectarea cu wallet EUDI pentru identitate digitală și atribute verificate.</ng-template>
             <div class="flex flex-col gap-3">
               <p-tag [value]="eudiStatus()" [severity]="eudiStatus() === 'activ' ? 'success' : 'info'" />
-              <p-message *ngIf="eudiMessage()" severity="info" variant="simple" size="small" [text]="eudiMessage()" />
+              <p-message *ngIf="eudiMessage()" severity="info" variant="simple" size="small">{{ eudiMessage() }}</p-message>
               <p-button label="Activează EUDI wallet" icon="pi pi-wallet" [loading]="eudiBusy()" (onClick)="activateEudiWallet()" />
             </div>
+          </p-card>
+
+          <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
+            <ng-template pTemplate="title">Aspect</ng-template>
+            <ng-template pTemplate="subtitle">Tema și accentul sunt memorate separat pentru instituția activă.</ng-template>
+            <app-theme-panel />
           </p-card>
           </div>
         </div>
@@ -205,7 +224,7 @@ type ProfileUserLike = {
         <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
           <ng-template pTemplate="title">Date de profil în curs de încărcare</ng-template>
           <ng-template pTemplate="subtitle">Sesiunea este autenticată, dar profilul instituțional nu a fost încă preluat.</ng-template>
-          <p-message severity="info" variant="simple" [text]="'Sincronizăm datele contului cu backendul. Reîncarcă pagina dacă mesajul persistă.'" />
+          <p-message severity="info" variant="simple">Sincronizăm datele contului cu backendul. Reîncarcă pagina dacă mesajul persistă.</p-message>
         </p-card>
       } @else {
         <p-card styleClass="border border-surface bg-surface-0 shadow-sm dark:bg-surface-900">
@@ -243,6 +262,7 @@ export class ProfilePageComponent {
   protected readonly passkeyMessage = signal('');
   protected readonly eudiMessage = signal('');
   protected readonly eudiStatus = computed(() => this.authMethods().includes('eudi_wallet') ? 'activ' : 'neactivat');
+  protected readonly assignedDepartments = signal<Array<{ id: string; name: string }>>([]);
   protected readonly authenticated = computed(() => this.auth.isAuthenticated());
   protected readonly sessionUser = computed(() => this.authz.session()?.user ?? null);
   protected readonly profileUser = computed<ProfileUserLike | null>(() => (this.sessionUser() ?? this.auth.profile() ?? null) as ProfileUserLike | null);
@@ -287,6 +307,7 @@ export class ProfilePageComponent {
         phone_number: this.toText(user.phone_number),
         locale: this.toLocale(user.locale),
       }, { emitEvent: false });
+      this.loadAssignedDepartments();
     });
     this.loadPasskeys();
   }
@@ -355,6 +376,28 @@ export class ProfilePageComponent {
     this.http.get<PasskeyCredentialSummary[]>('/api/passkeys').subscribe({
       next: (items) => this.passkeys.set(items ?? []),
       error: () => this.passkeys.set([]),
+    });
+  }
+
+  protected loadAssignedDepartments(): void {
+    const userId = this.profileUser()?.id;
+    if (!userId) {
+      this.assignedDepartments.set([]);
+      return;
+    }
+    this.http.get<{ department_ids: string[] }>(`/api/registratura/admin/users/${userId}/assignments`).subscribe({
+      next: (assignment) => {
+        const ids = assignment?.department_ids ?? [];
+        if (ids.length === 0) {
+          this.assignedDepartments.set([]);
+          return;
+        }
+        this.http.get<{ items: Array<{ id: string; name: string }> }>('/api/registratura/admin/departments', { params: { page: '1', pageSize: '250' } }).subscribe({
+          next: (page) => this.assignedDepartments.set((page.items ?? []).filter((department) => ids.includes(department.id))),
+          error: () => this.assignedDepartments.set([]),
+        });
+      },
+      error: () => this.assignedDepartments.set([]),
     });
   }
 

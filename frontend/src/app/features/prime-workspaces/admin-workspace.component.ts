@@ -32,6 +32,7 @@ import {
 } from '../../core/api/api.types';
 import { AuthzService } from '../../core/authz/authz.service';
 import { FEATURE_ACCESS_RULES } from '../../core/authz/role-catalog';
+import { RegistraturaAdminWorkspaceComponent } from './registratura-admin-workspace.component';
 
 interface AdminTab {
   value: string;
@@ -76,6 +77,7 @@ interface AdminPositionRoleAssignmentFilterState {
     TabsModule,
     TagModule,
     TooltipModule,
+    RegistraturaAdminWorkspaceComponent,
   ],
   template: `
     <section class="admin-workspace flex h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden">
@@ -101,7 +103,9 @@ interface AdminPositionRoleAssignmentFilterState {
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Membri</div>
-                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.memberships ?? 0 }}</div>
+                  <div class="text-2xl font-semibold">
+                    {{ dashboard()?.stats?.memberships ?? 0 }}
+                  </div>
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Poziții</div>
@@ -109,7 +113,9 @@ interface AdminPositionRoleAssignmentFilterState {
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Permisiuni</div>
-                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.permissions ?? 0 }}</div>
+                  <div class="text-2xl font-semibold">
+                    {{ dashboard()?.stats?.permissions ?? 0 }}
+                  </div>
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Fluxuri</div>
@@ -121,23 +127,34 @@ interface AdminPositionRoleAssignmentFilterState {
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Dosare gata</div>
-                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.ready_dossiers ?? 0 }}</div>
+                  <div class="text-2xl font-semibold">
+                    {{ dashboard()?.stats?.ready_dossiers ?? 0 }}
+                  </div>
                 </p-card>
                 <p-card>
                   <div class="text-sm text-muted-color">Dosare blocate</div>
-                  <div class="text-2xl font-semibold">{{ dashboard()?.stats?.blocked_dossiers ?? 0 }}</div>
+                  <div class="text-2xl font-semibold">
+                    {{ dashboard()?.stats?.blocked_dossiers ?? 0 }}
+                  </div>
                 </p-card>
               </div>
 
               <div class="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3">
                     <h2 class="m-0 text-lg font-semibold">Module active</h2>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Starea curentă a platformei și ariile de administrat.</p>
+                    <p class="m-0 mt-1 text-sm text-muted-color">
+                      Starea curentă a platformei și ariile de administrat.
+                    </p>
                   </div>
                   <div class="flex flex-wrap gap-2">
                     @for (module of dashboard()?.modules ?? []; track module.code) {
-                      <p-tag [value]="module.code" [severity]="module.active ? 'success' : 'warn'" />
+                      <p-tag
+                        [value]="module.code"
+                        [severity]="module.active ? 'success' : 'warn'"
+                      />
                     }
                   </div>
                   <div class="mt-4">
@@ -150,18 +167,26 @@ interface AdminPositionRoleAssignmentFilterState {
                   </div>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3">
                     <h2 class="m-0 text-lg font-semibold">Avertismente</h2>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Semnale de configurare sau contracte de completat.</p>
+                    <p class="m-0 mt-1 text-sm text-muted-color">
+                      Semnale de configurare sau contracte de completat.
+                    </p>
                   </div>
                   <div class="grid gap-2">
                     @for (warning of dashboard()?.warnings ?? []; track warning) {
-                      <div class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-color dark:border-surface-700">
+                      <div
+                        class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-color dark:border-surface-700"
+                      >
                         {{ warning }}
                       </div>
                     } @empty {
-                      <div class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-muted-color dark:border-surface-700">
+                      <div
+                        class="rounded-xl border border-dashed border-surface-300 px-3 py-2 text-sm text-muted-color dark:border-surface-700"
+                      >
                         Nu există avertismente active.
                       </div>
                     }
@@ -170,30 +195,52 @@ interface AdminPositionRoleAssignmentFilterState {
               </div>
 
               <div class="grid gap-4 xl:grid-cols-2">
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Acces rapid registratură</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Puncte de intrare către funcționalitățile deja implementate.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Puncte de intrare către funcționalitățile deja implementate.
+                      </p>
                     </div>
                   </div>
                   <div class="grid gap-2 sm:grid-cols-2">
                     @for (link of registraturaQuickLinks; track link.route) {
-                      <p-button [label]="link.label" [icon]="link.icon" [routerLink]="link.route" [outlined]="true" severity="secondary" styleClass="justify-start" />
+                      <p-button
+                        [label]="link.label"
+                        [icon]="link.icon"
+                        [routerLink]="link.route"
+                        [outlined]="true"
+                        severity="secondary"
+                        styleClass="justify-start"
+                      />
                     }
                   </div>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Acces rapid educație</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Tab-uri către modulele educaționale existente și cele planificate.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Tab-uri către modulele educaționale existente și cele planificate.
+                      </p>
                     </div>
                   </div>
                   <div class="grid gap-2 sm:grid-cols-2">
                     @for (link of educationQuickLinks; track link.route) {
-                      <p-button [label]="link.label" [icon]="link.icon" [routerLink]="link.route" [outlined]="true" severity="secondary" styleClass="justify-start" />
+                      <p-button
+                        [label]="link.label"
+                        [icon]="link.icon"
+                        [routerLink]="link.route"
+                        [outlined]="true"
+                        severity="secondary"
+                        styleClass="justify-start"
+                      />
                     }
                   </div>
                 </section>
@@ -206,12 +253,20 @@ interface AdminPositionRoleAssignmentFilterState {
               <div class="flex shrink-0 items-center justify-between gap-3">
                 <div>
                   <h2 class="m-0 text-xl font-semibold">Gestionare Utilizatori</h2>
-                  <p class="m-0 mt-1 text-sm text-muted-color">Tabel server-side real pentru utilizatori, verificări, roluri și stare.</p>
+                  <p class="m-0 mt-1 text-sm text-muted-color">
+                    Tabel server-side real pentru utilizatori, verificări, roluri și stare.
+                  </p>
                 </div>
-                <p-button label="Adaugă utilizator" icon="pi pi-user-plus" (onClick)="openUserDialog()" />
+                <p-button
+                  label="Adaugă utilizator"
+                  icon="pi pi-user-plus"
+                  (onClick)="openUserDialog()"
+                />
               </div>
 
-              <div class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-surface bg-surface-0 dark:bg-surface-900">
+              <div
+                class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-surface bg-surface-0 dark:bg-surface-900"
+              >
                 <p-table
                   [value]="users()"
                   [loading]="usersLoading()"
@@ -220,7 +275,7 @@ interface AdminPositionRoleAssignmentFilterState {
                   [rows]="usersQuery().pageSize"
                   [first]="(usersQuery().page - 1) * usersQuery().pageSize"
                   [totalRecords]="usersTotal()"
-                  [rowsPerPageOptions]="[10,25,50,100]"
+                  [rowsPerPageOptions]="[10, 25, 50, 100]"
                   [showCurrentPageReport]="true"
                   currentPageReportTemplate="Afișare {first} - {last} din {totalRecords} utilizatori"
                   [scrollable]="true"
@@ -230,19 +285,59 @@ interface AdminPositionRoleAssignmentFilterState {
                 >
                   <ng-template pTemplate="header">
                     <tr>
-                      <th pSortableColumn="name" style="min-width: 16rem">Utilizator <p-sortIcon field="name" /></th>
-                      <th pSortableColumn="email" style="min-width: 16rem">Email <p-sortIcon field="email" /></th>
+                      <th pSortableColumn="name" style="min-width: 16rem">
+                        Utilizator <p-sorticon field="name" />
+                      </th>
+                      <th pSortableColumn="email" style="min-width: 16rem">
+                        Email <p-sorticon field="email" />
+                      </th>
                       <th style="min-width: 10rem">Telefon</th>
                       <th style="min-width: 10rem">Poziție</th>
-                      <th pSortableColumn="locale" style="width: 8rem">Limbă <p-sortIcon field="locale" /></th>
-                      <th pSortableColumn="status" style="width: 9rem">Stare <p-sortIcon field="status" /></th>
+                      <th pSortableColumn="locale" style="width: 8rem">
+                        Limbă <p-sorticon field="locale" />
+                      </th>
+                      <th pSortableColumn="status" style="width: 9rem">
+                        Stare <p-sorticon field="status" />
+                      </th>
                       <th style="width: 9rem" class="text-center">Acțiuni</th>
                     </tr>
                     <tr>
-                      <th><input pInputText class="w-full" placeholder="Caută utilizator" [(ngModel)]="userFilters['name']" (keyup.enter)="reloadUsers()" /></th>
-                      <th><input pInputText class="w-full" placeholder="Caută email" [(ngModel)]="userFilters['email']" (keyup.enter)="reloadUsers()" /></th>
-                      <th><input pInputText class="w-full" placeholder="Caută telefon" [(ngModel)]="userFilters['phone']" (keyup.enter)="reloadUsers()" /></th>
-                      <th><input pInputText class="w-full" placeholder="Poziție" [(ngModel)]="userFilters['position']" (keyup.enter)="reloadUsers()" /></th>
+                      <th>
+                        <input
+                          pInputText
+                          class="w-full"
+                          placeholder="Caută utilizator"
+                          [(ngModel)]="userFilters['name']"
+                          (keyup.enter)="reloadUsers()"
+                        />
+                      </th>
+                      <th>
+                        <input
+                          pInputText
+                          class="w-full"
+                          placeholder="Caută email"
+                          [(ngModel)]="userFilters['email']"
+                          (keyup.enter)="reloadUsers()"
+                        />
+                      </th>
+                      <th>
+                        <input
+                          pInputText
+                          class="w-full"
+                          placeholder="Caută telefon"
+                          [(ngModel)]="userFilters['phone']"
+                          (keyup.enter)="reloadUsers()"
+                        />
+                      </th>
+                      <th>
+                        <input
+                          pInputText
+                          class="w-full"
+                          placeholder="Poziție"
+                          [(ngModel)]="userFilters['position']"
+                          (keyup.enter)="reloadUsers()"
+                        />
+                      </th>
                       <th></th>
                       <th></th>
                       <th></th>
@@ -252,7 +347,9 @@ interface AdminPositionRoleAssignmentFilterState {
                     <tr>
                       <td>
                         <div class="flex items-center gap-3">
-                          <div class="grid size-10 place-items-center rounded-xl bg-primary-100 font-bold text-primary-700">
+                          <div
+                            class="grid size-10 place-items-center rounded-xl bg-primary-100 font-bold text-primary-700"
+                          >
                             {{ initials(user.name || user.email) }}
                           </div>
                           <div class="min-w-0">
@@ -263,29 +360,48 @@ interface AdminPositionRoleAssignmentFilterState {
                       </td>
                       <td>
                         <div>{{ user.email }}</div>
-                        <span class="text-xs" [class.text-green-600]="user.email_verified" [class.text-orange-600]="!user.email_verified">
-                          <i [class]="user.email_verified ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
-                          {{ user.email_verified ? 'Verificat' : 'Neverificat' }}
-                        </span>
+                        <p-tag
+                          [value]="user.email_verified ? 'Verificat' : 'Neverificat'"
+                          [icon]="
+                            user.email_verified ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'
+                          "
+                          [severity]="user.email_verified ? 'success' : 'warn'"
+                        />
                       </td>
                       <td>
                         <div>{{ user.phone || '-' }}</div>
-                        <span class="text-xs" [class.text-green-600]="user.phone_verified" [class.text-orange-600]="!user.phone_verified">
-                          <i [class]="user.phone_verified ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
-                          {{ user.phone_verified ? 'Verificat' : 'Neverificat' }}
-                        </span>
+                        <p-tag
+                          [value]="user.phone_verified ? 'Verificat' : 'Neverificat'"
+                          [icon]="
+                            user.phone_verified ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'
+                          "
+                          [severity]="user.phone_verified ? 'success' : 'warn'"
+                        />
                       </td>
                       <td>{{ user.position || '-' }}</td>
                       <td><p-tag [value]="user.locale || 'ro'" severity="secondary" /></td>
-                      <td><p-tag [value]="user.status" [severity]="user.status === 'active' ? 'success' : 'warn'" /></td>
+                      <td>
+                        <p-tag
+                          [value]="user.status"
+                          [severity]="user.status === 'active' ? 'success' : 'warn'"
+                        />
+                      </td>
                       <td class="text-center">
-                        <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" pTooltip="Editează utilizator" (onClick)="openUserDialog(user)" />
+                        <p-button
+                          icon="pi pi-pencil"
+                          [rounded]="true"
+                          [text]="true"
+                          pTooltip="Editează utilizator"
+                          (onClick)="openUserDialog(user)"
+                        />
                       </td>
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="emptymessage">
                     <tr>
-                      <td colspan="7" class="py-8 text-center text-muted-color">Nu există utilizatori pentru filtrele curente.</td>
+                      <td colspan="7" class="py-8 text-center text-muted-color">
+                        Nu există utilizatori pentru filtrele curente.
+                      </td>
                     </tr>
                   </ng-template>
                 </p-table>
@@ -294,55 +410,47 @@ interface AdminPositionRoleAssignmentFilterState {
           </p-tabpanel>
 
           <p-tabpanel value="registratura" class="flex min-h-0 flex-1 overflow-hidden p-0">
-            <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
-              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
-                <div class="mb-3">
-                  <h2 class="m-0 text-lg font-semibold">Administrare registratură</h2>
-                  <p class="m-0 mt-1 text-sm text-muted-color">Aici intră toate punctele de administrare pentru registru, flux și arhivă.</p>
-                </div>
-                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  @for (link of registraturaQuickLinks; track link.route) {
-                    <p-card>
-                      <div class="flex items-start gap-3">
-                        <i [class]="link.icon + ' text-2xl text-primary'"></i>
-                        <div>
-                          <div class="font-semibold">{{ link.label }}</div>
-                          <div class="text-sm text-muted-color">{{ link.description }}</div>
-                        </div>
-                      </div>
-                      <div class="mt-4">
-                        <p-button [label]="link.action" [icon]="link.icon" [routerLink]="link.route" />
-                      </div>
-                    </p-card>
-                  }
-                </div>
-              </section>
+            <app-registratura-admin-workspace [users]="users()" />
+          </p-tabpanel>
 
-              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
-                <div class="mb-3">
-                  <h2 class="m-0 text-lg font-semibold">Părți și nomenclatoare</h2>
-                  <p class="m-0 mt-1 text-sm text-muted-color">Nomenclatorul de părți este deja conectat în formularul de documente.</p>
-                </div>
-                <div class="grid gap-3 md:grid-cols-2">
-                  <div class="rounded-2xl border border-surface-200 p-4">
-                    <div class="font-semibold">Persoane fizice, juridice și instituții</div>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Gestionarea reală se face din formularul de documente și prin API-ul de părți; aici rămâne punctul de navigație.</p>
-                  </div>
-                  <div class="rounded-2xl border border-surface-200 p-4">
-                    <div class="font-semibold">Registre și numerotare</div>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Tot ce ține de registrul activ, numerotare și export PDF este concentrat în workspace-ul de registratură.</p>
-                  </div>
-                </div>
-              </section>
-            </div>
+          <p-tabpanel value="compartimente" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="departments" />
+          </p-tabpanel>
+
+          <p-tabpanel value="registre" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="registries" />
+          </p-tabpanel>
+
+          <p-tabpanel value="persoane-fizice" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="physical" />
+          </p-tabpanel>
+
+          <p-tabpanel value="persoane-juridice" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="legal" />
+          </p-tabpanel>
+
+          <p-tabpanel value="institutii-publice" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="institution" />
+          </p-tabpanel>
+
+          <p-tabpanel value="organizatii" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="organizations" />
+          </p-tabpanel>
+
+          <p-tabpanel value="organigrama" class="flex min-h-0 flex-1 overflow-hidden p-0">
+            <app-registratura-admin-workspace [users]="users()" initialResource="chart" />
           </p-tabpanel>
 
           <p-tabpanel value="education" class="flex min-h-0 flex-1 overflow-hidden p-0">
             <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
-              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+              <section
+                class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+              >
                 <div class="mb-3">
                   <h2 class="m-0 text-lg font-semibold">Administrare educație</h2>
-                  <p class="m-0 mt-1 text-sm text-muted-color">Tab-ul pregătește accesul la modulele educaționale deja expuse prin aplicație.</p>
+                  <p class="m-0 mt-1 text-sm text-muted-color">
+                    Tab-ul pregătește accesul la modulele educaționale deja expuse prin aplicație.
+                  </p>
                 </div>
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   @for (link of educationQuickLinks; track link.route) {
@@ -355,17 +463,25 @@ interface AdminPositionRoleAssignmentFilterState {
                         </div>
                       </div>
                       <div class="mt-4">
-                        <p-button [label]="link.action" [icon]="link.icon" [routerLink]="link.route" />
+                        <p-button
+                          [label]="link.action"
+                          [icon]="link.icon"
+                          [routerLink]="link.route"
+                        />
                       </div>
                     </p-card>
                   }
                 </div>
               </section>
 
-              <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+              <section
+                class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+              >
                 <div class="mb-2 text-lg font-semibold">Drum de lucru viitor</div>
                 <p class="m-0 text-sm text-muted-color">
-                  Când contractele de administrare educațională vor fi completate, aici vom adăuga tabele server-side, dialoguri și acțiuni CRUD pentru structuri, portofolii, evaluări și conformitate.
+                  Când contractele de administrare educațională vor fi completate, aici vom adăuga
+                  tabele server-side, dialoguri și acțiuni CRUD pentru structuri, portofolii,
+                  evaluări și conformitate.
                 </p>
               </section>
             </div>
@@ -374,17 +490,33 @@ interface AdminPositionRoleAssignmentFilterState {
           <p-tabpanel value="rbac" class="flex min-h-0 flex-1 overflow-hidden p-0">
             <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-3">
               <div class="grid gap-4 xl:grid-cols-2">
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Catalog roluri</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Roluri de bază, extinse ulterior cu altele.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Roluri de bază, extinse ulterior cu altele.
+                      </p>
                     </div>
                     <p-button label="Rol nou" icon="pi pi-plus" (onClick)="openRoleDialog()" />
                   </div>
                   <div class="mb-3 grid gap-2 md:grid-cols-2">
-                    <input pInputText class="w-full" placeholder="Cod rol" [(ngModel)]="roleFilters.code" (keyup.enter)="reloadRoles()" />
-                    <input pInputText class="w-full" placeholder="Etichetă rol" [(ngModel)]="roleFilters.label" (keyup.enter)="reloadRoles()" />
+                    <input
+                      pInputText
+                      class="w-full"
+                      placeholder="Cod rol"
+                      [(ngModel)]="roleFilters.code"
+                      (keyup.enter)="reloadRoles()"
+                    />
+                    <input
+                      pInputText
+                      class="w-full"
+                      placeholder="Etichetă rol"
+                      [(ngModel)]="roleFilters.label"
+                      (keyup.enter)="reloadRoles()"
+                    />
                   </div>
                   <p-table
                     [value]="roles()"
@@ -394,7 +526,7 @@ interface AdminPositionRoleAssignmentFilterState {
                     [rows]="rolesQuery().pageSize"
                     [first]="(rolesQuery().page - 1) * rolesQuery().pageSize"
                     [totalRecords]="rolesTotal()"
-                    [rowsPerPageOptions]="[25,50,100]"
+                    [rowsPerPageOptions]="[25, 50, 100]"
                     [showCurrentPageReport]="true"
                     currentPageReportTemplate="Afișare {first} - {last} din {totalRecords} roluri"
                     [scrollable]="true"
@@ -414,26 +546,49 @@ interface AdminPositionRoleAssignmentFilterState {
                         <td class="font-medium">{{ role.code }}</td>
                         <td>{{ role.label }}</td>
                         <td class="text-center">
-                          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openRoleDialog(role)" />
+                          <p-button
+                            icon="pi pi-pencil"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="openRoleDialog(role)"
+                          />
                         </td>
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
-                      <tr><td colspan="3" class="py-8 text-center text-muted-color">Nu există roluri pentru filtrele curente.</td></tr>
+                      <tr>
+                        <td colspan="3" class="py-8 text-center text-muted-color">
+                          Nu există roluri pentru filtrele curente.
+                        </td>
+                      </tr>
                     </ng-template>
                   </p-table>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Roluri pe utilizator</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Atribuire role pentru conturile autentificate.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Atribuire role pentru conturile autentificate.
+                      </p>
                     </div>
-                    <p-button label="Atribuire" icon="pi pi-plus" (onClick)="openUserRoleDialog()" />
+                    <p-button
+                      label="Atribuire"
+                      icon="pi pi-plus"
+                      (onClick)="openUserRoleDialog()"
+                    />
                   </div>
                   <div class="mb-3 grid gap-2 md:grid-cols-2">
-                    <input pInputText class="w-full" placeholder="Utilizator" [(ngModel)]="userRoleAssignmentFilters.user_name" (keyup.enter)="reloadUserRoleAssignments()" />
+                    <input
+                      pInputText
+                      class="w-full"
+                      placeholder="Utilizator"
+                      [(ngModel)]="userRoleAssignmentFilters.user_name"
+                      (keyup.enter)="reloadUserRoleAssignments()"
+                    />
                     <p-select
                       appendTo="body"
                       class="w-full"
@@ -451,9 +606,11 @@ interface AdminPositionRoleAssignmentFilterState {
                     [lazy]="true"
                     [paginator]="true"
                     [rows]="userRoleAssignmentsQuery().pageSize"
-                    [first]="(userRoleAssignmentsQuery().page - 1) * userRoleAssignmentsQuery().pageSize"
+                    [first]="
+                      (userRoleAssignmentsQuery().page - 1) * userRoleAssignmentsQuery().pageSize
+                    "
                     [totalRecords]="userRoleAssignmentsTotal()"
-                    [rowsPerPageOptions]="[25,50,100]"
+                    [rowsPerPageOptions]="[25, 50, 100]"
                     [showCurrentPageReport]="true"
                     currentPageReportTemplate="Afișare {first} - {last} din {totalRecords} atribuiri"
                     [scrollable]="true"
@@ -476,21 +633,40 @@ interface AdminPositionRoleAssignmentFilterState {
                         </td>
                         <td><p-tag [value]="assignment.role_label" severity="secondary" /></td>
                         <td class="text-center">
-                          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openUserRoleDialog(assignment)" />
-                          <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removeUserRoleAssignment(assignment)" />
+                          <p-button
+                            icon="pi pi-pencil"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="openUserRoleDialog(assignment)"
+                          />
+                          <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="removeUserRoleAssignment(assignment)"
+                          />
                         </td>
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
-                      <tr><td colspan="3" class="py-8 text-center text-muted-color">Nu există atribuiri pentru filtrele curente.</td></tr>
+                      <tr>
+                        <td colspan="3" class="py-8 text-center text-muted-color">
+                          Nu există atribuiri pentru filtrele curente.
+                        </td>
+                      </tr>
                     </ng-template>
                   </p-table>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2"
+                >
                   <div class="mb-3">
                     <h2 class="m-0 text-lg font-semibold">Matrice roluri și funcționalități</h2>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Maparea explicită care guvernează accesul la modulele principale.</p>
+                    <p class="m-0 mt-1 text-sm text-muted-color">
+                      Maparea explicită care guvernează accesul la modulele principale.
+                    </p>
                   </div>
                   <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     @for (rule of featureAccessRules; track rule.feature) {
@@ -500,11 +676,18 @@ interface AdminPositionRoleAssignmentFilterState {
                             <div class="font-semibold">{{ rule.feature }}</div>
                             <div class="text-xs text-muted-color">{{ rule.description }}</div>
                           </div>
-                          <p-tag [value]="rule.permissions.length ? 'Permisiuni' : 'Roluri'" severity="secondary" />
+                          <p-tag
+                            [value]="rule.permissions.length ? 'Permisiuni' : 'Roluri'"
+                            severity="secondary"
+                          />
                         </div>
                         <div class="mt-3 flex flex-wrap gap-2">
                           @for (role of rule.roles; track role) {
-                            <p-tag [value]="authz.roleLabel(role)" severity="info" [pTooltip]="role" />
+                            <p-tag
+                              [value]="authz.roleLabel(role)"
+                              severity="info"
+                              [pTooltip]="role"
+                            />
                           }
                         </div>
                       </article>
@@ -512,10 +695,14 @@ interface AdminPositionRoleAssignmentFilterState {
                   </div>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2"
+                >
                   <div class="mb-3">
                     <h2 class="m-0 text-lg font-semibold">Catalog roluri și permisiuni</h2>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Sursa de adevăr servită din backend pentru label-uri și permisiuni.</p>
+                    <p class="m-0 mt-1 text-sm text-muted-color">
+                      Sursa de adevăr servită din backend pentru label-uri și permisiuni.
+                    </p>
                   </div>
                   <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     @for (role of authz.roleCatalog(); track role.code) {
@@ -525,26 +712,41 @@ interface AdminPositionRoleAssignmentFilterState {
                             <div class="font-semibold">{{ role.label }}</div>
                             <div class="text-xs text-muted-color">{{ role.code }}</div>
                           </div>
-                          <p-tag [value]="role.permissions?.length?.toString() ?? '0'" severity="info" />
+                          <p-tag
+                            [value]="role.permissions?.length?.toString() ?? '0'"
+                            severity="info"
+                          />
                         </div>
                         <div class="mt-3 grid gap-3">
                           <div>
-                            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color">Poziții</div>
+                            <div
+                              class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color"
+                            >
+                              Poziții
+                            </div>
                             <div class="flex flex-wrap gap-2">
                               @for (position of role.positions ?? []; track position) {
                                 <p-tag [value]="position" severity="success" />
                               } @empty {
-                                <span class="text-xs text-muted-color">Nu are poziții asociate.</span>
+                                <span class="text-xs text-muted-color"
+                                  >Nu are poziții asociate.</span
+                                >
                               }
                             </div>
                           </div>
                           <div>
-                            <div class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color">Permisiuni</div>
+                            <div
+                              class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-color"
+                            >
+                              Permisiuni
+                            </div>
                             <div class="flex flex-wrap gap-2">
                               @for (permission of role.permissions ?? []; track permission) {
                                 <p-tag [value]="permission" severity="secondary" />
                               } @empty {
-                                <span class="text-xs text-muted-color">Nu are permisiuni explicite.</span>
+                                <span class="text-xs text-muted-color"
+                                  >Nu are permisiuni explicite.</span
+                                >
                               }
                             </div>
                           </div>
@@ -554,35 +756,57 @@ interface AdminPositionRoleAssignmentFilterState {
                   </div>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900 xl:col-span-2"
+                >
                   <div class="mb-3">
                     <h2 class="m-0 text-lg font-semibold">Mapare poziții și roluri</h2>
-                    <p class="m-0 mt-1 text-sm text-muted-color">Expusă direct din backend pentru a păstra paritatea dintre pozițiile operaționale și RBAC.</p>
+                    <p class="m-0 mt-1 text-sm text-muted-color">
+                      Expusă direct din backend pentru a păstra paritatea dintre pozițiile
+                      operaționale și RBAC.
+                    </p>
                   </div>
                   <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    @for (mapping of authz.rolePositions(); track mapping.position_code + ':' + mapping.role_code) {
+                    @for (
+                      mapping of authz.rolePositions();
+                      track mapping.position_code + ':' + mapping.role_code
+                    ) {
                       <article class="rounded-2xl border border-surface-200 p-4">
                         <div class="flex items-start justify-between gap-3">
                           <div>
                             <div class="font-semibold">{{ mapping.position_name }}</div>
                             <div class="text-xs text-muted-color">{{ mapping.position_code }}</div>
                           </div>
-                          <p-tag [value]="mapping.role_label" severity="info" [pTooltip]="mapping.role_code" />
+                          <p-tag
+                            [value]="mapping.role_label"
+                            severity="info"
+                            [pTooltip]="mapping.role_code"
+                          />
                         </div>
                       </article>
                     } @empty {
-                      <div class="text-sm text-muted-color">Nu există mapări poziție-rol în catalogul backend.</div>
+                      <div class="text-sm text-muted-color">
+                        Nu există mapări poziție-rol în catalogul backend.
+                      </div>
                     }
                   </div>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Roluri pe permisiune</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Mapare explicită între roluri și permisiuni.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Mapare explicită între roluri și permisiuni.
+                      </p>
                     </div>
-                    <p-button label="Mapare nouă" icon="pi pi-plus" (onClick)="openRolePermissionDialog()" />
+                    <p-button
+                      label="Mapare nouă"
+                      icon="pi pi-plus"
+                      (onClick)="openRolePermissionDialog()"
+                    />
                   </div>
                   <div class="mb-3 grid gap-2 md:grid-cols-2">
                     <p-select
@@ -612,9 +836,12 @@ interface AdminPositionRoleAssignmentFilterState {
                     [lazy]="true"
                     [paginator]="true"
                     [rows]="rolePermissionAssignmentsQuery().pageSize"
-                    [first]="(rolePermissionAssignmentsQuery().page - 1) * rolePermissionAssignmentsQuery().pageSize"
+                    [first]="
+                      (rolePermissionAssignmentsQuery().page - 1) *
+                      rolePermissionAssignmentsQuery().pageSize
+                    "
                     [totalRecords]="rolePermissionAssignmentsTotal()"
-                    [rowsPerPageOptions]="[25,50,100]"
+                    [rowsPerPageOptions]="[25, 50, 100]"
                     [showCurrentPageReport]="true"
                     currentPageReportTemplate="Afișare {first} - {last} din {totalRecords} mapări"
                     [scrollable]="true"
@@ -637,27 +864,52 @@ interface AdminPositionRoleAssignmentFilterState {
                         </td>
                         <td>
                           <div class="font-medium">{{ assignment.permission_code }}</div>
-                          <div class="text-xs text-muted-color">{{ assignment.permission_label }}</div>
+                          <div class="text-xs text-muted-color">
+                            {{ assignment.permission_label }}
+                          </div>
                         </td>
                         <td class="text-center">
-                          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openRolePermissionDialog(assignment)" />
-                          <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removeRolePermissionAssignment(assignment)" />
+                          <p-button
+                            icon="pi pi-pencil"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="openRolePermissionDialog(assignment)"
+                          />
+                          <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="removeRolePermissionAssignment(assignment)"
+                          />
                         </td>
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
-                      <tr><td colspan="3" class="py-8 text-center text-muted-color">Nu există mapări pentru filtrele curente.</td></tr>
+                      <tr>
+                        <td colspan="3" class="py-8 text-center text-muted-color">
+                          Nu există mapări pentru filtrele curente.
+                        </td>
+                      </tr>
                     </ng-template>
                   </p-table>
                 </section>
 
-                <section class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900">
+                <section
+                  class="rounded-2xl border border-surface bg-surface-0 p-4 shadow-sm dark:bg-surface-900"
+                >
                   <div class="mb-3 flex items-center justify-between gap-3">
                     <div>
                       <h2 class="m-0 text-lg font-semibold">Roluri pe poziție</h2>
-                      <p class="m-0 mt-1 text-sm text-muted-color">Mapare poziții operaționale către rolurile implicite.</p>
+                      <p class="m-0 mt-1 text-sm text-muted-color">
+                        Mapare poziții operaționale către rolurile implicite.
+                      </p>
                     </div>
-                    <p-button label="Mapare nouă" icon="pi pi-plus" (onClick)="openPositionRoleDialog()" />
+                    <p-button
+                      label="Mapare nouă"
+                      icon="pi pi-plus"
+                      (onClick)="openPositionRoleDialog()"
+                    />
                   </div>
                   <div class="mb-3 grid gap-2 md:grid-cols-2">
                     <p-select
@@ -687,9 +939,12 @@ interface AdminPositionRoleAssignmentFilterState {
                     [lazy]="true"
                     [paginator]="true"
                     [rows]="positionRoleAssignmentsQuery().pageSize"
-                    [first]="(positionRoleAssignmentsQuery().page - 1) * positionRoleAssignmentsQuery().pageSize"
+                    [first]="
+                      (positionRoleAssignmentsQuery().page - 1) *
+                      positionRoleAssignmentsQuery().pageSize
+                    "
                     [totalRecords]="positionRoleAssignmentsTotal()"
-                    [rowsPerPageOptions]="[25,50,100]"
+                    [rowsPerPageOptions]="[25, 50, 100]"
                     [showCurrentPageReport]="true"
                     currentPageReportTemplate="Afișare {first} - {last} din {totalRecords} mapări"
                     [scrollable]="true"
@@ -715,13 +970,28 @@ interface AdminPositionRoleAssignmentFilterState {
                           <div class="text-xs text-muted-color">{{ assignment.role_label }}</div>
                         </td>
                         <td class="text-center">
-                          <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" (onClick)="openPositionRoleDialog(assignment)" />
-                          <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [text]="true" (onClick)="removePositionRoleAssignment(assignment)" />
+                          <p-button
+                            icon="pi pi-pencil"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="openPositionRoleDialog(assignment)"
+                          />
+                          <p-button
+                            icon="pi pi-trash"
+                            severity="danger"
+                            [rounded]="true"
+                            [text]="true"
+                            (onClick)="removePositionRoleAssignment(assignment)"
+                          />
                         </td>
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
-                      <tr><td colspan="3" class="py-8 text-center text-muted-color">Nu există mapări pentru filtrele curente.</td></tr>
+                      <tr>
+                        <td colspan="3" class="py-8 text-center text-muted-color">
+                          Nu există mapări pentru filtrele curente.
+                        </td>
+                      </tr>
                     </ng-template>
                   </p-table>
                 </section>
@@ -729,28 +999,16 @@ interface AdminPositionRoleAssignmentFilterState {
             </div>
           </p-tabpanel>
 
-          @for (tab of missingContractTabs; track tab.value) {
-            <p-tabpanel [value]="tab.value" class="h-full min-h-0 p-3">
-              <section class="grid h-full place-items-center rounded-2xl border border-dashed border-surface bg-surface-0 p-8 text-center dark:bg-surface-900">
-                <div class="max-w-xl">
-                  <i [class]="tab.icon + ' text-4xl text-primary'"></i>
-                  <h2 class="mb-2 mt-4 text-xl font-bold">{{ tab.label }}</h2>
-                  <p class="text-muted-color">{{ tab.description }}</p>
-                  <p-tag value="Backend contract missing" severity="warn" />
-                  <p class="mt-4 text-sm text-muted-color">
-                    Acest tab este păstrat ca obligație de paritate Costești. Următorul pas este să adăugăm endpointurile și tabelele reale, nu să îl ascundem.
-                  </p>
-                </div>
-              </section>
-            </p-tabpanel>
-          }
-
           <p-tabpanel value="profile" class="h-full min-h-0 p-3">
-            <section class="grid h-full place-items-center rounded-2xl border border-surface bg-surface-0 p-8 text-center dark:bg-surface-900">
+            <section
+              class="grid h-full place-items-center rounded-2xl border border-surface bg-surface-0 p-8 text-center dark:bg-surface-900"
+            >
               <div>
                 <i class="pi pi-user text-4xl text-primary"></i>
                 <h2 class="mb-2 mt-4 text-xl font-bold">Profil utilizator</h2>
-                <p class="text-muted-color">Profilul complet este disponibil și din blocul de utilizator din drawer.</p>
+                <p class="text-muted-color">
+                  Profilul complet este disponibil și din blocul de utilizator din drawer.
+                </p>
                 <p-button label="Deschide profilul" icon="pi pi-user" routerLink="/profile" />
               </div>
             </section>
@@ -790,7 +1048,12 @@ interface AdminPositionRoleAssignmentFilterState {
         </div>
         <ng-template pTemplate="footer">
           <div class="flex justify-end gap-2">
-            <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="userDialogOpen.set(false)" />
+            <p-button
+              label="Renunță"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="userDialogOpen.set(false)"
+            />
             <p-button label="Salvează" icon="pi pi-check" (onClick)="saveUser()" />
           </div>
         </ng-template>
@@ -816,7 +1079,12 @@ interface AdminPositionRoleAssignmentFilterState {
         </div>
         <ng-template pTemplate="footer">
           <div class="flex justify-end gap-2">
-            <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="roleDialogOpen.set(false)" />
+            <p-button
+              label="Renunță"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="roleDialogOpen.set(false)"
+            />
             <p-button label="Salvează" icon="pi pi-check" (onClick)="saveRole()" />
           </div>
         </ng-template>
@@ -827,7 +1095,9 @@ interface AdminPositionRoleAssignmentFilterState {
         (visibleChange)="userRoleDialogOpen.set($event)"
         [modal]="true"
         [draggable]="false"
-        [header]="editingUserRoleAssignment() ? 'Editează atribuirea rolului' : 'Atribuire rol utilizator'"
+        [header]="
+          editingUserRoleAssignment() ? 'Editează atribuirea rolului' : 'Atribuire rol utilizator'
+        "
         [style]="{ width: 'min(38rem, 94vw)' }"
       >
         <div class="grid gap-4 md:grid-cols-2">
@@ -855,12 +1125,24 @@ interface AdminPositionRoleAssignmentFilterState {
           </label>
           <label class="admin-field">
             <span>Stare</span>
-            <p-select appendTo="body" [options]="[{ label: 'Atribuit', value: true }, { label: 'Revocat', value: false }]" [(ngModel)]="userRoleForm.assigned" />
+            <p-select
+              appendTo="body"
+              [options]="[
+                { label: 'Atribuit', value: true },
+                { label: 'Revocat', value: false },
+              ]"
+              [(ngModel)]="userRoleForm.assigned"
+            />
           </label>
         </div>
         <ng-template pTemplate="footer">
           <div class="flex justify-end gap-2">
-            <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="userRoleDialogOpen.set(false)" />
+            <p-button
+              label="Renunță"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="userRoleDialogOpen.set(false)"
+            />
             <p-button label="Salvează" icon="pi pi-check" (onClick)="saveUserRoleAssignment()" />
           </div>
         </ng-template>
@@ -871,7 +1153,11 @@ interface AdminPositionRoleAssignmentFilterState {
         (visibleChange)="rolePermissionDialogOpen.set($event)"
         [modal]="true"
         [draggable]="false"
-        [header]="editingRolePermissionAssignment() ? 'Editează maparea rol-permisiune' : 'Mapare rol-permisiune'"
+        [header]="
+          editingRolePermissionAssignment()
+            ? 'Editează maparea rol-permisiune'
+            : 'Mapare rol-permisiune'
+        "
         [style]="{ width: 'min(38rem, 94vw)' }"
       >
         <div class="grid gap-4 md:grid-cols-2">
@@ -899,13 +1185,29 @@ interface AdminPositionRoleAssignmentFilterState {
           </label>
           <label class="admin-field md:col-span-2">
             <span>Stare</span>
-            <p-select appendTo="body" [options]="[{ label: 'Atribuit', value: true }, { label: 'Revocat', value: false }]" [(ngModel)]="rolePermissionForm.assigned" />
+            <p-select
+              appendTo="body"
+              [options]="[
+                { label: 'Atribuit', value: true },
+                { label: 'Revocat', value: false },
+              ]"
+              [(ngModel)]="rolePermissionForm.assigned"
+            />
           </label>
         </div>
         <ng-template pTemplate="footer">
           <div class="flex justify-end gap-2">
-            <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="rolePermissionDialogOpen.set(false)" />
-            <p-button label="Salvează" icon="pi pi-check" (onClick)="saveRolePermissionAssignment()" />
+            <p-button
+              label="Renunță"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="rolePermissionDialogOpen.set(false)"
+            />
+            <p-button
+              label="Salvează"
+              icon="pi pi-check"
+              (onClick)="saveRolePermissionAssignment()"
+            />
           </div>
         </ng-template>
       </p-dialog>
@@ -915,7 +1217,9 @@ interface AdminPositionRoleAssignmentFilterState {
         (visibleChange)="positionRoleDialogOpen.set($event)"
         [modal]="true"
         [draggable]="false"
-        [header]="editingPositionRoleAssignment() ? 'Editează maparea poziție-rol' : 'Mapare poziție-rol'"
+        [header]="
+          editingPositionRoleAssignment() ? 'Editează maparea poziție-rol' : 'Mapare poziție-rol'
+        "
         [style]="{ width: 'min(38rem, 94vw)' }"
       >
         <div class="grid gap-4 md:grid-cols-2">
@@ -943,13 +1247,29 @@ interface AdminPositionRoleAssignmentFilterState {
           </label>
           <label class="admin-field md:col-span-2">
             <span>Stare</span>
-            <p-select appendTo="body" [options]="[{ label: 'Atribuit', value: true }, { label: 'Revocat', value: false }]" [(ngModel)]="positionRoleForm.assigned" />
+            <p-select
+              appendTo="body"
+              [options]="[
+                { label: 'Atribuit', value: true },
+                { label: 'Revocat', value: false },
+              ]"
+              [(ngModel)]="positionRoleForm.assigned"
+            />
           </label>
         </div>
         <ng-template pTemplate="footer">
           <div class="flex justify-end gap-2">
-            <p-button label="Renunță" severity="secondary" [outlined]="true" (onClick)="positionRoleDialogOpen.set(false)" />
-            <p-button label="Salvează" icon="pi pi-check" (onClick)="savePositionRoleAssignment()" />
+            <p-button
+              label="Renunță"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="positionRoleDialogOpen.set(false)"
+            />
+            <p-button
+              label="Salvează"
+              icon="pi pi-check"
+              (onClick)="savePositionRoleAssignment()"
+            />
           </div>
         </ng-template>
       </p-dialog>
@@ -1058,32 +1378,122 @@ export class AdminWorkspaceComponent {
   ];
 
   protected readonly tabs: AdminTab[] = [
-    { value: 'dashboard', label: 'Rezumat', icon: 'pi pi-home', status: 'wired', description: 'Imagine de ansamblu administrativă.' },
-    { value: 'users', label: 'Utilizatori', icon: 'pi pi-users', status: 'wired', description: 'Gestionare utilizatori.' },
-    { value: 'rbac', label: 'RBAC', icon: 'pi pi-shield', status: 'wired', description: 'Catalog de roluri, permisiuni și mapări poziții.' },
-    { value: 'registratura', label: 'Registratură', icon: 'pi pi-folder-open', status: 'wired', description: 'Administrația operațională pentru documente, registre, flux și arhivă.' },
-    { value: 'education', label: 'Educație', icon: 'pi pi-graduation-cap', status: 'wired', description: 'Acces la modulele educaționale și viitoarele setări administrative.' },
-    { value: 'compartimente', label: 'Compartimente', icon: 'pi pi-sitemap', status: 'contract-missing', description: 'Compartimente operaționale pentru registratură și fluxuri.' },
-    { value: 'registre', label: 'Registre', icon: 'pi pi-book', status: 'contract-missing', description: 'Registre, prefixe, numerotare, registru implicit și compartimente asociate.' },
-    { value: 'persoane-fizice', label: 'Persoane Fizice', icon: 'pi pi-id-card', status: 'contract-missing', description: 'Nomenclator persoane fizice folosit de emitent/destinatar.' },
-    { value: 'persoane-juridice', label: 'Persoane Juridice', icon: 'pi pi-building', status: 'contract-missing', description: 'Nomenclator persoane juridice și date de identificare.' },
-    { value: 'institutii-publice', label: 'Instituții Publice', icon: 'pi pi-landmark', status: 'contract-missing', description: 'Instituții publice, instituție implicită și ierarhii.' },
-    { value: 'organizatii', label: 'Organizații', icon: 'pi pi-warehouse', status: 'contract-missing', description: 'Organizații și structuri externe/instituționale.' },
-    { value: 'organigrama', label: 'Organigramă', icon: 'pi pi-share-alt', status: 'contract-missing', description: 'Structură organizațională vizuală și atribuiri.' },
-    { value: 'profile', label: 'Profil utilizator', icon: 'pi pi-user', status: 'wired', description: 'Profil utilizator.' },
+    {
+      value: 'dashboard',
+      label: 'Rezumat',
+      icon: 'pi pi-home',
+      status: 'wired',
+      description: 'Imagine de ansamblu administrativă.',
+    },
+    {
+      value: 'users',
+      label: 'Utilizatori',
+      icon: 'pi pi-users',
+      status: 'wired',
+      description: 'Gestionare utilizatori.',
+    },
+    {
+      value: 'rbac',
+      label: 'RBAC',
+      icon: 'pi pi-shield',
+      status: 'wired',
+      description: 'Catalog de roluri, permisiuni și mapări poziții.',
+    },
+    {
+      value: 'registratura',
+      label: 'Registratură',
+      icon: 'pi pi-folder-open',
+      status: 'wired',
+      description: 'Administrația operațională pentru documente, registre, flux și arhivă.',
+    },
+    {
+      value: 'education',
+      label: 'Educație',
+      icon: 'pi pi-graduation-cap',
+      status: 'wired',
+      description: 'Acces la modulele educaționale și viitoarele setări administrative.',
+    },
+    {
+      value: 'compartimente',
+      label: 'Compartimente',
+      icon: 'pi pi-sitemap',
+      status: 'wired',
+      description: 'Compartimente operaționale pentru registratură și fluxuri.',
+    },
+    {
+      value: 'registre',
+      label: 'Registre',
+      icon: 'pi pi-book',
+      status: 'wired',
+      description: 'Registre, prefixe, numerotare, registru implicit și compartimente asociate.',
+    },
+    {
+      value: 'persoane-fizice',
+      label: 'Persoane Fizice',
+      icon: 'pi pi-id-card',
+      status: 'wired',
+      description: 'Nomenclator persoane fizice folosit de emitent/destinatar.',
+    },
+    {
+      value: 'persoane-juridice',
+      label: 'Persoane Juridice',
+      icon: 'pi pi-building',
+      status: 'wired',
+      description: 'Nomenclator persoane juridice și date de identificare.',
+    },
+    {
+      value: 'institutii-publice',
+      label: 'Instituții Publice',
+      icon: 'pi pi-landmark',
+      status: 'wired',
+      description: 'Instituții publice, instituție implicită și ierarhii.',
+    },
+    {
+      value: 'organizatii',
+      label: 'Organizații',
+      icon: 'pi pi-warehouse',
+      status: 'wired',
+      description: 'Organizații și structuri externe/instituționale.',
+    },
+    {
+      value: 'organigrama',
+      label: 'Organigramă',
+      icon: 'pi pi-share-alt',
+      status: 'wired',
+      description: 'Structură organizațională vizuală și atribuiri.',
+    },
+    {
+      value: 'profile',
+      label: 'Profil utilizator',
+      icon: 'pi pi-user',
+      status: 'wired',
+      description: 'Profil utilizator.',
+    },
   ];
-  protected readonly missingContractTabs = this.tabs.filter((tab) => tab.status === 'contract-missing');
 
   protected readonly users = signal<AdminUser[]>([]);
   protected readonly usersTotal = signal(0);
   protected readonly usersLoading = signal(false);
-  protected readonly usersQuery = signal<TableQuery>({ page: 1, pageSize: 25, sort: 'name', direction: 'asc', filters: {} });
+  protected readonly usersQuery = signal<TableQuery>({
+    page: 1,
+    pageSize: 25,
+    sort: 'name',
+    direction: 'asc',
+    filters: {},
+  });
   protected readonly userDialogOpen = signal(false);
   protected readonly editingUser = signal<AdminUser | null>(null);
 
-  protected readonly userFilters: { name: string; email: string; phone: string; position: string } = { name: '', email: '', phone: '', position: '' };
-  protected readonly localeOptions = [{ label: 'RO', value: 'ro' }, { label: 'EN', value: 'en' }];
-  protected readonly statusOptions = [{ label: 'Activ', value: 'active' }, { label: 'Inactiv', value: 'inactive' }];
+  protected readonly userFilters: { name: string; email: string; phone: string; position: string } =
+    { name: '', email: '', phone: '', position: '' };
+  protected readonly localeOptions = [
+    { label: 'RO', value: 'ro' },
+    { label: 'EN', value: 'en' },
+  ];
+  protected readonly statusOptions = [
+    { label: 'Activ', value: 'active' },
+    { label: 'Inactiv', value: 'inactive' },
+  ];
   protected readonly userForm: UpsertAdminUserRequest = {
     name: '',
     email: '',
@@ -1098,7 +1508,13 @@ export class AdminWorkspaceComponent {
   protected readonly roles = signal<AdminRole[]>([]);
   protected readonly rolesTotal = signal(0);
   protected readonly rolesLoading = signal(false);
-  protected readonly rolesQuery = signal<TableQuery>({ page: 1, pageSize: 100, sort: 'code', direction: 'asc', filters: {} });
+  protected readonly rolesQuery = signal<TableQuery>({
+    page: 1,
+    pageSize: 100,
+    sort: 'code',
+    direction: 'asc',
+    filters: {},
+  });
   protected readonly roleFilters: AdminRoleFilterState = { code: '', label: '' };
   protected readonly roleDialogOpen = signal(false);
   protected readonly editingRole = signal<AdminRole | null>(null);
@@ -1107,32 +1523,78 @@ export class AdminWorkspaceComponent {
   protected readonly userRoleAssignments = signal<AdminUserRoleAssignment[]>([]);
   protected readonly userRoleAssignmentsTotal = signal(0);
   protected readonly userRoleAssignmentsLoading = signal(false);
-  protected readonly userRoleAssignmentsQuery = signal<TableQuery>({ page: 1, pageSize: 25, sort: 'user_name', direction: 'asc', filters: {} });
-  protected readonly userRoleAssignmentFilters: AdminUserRoleAssignmentFilterState = { user_name: '', role_code: '' };
+  protected readonly userRoleAssignmentsQuery = signal<TableQuery>({
+    page: 1,
+    pageSize: 25,
+    sort: 'user_name',
+    direction: 'asc',
+    filters: {},
+  });
+  protected readonly userRoleAssignmentFilters: AdminUserRoleAssignmentFilterState = {
+    user_name: '',
+    role_code: '',
+  };
   protected readonly userRoleDialogOpen = signal(false);
   protected readonly editingUserRoleAssignment = signal<AdminUserRoleAssignment | null>(null);
-  protected readonly userRoleForm: UpsertAdminUserRoleAssignmentRequest = { user_id: '', role_code: '', assigned: true };
+  protected readonly userRoleForm: UpsertAdminUserRoleAssignmentRequest = {
+    user_id: '',
+    role_code: '',
+    assigned: true,
+  };
   protected readonly userLookup = signal<AdminUser[]>([]);
 
   protected readonly rolePermissionAssignments = signal<AdminRolePermissionAssignment[]>([]);
   protected readonly rolePermissionAssignmentsTotal = signal(0);
   protected readonly rolePermissionAssignmentsLoading = signal(false);
-  protected readonly rolePermissionAssignmentsQuery = signal<TableQuery>({ page: 1, pageSize: 25, sort: 'role_code', direction: 'asc', filters: {} });
-  protected readonly rolePermissionAssignmentFilters: AdminRolePermissionAssignmentFilterState = { role_code: '', permission_code: '' };
+  protected readonly rolePermissionAssignmentsQuery = signal<TableQuery>({
+    page: 1,
+    pageSize: 25,
+    sort: 'role_code',
+    direction: 'asc',
+    filters: {},
+  });
+  protected readonly rolePermissionAssignmentFilters: AdminRolePermissionAssignmentFilterState = {
+    role_code: '',
+    permission_code: '',
+  };
   protected readonly rolePermissionDialogOpen = signal(false);
-  protected readonly editingRolePermissionAssignment = signal<AdminRolePermissionAssignment | null>(null);
-  protected readonly rolePermissionForm: UpsertAdminRolePermissionAssignmentRequest = { role_code: '', permission_code: '', assigned: true };
-  protected readonly rolePermissionFilterOptions = signal<AdminRolePermissionAssignmentFilters | null>(null);
+  protected readonly editingRolePermissionAssignment = signal<AdminRolePermissionAssignment | null>(
+    null,
+  );
+  protected readonly rolePermissionForm: UpsertAdminRolePermissionAssignmentRequest = {
+    role_code: '',
+    permission_code: '',
+    assigned: true,
+  };
+  protected readonly rolePermissionFilterOptions =
+    signal<AdminRolePermissionAssignmentFilters | null>(null);
 
   protected readonly positionRoleAssignments = signal<AdminPositionRoleAssignment[]>([]);
   protected readonly positionRoleAssignmentsTotal = signal(0);
   protected readonly positionRoleAssignmentsLoading = signal(false);
-  protected readonly positionRoleAssignmentsQuery = signal<TableQuery>({ page: 1, pageSize: 25, sort: 'position_code', direction: 'asc', filters: {} });
-  protected readonly positionRoleAssignmentFilters: AdminPositionRoleAssignmentFilterState = { position_code: '', role_code: '' };
+  protected readonly positionRoleAssignmentsQuery = signal<TableQuery>({
+    page: 1,
+    pageSize: 25,
+    sort: 'position_code',
+    direction: 'asc',
+    filters: {},
+  });
+  protected readonly positionRoleAssignmentFilters: AdminPositionRoleAssignmentFilterState = {
+    position_code: '',
+    role_code: '',
+  };
   protected readonly positionRoleDialogOpen = signal(false);
-  protected readonly editingPositionRoleAssignment = signal<AdminPositionRoleAssignment | null>(null);
-  protected readonly positionRoleForm: UpsertAdminPositionRoleAssignmentRequest = { position_code: '', role_code: '', assigned: true };
-  protected readonly positionRoleFilterOptions = signal<AdminPositionRoleAssignmentFilters | null>(null);
+  protected readonly editingPositionRoleAssignment = signal<AdminPositionRoleAssignment | null>(
+    null,
+  );
+  protected readonly positionRoleForm: UpsertAdminPositionRoleAssignmentRequest = {
+    position_code: '',
+    role_code: '',
+    assigned: true,
+  };
+  protected readonly positionRoleFilterOptions = signal<AdminPositionRoleAssignmentFilters | null>(
+    null,
+  );
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -1162,7 +1624,9 @@ export class AdminWorkspaceComponent {
       pageSize,
       sort: sort || this.usersQuery().sort,
       direction: event?.sortOrder === -1 ? 'desc' : 'asc',
-      filters: Object.fromEntries(Object.entries(this.userFilters).filter(([, value]) => value.trim() !== '')),
+      filters: Object.fromEntries(
+        Object.entries(this.userFilters).filter(([, value]) => value.trim() !== ''),
+      ),
     };
     this.usersQuery.set(query);
     this.usersLoading.set(true);
@@ -1218,7 +1682,9 @@ export class AdminWorkspaceComponent {
       pageSize,
       sort: sort || this.rolesQuery().sort,
       direction: event?.sortOrder === -1 ? 'desc' : 'asc',
-      filters: Object.fromEntries(Object.entries(this.roleFilters).filter(([, value]) => value.trim() !== '')),
+      filters: Object.fromEntries(
+        Object.entries(this.roleFilters).filter(([, value]) => value.trim() !== ''),
+      ),
     };
     this.rolesQuery.set(query);
     this.rolesLoading.set(true);
@@ -1261,10 +1727,12 @@ export class AdminWorkspaceComponent {
   }
 
   protected loadAllUsersForAssignments(): void {
-    this.api.users({ page: 1, pageSize: 500, sort: 'name', direction: 'asc', filters: {} }).subscribe({
-      next: (res: PagedResponse<AdminUser>) => this.userLookup.set(res.items),
-      error: () => this.userLookup.set([]),
-    });
+    this.api
+      .users({ page: 1, pageSize: 500, sort: 'name', direction: 'asc', filters: {} })
+      .subscribe({
+        next: (res: PagedResponse<AdminUser>) => this.userLookup.set(res.items),
+        error: () => this.userLookup.set([]),
+      });
   }
 
   protected loadUserRoleAssignments(event?: TableLazyLoadEvent): void {
@@ -1276,7 +1744,9 @@ export class AdminWorkspaceComponent {
       pageSize,
       sort: sort || this.userRoleAssignmentsQuery().sort,
       direction: event?.sortOrder === -1 ? 'desc' : 'asc',
-      filters: Object.fromEntries(Object.entries(this.userRoleAssignmentFilters).filter(([, value]) => value.trim() !== '')),
+      filters: Object.fromEntries(
+        Object.entries(this.userRoleAssignmentFilters).filter(([, value]) => value.trim() !== ''),
+      ),
     };
     this.userRoleAssignmentsQuery.set(query);
     this.userRoleAssignmentsLoading.set(true);
@@ -1318,9 +1788,15 @@ export class AdminWorkspaceComponent {
   }
 
   protected removeUserRoleAssignment(assignment: AdminUserRoleAssignment): void {
-    this.api.saveRoleAssignment({ user_id: assignment.user_id, role_code: assignment.role_code, assigned: false }).subscribe({
-      next: () => this.reloadUserRoleAssignments(),
-    });
+    this.api
+      .saveRoleAssignment({
+        user_id: assignment.user_id,
+        role_code: assignment.role_code,
+        assigned: false,
+      })
+      .subscribe({
+        next: () => this.reloadUserRoleAssignments(),
+      });
   }
 
   protected loadRolePermissionAssignmentFilters(): void {
@@ -1339,7 +1815,11 @@ export class AdminWorkspaceComponent {
       pageSize,
       sort: sort || this.rolePermissionAssignmentsQuery().sort,
       direction: event?.sortOrder === -1 ? 'desc' : 'asc',
-      filters: Object.fromEntries(Object.entries(this.rolePermissionAssignmentFilters).filter(([, value]) => value.trim() !== '')),
+      filters: Object.fromEntries(
+        Object.entries(this.rolePermissionAssignmentFilters).filter(
+          ([, value]) => value.trim() !== '',
+        ),
+      ),
     };
     this.rolePermissionAssignmentsQuery.set(query);
     this.rolePermissionAssignmentsLoading.set(true);
@@ -1358,7 +1838,10 @@ export class AdminWorkspaceComponent {
   }
 
   protected reloadRolePermissionAssignments(): void {
-    this.loadRolePermissionAssignments({ first: 0, rows: this.rolePermissionAssignmentsQuery().pageSize });
+    this.loadRolePermissionAssignments({
+      first: 0,
+      rows: this.rolePermissionAssignmentsQuery().pageSize,
+    });
   }
 
   protected openRolePermissionDialog(assignment?: AdminRolePermissionAssignment): void {
@@ -1381,9 +1864,15 @@ export class AdminWorkspaceComponent {
   }
 
   protected removeRolePermissionAssignment(assignment: AdminRolePermissionAssignment): void {
-    this.api.saveRolePermissionAssignment({ role_code: assignment.role_code, permission_code: assignment.permission_code, assigned: false }).subscribe({
-      next: () => this.reloadRolePermissionAssignments(),
-    });
+    this.api
+      .saveRolePermissionAssignment({
+        role_code: assignment.role_code,
+        permission_code: assignment.permission_code,
+        assigned: false,
+      })
+      .subscribe({
+        next: () => this.reloadRolePermissionAssignments(),
+      });
   }
 
   protected loadPositionRoleAssignmentFilters(): void {
@@ -1402,7 +1891,11 @@ export class AdminWorkspaceComponent {
       pageSize,
       sort: sort || this.positionRoleAssignmentsQuery().sort,
       direction: event?.sortOrder === -1 ? 'desc' : 'asc',
-      filters: Object.fromEntries(Object.entries(this.positionRoleAssignmentFilters).filter(([, value]) => value.trim() !== '')),
+      filters: Object.fromEntries(
+        Object.entries(this.positionRoleAssignmentFilters).filter(
+          ([, value]) => value.trim() !== '',
+        ),
+      ),
     };
     this.positionRoleAssignmentsQuery.set(query);
     this.positionRoleAssignmentsLoading.set(true);
@@ -1421,7 +1914,10 @@ export class AdminWorkspaceComponent {
   }
 
   protected reloadPositionRoleAssignments(): void {
-    this.loadPositionRoleAssignments({ first: 0, rows: this.positionRoleAssignmentsQuery().pageSize });
+    this.loadPositionRoleAssignments({
+      first: 0,
+      rows: this.positionRoleAssignmentsQuery().pageSize,
+    });
   }
 
   protected openPositionRoleDialog(assignment?: AdminPositionRoleAssignment): void {
@@ -1444,17 +1940,25 @@ export class AdminWorkspaceComponent {
   }
 
   protected removePositionRoleAssignment(assignment: AdminPositionRoleAssignment): void {
-    this.api.savePositionRoleAssignment({ position_code: assignment.position_code, role_code: assignment.role_code, assigned: false }).subscribe({
-      next: () => this.reloadPositionRoleAssignments(),
-    });
+    this.api
+      .savePositionRoleAssignment({
+        position_code: assignment.position_code,
+        role_code: assignment.role_code,
+        assigned: false,
+      })
+      .subscribe({
+        next: () => this.reloadPositionRoleAssignments(),
+      });
   }
 
   protected initials(value: string): string {
-    return value
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? '')
-      .join('') || 'U';
+    return (
+      value
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join('') || 'U'
+    );
   }
 }

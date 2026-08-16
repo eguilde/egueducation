@@ -47,7 +47,11 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_token"})
 			return
 		}
-		if scheme == AccessTokenDPoP && claims.Cnf.JKT != "" && (proof == nil || claims.Cnf.JKT != proof.Thumbprint) {
+		if claims.Cnf.JKT != "" && scheme != AccessTokenDPoP {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "dpop_required"})
+			return
+		}
+		if scheme == AccessTokenDPoP && (claims.Cnf.JKT == "" || proof == nil || claims.Cnf.JKT != proof.Thumbprint) {
 			WriteDPoPNonce(w)
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "invalid_dpop_binding"})
 			return
@@ -58,12 +62,16 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 			return
 		}
+		if strings.TrimSpace(claims.InstitutionID) == "" || claims.InstitutionID != session.InstitutionID {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "token_tenant_mismatch"})
+			return
+		}
 
 		branding := tenant.ResolveBranding(r.Host, session.InstitutionName, session.InstitutionID)
 		tenantCode := tenant.DefaultTenantCode(session.InstitutionID, branding.Subdomain)
 		isSuperAdmin := false
 		for _, role := range session.User.Roles {
-			if strings.EqualFold(role, "super_admin") {
+			if strings.EqualFold(role, "super_admin") && tenantCode == "tenant-egueducation" {
 				isSuperAdmin = true
 				break
 			}

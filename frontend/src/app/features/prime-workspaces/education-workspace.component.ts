@@ -6,10 +6,10 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DatePickerModule } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { InputNumber } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { SortIcon, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
@@ -78,9 +78,10 @@ interface DashboardCard {
     CardModule,
     DatePickerModule,
     DialogModule,
-    InputNumberModule,
+    InputNumber,
     InputTextModule,
     SelectModule,
+    SortIcon,
     TableModule,
     TabsModule,
     TagModule,
@@ -190,7 +191,7 @@ interface DashboardCard {
                                   <th [pSortableColumn]="column.sortable ? column.field : undefined" [style.width]="column.width" [style.min-width]="column.width">
                                     {{ column.header }}
                                     @if (column.sortable) {
-                                      <p-sortIcon [field]="column.field" />
+                                      <p-sort-icon [field]="column.field" />
                                     }
                                   </th>
                                 }
@@ -273,7 +274,7 @@ interface DashboardCard {
                     <textarea pTextarea rows="4" [(ngModel)]="createForm[field.field]"></textarea>
                   }
                   @case ('number') {
-                    <p-inputNumber [(ngModel)]="createForm[field.field]" [min]="0" />
+                    <p-input-number [(ngModel)]="createForm[field.field]" [min]="0" />
                   }
                   @case ('date') {
                     <p-datepicker appendTo="body" dateFormat="yy-mm-dd" [(ngModel)]="createForm[field.field]" [showIcon]="true" />

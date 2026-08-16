@@ -8,7 +8,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MenuModule } from 'primeng/menu';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
-import { TableLazyLoadEvent, TableModule } from 'primeng/table';
+import { SortIcon, TableLazyLoadEvent, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 
 export interface ServerTableFilterOption {
@@ -72,6 +72,7 @@ export type ServerTableSortState = Sort;
     InputTextModule,
     MenuModule,
     SelectModule,
+    SortIcon,
     TagModule,
     TableModule,
     TooltipModule,

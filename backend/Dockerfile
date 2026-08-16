@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.6@sha256:640a234f4bea3e399c056b7b8f9c667c4939befae8db2f14e9785e16eccd4205 AS builder
 
 WORKDIR /src
 
@@ -12,7 +12,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-api ./cmd/server
 
-FROM gcr.io/distroless/base-debian12
+FROM gcr.io/distroless/base-debian12@sha256:76b3162a31477bca4a245b836c624f4c4a1a3705e99b9003907d992bec2c4bca
 
 WORKDIR /app
 

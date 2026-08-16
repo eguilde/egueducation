@@ -14,20 +14,35 @@ import (
 	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
 	appdb "github.com/eguilde/egueducation/internal/db"
+	"github.com/eguilde/egueducation/internal/earchiva"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 type Service struct {
-	pool *appdb.SessionPool
+	pool    *appdb.SessionPool
+	storage *earchiva.ArchiveStorage
+	scanner Scanner
 }
 
-func NewService(pool *appdb.SessionPool) *Service {
-	return &Service{pool: pool}
+func NewService(pool *appdb.SessionPool, storage ...*earchiva.ArchiveStorage) *Service {
+	s := &Service{pool: pool}
+	if len(storage) > 0 {
+		s.storage = storage[0]
+	}
+	return s
 }
+
+func (s *Service) SetScanner(scanner Scanner) { s.scanner = scanner }
 
 const generalRegistryName = "Registru General"
 
 func EnsureSeedData(ctx context.Context, pool *appdb.SessionPool) error {
+	// Bootstrap is migration-owned. Forced tenant RLS makes unscoped process-start
+	// seeding unsafe, so this compatibility hook intentionally does nothing.
+	if pool != nil {
+		return nil
+	}
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin registry seed: %w", err)
@@ -97,10 +112,10 @@ func EnsureSeedData(ctx context.Context, pool *appdb.SessionPool) error {
 
 	for rows.Next() {
 		var (
-			tenantCode     string
-			institutionID  string
-			displayName    string
-			shortName      string
+			tenantCode    string
+			institutionID string
+			displayName   string
+			shortName     string
 		)
 		if err := rows.Scan(&tenantCode, &institutionID, &displayName, &shortName); err != nil {
 			return fmt.Errorf("scan tenant seed data: %w", err)
@@ -320,6 +335,12 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 		}
 		documents = append(documents, document)
 	}
+	for index := range documents {
+		if err := s.EnrichDocumentParity(r.Context(), &documents[index]); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "registratura_list_failed"})
+			return
+		}
+	}
 
 	httpx.WritePage(w, http.StatusOK, documents, total, query.Page, query.PageSize)
 }
@@ -341,13 +362,13 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	req.Subject = strings.TrimSpace(req.Subject)
 	req.DocumentType = strings.TrimSpace(req.DocumentType)
 	req.Direction = strings.TrimSpace(req.Direction)
-	req.Status = strings.TrimSpace(req.Status)
+	req.Status = normalizeDocumentStatus(req.Status)
 	req.Correspondent = strings.TrimSpace(req.Correspondent)
 	req.AssignedTo = strings.TrimSpace(req.AssignedTo)
 	req.Confidentiality = strings.TrimSpace(req.Confidentiality)
 	req.Summary = strings.TrimSpace(req.Summary)
 
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Confidentiality == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{
 			"code":    "missing_document_fields",
 			"message": "Campurile obligatorii lipsesc.",
@@ -357,7 +378,7 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	if !s.isNomenclatureAllowed(ctx, "registratura_direction", req.Direction) ||
-		!s.isNomenclatureAllowed(ctx, "registratura_status", req.Status) ||
+		!isCanonicalDocumentStatus(req.Status) ||
 		!s.isNomenclatureAllowed(ctx, "registratura_confidentiality", req.Confidentiality) ||
 		!s.isNomenclatureAllowed(ctx, "registratura_document_type", req.DocumentType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{
@@ -388,6 +409,7 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_create_failed"})
 		return
 	}
+	_ = s.EnrichDocumentParity(ctx, &document)
 
 	s.logAudit(r, "registratura.documents.create", "document", document.ID, "Registratura document created.", map[string]any{
 		"registry_number": document.RegistryNumber,
@@ -419,20 +441,20 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 	req.Subject = strings.TrimSpace(req.Subject)
 	req.DocumentType = strings.TrimSpace(req.DocumentType)
 	req.Direction = strings.TrimSpace(req.Direction)
-	req.Status = strings.TrimSpace(req.Status)
+	req.Status = normalizeDocumentStatus(req.Status)
 	req.Correspondent = strings.TrimSpace(req.Correspondent)
 	req.AssignedTo = strings.TrimSpace(req.AssignedTo)
 	req.Confidentiality = strings.TrimSpace(req.Confidentiality)
 	req.Summary = strings.TrimSpace(req.Summary)
 	req.ChangeNotes = strings.TrimSpace(req.ChangeNotes)
 
-	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Status == "" || req.Confidentiality == "" {
+	if req.Subject == "" || req.DocumentType == "" || req.Direction == "" || req.Confidentiality == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_fields"})
 		return
 	}
 
 	if !s.isNomenclatureAllowed(r.Context(), "registratura_direction", req.Direction) ||
-		!s.isNomenclatureAllowed(r.Context(), "registratura_status", req.Status) ||
+		!isCanonicalDocumentStatus(req.Status) ||
 		!s.isNomenclatureAllowed(r.Context(), "registratura_confidentiality", req.Confidentiality) ||
 		!s.isNomenclatureAllowed(r.Context(), "registratura_document_type", req.DocumentType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_document_fields"})
@@ -453,6 +475,14 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+	if current.Status == "ANULAT" {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "cancelled_document_immutable"})
+		return
+	}
+	if req.Status != current.Status {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "workflow_status_read_only"})
 		return
 	}
 
@@ -498,7 +528,7 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		req.Subject,
 		req.DocumentType,
 		req.Direction,
-		req.Status,
+		current.Status,
 		parties.Correspondent,
 		parties.AssignedTo,
 		parties.CorrespondentPartyID,
@@ -509,6 +539,11 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		documentID,
 	); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
+		return
+	}
+	parityRequest := CreateDocumentRequest{ExternalNumber: req.ExternalNumber, ExternalNumberDate: req.ExternalNumberDate, EntryAt: req.EntryAt, ExitAt: req.ExitAt, Activity: req.Activity, RecordKind: req.RecordKind, DepartmentIDs: req.DepartmentIDs}
+	if err := replaceDocumentParityTx(r.Context(), tx, documentID, parityRequest, s.institutionID(r), authruntime.CurrentSubjectFromRequest(r)); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "document_parity_update_failed"})
 		return
 	}
 
@@ -537,7 +572,7 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		req.Subject,
 		req.DocumentType,
 		req.Direction,
-		req.Status,
+		current.Status,
 		req.Correspondent,
 		req.AssignedTo,
 		req.Confidentiality,
@@ -565,6 +600,7 @@ func (s *Service) UpdateDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_update_failed"})
 		return
 	}
+	_ = s.EnrichDocumentParity(r.Context(), &updated)
 	httpx.JSON(w, http.StatusOK, updated)
 }
 
@@ -574,12 +610,17 @@ func (s *Service) CancelDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
 		return
 	}
+	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
+		return
+	}
 
 	var req CancelDocumentRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	req.Reason = strings.TrimSpace(req.Reason)
-	if req.Reason == "" {
-		req.Reason = "Anulare document"
+	if len([]rune(req.Reason)) < 10 {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "cancellation_reason_too_short", "message": "Motivul anulării trebuie să conțină minimum 10 caractere."})
+		return
 	}
 
 	tx, err := s.pool.Begin(r.Context())
@@ -589,23 +630,44 @@ func (s *Service) CancelDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
-	var exists bool
-	if err := tx.QueryRow(r.Context(), `select exists(select 1 from registratura_documents where id::text = $1)`, documentID).Scan(&exists); err != nil {
+	var currentStatus string
+	if err := tx.QueryRow(r.Context(), `select status from registratura_documents where id::text = $1 for update`, documentID).Scan(&currentStatus); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
 		return
 	}
-	if !exists {
+	if currentStatus == "" {
 		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
+		return
+	}
+	if currentStatus == "ANULAT" {
+		if err := tx.Commit(r.Context()); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+			return
+		}
+		updated, err := s.loadDocument(r.Context(), documentID)
+		if err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+			return
+		}
+		_ = s.EnrichDocumentParity(r.Context(), &updated)
+		httpx.JSON(w, http.StatusOK, updated)
+		return
+	}
+	if currentStatus == "FINALIZAT" {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "finalized_document_cannot_be_cancelled"})
 		return
 	}
 
 	if _, err := tx.Exec(r.Context(), `
 		update registratura_documents
-		set status = 'archived',
-			summary = case when summary = '' then $1 else summary || ' | ' || $1 end,
+		set status = 'ANULAT',
+			cancellation_reason = $1,
+			cancelled_by = $2,
+			cancelled_at = now(),
+			workflow_version = workflow_version + 1,
 			updated_at = now()
-		where id::text = $2
-	`, req.Reason, documentID); err != nil {
+		where id::text = $3 and status <> 'ANULAT'
+	`, req.Reason, authruntime.CurrentSubjectFromRequest(r), documentID); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
 		return
 	}
@@ -631,7 +693,7 @@ func (s *Service) CancelDocument(w http.ResponseWriter, r *http.Request) {
 			d.subject,
 			d.document_type,
 			d.direction,
-			'archived',
+			'ANULAT',
 			d.correspondent,
 			d.assigned_to,
 			d.confidentiality,
@@ -643,6 +705,15 @@ func (s *Service) CancelDocument(w http.ResponseWriter, r *http.Request) {
 	`, req.Reason, authruntime.CurrentSubjectFromRequest(r), documentID); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_version_init_failed"})
 		return
+	}
+	if currentStatus != "ANULAT" {
+		if _, err := tx.Exec(r.Context(), `
+			insert into registratura_document_workflow_events (tenant_code, institution_id, document_id, action, from_status, to_status, note, actor_subject)
+			values (public.current_tenant_code(), public.current_institution_id(), $1::uuid, 'cancel', $2, 'ANULAT', $3, $4)
+		`, documentID, currentStatus, req.Reason, authruntime.CurrentSubjectFromRequest(r)); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_cancel_failed"})
+			return
+		}
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
@@ -674,6 +745,10 @@ func (s *Service) GetDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_load_failed"})
 		return
 	}
+	if err := s.EnrichDocumentParity(r.Context(), &document); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_load_failed"})
+		return
+	}
 
 	httpx.JSON(w, http.StatusOK, document)
 }
@@ -682,6 +757,10 @@ func (s *Service) ListDocumentVersions(w http.ResponseWriter, r *http.Request) {
 	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
 	if documentID == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
+		return
+	}
+	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
 		return
 	}
 
@@ -769,8 +848,7 @@ func (s *Service) CreateDocumentVersion(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_version_fields"})
 		return
 	}
-	if !s.isNomenclatureAllowed(r.Context(), "registratura_status", req.Status) ||
-		!s.isNomenclatureAllowed(r.Context(), "registratura_confidentiality", req.Confidentiality) {
+	if !s.isNomenclatureAllowed(r.Context(), "registratura_confidentiality", req.Confidentiality) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_document_version_fields"})
 		return
 	}
@@ -800,7 +878,7 @@ func (s *Service) CreateDocumentVersion(w http.ResponseWriter, r *http.Request) 
 			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
 			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
 		from registratura_documents
-		where id::text = $1
+		where id::text = $1 and exists (select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))))
 		for update
 	`, documentID).Scan(
 		&current.ID,
@@ -822,6 +900,10 @@ func (s *Service) CreateDocumentVersion(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_version_create_failed"})
+		return
+	}
+	if normalizeDocumentStatus(req.Status) != current.Status {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "workflow_status_read_only", "current_status": current.Status})
 		return
 	}
 
@@ -850,11 +932,11 @@ func (s *Service) CreateDocumentVersion(w http.ResponseWriter, r *http.Request) 
 			summary = $6,
 			due_date = $7::date,
 			updated_at = now()
-		where id::text = $1
+		where id::text = $1 and exists (select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))))
 	`,
 		documentID,
 		req.Subject,
-		req.Status,
+		current.Status,
 		req.AssignedTo,
 		req.Confidentiality,
 		req.Summary,
@@ -903,7 +985,7 @@ func (s *Service) CreateDocumentVersion(w http.ResponseWriter, r *http.Request) 
 		req.Subject,
 		current.DocumentType,
 		current.Direction,
-		req.Status,
+		current.Status,
 		current.Correspondent,
 		req.AssignedTo,
 		req.Confidentiality,
@@ -954,6 +1036,10 @@ func (s *Service) ListDocumentAttachments(w http.ResponseWriter, r *http.Request
 	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
 	if documentID == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
+		return
+	}
+	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
 		return
 	}
 
@@ -1010,9 +1096,23 @@ func (s *Service) ListDocumentAttachments(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Service) CreateDocumentAttachment(w http.ResponseWriter, r *http.Request) {
+	// Metadata alone is not an attachment: accepting an arbitrary storage key
+	// would let a caller advertise content that was never scanned or stored.
+	// Kept as a compatibility endpoint with an explicit migration response.
+	httpx.JSON(w, http.StatusGone, map[string]any{"code": "attachment_upload_required", "message": "Use the multipart attachment upload endpoint."})
+}
+
+// createDocumentAttachmentLegacyDisabled remains only to preserve the former
+// implementation while callers are migrated; it is intentionally unexported
+// and never routed because it cannot prove object storage or malware scanning.
+func (s *Service) createDocumentAttachmentLegacyDisabled(w http.ResponseWriter, r *http.Request) {
 	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
 	if documentID == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
+		return
+	}
+	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
 		return
 	}
 
@@ -1111,7 +1211,16 @@ func (s *Service) CreateDocumentAttachment(w http.ResponseWriter, r *http.Reques
 func (s *Service) LookupDocuments(w http.ResponseWriter, r *http.Request) {
 	search := strings.TrimSpace(r.URL.Query().Get("query"))
 	args := []any{s.institutionID(r)}
-	whereClause := "where d.institution_id = $1"
+	whereClause := `where d.institution_id = $1 and exists (
+		select 1 from registre r where r.id=d.registru_id and r.active and (
+			r.visibility='public' or exists (
+				select 1 from registratura_registry_departments rd
+				join registratura_user_departments ud on ud.department_id=rd.department_id
+				join app_users u on u.id=ud.user_id
+				where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)
+			)
+		)
+	)`
 	if search != "" {
 		args = append(args, "%"+strings.ToLower(search)+"%")
 		whereClause += fmt.Sprintf(" and (lower(d.registry_number) like $%d or lower(d.subject) like $%d or lower(d.correspondent) like $%d)", len(args), len(args), len(args))
@@ -1175,8 +1284,10 @@ func (s *Service) ListDocumentLinks(w http.ResponseWriter, r *http.Request) {
 		join registratura_documents d on d.id = ld.document_id
 		where ld.source_module = $1
 			and ld.source_record_id::text = $2
+			and d.institution_id = $3
+			and exists (select 1 from registre r where r.id=d.registru_id and r.active and (r.visibility='public' or exists (select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))))
 		order by d.registered_at desc
-	`, sourceModule, sourceRecordID)
+	`, sourceModule, sourceRecordID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_links_failed"})
 		return
@@ -1228,6 +1339,10 @@ func (s *Service) CreateDocumentLink(w http.ResponseWriter, r *http.Request) {
 	}
 	if !contains([]string{"primary", "supporting", "decision", "archive_basis", "gdpr_basis"}, req.RelationType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_document_link_relation"})
+		return
+	}
+	if _, err := s.loadDocument(r.Context(), req.DocumentID); err != nil {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
 		return
 	}
 
@@ -1291,7 +1406,12 @@ func (s *Service) DeleteDocumentLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := s.pool.Exec(r.Context(), `delete from registratura_document_links where id::text = $1`, linkID)
+	result, err := s.pool.Exec(r.Context(), `
+		delete from registratura_document_links ld
+		using registratura_documents d, registre r
+		where ld.id::text = $1 and d.id=ld.document_id and d.institution_id=$2 and r.id=d.registru_id and r.active
+			and (r.visibility='public' or exists (select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)))
+	`, linkID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_link_delete_failed"})
 		return
@@ -1307,7 +1427,7 @@ func (s *Service) DeleteDocumentLink(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildDocumentFilters(institutionID string, filters map[string]string) (string, []any) {
-	clauses := []string{"d.institution_id = $1"}
+	clauses := []string{"d.institution_id = $1", `exists (select 1 from registre r where r.id=d.registru_id and r.active and (r.visibility='public' or exists (select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))))`}
 	args := []any{strings.TrimSpace(institutionID)}
 
 	addContains := func(column string, value string) {
@@ -1335,7 +1455,7 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 		addEqual("d.direction", value)
 	}
 	if value := filters["status"]; value != "" {
-		addEqual("d.status", value)
+		addEqual("d.status", normalizeDocumentStatus(value))
 	}
 	if value := filters["correspondent"]; value != "" {
 		addContains("d.correspondent", value)
@@ -1417,7 +1537,11 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
 			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
 		from registratura_documents
-		where id::text = $1
+		where id::text = $1 and exists (
+			select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (
+				r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))
+			)
+		)
 	`, documentID).Scan(
 		&document.ID,
 		&registruID,
@@ -1465,7 +1589,11 @@ func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID stri
 			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
 			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
 		from registratura_documents
-		where id::text = $1
+		where id::text = $1 and exists (
+			select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (
+				r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))
+			)
+		)
 	`, documentID).Scan(
 		&document.ID,
 		&registruID,
@@ -1498,6 +1626,29 @@ func contains(values []string, candidate string) bool {
 		}
 	}
 	return false
+}
+
+func normalizeDocumentStatus(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "draft", "registered", "incoming":
+		return "INCOMING"
+	case "in_workflow", "in_lucru":
+		return "IN_LUCRU"
+	case "archived", "finalizat":
+		return "FINALIZAT"
+	case "alocat_compartiment":
+		return "ALOCAT_COMPARTIMENT"
+	case "flux_aprobare":
+		return "FLUX_APROBARE"
+	case "anulat":
+		return "ANULAT"
+	default:
+		return strings.ToUpper(strings.TrimSpace(value))
+	}
+}
+
+func isCanonicalDocumentStatus(value string) bool {
+	return contains([]string{"INCOMING", "ALOCAT_COMPARTIMENT", "IN_LUCRU", "FLUX_APROBARE", "FINALIZAT", "ANULAT"}, value)
 }
 
 func (s *Service) isNomenclatureAllowed(ctx context.Context, domain string, code string) bool {

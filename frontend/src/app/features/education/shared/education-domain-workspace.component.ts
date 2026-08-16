@@ -6,9 +6,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { InputNumber } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
-import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ProgressSpinner } from 'primeng/progressspinner';
 import { SelectModule } from 'primeng/select';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
@@ -461,9 +461,9 @@ type DeleteTarget = EditorTarget & { row: EducationRow };
     ButtonModule,
     DatePickerModule,
     DialogModule,
-    InputNumberModule,
+    InputNumber,
     InputTextModule,
-    ProgressSpinnerModule,
+    ProgressSpinner,
     SelectModule,
     ServerTableComponent,
     TabsModule,
@@ -607,7 +607,7 @@ type DeleteTarget = EditorTarget & { row: EducationRow };
                     <textarea pTextarea rows="4" [(ngModel)]="createForm[field.field]"></textarea>
                   }
                   @case ('number') {
-                    <p-inputNumber
+                    <p-input-number
                       [(ngModel)]="createForm[field.field]"
                       [min]="field.min ?? 0"
                       [max]="field.max ?? null"
@@ -658,7 +658,7 @@ type DeleteTarget = EditorTarget & { row: EducationRow };
         @if (selectedResource(); as resource) {
           @if (detailLoading()) {
             <div class="flex min-h-40 flex-col items-center justify-center gap-3">
-              <p-progressSpinner strokeWidth="4" [style]="{ width: '3rem', height: '3rem' }" />
+              <p-progress-spinner strokeWidth="4" [style]="{ width: '3rem', height: '3rem' }" />
               <p-tag value="Se incarca detaliile complete..." severity="secondary" />
             </div>
           } @else if (selectedRow(); as row) {
@@ -688,7 +688,7 @@ type DeleteTarget = EditorTarget & { row: EducationRow };
                 <p-tabpanel value="overview" class="p-0 pt-4">
                   @if (detailSummaryLoading()) {
                     <div class="mb-4 flex items-center gap-2 rounded-2xl border border-surface p-3">
-                      <p-progressSpinner strokeWidth="4" [style]="{ width: '1.5rem', height: '1.5rem' }" />
+                      <p-progress-spinner strokeWidth="4" [style]="{ width: '1.5rem', height: '1.5rem' }" />
                       <span class="text-sm text-muted-color">Se incarca sumarul procedural...</span>
                     </div>
                   } @else if (governanceFinalizationSummary(); as summary) {

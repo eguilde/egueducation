@@ -13,27 +13,52 @@ spec:
       labels:
         app: egueducation-frontend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
         - name: frontend
-          image: registry.eguilde.cloud/eguilde/egueducation-frontend:latest
-          imagePullPolicy: Always
+          # This is the audited production digest as of 2026-08-16. Promote a
+          # newly-built digest through the external GitOps repository; never use latest.
+          image: ghcr.io/eguilde/egueducation-frontend@sha256:7138560a676f66d7eeeb6f04a01398f991b40a06789d2dc93cf5f6cad9cb1937
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             httpGet:
               path: /healthz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
             initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 24
           resources:
             requests:
               cpu: 50m

@@ -479,6 +479,64 @@ export interface RegistraturaDocument {
   summary: string;
   registered_at: string;
   due_date?: string | null;
+  /** Costești-compatible parity fields. Optional until legacy records are backfilled. */
+  external_number?: string | null;
+  external_number_date?: string | null;
+  entry_at?: string | null;
+  exit_at?: string | null;
+  activity?: string | null;
+  record_kind?: 'document' | 'dosar' | string | null;
+  department_ids?: string[];
+  department_names?: string[];
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  workflow_version?: number | null;
+  workflow_assignment?: RegistraturaWorkflowAssignment | null;
+}
+
+export interface RegistraturaWorkflowAssignment {
+  department_id?: string | null;
+  department_name?: string | null;
+  user_id?: string | null;
+  user_name?: string | null;
+  approver_id?: string | null;
+  approver_name?: string | null;
+}
+
+export interface RegistraturaWorkflowHistoryEntry {
+  id: string;
+  document_id: string;
+  action: string;
+  from_status?: string | null;
+  to_status: string;
+  note?: string | null;
+  actor_name?: string | null;
+  created_at: string;
+}
+
+export interface RegistraturaWorkflowActionRequest {
+  action: 'assign_department' | 'assign_user' | 'claim' | 'send_for_approval' | 'approve' | 'reject';
+  department_id?: string | null;
+  user_id?: string | null;
+  note?: string | null;
+  expected_version?: number | null;
+}
+
+export interface RegistraturaDepartmentOption {
+  id: string;
+  name: string;
+}
+
+export interface RegistraturaWorkflowAssigneeOption {
+  id: string;
+  name: string;
+  department_ids?: string[];
+}
+
+export interface RegistraturaWorkflowAssigneesResponse {
+  departments: RegistraturaDepartmentOption[];
+  users: RegistraturaWorkflowAssigneeOption[];
 }
 
 export interface RegistraturaRegistry {
@@ -493,6 +551,15 @@ export interface RegistraturaRegistry {
   isDefault: boolean;
   created_at: string;
   updated_at: string;
+  birth_date?: string | null;
+  birth_place?: string | null;
+  trade_register_number?: string | null;
+  legal_representative?: string | null;
+  legal_form?: string | null;
+  share_capital?: string | null;
+  institution_type?: string | null;
+  institution_level?: string | null;
+  website?: string | null;
 }
 
 export interface CreateRegistraturaRegistryRequest {
@@ -569,6 +636,14 @@ export interface CreateRegistraturaDocumentRequest {
   confidentiality: string;
   summary: string;
   due_date?: string | null;
+  external_number?: string | null;
+  external_number_date?: string | null;
+  entry_at?: string | null;
+  exit_at?: string | null;
+  activity?: string | null;
+  record_kind?: 'document' | 'dosar';
+  department_ids?: string[];
+  attachment_ids?: string[];
 }
 
 export interface UpdateRegistraturaDocumentRequest {
@@ -585,6 +660,14 @@ export interface UpdateRegistraturaDocumentRequest {
   summary: string;
   due_date?: string | null;
   change_notes?: string;
+  external_number?: string | null;
+  external_number_date?: string | null;
+  entry_at?: string | null;
+  exit_at?: string | null;
+  activity?: string | null;
+  record_kind?: 'document' | 'dosar';
+  department_ids?: string[];
+  attachment_ids?: string[];
 }
 
 export interface CancelRegistraturaDocumentRequest {
@@ -605,6 +688,7 @@ export interface BatchCreateRegistraturaDocumentRequest {
   confidentiality: string;
   summary: string;
   due_date?: string | null;
+  entry_at?: string | null;
 }
 
 export interface ExportRegistraturaDocumentsRequest {
@@ -634,6 +718,15 @@ export interface RegistraturaParty {
   notes: string;
   is_default_organization: boolean;
   active: boolean;
+  birth_date?: string | null;
+  birth_place?: string;
+  trade_register_number?: string;
+  legal_representative?: string;
+  legal_form?: string;
+  share_capital?: string;
+  institution_type?: string;
+  institution_level?: string;
+  website?: string;
   created_at: string;
   updated_at: string;
 }
@@ -659,6 +752,15 @@ export interface CreateRegistraturaPartyRequest {
   notes?: string;
   is_default_organization: boolean;
   active: boolean;
+  birth_date?: string | null;
+  birth_place?: string;
+  trade_register_number?: string;
+  legal_representative?: string;
+  legal_form?: string;
+  share_capital?: string;
+  institution_type?: string;
+  institution_level?: string;
+  website?: string;
 }
 
 export interface UpdateRegistraturaPartyRequest {
@@ -681,6 +783,15 @@ export interface UpdateRegistraturaPartyRequest {
   notes?: string;
   is_default_organization?: boolean;
   active?: boolean;
+  birth_date?: string | null;
+  birth_place?: string;
+  trade_register_number?: string;
+  legal_representative?: string;
+  legal_form?: string;
+  share_capital?: string;
+  institution_type?: string;
+  institution_level?: string;
+  website?: string;
 }
 
 export interface CreateRegistraturaDocumentVersionRequest {
@@ -702,6 +813,16 @@ export interface CreateRegistraturaDocumentAttachmentRequest {
   category: string;
   status: string;
   uploaded_by: string;
+}
+
+/** Metadata-only staging. Binary transfer and malware scanning are handled by the storage platform. */
+export interface StageRegistraturaDocumentAttachmentRequest {
+  title: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  category: string;
+  checksum_sha256: string;
 }
 
 export interface DocumentLookupItem {

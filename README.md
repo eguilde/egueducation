@@ -3,10 +3,10 @@
 Greenfield education platform scaffold with:
 
 - Go backend
-- Angular 21 frontend
-- Angular Material 21 + Tailwind CSS
+- Angular 22 frontend
+- PrimeNG 22 Aura theme + Tailwind CSS 4 layout utilities
 - Transloco i18n (`ro` default, `en` secondary)
-- Red/rose Material 3 expressive theme
+- PrimeNG semantic theme tokens with light/dark/system schemes
 - Responsive shell/sidebar foundation
 - Auth and admin foundations for OIDC, OTP, passkeys, wallet, RBAC, workflow, archive, and education modules
 
