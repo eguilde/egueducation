@@ -63,6 +63,10 @@ func (km *keyManager) Init(ctx context.Context) error {
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("read jwks keys: %w", err)
 	}
+	// Release the query connection before generating, rotating, or recursively
+	// reloading keys. With a one-connection pool, deferring Close until after the
+	// recursive Init call deadlocks forever waiting for that same connection.
+	rows.Close()
 
 	if len(keys) == 0 {
 		if err := km.generateAndStore(ctx, "sig-rs256"); err != nil {
