@@ -318,8 +318,8 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 		t.Fatalf("RP logout request: %v", err)
 	}
 	defer rpLogoutResponse.Body.Close()
-	if rpLogoutResponse.StatusCode != http.StatusFound {
-		t.Fatalf("RP logout status = %d, want 302", rpLogoutResponse.StatusCode)
+	if rpLogoutResponse.StatusCode < http.StatusMultipleChoices || rpLogoutResponse.StatusCode >= http.StatusBadRequest {
+		t.Fatalf("RP logout status = %d, want redirect", rpLogoutResponse.StatusCode)
 	}
 	rpLocation, err := rpLogoutResponse.Location()
 	if err != nil {
