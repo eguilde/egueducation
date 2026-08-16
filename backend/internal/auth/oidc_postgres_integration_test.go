@@ -20,6 +20,7 @@ import (
 	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/tenant"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,14 +37,35 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
 	defer cancel()
 
-	poolConfig, err := pgxpool.ParseConfig(databaseURL)
+	adminConfig, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		t.Fatalf("parse TEST_DATABASE_URL: %v", err)
 	}
+	adminPool, err := pgxpool.NewWithConfig(ctx, adminConfig)
+	if err != nil {
+		t.Fatalf("open integration admin database: %v", err)
+	}
+	defer adminPool.Close()
+	if err := adminPool.Ping(ctx); err != nil {
+		t.Fatalf("ping integration database: %v", err)
+	}
+	if err := appdb.Migrate(ctx, adminPool); err != nil {
+		t.Fatalf("apply migrations: %v", err)
+	}
+	if err := appdb.ValidateSchemaContract(ctx, adminPool); err != nil {
+		t.Fatalf("validate migrated schema: %v", err)
+	}
+	provisionOIDCIntegrationRole(t, ctx, adminPool)
+
+	poolConfig := adminConfig.Copy()
 	// A single physical connection makes a stale tenant-setting leak
 	// deterministic if AcquireRequestConn ever fails to clear the session.
 	poolConfig.MaxConns = 1
 	poolConfig.MinConns = 0
+	poolConfig.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+		_, err := conn.Exec(ctx, `set role egueducation_integration_app`)
+		return err
+	}
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		t.Fatalf("open integration database: %v", err)
@@ -51,12 +73,6 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
 		t.Fatalf("ping integration database: %v", err)
-	}
-	if err := appdb.Migrate(ctx, pool); err != nil {
-		t.Fatalf("apply migrations: %v", err)
-	}
-	if err := appdb.ValidateSchemaContract(ctx, pool); err != nil {
-		t.Fatalf("validate migrated schema: %v", err)
 	}
 	tenant.ConfigureResolver(pool, tenant.ResolverOptions{Environment: "test", BaseDomain: "egueducation.test"})
 
@@ -360,6 +376,23 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	}
 
 	assertPooledTenantIsolation(t, ctx, pool, user.id)
+}
+
+func provisionOIDCIntegrationRole(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
+	t.Helper()
+	if _, err := pool.Exec(ctx, `create role egueducation_integration_app nologin nosuperuser nocreatedb nocreaterole noinherit nobypassrls`); err != nil {
+		t.Fatalf("create non-bypass integration role: %v", err)
+	}
+	for _, statement := range []string{
+		`grant usage on schema public to egueducation_integration_app`,
+		`grant select, insert, update, delete on all tables in schema public to egueducation_integration_app`,
+		`grant usage, select on all sequences in schema public to egueducation_integration_app`,
+		`grant execute on all functions in schema public to egueducation_integration_app`,
+	} {
+		if _, err := pool.Exec(ctx, statement); err != nil {
+			t.Fatalf("grant integration role privileges: %v", err)
+		}
+	}
 }
 
 type oidcIntegrationUser struct {
