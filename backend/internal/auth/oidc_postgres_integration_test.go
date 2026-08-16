@@ -18,6 +18,7 @@ import (
 
 	"github.com/eguilde/egueducation/internal/config"
 	appdb "github.com/eguilde/egueducation/internal/db"
+	"github.com/eguilde/egueducation/internal/tenant"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -57,6 +58,7 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if err := appdb.ValidateSchemaContract(ctx, pool); err != nil {
 		t.Fatalf("validate migrated schema: %v", err)
 	}
+	tenant.ConfigureResolver(pool, tenant.ResolverOptions{Environment: "test", BaseDomain: "egueducation.test"})
 
 	user := seedOIDCIntegrationUser(t, ctx, pool)
 	defer removeOIDCIntegrationUser(pool, user.id)
