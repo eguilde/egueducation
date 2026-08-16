@@ -1,6 +1,11 @@
 -- Tenant-safe Registratura parity foundation.  Costesti is a single-tenant
 -- reference; none of these records may be shared implicitly between schools.
 
+-- Tenant tables are FORCE RLS. Migrations run outside a request-scoped tenant,
+-- so this transaction needs the same narrowly scoped bypass used by 0071.
+-- The setting is transaction-local and cannot leak back into the connection pool.
+select set_config('app.is_super_admin', 'true', true);
+
 alter table registre add column if not exists tenant_code text;
 alter table registre add column if not exists institution_id text;
 alter table registre add column if not exists visibility text not null default 'public'
