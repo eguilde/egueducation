@@ -528,7 +528,6 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 			"user_id":               userID.String(),
 			"tenant_id":             localOIDCTenantID.String(),
 			"institution_id":        preferredInstitution,
-			"aud":                   audience,
 			"name":                  name,
 			"email":                 email,
 			"email_verified":        emailVerified,
@@ -542,6 +541,7 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 			grant.AdditionalIDTokenClaims[key] = value
 			grant.AdditionalUserInfoClaims[key] = value
 		}
+		grant.AdditionalTokenClaims["aud"] = audience
 		grant.AdditionalTokenClaims["token_use"] = "access"
 		return nil
 	}
