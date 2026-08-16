@@ -769,15 +769,21 @@ func renderOTPIdentifierStep(
 			Theme:   resolveOIDCThemeSettings(r, sess),
 		})
 	}
-	code, err := otp.Generate(r.Context(), user.ID, otpPurposeLogin)
+	fixtureEnabled := testOTPFixtureAllowed(cfg, user, loginBranding.TenantCode)
+	var code string
+	if fixtureEnabled {
+		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
+	} else {
+		code, err = otp.Generate(r.Context(), user.ID, otpPurposeLogin)
+	}
 	if err != nil {
 		data.Error = "Nu am putut genera codul OTP."
 		data.Identifier = identifier
 		return renderOIDCStep(w, tmpl, data)
 	}
 	smsConfigured := smsService != nil && smsService.Configured()
-	message, canContinue := otpLoginUIMessage(cfg, code, smsConfigured)
-	if smsConfigured {
+	message, canContinue := otpLoginUIMessage(cfg, code, smsConfigured || fixtureEnabled)
+	if smsConfigured && !fixtureEnabled {
 		smsMessage := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
 		if _, err := smsService.Send(r.Context(), user.PhoneNumber, smsMessage); err != nil {
 			data.Error = "Nu am putut trimite codul OTP prin SMS."
@@ -813,6 +819,15 @@ func otpLoginUIMessage(cfg *config.Config, code string, smsConfigured bool) (str
 		return "", false
 	}
 	return fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code), true
+}
+
+func testOTPFixtureAllowed(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+	if cfg == nil || !cfg.TestOTPFixtureEnabled() {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(user.Email), cfg.TestOTPFixtureIdentifier) &&
+		strings.TrimSpace(user.Subject) == cfg.TestOTPFixtureSubject &&
+		strings.TrimSpace(tenantCode) == cfg.TestOTPFixtureTenantCode
 }
 
 func developmentOTPDisplayAllowed(cfg *config.Config) bool {
@@ -936,6 +951,7 @@ func renderOIDCStep(w http.ResponseWriter, tmpl *template.Template, data oidcLog
 type oidcLoginUser struct {
 	ID          uuid.UUID
 	Subject     string
+	Email       string
 	PhoneNumber string
 }
 
@@ -958,7 +974,7 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 
 	var user oidcLoginUser
 	err = tx.QueryRow(ctx, `
-		select id, sub, phone_number
+		select id, sub, email, phone_number
 		from app_users
 		where status = 'active'
 			and phone_number_verified = true
@@ -980,7 +996,7 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 			)
 		order by updated_at desc
 		limit 1
-	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.PhoneNumber)
+	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.Email, &user.PhoneNumber)
 	if err != nil {
 		return oidcLoginUser{}, err
 	}

@@ -76,9 +76,6 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	}
 	tenant.ConfigureResolver(pool, tenant.ResolverOptions{Environment: "test", BaseDomain: "egueducation.test"})
 
-	user := seedOIDCIntegrationUser(t, ctx, pool)
-	defer removeOIDCIntegrationUser(pool, user.id)
-
 	var application http.Handler = http.NotFoundHandler()
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		application.ServeHTTP(w, r)
@@ -87,21 +84,31 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.Config{
-		Environment:       "test",
-		FrontendOrigin:    server.URL,
-		BackendURL:        server.URL,
-		OIDCIssuer:        server.URL + "/api/oidc",
-		OIDCClientID:      "oidc-postgres-integration-spa",
-		OIDCDesktopClient: "oidc-postgres-integration-desktop",
-		OIDCAudience:      "egueducation-api",
-		CustomerName:      "EguEducation",
-		EnableSMSOTP:      true,
+		Environment:              "test",
+		FrontendOrigin:           server.URL,
+		BackendURL:               server.URL,
+		OIDCIssuer:               server.URL + "/api/oidc",
+		OIDCClientID:             "oidc-postgres-integration-spa",
+		OIDCDesktopClient:        "oidc-postgres-integration-desktop",
+		OIDCAudience:             "egueducation-api",
+		CustomerName:             "EguEducation",
+		EnableSMSOTP:             true,
+		EnableTestOTPFixture:     true,
+		TestOTPFixtureCode:       "173829",
+		TestOTPFixtureIdentifier: oidcTestFixtureIdentifier,
+		TestOTPFixtureSubject:    oidcTestFixtureSubject,
+		TestOTPFixtureTenantCode: "tenant-egueducation",
 	}
 	sessionPool := appdb.NewSessionPool(pool)
 	service, err := NewService(cfg, nil, sessionPool)
 	if err != nil {
 		t.Fatalf("initialize OIDC provider: %v", err)
 	}
+	user, err := EnsureOIDCTestFixtureUser(ctx, pool, cfg)
+	if err != nil {
+		t.Fatalf("seed test OTP fixture: %v", err)
+	}
+	defer removeOIDCIntegrationUser(pool, user.ID)
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/oidc/", http.StripPrefix("/api/oidc", service.OIDCHandler()))
@@ -163,8 +170,11 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 		t.Fatal("OIDC provider did not advance to the OTP identifier interaction")
 	}
 
-	otpPage := postOIDCForm(t, client, formAction, url.Values{"identifier": {user.identifier}})
-	otp := oidcLoopbackOTP(t, otpPage)
+	otpPage := postOIDCForm(t, client, formAction, url.Values{"identifier": {user.Identifier}})
+	if strings.Contains(otpPage, cfg.TestOTPFixtureCode) {
+		t.Fatal("test OTP fixture must not be exposed in the browser")
+	}
+	otp := cfg.TestOTPFixtureCode
 	consentPage := postOIDCForm(t, client, formAction, url.Values{"code": {otp}})
 	if !strings.Contains(consentPage, `id="consentForm"`) {
 		t.Fatal("OIDC provider did not advance to consent after valid loopback OTP")
@@ -254,7 +264,7 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 		} `json:"user"`
 	}
 	decodeJSONResponse(t, meResponse.Body, &me)
-	if me.InstitutionID != "inst-001" || me.User.Sub != user.subject {
+	if me.InstitutionID != "inst-001" || me.User.Sub != user.Subject {
 		t.Fatal("/api/me did not resolve the host and authenticated tenant membership")
 	}
 
@@ -375,7 +385,7 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 		t.Fatalf("refresh after logout status = %d, want OAuth error", revokedRefresh.StatusCode)
 	}
 
-	assertPooledTenantIsolation(t, ctx, pool, user.id)
+	assertPooledTenantIsolation(t, ctx, pool, user.ID)
 }
 
 func provisionOIDCIntegrationRole(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
@@ -395,56 +405,10 @@ func provisionOIDCIntegrationRole(t *testing.T, ctx context.Context, pool *pgxpo
 	}
 }
 
-type oidcIntegrationUser struct {
-	id         uuid.UUID
-	subject    string
-	identifier string
-}
-
-func seedOIDCIntegrationUser(t *testing.T, ctx context.Context, pool *pgxpool.Pool) oidcIntegrationUser {
-	t.Helper()
-	user := oidcIntegrationUser{
-		id:         uuid.New(),
-		subject:    "oidc-integration-" + uuid.NewString(),
-		identifier: "oidc.integration." + uuid.NewString() + "@example.test",
-	}
-	tx, err := pool.Begin(ctx)
-	if err != nil {
-		t.Fatalf("begin integration user seed: %v", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin', 'true', true)`); err != nil {
-		t.Fatalf("scope integration user seed: %v", err)
-	}
-	_, err = tx.Exec(ctx, `
-		insert into app_users (
-			id, sub, name, email, phone_number, locale, status,
-			email_verified, phone_number_verified, preferred_otp_channel
-		) values ($1, $2, 'OIDC Integration User', $3, '+40100000000', 'ro', 'active', true, true, 'sms')
-	`, user.id, user.subject, user.identifier)
-	if err != nil {
-		t.Fatalf("seed non-PII integration user: %v", err)
-	}
-	_, err = tx.Exec(ctx, `
-		insert into app_session_context (user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
-		values ($1, 'inst-001', 'EguEducation Integration', array['oidc_redirect', 'sms_otp'], '{}')
-	`, user.id)
-	if err != nil {
-		t.Fatalf("seed integration session context: %v", err)
-	}
-	_, err = tx.Exec(ctx, `
-		insert into app_memberships (
-			user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date
-		) values ($1, 'tenant-egueducation', 'super_admin', 'unit-root', 'EguEducation Integration', true, true, current_date)
-	`, user.id)
-	if err != nil {
-		t.Fatalf("seed integration membership: %v", err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		t.Fatalf("commit integration user seed: %v", err)
-	}
-	return user
-}
+const (
+	oidcTestFixtureIdentifier = "oidc.browser.fixture@example.test"
+	oidcTestFixtureSubject    = "oidc-browser-fixture-subject"
+)
 
 func removeOIDCIntegrationUser(pool *pgxpool.Pool, userID uuid.UUID) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -509,7 +473,6 @@ func postFormResponse(t *testing.T, client *http.Client, action string, values u
 }
 
 var oidcActionPattern = regexp.MustCompile(`<form[^>]+action="([^"]+)"`)
-var oidcLoopbackOTPPattern = regexp.MustCompile(`codul OTP este ([0-9]{6})`)
 
 func oidcFormAction(t *testing.T, page, baseURL string) string {
 	t.Helper()
@@ -523,15 +486,6 @@ func oidcFormAction(t *testing.T, page, baseURL string) string {
 	}
 	base, _ := url.Parse(baseURL)
 	return base.ResolveReference(action).String()
-}
-
-func oidcLoopbackOTP(t *testing.T, page string) string {
-	t.Helper()
-	matches := oidcLoopbackOTPPattern.FindStringSubmatch(page)
-	if len(matches) != 2 {
-		t.Fatal("test loopback OIDC interaction did not provide an OTP")
-	}
-	return matches[1]
 }
 
 func decodeJSONResponse(t *testing.T, body io.Reader, target any) {

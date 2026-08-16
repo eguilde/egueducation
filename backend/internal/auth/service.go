@@ -28,6 +28,9 @@ type Service struct {
 }
 
 func NewService(cfg config.Config, smsService *notification.SMSService, db *appdb.SessionPool) (*Service, error) {
+	if err := cfg.ValidateTestOTPFixture(); err != nil {
+		return nil, fmt.Errorf("validate test OTP fixture: %w", err)
+	}
 	service := &Service{
 		cfg:        cfg,
 		smsService: smsService,
