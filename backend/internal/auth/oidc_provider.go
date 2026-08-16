@@ -591,7 +591,7 @@ func buildProviderErrorRenderer(cfg *config.Config) goidc.RenderErrorFunc {
 	tmpl := template.Must(template.New("oidc-error").Parse(oidcErrorHTML))
 	return func(w http.ResponseWriter, r *http.Request, err error) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusBadRequest)
 		detail := ""
 		if !cfg.IsProduction() {
 			detail = err.Error()
