@@ -5,6 +5,33 @@ Audit date: 2026-08-16
 Primary target: the eguEducation `Registratură` workspace and its supporting administration
 Reference: the authenticated Costești Registratură application and the local `D:\dev\costesti-registratura` source tree
 
+## Implementation result (2026-08-16)
+
+The tables in sections 3–6 preserve the original audit snapshot and explain why
+the work was required. They are not the current implementation status. The React
+implementation now provides:
+
+- tenant-keyed registry selection, server paging/sorting/filters and race-safe
+  list/detail loading;
+- Intrare, Ieșire and MULTIPLU (1–20), with parties, departments, external
+  numbering/dates, entry/exit timestamps, activity and Document/Dosar;
+- document edit with optimistic versioning, cancellation, versions, workflow
+  history/actions/assignees, print and bounded interval export;
+- malware-scanned multipart attachments and authorized download; the unsafe
+  metadata-only stage endpoint is intentionally `410 Gone`;
+- specialized physical/legal/public-institution parties, departments,
+  organizations, registries, hierarchy, user assignments and document links;
+- separate permission gates for documents, workflow, administration and links;
+- responsive PrimeReact 11 UI, Aura light/dark/system themes and keyboard-labelled
+  controls, validated by unit, race and desktop/mobile Playwright tests.
+
+The adaptation remains deliberately multi-tenant: the browser does not select an
+arbitrary tenant ID, backend membership is required, normal request sessions
+cannot enable the RLS bypass flag, and registry/document/file access is checked
+server-side. Production verification is tracked in `react-migration-status.md`;
+until the new images are promoted, these capabilities are implemented and locally
+verified but not yet verified on the live cluster.
+
 ## 1. Objective and scope
 
 The objective is behavioral and visual parity with the Costești `Registratură` tab while preserving eguEducation's tenant isolation, UUID-based identities, education modules, and current security controls.

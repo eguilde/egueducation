@@ -86,7 +86,7 @@ insert into app_modules(code, active) values
 on conflict (code) do nothing;
 
 insert into app_users(sub, name, email, phone_number, locale)
-values ('usr-001', 'Ana Ionescu', 'ana.ionescu@egueducation.ro', '+40740100101', 'ro')
+values ('usr-001', 'Demo Administrator', 'demo-admin@example.test', '+40100000011', 'ro')
 on conflict (sub) do update
 set name = excluded.name,
 	email = excluded.email,

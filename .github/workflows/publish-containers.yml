@@ -1,17 +1,15 @@
 name: Build, promote, and verify containers
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Validate application"]
+    types: [completed]
     branches: [main]
-    paths:
-      - backend/**
-      - frontend/**
-      - .github/workflows/publish-containers.yml
-  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+  actions: read
 
 # Promotion is serialized so every GitOps commit contains the backend and
 # frontend digests from one source revision.
@@ -23,18 +21,38 @@ env:
   REGISTRY: ghcr.io
   OWNER: eguilde
   PUBLIC_ORIGIN: https://scoalabalotesti.eguilde.cloud
+  SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
 
 jobs:
+  release-gate:
+    name: Require successful main CI
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate immutable source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${SOURCE_SHA}" =~ ^[a-f0-9]{40}$ ]]
+
   validate-local-manifests:
     name: Validate local Kubernetes template
+    needs: release-gate
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
       - name: Render Kustomize template
         run: kubectl kustomize ops/k8s >/dev/null
 
   build:
     name: Build ${{ matrix.image }}
+    needs: release-gate
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -44,11 +62,13 @@ jobs:
             context: ./backend
             file: ./backend/Dockerfile
           - image: egueducation-frontend
-            context: ./frontend
-            file: ./frontend/Dockerfile
+            context: ./frontend-react
+            file: ./frontend-react/Dockerfile
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Buildx
@@ -67,12 +87,16 @@ jobs:
           file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ env.SOURCE_SHA }}
           labels: |
-            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          build-args: |
+            SOURCE_REVISION=${{ env.SOURCE_SHA }}
+          secrets: |
+            primeui_license=${{ secrets.PRIMEUI_LICENSE }}
       - name: Store promoted manifest digest
         run: printf '%s' '${{ steps.build-image.outputs.digest }}' > image-digest.txt
       - name: Pass digest to promotion job
@@ -87,6 +111,10 @@ jobs:
     name: Promote immutable images in GitOps
     needs: [validate-local-manifests, build]
     runs-on: ubuntu-24.04
+    environment: production
+    outputs:
+      commit: ${{ steps.promote.outputs.commit }}
+      changed: ${{ steps.promote.outputs.changed }}
     steps:
       - name: Download backend digest
         uses: actions/download-artifact@v4
@@ -117,6 +145,7 @@ jobs:
           token: ${{ secrets.GITOPS_TOKEN }}
           path: gitops
       - name: Update both Kustomize image transformations by digest
+        id: promote
         working-directory: gitops
         shell: bash
         env:
@@ -170,8 +199,15 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add namespaces/education/egueducation/backend/kustomization.yaml \
             namespaces/education/egueducation/frontend/kustomization.yaml
-          git diff --cached --quiet && exit 0
-          git commit -m "chore(egueducation): promote ${GITHUB_SHA} by digest"
+          if git diff --cached --quiet; then
+            echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "chore(egueducation): promote ${SOURCE_SHA} by digest"
+          promotion_commit="$(git rev-parse HEAD)"
+          echo "commit=${promotion_commit}" >> "$GITHUB_OUTPUT"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
           for attempt in 1 2 3 4 5; do
             if git push origin HEAD:main; then
@@ -189,18 +225,54 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Wait for public health and OIDC discovery
+      - name: Wait for backend, OIDC, and the exact React revision
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
             health="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/health")" || true
             discovery="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/api/oidc/.well-known/openid-configuration")" || true
+            revision="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/revision.json")" || true
+            landing="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/")" || true
+            oidc_ui="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/api/oidc/ui/login.js")" || true
             if jq -e '.status == "ok" and .database == "ok"' >/dev/null <<<"${health}" \
-              && jq -e --arg issuer "${PUBLIC_ORIGIN}/api/oidc" '.issuer == $issuer and (.authorization_endpoint | type == "string") and (.token_endpoint | type == "string")' >/dev/null <<<"${discovery}"; then
-              exit 0
+              && jq -e --arg issuer "${PUBLIC_ORIGIN}/api/oidc" \
+                '.issuer == $issuer
+                 and .authorization_endpoint == ($issuer + "/authorize")
+                 and .token_endpoint == ($issuer + "/token")
+                 and .revocation_endpoint == ($issuer + "/revoke")
+                 and .end_session_endpoint == ($issuer + "/session/end")' >/dev/null <<<"${discovery}"; then
+              if jq -e --arg revision "${SOURCE_SHA}" '.revision == $revision' >/dev/null <<<"${revision}" \
+                && grep -Fq '<title>eGuEducation</title>' <<<"${landing}" \
+                && grep -Fq "otpBoxes[index+1].focus()" <<<"${oidc_ui}"; then
+                exit 0
+              fi
             fi
             sleep 10
           done
           echo 'Public availability checks did not become healthy within five minutes.' >&2
           exit 1
+
+  rollback-failed-promotion:
+    name: Roll back a failed public rollout
+    if: ${{ always() && needs.promote-gitops.result == 'success' && needs.promote-gitops.outputs.changed == 'true' && needs.verify-public-availability.result == 'failure' }}
+    needs: [promote-gitops, verify-public-availability]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out GitOps source of truth
+        uses: actions/checkout@v4
+        with:
+          repository: eguilde/gitops
+          ref: main
+          token: ${{ secrets.GITOPS_TOKEN }}
+      - name: Revert the failed immutable promotion
+        shell: bash
+        env:
+          PROMOTION_COMMIT: ${{ needs.promote-gitops.outputs.commit }}
+        run: |
+          set -euo pipefail
+          [[ "${PROMOTION_COMMIT}" =~ ^[a-f0-9]{40}$ ]]
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git revert --no-edit "${PROMOTION_COMMIT}"
+          git push origin HEAD:main

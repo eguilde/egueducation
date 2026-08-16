@@ -128,5 +128,5 @@ insert into app_user_roles (user_id, role_code)
 select id, role_code
 from app_users
 cross join (values ('admin')) as roles(role_code)
-where sub = 'thomas@eguilde.cloud'
+where sub = 'platform-admin@example.test'
 on conflict do nothing;

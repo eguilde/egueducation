@@ -35,11 +35,11 @@ insert into education_portfolios (
 	notes
 )
 values
-	('PORT-CD-2026-0001', 'Maria Popescu', 'Profesor limba română', '2025-2026', 'validated', 14, current_date - 5, current_date + 1095, 'none', true, true, 'Secretar șef', 'inst-001', 'Portofoliu complet pentru evaluarea anuală.'),
-	('PORT-CD-2026-0002', 'Andrei Ionescu', 'Profesor matematică', '2025-2026', 'submitted', 11, current_date - 2, current_date + 1095, 'prepared', true, true, 'Responsabil resurse umane', 'inst-001', 'Se pregătește transferul către noua unitate.'),
-	('PORT-CD-2026-0003', 'Elena Dumitru', 'Învățător', '2025-2026', 'draft', 6, current_date - 1, current_date + 1095, 'none', false, true, 'Secretariat', 'inst-001', 'Lipsesc documente justificative pentru formare.'),
-	('PORT-CD-2026-0004', 'Ioana Marinescu', 'Profesor fizică', '2025-2026', 'transferred', 13, current_date - 12, current_date + 1095, 'received', true, true, 'Secretariat', 'inst-001', 'Portofoliu recepționat după detașare.'),
-	('PORT-CD-2026-0005', 'Sorin Pavel', 'Secretar șef', '2024-2025', 'archived', 9, current_date - 90, current_date + 730, 'none', true, true, 'Arhivar', 'inst-001', 'Păstrat conform procedurii interne și regulii de 3 ani.')
+	('PORT-CD-2026-0001', 'Example Teacher One', 'Profesor limba română', '2025-2026', 'validated', 14, current_date - 5, current_date + 1095, 'none', true, true, 'Secretar șef', 'inst-001', 'Portofoliu complet pentru evaluarea anuală.'),
+	('PORT-CD-2026-0002', 'Example Teacher Two', 'Profesor matematică', '2025-2026', 'submitted', 11, current_date - 2, current_date + 1095, 'prepared', true, true, 'Responsabil resurse umane', 'inst-001', 'Se pregătește transferul către noua unitate.'),
+	('PORT-CD-2026-0003', 'Example Teacher Three', 'Învățător', '2025-2026', 'draft', 6, current_date - 1, current_date + 1095, 'none', false, true, 'Secretariat', 'inst-001', 'Lipsesc documente justificative pentru formare.'),
+	('PORT-CD-2026-0004', 'Example Teacher Five', 'Profesor fizică', '2025-2026', 'transferred', 13, current_date - 12, current_date + 1095, 'received', true, true, 'Secretariat', 'inst-001', 'Portofoliu recepționat după detașare.'),
+	('PORT-CD-2026-0005', 'Example Staff Four', 'Secretar șef', '2024-2025', 'archived', 9, current_date - 90, current_date + 730, 'none', true, true, 'Arhivar', 'inst-001', 'Păstrat conform procedurii interne și regulii de 3 ani.')
 on conflict do nothing;
 
 insert into app_permissions(code, label) values

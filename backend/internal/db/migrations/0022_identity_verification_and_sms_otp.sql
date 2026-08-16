@@ -5,12 +5,12 @@ alter table app_users
 
 update app_users
 set
-	phone_number = '0771364169',
+	phone_number = '010000001',
 	email_verified = true,
 	phone_number_verified = true,
 	preferred_otp_channel = 'sms',
 	updated_at = now()
-where sub = 'thomas@eguilde.cloud';
+where sub = 'platform-admin@example.test';
 
 insert into app_auth_methods (code, enabled, primary_method, sort_order)
 values ('sms_otp', true, false, 20)

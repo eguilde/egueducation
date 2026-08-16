@@ -63,6 +63,10 @@ func (km *keyManager) Init(ctx context.Context) error {
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("read jwks keys: %w", err)
 	}
+	// Release the query connection before generating, rotating, or recursively
+	// reloading keys. With a one-connection pool, deferring Close until after the
+	// recursive Init call deadlocks forever waiting for that same connection.
+	rows.Close()
 
 	if len(keys) == 0 {
 		if err := km.generateAndStore(ctx, "sig-rs256"); err != nil {
@@ -77,7 +81,11 @@ func (km *keyManager) Init(ctx context.Context) error {
 		return fmt.Errorf("parse current key %q: %w", newest.KeyID, err)
 	}
 
-	rotationAge := time.Duration(km.cfg.JWTKeyRotationDays) * 24 * time.Hour
+	rotationDays := km.cfg.JWTKeyRotationDays
+	if rotationDays <= 0 {
+		rotationDays = 90
+	}
+	rotationAge := time.Duration(rotationDays) * 24 * time.Hour
 	if newest.RotatedAt == nil && time.Since(newest.CreatedAt) > rotationAge {
 		newKID := nextKID(newest.KeyID)
 		if _, err := km.db.Exec(ctx, `
@@ -93,7 +101,11 @@ func (km *keyManager) Init(ctx context.Context) error {
 		return km.Init(ctx)
 	}
 
-	overlapDuration := time.Duration(km.cfg.JWTKeyOverlapHours) * time.Hour
+	overlapHours := km.cfg.JWTKeyOverlapHours
+	if overlapHours <= 0 {
+		overlapHours = 24
+	}
+	overlapDuration := time.Duration(overlapHours) * time.Hour
 	for _, key := range keys {
 		if key.RotatedAt != nil && time.Since(*key.RotatedAt) > overlapDuration {
 			_, _ = km.db.Exec(ctx, `

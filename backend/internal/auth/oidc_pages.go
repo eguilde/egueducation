@@ -10,8 +10,25 @@ import (
 	"strings"
 
 	"github.com/eguilde/egueducation/internal/config"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func serveOIDCUIScript(w http.ResponseWriter, r *http.Request, script string) {
+	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if r.Method == http.MethodHead {
+		return
+	}
+	_, _ = io.WriteString(w, script)
+}
+
+func (s *Service) OIDCLoginScript(w http.ResponseWriter, r *http.Request) {
+	serveOIDCUIScript(w, r, oidcLoginScript)
+}
+
+func (s *Service) OIDCLogoutScript(w http.ResponseWriter, r *http.Request) {
+	serveOIDCUIScript(w, r, oidcLogoutScript)
+}
 
 func wrapRefreshTokenCookie(next http.Handler, cfg *config.Config) http.Handler {
 	secure := cfg.TLSEnabled()
@@ -19,8 +36,7 @@ func wrapRefreshTokenCookie(next http.Handler, cfg *config.Config) http.Handler 
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isTokenEndpoint := r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/token")
-		isRevocationEndpoint := r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/revoke")
-		if !isTokenEndpoint && !isRevocationEndpoint {
+		if !isTokenEndpoint {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -35,16 +51,6 @@ func wrapRefreshTokenCookie(next http.Handler, cfg *config.Config) http.Handler 
 				}
 			}
 		}
-		if isRevocationEndpoint {
-			value := r.FormValue("token")
-			if value == "" || value == "cookie" {
-				if cookie, err := r.Cookie("egueducation_rt"); err == nil && cookie.Value != "" {
-					r.Form.Set("token", cookie.Value)
-					r.PostForm.Set("token", cookie.Value)
-				}
-			}
-		}
-
 		recorder := &tokenResponseRecorder{
 			header: make(http.Header),
 			buf:    &bytes.Buffer{},
@@ -118,42 +124,9 @@ func wrapRegisterPage(next http.Handler, cfg *config.Config) http.Handler {
 	})
 }
 
-func wrapLogoutPage(next http.Handler, cfg *config.Config, db *pgxpool.Pool) http.Handler {
-	tmpl := template.Must(template.New("oidc_logout").Parse(oidcLogoutHTML))
-	secure := cfg.TLSEnabled()
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/logout" {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		returnTo := strings.TrimSpace(r.URL.Query().Get("returnTo"))
-		if !allowedLogoutReturnTo(returnTo, cfg.FrontendOrigin) {
-			returnTo = cfg.FrontendOrigin
-		}
-		if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
-			_, _ = db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value)
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:     "egueducation_rt",
-			Value:    "",
-			Path:     "/api/oidc",
-			HttpOnly: true,
-			Secure:   secure,
-			SameSite: http.SameSiteLaxMode,
-			MaxAge:   -1,
-		})
-
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = tmpl.Execute(w, map[string]string{
-			"CustomerName": cfg.CustomerName,
-			"ReturnTo":     returnTo,
-		})
-	})
-}
-
+// allowedLogoutReturnTo remains a narrow same-origin helper for callers that
+// render an application-owned logout result. It is deliberately not wired to
+// the OIDC provider: RP-initiated logout uses exact client metadata matching.
 func allowedLogoutReturnTo(candidate, frontendOrigin string) bool {
 	candidateURL, err := url.Parse(strings.TrimSpace(candidate))
 	if err != nil || !candidateURL.IsAbs() || candidateURL.User != nil {
@@ -202,30 +175,91 @@ const oidcRegisterHTML = `<!DOCTYPE html>
 </body>
 </html>`
 
-const oidcLogoutHTML = `<!DOCTYPE html>
-<html lang="ro">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{.CustomerName}} - Logout</title>
-  <style>
-    :root{color-scheme:light;--bg:#fff7f8;--card:#fff;--soft:#fff1f5;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--primary:#e11d48;--shadow:0 28px 72px rgba(15,23,42,.16)}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top left,rgba(225,29,72,.16),transparent 28rem),linear-gradient(135deg,var(--bg),#fff 48%,#ffe4ec 100%);font-family:Inter,system-ui,sans-serif;color:var(--text)}
-    .card{width:min(440px,100%);border:1px solid var(--border);border-radius:28px;background:linear-gradient(180deg,var(--card),#fff8fa);box-shadow:var(--shadow);padding:30px;text-align:center}
-    .eyebrow{display:inline-flex;padding:8px 12px;border-radius:999px;background:var(--soft);color:var(--primary);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-    h1{margin:14px 0 12px;font-size:1.8rem;letter-spacing:-.03em}.msg{color:var(--muted);line-height:1.7;margin-bottom:18px}.actions{display:grid;gap:12px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 16px;border-radius:16px;text-decoration:none;font-weight:800}.primary{background:linear-gradient(180deg,var(--primary),#be123c);color:#fff}.secondary{border:1px solid var(--border);color:var(--text);background:#fff}
-  </style>
-</head>
-<body>
-  <main class="card">
-    <span class="eyebrow">OIDC Provider</span>
-    <h1>Deconectare finalizată</h1>
-    <p class="msg">Sesiunea OIDC a fost închisă și refresh token-ul din cookie a fost eliminat.</p>
-    <div class="actions">
-      <a class="btn primary" href="{{.ReturnTo}}">Înapoi în aplicație</a>
-      <button class="btn secondary" type="button" onclick="window.close()">Închide</button>
-    </div>
-  </main>
-</body>
-</html>`
+const oidcLogoutScript = `(function(){
+  var closeButton=document.getElementById('closeWindow');
+  if(closeButton){closeButton.addEventListener('click',function(){window.close();});}
+})();`
+
+const oidcLoginScript = `(function(){
+  function b64u(value){
+    var normalized=value.replace(/-/g,'+').replace(/_/g,'/');
+    var decoded=atob(normalized);
+    return new Uint8Array([].map.call(decoded,function(character){return character.charCodeAt(0);}));
+  }
+  function u8b64(value){
+    return btoa(String.fromCharCode.apply(null,value)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+  }
+
+  var biometricButton=document.getElementById('biometricBtn');
+  if(biometricButton){
+    if(!window.PublicKeyCredential){
+      biometricButton.disabled=true;
+    }else{
+      var passkeyBanner=document.getElementById('passkey-banner');
+      if(passkeyBanner){passkeyBanner.style.display='flex';}
+      biometricButton.addEventListener('click',function(){
+        fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+          .then(function(response){if(!response.ok)throw new Error('options failed');return response.json();})
+          .then(function(payload){
+            var options=payload.options||payload;
+            var challenge=options.challenge;
+            options.challenge=b64u(options.challenge);
+            if(options.allowCredentials){options.allowCredentials=options.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
+            return navigator.credentials.get({publicKey:options}).then(function(credential){return {credential:credential,challenge:challenge};});
+          })
+          .then(function(result){
+            var credential=result.credential;
+            var assertion={clientDataJSON:u8b64(new Uint8Array(credential.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(credential.response.authenticatorData)),signature:u8b64(new Uint8Array(credential.response.signature)),type:credential.type};
+            return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:credential.id,response:assertion})});
+          })
+          .then(function(response){if(!response.ok)throw new Error('finish failed');return response.json();})
+          .then(function(data){
+            var form=document.createElement('form');
+            form.method='POST';
+            form.action=document.body.dataset.oidcAction||'';
+            var method=document.createElement('input');method.type='hidden';method.name='method';method.value='passkey_done';
+            var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
+            form.appendChild(method);form.appendChild(nonce);document.body.appendChild(form);form.submit();
+          })
+          .catch(function(error){if(error&&error.name!=='NotAllowedError'){alert(error.message||'Autentificarea cu passkey a eșuat');}});
+      });
+    }
+  }
+
+  var otpBoxes=document.querySelectorAll('.otp-box');
+  var otpCode=document.getElementById('code');
+  var verifyButton=document.getElementById('verifyBtn');
+  var otpForm=document.getElementById('otpForm');
+  if(otpBoxes.length===6&&otpCode&&verifyButton&&otpForm){
+    var syncOTP=function(){
+      var value=Array.prototype.map.call(otpBoxes,function(box){return box.value;}).join('');
+      otpCode.value=value;
+      verifyButton.disabled=value.length<6;
+      Array.prototype.forEach.call(otpBoxes,function(box){box.classList.toggle('filled',box.value!=='');});
+      if(value.length===6){verifyButton.focus();}
+    };
+    Array.prototype.forEach.call(otpBoxes,function(box,index){
+      box.addEventListener('paste',function(event){
+        event.preventDefault();
+        var value=(event.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
+        if(value){value.split('').forEach(function(digit,digitIndex){if(otpBoxes[digitIndex])otpBoxes[digitIndex].value=digit;});(otpBoxes[Math.min(value.length,5)]||otpBoxes[5]).focus();syncOTP();}
+      });
+      box.addEventListener('input',function(event){
+        var value=event.target.value.replace(/\D/g,'');
+        event.target.value=value.slice(-1);
+        if(value&&index<5){otpBoxes[index+1].focus();}
+        syncOTP();
+      });
+      box.addEventListener('keydown',function(event){
+        if(event.key==='Backspace'&&!box.value&&index>0){otpBoxes[index-1].value='';otpBoxes[index-1].focus();syncOTP();}
+        if(event.key==='ArrowLeft'&&index>0){otpBoxes[index-1].focus();}
+        if(event.key==='ArrowRight'&&index<5){otpBoxes[index+1].focus();}
+        if(event.key==='Enter'&&otpCode.value.length===6){otpForm.requestSubmit();}
+      });
+    });
+    otpForm.addEventListener('submit',syncOTP);
+  }
+
+  var selectAll=document.getElementById('selectAll');
+  if(selectAll){selectAll.addEventListener('change',function(){document.querySelectorAll('#consentForm input[name=granted_scope]').forEach(function(input){input.checked=selectAll.checked;});});}
+})();`

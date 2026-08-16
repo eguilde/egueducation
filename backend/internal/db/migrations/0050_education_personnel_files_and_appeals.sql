@@ -15,8 +15,8 @@ insert into education_personnel (
 	notes
 )
 values
-	('PER-2026-0101', 'Raluca Stan', 'Director', 'titular', 'active', 'finalized', 'none', '2025-2026', 'Conducere', '+40740111991', 'raluca.stan@egueducation.ro', true, 'inst-001', 'Dosar personal distinct pentru director.'),
-	('PER-2026-0102', 'Mihai Enache', 'Director adjunct', 'titular', 'active', 'in_review', 'none', '2025-2026', 'Conducere', '+40740111992', 'mihai.enache@egueducation.ro', true, 'inst-001', 'Dosar personal distinct pentru director adjunct.')
+	('PER-2026-0101', 'Example Director One', 'Director', 'titular', 'active', 'finalized', 'none', '2025-2026', 'Conducere', '+40100000191', 'personnel-0101@example.test', true, 'inst-001', 'Dosar personal distinct pentru director.'),
+	('PER-2026-0102', 'Example Director Two', 'Director adjunct', 'titular', 'active', 'in_review', 'none', '2025-2026', 'Conducere', '+40100000192', 'personnel-0102@example.test', true, 'inst-001', 'Dosar personal distinct pentru director adjunct.')
 on conflict (employee_code) do nothing;
 
 create table if not exists education_personnel_file_documents (

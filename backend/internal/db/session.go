@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -92,48 +93,63 @@ func AcquireRequestConn(ctx context.Context, pool *pgxpool.Pool, cfg SessionConf
 	}
 
 	if err := bindRequestSession(ctx, conn, cfg); err != nil {
-		conn.Release()
+		discardRequestConn(ctx, conn)
 		return nil, nil, err
 	}
 
 	nextCtx := WithRequestConn(ctx, conn)
 	release := func() {
-		_ = clearRequestSession(context.Background(), conn)
+		if err := clearRequestSession(context.Background(), conn); err != nil {
+			discardRequestConn(context.Background(), conn)
+			return
+		}
 		conn.Release()
 	}
 	return nextCtx, release, nil
 }
 
 func bindRequestSession(ctx context.Context, conn *pgxpool.Conn, cfg SessionConfig) error {
-	values := map[string]string{
-		"app.tenant_id":        strings.TrimSpace(cfg.TenantID),
-		"app.institution_id":   strings.TrimSpace(cfg.InstitutionID),
-		"app.institution_name": strings.TrimSpace(cfg.InstitutionName),
-		"app.tenant_subdomain": strings.TrimSpace(cfg.TenantSubdomain),
-		"app.actor_subject":    strings.TrimSpace(cfg.ActorSubject),
-		"app.is_super_admin":   fmt.Sprintf("%t", cfg.IsSuperAdmin),
+	// Set the privilege flag first, deterministically. A connection that was
+	// previously used by maintenance code must be de-privileged before any
+	// tenant or actor value is bound.
+	values := []struct{ key, value string }{
+		{"app.is_super_admin", fmt.Sprintf("%t", cfg.IsSuperAdmin)},
+		{"app.tenant_id", strings.TrimSpace(cfg.TenantID)},
+		{"app.institution_id", strings.TrimSpace(cfg.InstitutionID)},
+		{"app.institution_name", strings.TrimSpace(cfg.InstitutionName)},
+		{"app.tenant_subdomain", strings.TrimSpace(cfg.TenantSubdomain)},
+		{"app.actor_subject", strings.TrimSpace(cfg.ActorSubject)},
 	}
 
-	for key, value := range values {
-		if _, err := conn.Exec(ctx, `select set_config($1, $2, false)`, key, value); err != nil {
-			return fmt.Errorf("bind request session %s: %w", key, err)
+	for _, item := range values {
+		if _, err := conn.Exec(ctx, `select set_config($1, $2, false)`, item.key, item.value); err != nil {
+			return fmt.Errorf("bind request session %s: %w", item.key, err)
 		}
 	}
 	return nil
 }
 
 func clearRequestSession(ctx context.Context, conn *pgxpool.Conn) error {
+	var clearErrors []error
 	for _, key := range []string{
+		"app.is_super_admin",
 		"app.tenant_id",
 		"app.institution_id",
 		"app.institution_name",
 		"app.tenant_subdomain",
 		"app.actor_subject",
-		"app.is_super_admin",
 	} {
 		if _, err := conn.Exec(ctx, `select set_config($1, '', false)`, key); err != nil {
-			return fmt.Errorf("clear request session %s: %w", key, err)
+			clearErrors = append(clearErrors, fmt.Errorf("clear request session %s: %w", key, err))
 		}
 	}
-	return nil
+	return errors.Join(clearErrors...)
+}
+
+func discardRequestConn(ctx context.Context, conn *pgxpool.Conn) {
+	if conn == nil {
+		return
+	}
+	raw := conn.Hijack()
+	_ = raw.Close(ctx)
 }

@@ -135,7 +135,7 @@ values (
 	'ROI actualizat pentru circuitul documentelor educaționale',
 	'consultation',
 	'working_group',
-	'Thomas Galambos',
+	'Platform Administrator',
 	'2026-06-30',
 	null,
 	'inst-001',

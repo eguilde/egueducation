@@ -16,36 +16,11 @@ import (
 )
 
 func (s *Service) StageDocumentAttachment(w http.ResponseWriter, r *http.Request) {
-	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
-	var req StageDocumentAttachmentRequest
-	if documentID == "" || json.NewDecoder(r.Body).Decode(&req) != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_attachment_stage"})
-		return
-	}
-	req.Title = strings.TrimSpace(req.Title)
-	req.FileName = strings.TrimSpace(req.FileName)
-	req.MimeType = strings.TrimSpace(req.MimeType)
-	req.Category = strings.TrimSpace(req.Category)
-	req.ChecksumSHA256 = strings.ToLower(strings.TrimSpace(req.ChecksumSHA256))
-	if req.Title == "" || req.FileName == "" || req.MimeType == "" || req.Category == "" || req.SizeBytes <= 0 || req.SizeBytes > 100*1024*1024 || len(req.ChecksumSHA256) != 64 {
-		httpx.JSON(w, 400, map[string]any{"code": "invalid_attachment_stage"})
-		return
-	}
-	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
-		if err == pgx.ErrNoRows {
-			httpx.JSON(w, 404, map[string]any{"code": "document_not_found"})
-		} else {
-			httpx.JSON(w, 500, map[string]any{"code": "attachment_stage_failed"})
-		}
-		return
-	}
-	var item DocumentAttachment
-	err := s.pool.QueryRow(r.Context(), `with key as (select 'tenants/' || public.current_tenant_code() || '/registratura/staged/' || gen_random_uuid()::text as storage_key) insert into registratura_document_attachments(document_id,tenant_code,institution_id,title,file_name,mime_type,storage_key,size_bytes,category,status,uploaded_by,checksum_sha256,scan_status,storage_state) select $1::uuid,public.current_tenant_code(),public.current_institution_id(),$2,$3,$4,key.storage_key,$5,$6,'staged',$7,$8,'pending','staged' from key returning id::text,document_id::text,title,file_name,mime_type,storage_key,size_bytes,category,status,uploaded_by,to_char(uploaded_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"')`, documentID, req.Title, req.FileName, req.MimeType, req.SizeBytes, req.Category, authruntime.CurrentSubjectFromRequest(r), req.ChecksumSHA256).Scan(&item.ID, &item.DocumentID, &item.Title, &item.FileName, &item.MimeType, &item.StorageKey, &item.SizeBytes, &item.Category, &item.Status, &item.UploadedBy, &item.UploadedAt)
-	if err != nil {
-		httpx.JSON(w, 500, map[string]any{"code": "attachment_stage_failed"})
-		return
-	}
-	httpx.JSON(w, 201, item)
+	// Metadata-only staging cannot be completed: there is no upload token or
+	// follow-up operation that binds bytes to the staged row. Keep the route
+	// fail-closed so clients cannot create orphaned evidence records. The scanned
+	// multipart upload endpoint is the only supported attachment write path.
+	httpx.JSON(w, http.StatusGone, map[string]any{"code": "attachment_upload_required"})
 }
 
 // EnrichDocumentParity loads the new, tenant-scoped registratura read model.

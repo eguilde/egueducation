@@ -59,17 +59,17 @@ set name = excluded.name,
 	updated_at = now();
 
 insert into app_users (sub, name, email, phone_number, locale, status, last_login_at) values
-	('usr-002', 'Mihai Popa', 'mihai.popa@egueducation.ro', '+40740100102', 'ro', 'active', '2026-05-11T09:30:00Z'),
-	('usr-003', 'Ioana Dumitrescu', 'ioana.dumitrescu@egueducation.ro', '+40740100103', 'ro', 'active', '2026-05-10T15:48:00Z'),
-	('usr-004', 'Daniel Georgescu', 'daniel.georgescu@egueducation.ro', '+40740100104', 'ro', 'pending', '2026-05-09T11:20:00Z'),
-	('usr-005', 'Roxana Stan', 'roxana.stan@egueducation.ro', '+40740100105', 'en', 'active', '2026-05-10T08:17:00Z'),
-	('usr-006', 'Carmen Pavel', 'carmen.pavel@egueducation.ro', '+40740100106', 'ro', 'active', '2026-05-08T16:22:00Z'),
-	('usr-007', 'Cristian Matei', 'cristian.matei@egueducation.ro', '+40740100107', 'ro', 'suspended', '2026-05-06T09:45:00Z'),
-	('usr-008', 'Andreea Nistor', 'andreea.nistor@egueducation.ro', '+40740100108', 'ro', 'active', '2026-05-11T07:05:00Z'),
-	('usr-009', 'Elena Marinescu', 'elena.marinescu@egueducation.ro', '+40740100109', 'ro', 'active', '2026-05-11T06:52:00Z'),
-	('usr-010', 'Victor Tudor', 'victor.tudor@egueducation.ro', '+40740100110', 'en', 'pending', '2026-05-05T14:14:00Z'),
-	('usr-011', 'Larisa Ene', 'larisa.ene@egueducation.ro', '+40740100111', 'ro', 'active', '2026-05-10T10:00:00Z'),
-	('usr-012', 'George Sandu', 'george.sandu@egueducation.ro', '+40740100112', 'ro', 'active', '2026-05-08T12:00:00Z')
+	('usr-002', 'Example User 02', 'fixture-user-02@example.test', '+40100000012', 'ro', 'active', '2026-05-11T09:30:00Z'),
+	('usr-003', 'Example User 03', 'fixture-user-03@example.test', '+40100000013', 'ro', 'active', '2026-05-10T15:48:00Z'),
+	('usr-004', 'Example User 04', 'fixture-user-04@example.test', '+40100000014', 'ro', 'pending', '2026-05-09T11:20:00Z'),
+	('usr-005', 'Example User 05', 'fixture-user-05@example.test', '+40100000015', 'en', 'active', '2026-05-10T08:17:00Z'),
+	('usr-006', 'Example User 06', 'fixture-user-06@example.test', '+40100000016', 'ro', 'active', '2026-05-08T16:22:00Z'),
+	('usr-007', 'Example User 07', 'fixture-user-07@example.test', '+40100000017', 'ro', 'suspended', '2026-05-06T09:45:00Z'),
+	('usr-008', 'Example User 08', 'fixture-user-08@example.test', '+40100000018', 'ro', 'active', '2026-05-11T07:05:00Z'),
+	('usr-009', 'Example User 09', 'fixture-user-09@example.test', '+40100000019', 'ro', 'active', '2026-05-11T06:52:00Z'),
+	('usr-010', 'Example User 10', 'fixture-user-10@example.test', '+40100000020', 'en', 'pending', '2026-05-05T14:14:00Z'),
+	('usr-011', 'Example User 11', 'fixture-user-11@example.test', '+40100000021', 'ro', 'active', '2026-05-10T10:00:00Z'),
+	('usr-012', 'Example User 12', 'fixture-user-12@example.test', '+40100000022', 'ro', 'active', '2026-05-08T12:00:00Z')
 on conflict (sub) do update
 set name = excluded.name,
 	email = excluded.email,

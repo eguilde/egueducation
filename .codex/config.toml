@@ -1,0 +1,18 @@
+# Project-scoped, read-only documentation servers for the React rewrite.
+
+# Official PrimeReact 11 documentation, examples, component API metadata and
+# usage validation. PrimeReact is the sole UI component library for the new UI.
+[mcp_servers.primereact]
+command = "npx"
+args = ["-y", "@primereact/mcp@11.1.0"]
+startup_timeout_sec = 120
+tool_timeout_sec = 120
+
+# React does not currently publish an official framework documentation MCP.
+# Context7 is retained as a read-only documentation fallback for react.dev and
+# Tailwind layout guidance; it is not an authority for PrimeReact component API.
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120

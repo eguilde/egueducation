@@ -83,9 +83,9 @@ select
 from education_meetings em
 cross join (
 	values
-		('Ioana Marinescu', 'Președinte CA', 'presedinte', 'prezent', true, true, 'A condus ședința și a validat ordinea de zi.'),
+		('Example Teacher Five', 'Președinte CA', 'presedinte', 'prezent', true, true, 'A condus ședința și a validat ordinea de zi.'),
 		('Mihai Stoica', 'Secretar CA', 'secretar', 'prezent', true, true, 'A întocmit procesul-verbal și lista de prezență.'),
-		('Elena Dumitru', 'Membru CA', 'membru', 'prezent', true, false, 'A participat la vot pentru aprobarea ROI.')
+		('Example Teacher Three', 'Membru CA', 'membru', 'prezent', true, false, 'A participat la vot pentru aprobarea ROI.')
 ) as participant(full_name, role_name, member_type, attendance_status, voting_right, signature_present, notes)
 where em.title = 'Avizarea proiectului de buget'
 on conflict do nothing;

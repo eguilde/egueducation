@@ -68,13 +68,10 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 		}
 
 		branding := tenant.ResolveBranding(r.Host, session.InstitutionName, session.InstitutionID)
-		tenantCode := tenant.DefaultTenantCode(session.InstitutionID, branding.Subdomain)
-		isSuperAdmin := false
-		for _, role := range session.User.Roles {
-			if strings.EqualFold(role, "super_admin") && tenantCode == "tenant-egueducation" {
-				isSuperAdmin = true
-				break
-			}
+		tenantCode := branding.TenantCode
+		if tenantCode == "" {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unknown_tenant_host"})
+			return
 		}
 		sessionCtx, release, err := appdb.AcquireRequestConn(r.Context(), s.db.Raw(), appdb.SessionConfig{
 			TenantID:        tenantCode,
@@ -82,7 +79,7 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			InstitutionName: session.InstitutionName,
 			TenantSubdomain: branding.Subdomain,
 			ActorSubject:    session.User.Sub,
-			IsSuperAdmin:    isSuperAdmin,
+			IsSuperAdmin:    requestMayBypassTenantRLS(session, tenantCode),
 		})
 		if err != nil {
 			httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "tenant_session_unavailable"})
@@ -94,6 +91,15 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, requestSessionContextKey, session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// requestMayBypassTenantRLS deliberately returns false for every interactive
+// API request. Roles and permissions are tenant-scoped authorization inputs;
+// none of them grant an implicit database-wide RLS bypass. Maintenance jobs
+// that genuinely need cross-tenant access must use an isolated, audited
+// execution path instead of the request connection.
+func requestMayBypassTenantRLS(_ SessionContext, _ string) bool {
+	return false
 }
 
 func (s *Service) RequirePermissions(required ...string) func(http.Handler) http.Handler {

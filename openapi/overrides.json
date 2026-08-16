@@ -1,0 +1,194 @@
+{
+  "POST /api/registratura/documents/{documentID}/cancel": { "requestBody": false, "status": "detailed" },
+  "PATCH /api/registratura/registre/{id}/set-default": { "requestBody": false, "status": "detailed" },
+  "POST /api/oidc/session/logout": {
+    "summary": "Revoke the browser refresh session",
+    "description": "Revokes the tenant-bound refresh grant carried by the HttpOnly refresh cookie and expires that cookie. The route lives below `/api/oidc` so the browser sends the path-scoped cookie.",
+    "tags": ["Authentication", "OIDC Provider"],
+    "responseSchema": "LogoutResponse",
+    "requestBody": false,
+    "status": "detailed",
+    "security": "refreshCookie",
+    "tenantScope": true,
+    "requiredPermission": "valid tenant-bound refresh session cookie",
+    "errors": [400, 401, 500]
+  },
+  "GET /api/oidc/ui/login.js": {
+    "summary": "OIDC login interaction progressive-enhancement script",
+    "description": "Public JavaScript served only to the provider-owned login interaction. It supports OTP input focus movement and paste handling; it is not an API payload.",
+    "tags": ["OIDC Provider"],
+    "responseStatus": "200",
+    "responseContentType": "text/javascript",
+    "responseSchema": "OidcInteractionScript",
+    "requestBody": false,
+    "status": "detailed",
+    "security": "none",
+    "tenantScope": false,
+    "errors": [500]
+  },
+  "GET /api/oidc/ui/logout.js": {
+    "summary": "OIDC logout interaction progressive-enhancement script",
+    "description": "Public JavaScript served only to the provider-owned logout interaction. It is not an API payload and must not contain tenant secrets or token material.",
+    "tags": ["OIDC Provider"],
+    "responseStatus": "200",
+    "responseContentType": "text/javascript",
+    "responseSchema": "OidcInteractionScript",
+    "requestBody": false,
+    "status": "detailed",
+    "security": "none",
+    "tenantScope": false,
+    "errors": [500]
+  },
+  "GET /api/registratura/documents": {
+    "summary": "List registry documents",
+    "description": "Searches documents visible in the active tenant and registry context. Supports the filter fields returned by `/api/registratura/documents/filters`; use page and pageSize for server-side pagination.",
+    "tags": ["Registratura"],
+    "responseSchema": "Page",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents": {
+    "summary": "Register one document",
+    "description": "Creates an incoming, outgoing or internal registration number in the selected registry. The number is allocated transactionally by the server; clients must never generate it.",
+    "tags": ["Registratura"],
+    "requestSchema": "DocumentInput",
+    "responseSchema": "RegistraturaDocument",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents/batch": {
+    "summary": "Register multiple documents",
+    "description": "Creates a batch of documents using the same tenant and authorization rules as single registration. Each item is independently validated and the response identifies accepted and rejected items.",
+    "tags": ["Registratura"],
+    "requestSchema": "Mutation",
+    "responseSchema": "RegistraturaDocumentBatch",
+    "status": "detailed"
+  },
+  "GET /api/registratura/registre": {
+    "summary": "List registries available to the user",
+    "description": "Returns registries assigned to the current user in the active tenant, including the default registry when configured.",
+    "tags": ["Registratura"],
+    "responseSchema": "Page",
+    "status": "detailed"
+  },
+  "GET /api/registratura/registre/default": {
+    "summary": "Get the user's default registry",
+    "tags": ["Registratura"],
+    "responseSchema": "RegistraturaRegistry",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents/{documentID}/workflow-actions": {
+    "summary": "Apply a document workflow action",
+    "description": "Applies an allowed workflow transition to a document. The server validates state, allowed assignees and permissions before recording history.",
+    "tags": ["Registratura", "Workflow"],
+    "requestSchema": "WorkflowTransition",
+    "responseSchema": "RegistraturaDocument",
+    "status": "detailed"
+  },
+  "GET /api/workflow/tasks": {
+    "summary": "List workflow tasks",
+    "description": "Returns tasks visible to the active tenant and caller. Filter options are provided by `/api/workflow/tasks/filters`.",
+    "tags": ["Workflow"],
+    "responseSchema": "Page",
+    "status": "detailed"
+  },
+  "POST /api/workflow/tasks/{taskID}/transition": {
+    "summary": "Transition a workflow task",
+    "description": "Executes a permitted task transition. The server enforces current state and authorization, then writes immutable workflow history.",
+    "tags": ["Workflow"],
+    "requestSchema": "WorkflowTransition",
+    "responseSchema": "WorkflowTask",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/records": {
+    "summary": "List archive records",
+    "description": "Lists records in the active tenant. This endpoint is separate from binary archive document retrieval and may be filtered or paginated by the implementation.",
+    "tags": ["eArhiva"],
+    "responseSchema": "Page",
+    "status": "detailed"
+  },
+  "POST /api/earchiva/records": {
+    "summary": "Create an archive record",
+    "description": "Creates a tenant-scoped archival record. Retention and classification are validated by the server.",
+    "tags": ["eArhiva"],
+    "requestSchema": "ArchiveRecordInput",
+    "responseSchema": "ArchiveRecord",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/documents": {
+    "summary": "Search archived documents",
+    "description": "Searches documents in the institution context validated from the authenticated token/session and request host. The browser cannot select another institution with a request header.",
+    "tags": ["eArhiva"],
+    "responseSchema": "Page",
+    "institutionContext": false,
+    "status": "detailed"
+  },
+  "POST /api/earchiva/documents": {
+    "summary": "Upload an archived document",
+    "description": "Stores a document in the institution context validated from the authenticated token/session and request host. Media type and upload protocol are validated by the service.",
+    "tags": ["eArhiva"],
+    "requestSchema": "Mutation",
+    "responseSchema": "ArchiveDocument",
+    "institutionContext": false,
+    "status": "detailed"
+  },
+  "GET /api/me": {
+    "summary": "Read authenticated session context",
+    "description": "The frontend uses this endpoint as the source of truth for the current identity, tenant context and effective permissions. Do not trust browser-stored roles.",
+    "tags": ["Authentication"],
+    "responseSchema": "SessionContext",
+    "status": "detailed"
+  },
+  "PUT /api/profile": {
+    "summary": "Update the current user's profile",
+    "description": "Updates only fields editable by the authenticated user. Administrative identity and tenant role changes use administrative endpoints.",
+    "tags": ["Authentication"],
+    "requestSchema": "Mutation",
+    "responseSchema": "SessionContext",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents/{documentID}/attachments/upload": {
+    "summary": "Upload and malware-scan a document attachment",
+    "description": "Accepts one multipart file up to 100 MiB and an optional category. The server streams to bounded temporary storage, scans through clamd, writes object storage, then returns metadata only after the attachment is clean and ready.",
+    "tags": ["Registratura", "Attachments"],
+    "requestSchema": "RegistraturaAttachmentUpload",
+    "requestContentType": "multipart/form-data",
+    "responseSchema": "RegistraturaAttachment",
+    "responseStatus": "201",
+    "responseContentType": "application/json",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents/{documentID}/attachments/stage": {
+    "summary": "Reject deprecated metadata-only attachment staging",
+    "description": "This compatibility route is intentionally fail-closed because no binary upload can be bound to a staged row. Clients must use the scanned multipart upload endpoint instead.",
+    "tags": ["Registratura", "Attachments"],
+    "requestBody": false,
+    "responseSchema": "Problem",
+    "responseStatus": "410",
+    "responseContentType": "application/json",
+    "status": "detailed",
+    "requiredPermission": "registratura.manage",
+    "errors": [410]
+  },
+  "GET /api/registratura/documents/{documentID}/attachments/{attachmentID}/download": {
+    "summary": "Download a clean document attachment",
+    "description": "Streams a ready, clean attachment after tenant, document and registry visibility checks.",
+    "tags": ["Registratura", "Attachments"],
+    "responseSchema": "BinaryFile",
+    "responseContentType": "application/octet-stream",
+    "status": "detailed"
+  },
+  "GET /api/registratura/documents/{documentID}/print-pdf": {
+    "summary": "Print one registry document as PDF",
+    "tags": ["Registratura", "Export"],
+    "responseSchema": "BinaryFile",
+    "responseContentType": "application/pdf",
+    "status": "detailed"
+  },
+  "POST /api/registratura/documents/export-pdf": {
+    "summary": "Export a bounded registry date interval as PDF",
+    "tags": ["Registratura", "Export"],
+    "requestSchema": "RegistraturaRequest",
+    "responseSchema": "BinaryFile",
+    "responseContentType": "application/pdf",
+    "status": "detailed"
+  }
+}

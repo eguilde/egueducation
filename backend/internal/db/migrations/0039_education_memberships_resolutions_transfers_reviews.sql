@@ -106,9 +106,9 @@ select
 	member.notes
 from (
 	values
-		('ca', 'Ioana Marinescu', 'Președinte CA', current_date - 320, current_date + 45, true, 'activ', 'Mandat valid pentru anul școlar curent și semnătură înregistrată.'),
+		('ca', 'Example Teacher Five', 'Președinte CA', current_date - 320, current_date + 45, true, 'activ', 'Mandat valid pentru anul școlar curent și semnătură înregistrată.'),
 		('cp', 'Adrian Iliescu', 'Secretar CP', current_date - 280, current_date + 90, true, 'activ', 'Coordonează convocările și centralizarea documentelor CP.'),
-		('ceac', 'Elena Dumitru', 'Membru CEAC', current_date - 365, current_date - 10, true, 'expirat', 'Mandatul anterior trebuie reînnoit prin decizie internă.'),
+		('ceac', 'Example Teacher Three', 'Membru CEAC', current_date - 365, current_date - 10, true, 'expirat', 'Mandatul anterior trebuie reînnoit prin decizie internă.'),
 		('cfdcd', 'Raluca Dobre', 'Responsabil CFDCD', current_date - 180, current_date + 180, false, 'activ', 'Coordonează portofoliile și activitatea de formare continuă.')
 ) as member(organism, full_name, role_name, mandate_from, mandate_to, voting_right, status, notes)
 on conflict do nothing;

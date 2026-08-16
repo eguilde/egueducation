@@ -101,7 +101,7 @@ func (s *Service) institutionName(r *http.Request) string {
 
 func (s *Service) tenantCode(r *http.Request) string {
 	branding := tenant.ResolveBranding(r.Host, s.cfg.CustomerName, s.institutionID(r))
-	return tenant.DefaultTenantCode(s.institutionID(r), branding.Subdomain)
+	return branding.TenantCode
 }
 
 func requirePlatformSuperAdmin(w http.ResponseWriter, r *http.Request) bool {

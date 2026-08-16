@@ -5,6 +5,9 @@ on:
     paths:
       - backend/**
       - frontend/**
+      - frontend-react/**
+      - openapi/**
+      - scripts/openapi/**
       - ops/**
       - .github/workflows/**
   push:
@@ -12,6 +15,9 @@ on:
     paths:
       - backend/**
       - frontend/**
+      - frontend-react/**
+      - openapi/**
+      - scripts/openapi/**
       - ops/**
       - .github/workflows/**
 
@@ -23,6 +29,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  openapi:
+    name: OpenAPI contract and router coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+      - name: Regenerate the router contract
+        shell: pwsh
+        run: ./scripts/openapi/generate-openapi.ps1
+      - name: Fail when the committed API contract is stale
+        run: git diff --exit-code -- openapi/openapi.json openapi/router-operations.json backend/internal/apidocs/openapi.json
+      - name: Validate OpenAPI and route coverage
+        shell: pwsh
+        run: ./scripts/openapi/test-openapi.ps1
+      - name: Validate the OpenAPI 3.1 document structure
+        run: npx --yes @redocly/cli@2.2.1 lint openapi/openapi.json --format=stylish
+
   backend:
     name: Backend tests and vulnerability scan
     runs-on: ubuntu-24.04
@@ -41,6 +66,38 @@ jobs:
       - name: Reachable vulnerability scan
         working-directory: backend
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  oidc-postgres-integration:
+    name: OIDC PostgreSQL integration
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: egueducation_integration
+          POSTGRES_USER: egueducation
+          POSTGRES_PASSWORD: egueducation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U egueducation -d egueducation_integration"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_integration?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - name: OIDC authorization-code, session, logout, and tenant-RLS flow
+        working-directory: backend
+        run: go test ./internal/auth -run '^TestOIDCPostgresIntegration$' -count=1 -timeout 90s
+      - name: Tenant hostname directory and fail-closed routing
+        working-directory: backend
+        run: go test ./internal/tenant -run '^TestDatabaseResolverIntegration$' -count=1 -timeout 60s
 
   frontend:
     name: Frontend tests, build, and audit
@@ -62,6 +119,61 @@ jobs:
         run: npm run build
       - name: Dependency audit
         run: npm audit --audit-level=high
+
+  frontend-react:
+    name: React frontend contract, tests, build, and audit
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+      - run: npm ci
+      - name: Regenerate the typed API client
+        run: npm run api:generate
+      - name: Fail when the committed typed client is stale
+        run: git diff --exit-code -- frontend-react/src/api/generated.ts
+        working-directory: .
+      - name: Typecheck
+        run: npm run typecheck
+      - name: PrimeReact and theme-token policy
+        run: npm run quality:ui
+      - name: Unit tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+  frontend-react-browser:
+    name: React responsive shell browser test
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - name: Upload failed browser traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-playwright-traces
+          path: frontend-react/test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   browser:
     name: Registratura Chromium end-to-end tests

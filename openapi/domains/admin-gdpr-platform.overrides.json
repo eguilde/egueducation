@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "domain": "admin-gdpr-platform",
+  "mergePriority": 40,
+  "schemas": {
+    "AdminFilterItem": { "type": "object", "additionalProperties": false, "properties": { "code": { "type": "string" }, "label": { "type": "string" }, "id": { "type": "string" }, "name": { "type": "string" }, "active": { "type": "boolean" } } },
+    "AdminListResponse": { "type": "object", "required": ["items"], "additionalProperties": false, "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/AdminFilterItem" } }, "page": { "type": "integer", "minimum": 1 }, "pageSize": { "type": "integer", "minimum": 1 }, "total": { "type": "integer", "minimum": 0 } } },
+    "AdminCommand": { "type": "object", "description": "Upsert command. Exact field set is resource-specific and must be reconciled with handler DTOs before SDK generation.", "additionalProperties": true },
+    "GdprFilterItem": { "type": "object", "additionalProperties": false, "properties": { "code": { "type": "string" }, "label": { "type": "string" }, "id": { "type": "string" }, "name": { "type": "string" }, "status": { "type": "string" } } },
+    "GdprListResponse": { "type": "object", "required": ["items"], "additionalProperties": false, "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/GdprFilterItem" } }, "total": { "type": "integer", "minimum": 0 } } },
+    "GdprCommand": { "type": "object", "description": "GDPR command payload. Do not include data-subject PII in examples or logs.", "additionalProperties": true },
+    "Health": { "type": "object", "required": ["status", "service", "time"], "properties": { "status": { "type": "string", "enum": ["ok", "error"] }, "service": { "type": "string" }, "database": { "type": "string" }, "time": { "type": "string", "format": "date-time" } } },
+    "BootstrapConfig": { "type": "object", "description": "Public, deployment-specific bootstrap configuration. It contains no credentials or token material.", "additionalProperties": false, "properties": { "name": { "type": "string" }, "oidcAuthority": { "type": "string" }, "oidcIssuer": { "type": "string" }, "oidcClientId": { "type": "string" } } }
+  },
+  "rules": [
+    { "match": "^/api/admin/", "tag": "Administrare", "security": "oidcAuthorizationCode", "tenantScope": true, "query": ["page", "pageSize", "q", "sort"], "getResponse": "AdminListResponse", "writeRequest": "AdminCommand", "writeResponse": "AdminListResponse", "errors": [400,401,403,404,422,500], "contentType": "application/json", "status": "detailed" },
+    { "match": "^/api/gdpr/", "tag": "GDPR", "security": "oidcAuthorizationCode", "tenantScope": true, "query": ["page", "pageSize", "q", "sort"], "getResponse": "GdprListResponse", "writeRequest": "GdprCommand", "writeResponse": "GdprListResponse", "errors": [400,401,403,404,422,500], "contentType": "application/json", "status": "detailed" },
+    { "match": "^/(health|readyz|healthz)$", "tag": "Platform", "security": "none", "tenantScope": false, "getResponse": "Health", "errors": [503], "contentType": "application/json", "status": "detailed" },
+    { "match": "^/api/(config|meta/app)$", "tag": "Platform", "security": "none", "tenantScope": false, "getResponse": "BootstrapConfig", "errors": [500], "contentType": "application/json", "status": "detailed" },
+    { "match": "^/api/passkeys$", "tag": "Authentication", "security": "oidcAuthorizationCode", "tenantScope": true, "getResponse": "AdminListResponse", "errors": [401,403,500], "contentType": "application/json", "status": "detailed" }
+  ],
+  "knownUnknowns": [
+    "Admin and GDPR resources are backed by the DTOs in backend/internal/admin/models.go and backend/internal/gdpr/models.go. Route-to-DTO expansion is maintained in the operation catalog and must remain synchronized with handlers.",
+    "The OIDC-client administration response must never expose client secrets."
+  ]
+}

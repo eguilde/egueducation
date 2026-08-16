@@ -35,11 +35,11 @@ insert into education_personnel (
 	notes
 )
 values
-	('PER-2026-0001', 'Maria Popescu', 'Profesor limba română', 'titular', 'active', 'in_review', 'none', '2025-2026', 'Catedra limba și comunicare', '+40740111001', 'maria.popescu@egueducation.ro', true, 'inst-001', 'Dosar evaluare anuală în curs.'),
-	('PER-2026-0002', 'Andrei Ionescu', 'Profesor matematică', 'titular', 'active', 'finalized', 'transfer', '2025-2026', 'Catedra matematică-informatică', '+40740111002', 'andrei.ionescu@egueducation.ro', true, 'inst-001', 'Solicitare transfer interjudețean.'),
-	('PER-2026-0003', 'Elena Dumitru', 'Învățător', 'suplinitor', 'active', 'draft', 'none', '2025-2026', 'Învățământ primar', '+40740111003', 'elena.dumitru@egueducation.ro', false, 'inst-001', 'Portofoliu în curs de completare.'),
-	('PER-2026-0004', 'Sorin Pavel', 'Secretar șef', 'auxiliar', 'on_leave', 'finalized', 'none', '2025-2026', 'Secretariat', '+40740111004', 'sorin.pavel@egueducation.ro', false, 'inst-001', 'Concediu medical până la final de lună.'),
-	('PER-2026-0005', 'Ioana Marinescu', 'Profesor fizică', 'plata_cu_ora', 'active', 'in_review', 'detasare', '2025-2026', 'Catedra științe', '+40740111005', 'ioana.marinescu@egueducation.ro', true, 'inst-001', 'Detașare în interesul învățământului.')
+	('PER-2026-0001', 'Example Teacher One', 'Profesor limba română', 'titular', 'active', 'in_review', 'none', '2025-2026', 'Catedra limba și comunicare', '+40100000101', 'personnel-0001@example.test', true, 'inst-001', 'Dosar evaluare anuală în curs.'),
+	('PER-2026-0002', 'Example Teacher Two', 'Profesor matematică', 'titular', 'active', 'finalized', 'transfer', '2025-2026', 'Catedra matematică-informatică', '+40100000102', 'personnel-0002@example.test', true, 'inst-001', 'Solicitare transfer interjudețean.'),
+	('PER-2026-0003', 'Example Teacher Three', 'Învățător', 'suplinitor', 'active', 'draft', 'none', '2025-2026', 'Învățământ primar', '+40100000103', 'personnel-0003@example.test', false, 'inst-001', 'Portofoliu în curs de completare.'),
+	('PER-2026-0004', 'Example Staff Four', 'Secretar șef', 'auxiliar', 'on_leave', 'finalized', 'none', '2025-2026', 'Secretariat', '+40100000104', 'personnel-0004@example.test', false, 'inst-001', 'Concediu medical până la final de lună.'),
+	('PER-2026-0005', 'Example Teacher Five', 'Profesor fizică', 'plata_cu_ora', 'active', 'in_review', 'detasare', '2025-2026', 'Catedra științe', '+40100000105', 'personnel-0005@example.test', true, 'inst-001', 'Detașare în interesul învățământului.')
 on conflict do nothing;
 
 insert into app_permissions(code, label) values
