@@ -171,15 +171,9 @@ func (s *Service) RolePositions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) SessionContext(w http.ResponseWriter, r *http.Request) {
-	subject := s.currentSubject(r)
-	if subject == "" {
+	session, ok := sessionFromContext(r.Context())
+	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
-		return
-	}
-
-	session, err := s.loadSessionContext(r.Context(), r.Host, subject)
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]string{"code": "session_load_failed"})
 		return
 	}
 
