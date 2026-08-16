@@ -854,11 +854,27 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 	if identifier == "" {
 		return oidcLoginUser{}, errors.New("missing identifier")
 	}
+	if strings.TrimSpace(tenantCode) == "" {
+		return oidcLoginUser{}, errors.New("missing tenant code")
+	}
+
+	tx, err := db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return oidcLoginUser{}, fmt.Errorf("begin tenant-scoped login lookup: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if _, err := tx.Exec(ctx, `
+		select
+			set_config('app.tenant_id', $1, true),
+			set_config('app.is_super_admin', 'false', true)
+	`, tenantCode); err != nil {
+		return oidcLoginUser{}, fmt.Errorf("scope login lookup to tenant: %w", err)
+	}
 
 	candidates := phoneNumberCandidates(identifier)
 
 	var user oidcLoginUser
-	err := db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		select id, sub, phone_number
 		from app_users
 		where status = 'active'
@@ -884,6 +900,9 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.PhoneNumber)
 	if err != nil {
 		return oidcLoginUser{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return oidcLoginUser{}, fmt.Errorf("commit tenant-scoped login lookup: %w", err)
 	}
 	user.PhoneNumber = notification.NormalizePhone(user.PhoneNumber)
 	return user, nil
