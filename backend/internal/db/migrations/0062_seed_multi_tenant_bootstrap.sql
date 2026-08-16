@@ -160,8 +160,8 @@ insert into app_parties (
 values
 	('tenant-egueducation', 'inst-001', 'organization', 'institution', 'Colegiul Național EguEducation', 'EguEducation', '', '', 'Colegiul Național EguEducation', '', '', 'RO', '', true, true),
 	('tenant-balotesti', 'inst-balotesti', 'organization', 'institution', 'Școala Gimnazială nr. 1 Balotești', 'Balotești', '', '', 'Școala Gimnazială nr. 1 Balotești', '', '', 'RO', '', true, true),
-	('tenant-egueducation', 'inst-001', 'thomas-galambos', 'physical', 'Thomas Galambos', 'Thomas', 'Thomas', 'Galambos', '', '+40771364169', 'thomas.galambos@eguilde.cloud', 'RO', '', false, true),
-	('tenant-balotesti', 'inst-balotesti', 'diana-maria-ilhan', 'physical', 'DianaMaria Ilhan', 'Diana', 'DianaMaria', 'Ilhan', '', '+40735091230', 'dianailhan@eguilde.cloud', 'RO', '', false, true),
+	('tenant-egueducation', 'inst-001', 'platform-admin', 'physical', 'Platform Administrator', 'Platform', 'Administrator', 'Example', '', '+40100000001', 'platform-admin@example.test', 'RO', '', false, true),
+	('tenant-balotesti', 'inst-balotesti', 'tenant-admin', 'physical', 'Tenant Administrator', 'Tenant', 'Administrator', 'Example', '', '+40100000002', 'tenant-admin@example.test', 'RO', '', false, true),
 	('tenant-balotesti', 'inst-balotesti', 'primaria-balotesti', 'institution', 'Primăria Balotești', 'Primăria Balotești', '', '', 'Primăria Balotești', '', '', 'RO', '', false, true)
 on conflict (tenant_code, code) do update
 set institution_id = excluded.institution_id,
@@ -199,7 +199,7 @@ select
 	true,
 	'2024-09-01'::date
 from app_users u
-where u.sub = 'thomasgalambos'
+where u.sub = 'platform-admin'
 	and not exists (
 		select 1
 		from app_memberships m
@@ -229,7 +229,7 @@ select
 	true,
 	'2024-09-01'::date
 from app_users u
-where u.sub = 'dianailhan'
+where u.sub = 'tenant-admin'
 	and not exists (
 		select 1
 		from app_memberships m

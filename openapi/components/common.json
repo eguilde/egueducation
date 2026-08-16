@@ -1,0 +1,297 @@
+{
+  "components": {
+    "securitySchemes": {
+      "oidcAuthorizationCode": {
+        "type": "oauth2",
+        "description": "OIDC authorization-code flow with PKCE (S256). Access tokens are bearer JWTs issued by this deployment.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "/api/oidc/authorize",
+            "tokenUrl": "/api/oidc/token",
+            "refreshUrl": "/api/oidc/token",
+            "scopes": {
+              "openid": "OpenID Connect identity",
+              "profile": "Basic profile",
+              "email": "Verified email when available",
+              "phone": "Verified phone number when available",
+              "offline_access": "Refresh-token access"
+            }
+          }
+        }
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "egueducation_rt",
+        "description": "HttpOnly, Secure, SameSite=Lax refresh-session cookie scoped to /api/oidc. It cannot be read by browser JavaScript."
+      },
+      "dpop": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "DPoP",
+        "description": "Optional DPoP proof for clients registered as sender-constrained. The proof follows RFC 9449."
+      }
+    },
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "description": "RFC 9457 problem detail. `detail` is safe for users; correlation is supplied by the response `X-Request-ID` header.",
+        "required": ["type", "title", "status"],
+        "properties": {
+          "type": { "type": "string", "format": "uri-reference", "example": "https://egueducation.invalid/problems/validation" },
+          "title": { "type": "string", "example": "Validation failed" },
+          "status": { "type": "integer", "minimum": 400, "maximum": 599, "example": 422 },
+          "detail": { "type": "string" },
+          "instance": { "type": "string", "format": "uri-reference" },
+          "errors": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      },
+      "Page": {
+        "type": "object",
+        "required": ["items", "page", "pageSize", "total"],
+        "properties": {
+          "items": { "type": "array", "items": {} },
+          "page": { "type": "integer", "minimum": 1 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "total": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "Entity": {
+        "type": "object",
+        "description": "Endpoint-specific response shape. This compatibility schema will be replaced incrementally by typed resource schemas.",
+        "additionalProperties": false
+      },
+      "Mutation": {
+        "type": "object",
+        "description": "Endpoint-specific write payload. Consult the operation description and generated client types before use.",
+        "additionalProperties": false
+      },
+      "DocumentInput": {
+        "type": "object",
+        "required": ["registryId", "direction", "subject"],
+        "properties": {
+          "registryId": { "type": "string", "format": "uuid" },
+          "direction": { "type": "string", "enum": ["intrare", "iesire", "intern"] },
+          "subject": { "type": "string", "minLength": 1 },
+          "senderPartyId": { "type": "string", "format": "uuid" },
+          "recipientPartyId": { "type": "string", "format": "uuid" },
+          "departmentId": { "type": "string", "format": "uuid" },
+          "classificationCode": { "type": "string" },
+          "receivedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WorkflowTransition": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "action": { "type": "string" },
+          "assigneeId": { "type": "string", "format": "uuid" },
+          "comment": { "type": "string" }
+        }
+      },
+      "ArchiveRecordInput": {
+        "type": "object",
+        "required": ["title", "classificationCode"],
+        "properties": {
+          "title": { "type": "string" },
+          "classificationCode": { "type": "string" },
+          "retentionScheduleId": { "type": "string", "format": "uuid" },
+          "sourceDocumentId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "BinaryFile": {
+        "type": "string",
+        "format": "binary",
+        "description": "Binary response body. Use Content-Type and Content-Disposition response headers for media type and filename."
+      },
+      "RegistraturaAttachmentUpload": {
+        "type": "object",
+        "required": ["file"],
+        "properties": {
+          "file": { "type": "string", "format": "binary" },
+          "category": { "type": "string", "maxLength": 1024 }
+        },
+        "additionalProperties": false
+      },
+      "RegistraturaAttachment": {
+        "type": "object",
+        "required": ["id", "document_id", "title", "file_name", "mime_type", "size_bytes", "category", "status", "uploaded_by", "uploaded_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "document_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string" },
+          "file_name": { "type": "string" },
+          "mime_type": { "type": "string" },
+          "storage_key": { "type": "string", "writeOnly": true },
+          "size_bytes": { "type": "integer", "format": "int64", "minimum": 1, "maximum": 104857600 },
+          "category": { "type": "string" },
+          "status": { "type": "string" },
+          "uploaded_by": { "type": "string" },
+          "uploaded_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SessionUser": {
+        "type": "object",
+        "required": ["id", "sub", "name", "email", "email_verified", "phone_number", "phone_number_verified", "preferred_otp_channel", "locale", "roles"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "sub": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "email_verified": { "type": "boolean" },
+          "phone_number": { "type": "string" },
+          "phone_number_verified": { "type": "boolean" },
+          "preferred_otp_channel": { "type": "string" },
+          "locale": { "type": "string", "enum": ["ro", "en"] },
+          "roles": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "SessionModule": {
+        "type": "object",
+        "required": ["code", "active"],
+        "properties": {
+          "code": { "type": "string" },
+          "active": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      },
+      "SessionContext": {
+        "type": "object",
+        "required": ["user", "institution_id", "institution_name", "permissions", "modules", "authentication", "gdpr_capabilities"],
+        "properties": {
+          "user": { "$ref": "#/components/schemas/SessionUser" },
+          "institution_id": { "type": "string", "format": "uuid" },
+          "institution_name": { "type": "string" },
+          "permissions": { "type": "array", "items": { "type": "string" } },
+          "modules": { "type": "array", "items": { "$ref": "#/components/schemas/SessionModule" } },
+          "authentication": { "type": "array", "items": { "type": "string" } },
+          "gdpr_capabilities": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "RegistraturaRequest": {
+        "type": "object",
+        "description": "Registratura command payload. Individual operations accept only the fields relevant to their resource; unknown fields are rejected by server validation.",
+        "properties": { "name": { "type": "string" }, "code": { "type": "string" }, "status": { "type": "string" }, "documentId": { "type": "string", "format": "uuid" }, "registryId": { "type": "string", "format": "uuid" }, "partyId": { "type": "string", "format": "uuid" } }
+      },
+      "RegistraturaResource": { "type": "object", "additionalProperties": false, "properties": { "id": { "type": "string" }, "registru_id": { "type": "integer" }, "registry_number": { "type": "string" }, "subject": { "type": "string" }, "status": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" } } },
+      "RegistraturaResponse": { "type": "object", "additionalProperties": false, "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/RegistraturaResource" } }, "page": { "type": "integer" }, "pageSize": { "type": "integer" }, "total": { "type": "integer" } } },
+      "WorkflowRequest": { "type": "object", "properties": { "title": { "type": "string" }, "definitionId": { "type": "string", "format": "uuid" }, "action": { "type": "string" }, "assigneeId": { "type": "string", "format": "uuid" }, "comment": { "type": "string" } }, "additionalProperties": false },
+      "WorkflowResource": { "type": "object", "additionalProperties": false, "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "status": { "type": "string" }, "assignee_id": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" } } },
+      "WorkflowResponse": { "type": "object", "additionalProperties": false, "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/WorkflowResource" } }, "task": { "$ref": "#/components/schemas/WorkflowResource" } } },
+      "ArchiveRequest": { "type": "object", "properties": { "title": { "type": "string" }, "classificationCode": { "type": "string" }, "recordId": { "type": "string", "format": "uuid" }, "metadata": { "type": "object", "additionalProperties": true } }, "additionalProperties": false },
+      "ArchiveResource": { "type": "object", "additionalProperties": false, "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "classification_code": { "type": "string" }, "status": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" } } },
+      "ArchiveResponse": { "type": "object", "additionalProperties": false, "properties": { "items": { "type": "array", "items": { "$ref": "#/components/schemas/ArchiveResource" } }, "record": { "$ref": "#/components/schemas/ArchiveResource" } } },
+      "IdentityRequest": { "type": "object", "properties": { "displayName": { "type": "string" }, "locale": { "type": "string", "enum": ["ro", "en"] }, "credential": { "type": "object", "additionalProperties": true } }, "additionalProperties": false },
+      "IdentityResource": { "type": "object", "additionalProperties": false, "properties": { "id": { "type": "string" }, "credential_id": { "type": "string" }, "device_name": { "type": "string" }, "created_at": { "type": "string", "format": "date-time" }, "last_used_at": { "type": ["string", "null"], "format": "date-time" } } },
+      "IdentityResponse": { "type": "object", "additionalProperties": false, "properties": { "authenticated": { "type": "boolean" }, "methods": { "type": "array", "items": { "type": "string" } }, "items": { "type": "array", "items": { "$ref": "#/components/schemas/IdentityResource" } } } }
+      ,
+      "LogoutResponse": {
+        "type": "object",
+        "required": ["status"],
+        "additionalProperties": false,
+        "properties": { "status": { "type": "string", "const": "signed_out" } }
+      },
+      "OidcDiscoveryDocument": {
+        "type": "object",
+        "required": ["issuer", "authorization_endpoint", "token_endpoint", "jwks_uri", "revocation_endpoint", "end_session_endpoint", "response_types_supported", "grant_types_supported", "code_challenge_methods_supported"],
+        "properties": {
+          "issuer": { "type": "string", "format": "uri" },
+          "authorization_endpoint": { "type": "string", "format": "uri" },
+          "token_endpoint": { "type": "string", "format": "uri" },
+          "jwks_uri": { "type": "string", "format": "uri" },
+          "revocation_endpoint": { "type": "string", "format": "uri" },
+          "revocation_endpoint_auth_methods_supported": { "type": "array", "items": { "type": "string" } },
+          "end_session_endpoint": { "type": "string", "format": "uri" },
+          "response_types_supported": { "type": "array", "items": { "type": "string" } },
+          "grant_types_supported": { "type": "array", "items": { "type": "string" } },
+          "subject_types_supported": { "type": "array", "items": { "type": "string" } },
+          "id_token_signing_alg_values_supported": { "type": "array", "items": { "type": "string" } },
+          "code_challenge_methods_supported": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "OidcTokenResponse": {
+        "type": "object",
+        "required": ["access_token", "token_type", "expires_in"],
+        "properties": {
+          "access_token": { "type": "string", "description": "Bearer access token; do not persist it in browser storage." },
+          "token_type": { "type": "string", "const": "Bearer" },
+          "expires_in": { "type": "integer", "minimum": 1 },
+          "refresh_token": { "type": "string", "writeOnly": true },
+          "id_token": { "type": "string" },
+          "scope": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "JsonWebKey": {
+        "type": "object",
+        "required": ["kty", "kid", "use", "alg"],
+        "properties": {
+          "kty": { "type": "string" }, "kid": { "type": "string" }, "use": { "type": "string", "const": "sig" }, "alg": { "type": "string" },
+          "n": { "type": "string" }, "e": { "type": "string" }, "crv": { "type": "string" }, "x": { "type": "string" }, "y": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "JsonWebKeySet": {
+        "type": "object",
+        "required": ["keys"],
+        "properties": { "keys": { "type": "array", "items": { "$ref": "#/components/schemas/JsonWebKey" } } },
+        "additionalProperties": false
+      },
+      "OidcInteractionScript": {
+        "type": "string",
+        "description": "Provider-owned JavaScript source. Clients consume it as a script resource, not JSON."
+      },
+      "RegistraturaDocument": {
+        "type": "object",
+        "required": ["id", "registry_number", "subject", "direction", "status", "registered_at"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }, "registru_id": { "type": ["integer", "null"], "format": "int64" },
+          "registry_number": { "type": "string" }, "subject": { "type": "string" }, "document_type": { "type": "string" },
+          "direction": { "type": "string", "enum": ["intrare", "iesire", "intern"] }, "status": { "type": "string" },
+          "registered_at": { "type": "string", "format": "date-time" }, "institution_id": { "type": "string", "format": "uuid" }
+        },
+        "additionalProperties": false,
+        "x-go-model": "registratura.Document"
+      },
+      "RegistraturaDocumentBatch": {
+        "type": "array", "items": { "$ref": "#/components/schemas/RegistraturaDocument" },
+        "x-source": "backend/internal/registratura/registry.go: BatchCreateDocuments"
+      },
+      "RegistraturaRegistry": {
+        "type": "object", "required": ["id", "nume", "tip_registru", "isDefault"],
+        "properties": { "id": { "type": "integer", "format": "int64" }, "nume": { "type": "string" }, "tip_registru": { "type": "string" }, "isDefault": { "type": "boolean" }, "nr_curent": { "type": "string" }, "nr_urmator": { "type": "string" } },
+        "additionalProperties": false, "x-go-model": "registratura.Registru"
+      },
+      "WorkflowTask": {
+        "type": "object", "required": ["id", "title", "status", "priority", "current_step"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "title": { "type": "string" }, "status": { "type": "string" }, "priority": { "type": "string" }, "current_step": { "type": "string" }, "available_actions": { "type": "array", "items": { "type": "string" } } },
+        "additionalProperties": false, "x-go-model": "workflow.Task"
+      },
+      "ArchiveRecord": {
+        "type": "object", "required": ["id", "record_number", "title", "status"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "record_number": { "type": "string" }, "title": { "type": "string" }, "fond": { "type": "string" }, "series": { "type": "string" }, "status": { "type": "string" }, "retention_years": { "type": "integer" } },
+        "additionalProperties": false, "x-go-model": "earchiva.Record"
+      },
+      "ArchiveDocument": {
+        "type": "object", "required": ["id", "title", "status"],
+        "properties": { "id": { "type": "string", "format": "uuid" }, "title": { "type": "string" }, "status": { "type": "string" }, "institution_id": { "type": "string", "format": "uuid" } },
+        "additionalProperties": false, "x-go-model": "earchiva.ArchiveDocument"
+      }
+      },
+    "responses": {
+      "BadRequest": { "description": "Malformed request", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Unauthorized": { "description": "Authentication required or token invalid", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Forbidden": { "description": "Authenticated principal lacks the required RBAC permission or tenant access", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "NotFound": { "description": "Resource not found in the active tenant", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Validation": { "description": "Input validation failed", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "ServerError": { "description": "Unexpected server error", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
+    },
+    "parameters": {
+      "Page": { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
+      "PageSize": { "name": "pageSize", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 25 } }
+    }
+  }
+}

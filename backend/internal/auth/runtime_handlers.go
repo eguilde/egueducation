@@ -15,16 +15,6 @@ func (s *Service) OIDCHandler() http.Handler {
 	return s.oidcHandler
 }
 
-func (s *Service) HandleLogoutAlias(w http.ResponseWriter, r *http.Request) {
-	if s.oidcHandler == nil {
-		http.NotFound(w, r)
-		return
-	}
-	request := r.Clone(r.Context())
-	request.URL.Path = "/logout"
-	s.oidcHandler.ServeHTTP(w, request)
-}
-
 func (s *Service) storePasskeyLoginNonce(ctx context.Context, userID string) (string, error) {
 	parsedUserID, err := uuid.Parse(strings.TrimSpace(userID))
 	if err != nil {

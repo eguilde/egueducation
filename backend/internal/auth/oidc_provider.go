@@ -64,6 +64,13 @@ func newOIDCProviderHandler(
 			return goidc.NewJWTTokenOptions(goidc.RS256, 3600)
 		}),
 		provider.WithTokenAuthnMethods(goidc.ClientAuthnNone, goidc.ClientAuthnSecretBasic),
+		// RFC 7009 is intentionally limited to the two first-party clients. A
+		// public client must supply the actual token; the browser-only refresh
+		// cookie convenience is confined to the non-standard internal refresh
+		// bridge at /token and is never accepted by /revoke.
+		provider.WithTokenRevocation(oidcClientAllowedRevocation(cfg), goidc.ClientAuthnNone),
+		provider.WithLogoutEndpoint("/session/end"),
+		provider.WithLogout(defaultPostLogout(cfg), oidcRefreshCookieLogoutPolicy(db, cfg)),
 		provider.WithScopes(goidc.ScopeOpenID, goidc.ScopeProfile, goidc.ScopeEmail, goidc.ScopePhone, goidc.ScopeOfflineAccess),
 		provider.WithClientStorage(clientStore),
 		provider.WithAuthnSessionStorage(authnStore),
@@ -83,7 +90,7 @@ func newOIDCProviderHandler(
 		return nil, nil, fmt.Errorf("provider.New: %w", err)
 	}
 
-	handler := wrapRegisterPage(wrapLogoutPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg, db), cfg)
+	handler := wrapRegisterPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg)
 	verifier := NewJWTVerifier(cfg.OIDCIssuer, strings.TrimRight(cfg.OIDCIssuer, "/")+"/jwks", cfg.OIDCAudience)
 	verifier.loader = func(context.Context) (*jose.JSONWebKeySet, error) {
 		active := keyManager.ActiveJWKS()
@@ -105,9 +112,61 @@ func newOIDCProviderHandler(
 	return handler, verifier, nil
 }
 
+func oidcClientAllowedRevocation(cfg *config.Config) goidc.IsClientAllowedFunc {
+	allowed := map[string]struct{}{
+		strings.TrimSpace(cfg.OIDCClientID):      {},
+		strings.TrimSpace(cfg.OIDCDesktopClient): {},
+	}
+	return func(client *goidc.Client) bool {
+		if client == nil || client.ID == "" {
+			return false
+		}
+		_, ok := allowed[client.ID]
+		return ok
+	}
+}
+
+func defaultPostLogout(cfg *config.Config) goidc.HandleDefaultPostLogoutFunc {
+	return func(w http.ResponseWriter, r *http.Request, _ *goidc.LogoutSession) error {
+		frontend := strings.TrimRight(strings.TrimSpace(cfg.FrontendOrigin), "/")
+		if frontend == "" {
+			w.WriteHeader(http.StatusNoContent)
+			return nil
+		}
+		http.Redirect(w, r, frontend, http.StatusFound)
+		return nil
+	}
+}
+
+// oidcRefreshCookieLogoutPolicy completes RP-initiated logout synchronously:
+// it revokes the server-side refresh grant and expires the browser cookie
+// before the OIDC library validates and issues a registered redirect.
+func oidcRefreshCookieLogoutPolicy(db *pgxpool.Pool, cfg *config.Config) goidc.LogoutPolicy {
+	return goidc.NewLogoutPolicy("egueducation-refresh-cookie", func(_ *http.Request, _ *goidc.LogoutSession) bool {
+		return true
+	}, func(w http.ResponseWriter, r *http.Request, _ *goidc.LogoutSession) (goidc.Status, error) {
+		if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
+			if _, err := db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value); err != nil {
+				return goidc.StatusFailure, fmt.Errorf("revoke refresh grant during RP logout: %w", err)
+			}
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "egueducation_rt",
+			Value:    "",
+			Path:     "/api/oidc",
+			HttpOnly: true,
+			Secure:   cfg.TLSEnabled(),
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   -1,
+		})
+		return goidc.StatusSuccess, nil
+	})
+}
+
 func seedOIDCClients(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) error {
 	origins := append([]string{cfg.FrontendOrigin}, cfg.FrontendOrigins...)
 	redirects := make([]string, 0, len(origins))
+	postLogoutRedirects := make([]string, 0, len(origins))
 	seen := make(map[string]struct{}, len(origins))
 	for _, origin := range origins {
 		origin = strings.TrimRight(strings.TrimSpace(origin), "/")
@@ -120,38 +179,44 @@ func seedOIDCClients(ctx context.Context, db *pgxpool.Pool, cfg *config.Config) 
 		}
 		seen[redirect] = struct{}{}
 		redirects = append(redirects, redirect)
+		postLogoutRedirects = append(postLogoutRedirects, origin+"/auth/logout")
 	}
 
 	clients := []struct {
-		ID           string
-		Name         string
-		RedirectURIs []string
-		AppType      string
+		ID                     string
+		Name                   string
+		RedirectURIs           []string
+		PostLogoutRedirectURIs []string
+		AppType                string
 	}{
 		{
-			ID:           cfg.OIDCClientID,
-			Name:         "EguEducation SPA",
-			RedirectURIs: redirects,
-			AppType:      "web",
+			ID:                     cfg.OIDCClientID,
+			Name:                   "EguEducation SPA",
+			RedirectURIs:           redirects,
+			PostLogoutRedirectURIs: postLogoutRedirects,
+			AppType:                "web",
 		},
 		{
-			ID:           cfg.OIDCDesktopClient,
-			Name:         "EguEducation Desktop",
-			RedirectURIs: []string{"egueducation://callback", "http://localhost:4300/callback"},
-			AppType:      "native",
+			ID:                     cfg.OIDCDesktopClient,
+			Name:                   "EguEducation Desktop",
+			RedirectURIs:           []string{"egueducation://callback", "http://localhost:4300/callback"},
+			PostLogoutRedirectURIs: []string{"egueducation://logout", "http://localhost:4300/logout"},
+			AppType:                "native",
 		},
 	}
 
 	for _, client := range clients {
 		metadata := map[string]any{
-			"client_id":                  client.ID,
-			"client_name":                client.Name,
-			"grant_types":                []string{"authorization_code", "refresh_token"},
-			"response_types":             []string{"code"},
-			"redirect_uris":              client.RedirectURIs,
-			"scope":                      "openid profile email phone offline_access",
-			"token_endpoint_auth_method": "none",
-			"application_type":           client.AppType,
+			"client_id":                       client.ID,
+			"client_name":                     client.Name,
+			"grant_types":                     []string{"authorization_code", "refresh_token"},
+			"response_types":                  []string{"code"},
+			"redirect_uris":                   client.RedirectURIs,
+			"post_logout_redirect_uris":       client.PostLogoutRedirectURIs,
+			"scope":                           "openid profile email phone offline_access",
+			"token_endpoint_auth_method":      "none",
+			"revocation_endpoint_auth_method": "none",
+			"application_type":                client.AppType,
 		}
 		payload, err := json.Marshal(metadata)
 		if err != nil {
@@ -423,7 +488,10 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		}
 		preferredInstitution = branding.InstitutionID
 
-		tenantCode := tenant.DefaultTenantCode(preferredInstitution, branding.Subdomain)
+		tenantCode := branding.TenantCode
+		if tenantCode == "" {
+			return errors.New("unknown tenant host")
+		}
 		tx, err := beginTenantReadTx(r.Context(), db, tenantCode, "grant claims")
 		if err != nil {
 			return err
@@ -679,7 +747,10 @@ func renderOTPIdentifierStep(
 		return renderOIDCStep(w, tmpl, data)
 	}
 	loginBranding := tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(strings.TrimSpace(cfg.CustomerDomain+" "+cfg.CustomerName)))
-	user, err := findLoginUser(r.Context(), db, identifier, tenant.DefaultTenantCode(loginBranding.InstitutionID, loginBranding.Subdomain))
+	if loginBranding.TenantCode == "" {
+		return goidc.StatusFailure, errors.New("unknown tenant host")
+	}
+	user, err := findLoginUser(r.Context(), db, identifier, loginBranding.TenantCode)
 	if err != nil {
 		if smsService == nil || !smsService.Configured() {
 			data.Error = "Serviciul SMS nu este disponibil momentan."
@@ -1213,7 +1284,7 @@ const oidcErrorHTML = `<!DOCTYPE html>
     .secondary{border:1px solid var(--border);background:#fff;color:var(--text)}
   </style>
 </head>
-<body>
+<body data-oidc-action="{{.FormAction}}">
   <main class="card">
     <span class="eyebrow">OIDC Provider</span>
     <h1>{{.CustomerName}}</h1>
@@ -1337,40 +1408,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
         <div id="passkey-banner" class="passkey-banner" style="display:none">
           Passkey folosește autentificarea WebAuthn a dispozitivului și continuă direct fluxul OIDC.
         </div>
-        <script>
-        (function(){
-          var btn=document.getElementById('biometricBtn');
-          if(!btn||!window.PublicKeyCredential){if(btn){btn.disabled=true;}return;}
-          document.getElementById('passkey-banner').style.display='flex';
-          btn.addEventListener('click',function(){
-            fetch('/api/passkeys/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
-              .then(function(r){if(!r.ok)throw new Error('options failed');return r.json();})
-              .then(function(payload){
-                var opts=payload.options||payload;
-                var challenge=opts.challenge;
-                opts.challenge=b64u(opts.challenge);
-                if(opts.allowCredentials){opts.allowCredentials=opts.allowCredentials.map(function(item){return Object.assign({},item,{id:b64u(item.id)});});}
-                return navigator.credentials.get({publicKey:opts}).then(function(cred){return {cred:cred,challenge:challenge};});
-              })
-              .then(function(result){
-                var cred=result.cred;
-                var resp={clientDataJSON:u8b64(new Uint8Array(cred.response.clientDataJSON)),authenticatorData:u8b64(new Uint8Array(cred.response.authenticatorData)),signature:u8b64(new Uint8Array(cred.response.signature)),type:cred.type};
-                return fetch('/api/passkeys/login-finish',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({challenge:result.challenge,credential_id:cred.id,response:resp})});
-              })
-              .then(function(r){if(!r.ok)throw new Error('finish failed');return r.json();})
-              .then(function(data){
-                var f=document.createElement('form');f.method='POST';f.action='{{.FormAction}}';
-                var im=document.createElement('input');im.type='hidden';im.name='method';im.value='passkey_done';
-                var nonce=document.createElement('input');nonce.type='hidden';nonce.name='nonce';nonce.value=data.nonce||'';
-                f.appendChild(im);f.appendChild(nonce);document.body.appendChild(f);f.submit();
-              })
-              .catch(function(err){if(err&&err.name!=='NotAllowedError'){alert(err.message||'Autentificarea cu passkey a esuat');}});
-          });
-          function b64u(b){var s=atob(b.replace(/-/g,'+').replace(/_/g,'/'));return new Uint8Array([].map.call(s,function(c){return c.charCodeAt(0);}));}
-          function u8b64(a){return btoa(String.fromCharCode.apply(null,a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');}
-        })();
-        </script>
-
         {{else if eq .Step "otp_identifier"}}
         <form action="{{.FormAction}}" method="POST">
           <button type="submit" name="action" value="back" class="back-link">Inapoi la metode</button>
@@ -1402,37 +1439,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
             <button type="submit" class="back-link">Inapoi la identificare</button>
           </form>
         </div>
-        <script>
-        (function(){
-          var boxes=document.querySelectorAll('.otp-box'),code=document.getElementById('code'),btn=document.getElementById('verifyBtn'),form=document.getElementById('otpForm');
-          function sync(){
-            var v=Array.prototype.map.call(boxes,function(b){return b.value;}).join('');
-            code.value=v;btn.disabled=v.length<6;
-            Array.prototype.forEach.call(boxes,function(b){b.classList.toggle('filled',b.value!=='');});
-            if(v.length===6){btn.focus();}
-          }
-          Array.prototype.forEach.call(boxes,function(box,i){
-            box.addEventListener('paste',function(e){
-              e.preventDefault();
-              var paste=(e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'').slice(0,6);
-              if(paste){paste.split('').forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(paste.length,5)]||boxes[5]).focus();sync();}
-            });
-            box.addEventListener('input',function(e){
-              var v=e.target.value.replace(/\D/g,'');
-              if(v.length>1){var d=v.slice(0,6).split('');d.forEach(function(c,j){if(boxes[j])boxes[j].value=c;});(boxes[Math.min(d.length,5)]||boxes[5]).focus();sync();return;}
-              e.target.value=v;if(v&&i<5){boxes[i+1].focus();}sync();
-            });
-            box.addEventListener('keydown',function(e){
-              if(e.key==='Backspace'&&!box.value&&i>0){boxes[i-1].value='';boxes[i-1].focus();sync();}
-              if(e.key==='ArrowLeft'&&i>0){boxes[i-1].focus();}
-              if(e.key==='ArrowRight'&&i<5){boxes[i+1].focus();}
-              if(e.key==='Enter'&&code.value.length===6){form.submit();}
-            });
-          });
-          form.addEventListener('submit',sync);
-        })();
-        </script>
-
         {{else}}
         <div class="client-card">
           <div class="client-logo">✓</div>
@@ -1444,7 +1450,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
         <form action="{{.FormAction}}" method="POST" id="consentForm">
           {{if .Scopes}}
           <div class="select-all-row">
-            <input type="checkbox" id="selectAll" checked onchange="toggleAll(this)">
+            <input type="checkbox" id="selectAll" checked>
             <label for="selectAll" style="cursor:pointer">Selecteaza toate</label>
           </div>
           <div class="scope-list">
@@ -1460,11 +1466,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
           <button type="submit" name="action" value="deny" class="btn btn-deny">Refuza</button>
           <p class="gdpr-notice">Prin acceptare, esti de acord cu procesarea datelor in conformitate cu Regulamentul (UE) 2016/679 (GDPR).</p>
         </form>
-        <script>
-        function toggleAll(cb){
-          document.querySelectorAll('#consentForm input[name=granted_scope]').forEach(function(i){i.checked=cb.checked;});
-        }
-        </script>
         {{end}}
       </div>
     </main>
@@ -1476,5 +1477,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
       </div>
     </aside>
   </div>
+  <script src="/api/oidc/ui/login.js" defer></script>
 </body>
 </html>`

@@ -30,6 +30,7 @@ type Config struct {
 	BackendURL                 string
 	CustomerName               string
 	CustomerDomain             string
+	TenantHostBaseDomain       string
 	OIDCIssuer                 string
 	OIDCClientID               string
 	OIDCDesktopClient          string
@@ -80,6 +81,7 @@ func Load() Config {
 		BackendURL:                 env("BACKEND_URL", "http://localhost:8080"),
 		CustomerName:               env("CUSTOMER_NAME", "EguEducation"),
 		CustomerDomain:             env("CUSTOMER_DOMAIN", ""),
+		TenantHostBaseDomain:       env("TENANT_HOST_BASE_DOMAIN", "eguilde.cloud"),
 		OIDCIssuer:                 env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
 		OIDCClientID:               env("OIDC_CLIENT_ID", "egueducation-spa"),
 		OIDCDesktopClient:          desktopClientID,

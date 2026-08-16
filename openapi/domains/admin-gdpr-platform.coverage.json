@@ -1,0 +1,17 @@
+{
+  "domain": "admin-gdpr-platform",
+  "source": "backend/cmd/server/main.go",
+  "operationIdPatterns": [
+    "^(get|post)_api_admin_(dashboard|users|users_filters|roles|role_assignments|role_permissions|role_permissions_filters|position_roles|position_roles_filters|org_units|memberships|positions|permissions|permissions_assignments|permissions_assignments_filters|auth_methods|modules|oidc_clients|audit|audit_filters|gdpr_settings|dossier_requirements|dossier_requirements_filters|workflow_definitions|workflow_definitions_filters|nomenclatures|nomenclatures_filters|education_taxonomies|education_taxonomies_filters)$",
+    "^(get|post)_api_gdpr_(dashboard|config|retention_policies|retention_policies_filters|subject_requests|subject_requests_filters|exports|exports_filters|exports_dashboard|publication_reviews|publication_reviews_filters|publication_reviews_dashboard)$",
+    "^get_(api_config|api_meta_app|api_passkeys|health|healthz|readyz)$"
+  ],
+  "permissionPolicy": {
+    "admin": { "read": "*.read", "write": "*.manage", "exception": "dashboard uses admin.read" },
+    "gdpr": { "read": "gdpr.*.read", "write": "gdpr.*.manage" },
+    "platform": "public except /api/passkeys, which requires authenticated identity"
+  },
+  "tenantPolicy": "All admin, GDPR and passkey routes are tenant-scoped after authentication; public health/config/meta routes are not.",
+  "required": { "responses": ["success", "Problem"], "errorStatus": [400,401,403,404,422,500], "contentTypes": ["application/json", "application/problem+json"] },
+  "validation": "A future deterministic merger must expand rules from admin-gdpr-platform.overrides.json and require each router operation to match exactly one rule."
+}

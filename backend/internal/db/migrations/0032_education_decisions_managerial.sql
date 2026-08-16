@@ -135,7 +135,7 @@ values (
 	'annual_plan',
 	'Plan managerial anual 2025-2026',
 	'in_review',
-	'Thomas Galambos',
+	'Platform Administrator',
 	'2026-06-15',
 	true,
 	'inst-001',

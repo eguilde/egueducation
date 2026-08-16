@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -69,5 +70,21 @@ func TestAllowedLogoutReturnToRequiresFrontendOrigin(t *testing.T) {
 		if allowedLogoutReturnTo(candidate, frontend) {
 			t.Fatalf("unsafe return URL accepted: %q", candidate)
 		}
+	}
+}
+
+func TestInteractiveSuperAdminCannotBypassTenantRLS(t *testing.T) {
+	session := SessionContext{User: SessionUser{Roles: []string{"super_admin"}}}
+	for _, tenantCode := range []string{"tenant-egueducation", "tenant-balotesti"} {
+		if requestMayBypassTenantRLS(session, tenantCode) {
+			t.Fatalf("interactive super_admin unexpectedly bypasses RLS in %s", tenantCode)
+		}
+	}
+}
+
+func TestTenantSuperAdminIsNotPlatformOperator(t *testing.T) {
+	request := httptest.NewRequest("GET", "https://platform.example.test/api/admin/dashboard", nil)
+	if IsPlatformSuperAdminFromRequest(request) {
+		t.Fatal("tenant role label must not grant platform-wide administration")
 	}
 }

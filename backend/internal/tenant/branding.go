@@ -1,133 +1,170 @@
 package tenant
 
 import (
+	"context"
+	"errors"
 	"net"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Branding struct {
+	TenantCode    string
 	Subdomain     string
 	InstitutionID string
 	Name          string
 	ShortName     string
 }
 
-func DefaultInstitutionID(customerName string) string {
-	value := strings.ToLower(strings.TrimSpace(customerName))
-	switch {
-	case strings.Contains(value, "balotesti"), strings.Contains(value, "balotești"), strings.Contains(value, "scoalabalotesti"):
-		return "inst-balotesti"
-	default:
-		return "inst-001"
-	}
+type ResolverOptions struct {
+	Environment string
+	BaseDomain  string
+}
+type Resolver struct {
+	pool     *pgxpool.Pool
+	baseHost string
+	dev      bool
 }
 
+var configuredResolver struct {
+	sync.RWMutex
+	value *Resolver
+}
+
+func ConfigureResolver(pool *pgxpool.Pool, options ResolverOptions) {
+	configuredResolver.Lock()
+	defer configuredResolver.Unlock()
+	configuredResolver.value = &Resolver{pool: pool, baseHost: normalizeHost(options.BaseDomain), dev: strings.EqualFold(strings.TrimSpace(options.Environment), "development") || strings.EqualFold(strings.TrimSpace(options.Environment), "test")}
+}
+
+// ResolveBranding reads the active host directory. Unknown public hosts never
+// inherit a default institution; only local development may use a fallback.
+func ResolveBranding(host, fallbackName, fallbackInstitutionID string) Branding {
+	configuredResolver.RLock()
+	resolver := configuredResolver.value
+	configuredResolver.RUnlock()
+	if resolver != nil {
+		if branding, err := resolver.Resolve(context.Background(), host); err == nil {
+			return branding
+		}
+		if !resolver.dev || !IsLocalHost(host) {
+			return Branding{}
+		}
+	}
+	// Unit tooling and pure configuration rendering run before main installs the
+	// resolver. The server always configures it before opening a listener.
+	if resolver == nil {
+		name := strings.TrimSpace(fallbackName)
+		if name == "" {
+			name = "EguEducation"
+		}
+		institutionID := strings.TrimSpace(fallbackInstitutionID)
+		if institutionID == "" {
+			institutionID = "inst-001"
+		}
+		return Branding{TenantCode: DefaultTenantCode(institutionID, ""), Subdomain: "bootstrap", InstitutionID: institutionID, Name: name, ShortName: name}
+	}
+	if IsLocalHost(host) {
+		name := strings.TrimSpace(fallbackName)
+		if name == "" {
+			name = "EguEducation"
+		}
+		institutionID := strings.TrimSpace(fallbackInstitutionID)
+		if institutionID == "" {
+			institutionID = "inst-001"
+		}
+		return Branding{TenantCode: DefaultTenantCode(institutionID, ""), Subdomain: "local", InstitutionID: institutionID, Name: name, ShortName: name}
+	}
+	return Branding{}
+}
+
+func (r *Resolver) Resolve(ctx context.Context, host string) (Branding, error) {
+	if r == nil || r.pool == nil {
+		return Branding{}, errors.New("tenant resolver is not configured")
+	}
+	hostname := normalizeHost(host)
+	if hostname == "" {
+		return Branding{}, errors.New("hostname is required")
+	}
+	if IsLocalHost(hostname) && r.dev {
+		return Branding{}, errors.New("local host uses development fallback")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Branding{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	// The directory lookup precedes authentication; it is isolated in this
+	// transaction and does not grant any request a database-wide RLS bypass.
+	if _, err = tx.Exec(ctx, `select set_config('app.is_super_admin', 'true', true)`); err != nil {
+		return Branding{}, err
+	}
+	var branding Branding
+	err = tx.QueryRow(ctx, `select t.code, t.subdomain, t.institution_id, t.display_name, t.short_name from app_tenant_hostnames h join app_tenants t on t.code=h.tenant_code where h.hostname=$1 and h.active and t.active`, hostname).Scan(&branding.TenantCode, &branding.Subdomain, &branding.InstitutionID, &branding.Name, &branding.ShortName)
+	// An explicit inactive (or tenant-disabled) hostname is a deliberate deny.
+	// Do not silently turn it back on through the convenience subdomain lookup.
+	if errors.Is(err, pgx.ErrNoRows) {
+		var configured bool
+		if lookupErr := tx.QueryRow(ctx, `select exists(select 1 from app_tenant_hostnames where hostname=$1)`, hostname).Scan(&configured); lookupErr != nil {
+			return Branding{}, lookupErr
+		} else if configured {
+			return Branding{}, pgx.ErrNoRows
+		}
+	}
+	if errors.Is(err, pgx.ErrNoRows) && r.baseHost != "" && strings.HasSuffix(hostname, "."+r.baseHost) {
+		subdomain := strings.TrimSuffix(hostname, "."+r.baseHost)
+		if subdomain != "" && !strings.Contains(subdomain, ".") {
+			err = tx.QueryRow(ctx, `select code, subdomain, institution_id, display_name, short_name from app_tenants where lower(subdomain)=$1 and active`, subdomain).Scan(&branding.TenantCode, &branding.Subdomain, &branding.InstitutionID, &branding.Name, &branding.ShortName)
+		}
+	}
+	if err != nil {
+		return Branding{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return Branding{}, err
+	}
+	return branding, nil
+}
+
+func DefaultInstitutionID(customerName string) string {
+	if strings.Contains(strings.ToLower(strings.TrimSpace(customerName)), "balotesti") {
+		return "inst-balotesti"
+	}
+	return "inst-001"
+}
+
+// Deprecated compatibility helper. Request paths should use Branding.TenantCode.
 func DefaultTenantCode(institutionID, subdomain string) string {
 	switch strings.TrimSpace(strings.ToLower(institutionID)) {
 	case "inst-balotesti":
 		return "tenant-balotesti"
-	case "inst-001", "":
-		if strings.Contains(strings.ToLower(strings.TrimSpace(subdomain)), "balotesti") {
-			return "tenant-balotesti"
-		}
+	case "inst-001":
 		return "tenant-egueducation"
 	default:
-		suffix := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(institutionID)), "inst-")
-		if suffix == "" {
-			if strings.Contains(strings.ToLower(strings.TrimSpace(subdomain)), "balotesti") {
-				return "tenant-balotesti"
-			}
-			return "tenant-egueducation"
-		}
-		return "tenant-" + suffix
+		return ""
 	}
 }
-
-func ResolveBranding(host, fallbackName, fallbackInstitutionID string) Branding {
-	hostname := normalizeHost(host)
-	switch {
-	case strings.Contains(hostname, "scoalabalotesti"):
-		return Branding{
-			Subdomain:     "scoalabalotesti",
-			InstitutionID: "inst-balotesti",
-			Name:          "Școala Gimnazială nr. 1 Balotești",
-			ShortName:     "Balotești",
-		}
-	case strings.Contains(hostname, "egueducation"):
-		return Branding{
-			Subdomain:     "egueducation",
-			InstitutionID: "inst-001",
-			Name:          "EguEducation",
-			ShortName:     "EguEducation",
-		}
-	case hostname != "" && hostname != "localhost" && hostname != "127.0.0.1" && hostname != "::1":
-		label := firstLabel(hostname)
-		return Branding{
-			Subdomain:     label,
-			InstitutionID: fallbackInstitutionID,
-			Name:          titleCase(label),
-			ShortName:     titleCase(label),
-		}
-	default:
-		value := strings.TrimSpace(fallbackName)
-		if value == "" {
-			value = "EguEducation"
-		}
-		return Branding{
-			Subdomain:     "egueducation",
-			InstitutionID: fallbackInstitutionID,
-			Name:          value,
-			ShortName:     value,
-		}
-	}
-}
-
 func normalizeHost(host string) string {
 	value := strings.TrimSpace(strings.ToLower(host))
 	if value == "" {
 		return ""
 	}
+	value = strings.TrimPrefix(strings.TrimPrefix(value, "https://"), "http://")
+	if index := strings.IndexByte(value, '/'); index >= 0 {
+		value = value[:index]
+	}
 	if parsed, _, err := net.SplitHostPort(value); err == nil {
 		value = parsed
 	}
-	if strings.Contains(value, ":") && !strings.Contains(value, "]") {
-		parts := strings.Split(value, ":")
-		value = parts[0]
-	}
-	value = strings.TrimPrefix(value, "https://")
-	value = strings.TrimPrefix(value, "http://")
-	if idx := strings.IndexByte(value, '/'); idx >= 0 {
-		value = value[:idx]
-	}
-	return value
+	return strings.Trim(strings.TrimSuffix(value, "."), "[]")
 }
-
 func IsLocalHost(host string) bool {
 	hostname := normalizeHost(host)
 	return hostname == "" || hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1"
-}
-
-func firstLabel(hostname string) string {
-	parts := strings.Split(hostname, ".")
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part == "" || part == "www" || part == "app" {
-			continue
-		}
-		return part
-	}
-	return hostname
-}
-
-func titleCase(value string) string {
-	value = strings.ReplaceAll(value, "-", " ")
-	value = strings.ReplaceAll(value, "_", " ")
-	parts := strings.Fields(value)
-	for index, part := range parts {
-		if len(part) == 0 {
-			continue
-		}
-		parts[index] = strings.ToUpper(part[:1]) + strings.ToLower(part[1:])
-	}
-	return strings.Join(parts, " ")
 }

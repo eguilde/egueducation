@@ -101,7 +101,7 @@ select
 	true,
 	date '2026-05-20',
 	null,
-	'Thomas Galambos',
+	'Platform Administrator',
 	'REG-MGR-2026-0154',
 	emd.institution_id,
 	'Versiunea transmisa pentru verificare si avizare interna.'
@@ -184,7 +184,7 @@ select
 	null,
 	date '2026-09-01',
 	null,
-	'Thomas Galambos',
+	'Platform Administrator',
 	'REG-ROI-2026-0008',
 	er.institution_id,
 	'Varianta pusa in consultare publica pe site-ul unitatii.'

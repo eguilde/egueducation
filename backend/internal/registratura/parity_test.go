@@ -1,6 +1,11 @@
 package registratura
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
 
 func TestCanonicalWorkflowTransitions(t *testing.T) {
 	cases := []struct{ status, action, want string }{
@@ -26,5 +31,19 @@ func TestNormalizeDocumentStatus(t *testing.T) {
 		if got := normalizeDocumentStatus(in); got != want {
 			t.Fatalf("%q = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestStageDocumentAttachmentFailsClosed(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/registratura/documents/document-id/attachments/stage", strings.NewReader(`{"file_name":"orphan.pdf"}`))
+
+	(&Service{}).StageDocumentAttachment(recorder, request)
+
+	if recorder.Code != http.StatusGone {
+		t.Fatalf("stage status = %d, want %d", recorder.Code, http.StatusGone)
+	}
+	if !strings.Contains(recorder.Body.String(), `"code":"attachment_upload_required"`) {
+		t.Fatalf("stage response = %s, want attachment_upload_required", recorder.Body.String())
 	}
 }

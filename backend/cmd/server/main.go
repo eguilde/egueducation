@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/eguilde/egueducation/internal/admin"
+	"github.com/eguilde/egueducation/internal/apidocs"
 	"github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/config"
 	"github.com/eguilde/egueducation/internal/db"
@@ -60,6 +61,7 @@ func main() {
 	if err := db.ValidateSchemaContract(ctx, pool); err != nil {
 		logger.Fatal("schema contract validation failed", zap.Error(err))
 	}
+	tenant.ConfigureResolver(pool, tenant.ResolverOptions{Environment: cfg.Environment, BaseDomain: cfg.TenantHostBaseDomain})
 
 	sessionDB := db.NewSessionPool(pool)
 	if err := registratura.EnsureSeedData(ctx, sessionDB); err != nil {
@@ -101,10 +103,11 @@ func main() {
 	router.Get("/readyz", readinessHandler(pool))
 	router.Get("/healthz", livenessHandler)
 
-	router.HandleFunc("/logout", authService.HandleLogoutAlias)
-
 	router.Route("/api", func(r chi.Router) {
 		oidcHandler := http.StripPrefix("/api/oidc", authService.OIDCHandler())
+		r.Handle("/openapi.json", apidocs.Spec())
+		r.Handle("/docs", apidocs.SwaggerUI())
+		r.Handle("/docs/init.js", apidocs.SwaggerInit())
 
 		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusOK, buildBootstrapConfig(cfg, r))
@@ -126,7 +129,9 @@ func main() {
 		r.Get("/auth/ui-config", authService.UIConfig)
 		r.Get("/auth/role-catalog", authService.RoleCatalog)
 		r.Get("/auth/role-positions", authService.RolePositions)
-		r.Post("/auth/logout", authService.Logout)
+		r.Post("/oidc/session/logout", authService.Logout)
+		r.Get("/oidc/ui/login.js", authService.OIDCLoginScript)
+		r.Get("/oidc/ui/logout.js", authService.OIDCLogoutScript)
 		r.Handle("/oidc", oidcHandler)
 		r.Handle("/oidc/*", oidcHandler)
 		r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)

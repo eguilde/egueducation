@@ -11,6 +11,7 @@ Thumbs.db
 backend/bin/
 backend/tmp/
 backend/.env
+scripts/openapi/go-schema-helper/openapi-schema-helper.exe
 
 # Frontend
 frontend/node_modules/

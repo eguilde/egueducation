@@ -39,11 +39,11 @@ begin
 		r.id
 	from (
 		values
-			('BAL-2026-0001', 'Cerere înscriere elev', 'cerere', 'intrare', 'registered', 'DianaMaria Ilhan', 'Secretariat', 'normal', 'Cerere de înscriere pentru anul școlar 2026-2027.', '2026-05-02T08:10:00Z'::timestamptz, '2026-05-16'::date),
+			('BAL-2026-0001', 'Cerere înscriere elev', 'cerere', 'intrare', 'registered', 'Tenant Administrator', 'Secretariat', 'normal', 'Cerere de înscriere pentru anul școlar 2026-2027.', '2026-05-02T08:10:00Z'::timestamptz, '2026-05-16'::date),
 			('BAL-2026-0002', 'Răspuns solicitare primărie', 'adresă', 'iesire', 'registered', 'Școala Gimnazială nr. 1 Balotești', 'Primăria Balotești', 'normal', 'Transmitere răspuns oficial către autoritatea locală.', '2026-05-02T11:20:00Z'::timestamptz, '2026-05-09'::date),
 			('BAL-2026-0003', 'Proces-verbal consiliu profesoral', 'proces-verbal', 'intern', 'in_workflow', 'Conducerea unității', 'Director', 'internal', 'Proces-verbal pentru ședința consiliului profesoral.', '2026-05-03T09:00:00Z'::timestamptz, '2026-05-20'::date),
 			('BAL-2026-0004', 'Notă internă inventar', 'notă', 'intern', 'draft', 'Compartiment administrativ', 'Arhivă', 'internal', 'Notă privind pregătirea inventarului anual al arhivei.', '2026-05-04T10:00:00Z'::timestamptz, null),
-			('BAL-2026-0005', 'Solicitare adeverință vechime', 'cerere', 'intrare', 'archived', 'Thomas Galambos', 'Resurse umane', 'confidential', 'Solicitare pentru emiterea adeverinței de vechime.', '2026-05-05T08:45:00Z'::timestamptz, '2026-05-18'::date)
+			('BAL-2026-0005', 'Solicitare adeverință vechime', 'cerere', 'intrare', 'archived', 'Platform Administrator', 'Resurse umane', 'confidential', 'Solicitare pentru emiterea adeverinței de vechime.', '2026-05-05T08:45:00Z'::timestamptz, '2026-05-18'::date)
 	) as v(
 		registry_number,
 		subject,

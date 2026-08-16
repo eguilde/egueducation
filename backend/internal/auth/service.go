@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -542,7 +543,7 @@ func (s *Service) FinishPasskeyAuthentication(w http.ResponseWriter, r *http.Req
 	}
 
 	branding := tenant.ResolveBranding(r.Host, s.cfg.CustomerName, tenant.DefaultInstitutionID(strings.TrimSpace(s.cfg.CustomerDomain+" "+s.cfg.CustomerName)))
-	tenantCode := tenant.DefaultTenantCode(branding.InstitutionID, branding.Subdomain)
+	tenantCode := branding.TenantCode
 	subject, userID, deviceName, publicKey, storedSignCount, err := s.lookupPasskeySubjectByCredentialID(r.Context(), req.CredentialID, tenantCode)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "passkey_invalid"})
@@ -640,8 +641,27 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 	var session SessionContext
 	configuredTenantHint := strings.TrimSpace(s.cfg.CustomerDomain + " " + s.cfg.CustomerName)
 	branding := tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
-	tenantCode := tenant.DefaultTenantCode(branding.InstitutionID, branding.Subdomain)
-	err := s.db.QueryRow(ctx, `
+	tenantCode := branding.TenantCode
+	if tenantCode == "" || branding.InstitutionID == "" {
+		return SessionContext{}, errors.New("unknown tenant host")
+	}
+	// Identity and membership tables use FORCE RLS. Bind the host-derived tenant
+	// before resolving the session so membership checks are visible without ever
+	// enabling the database-wide super-admin bypass.
+	scopedCtx, release, err := appdb.AcquireRequestConn(ctx, s.db.Raw(), appdb.SessionConfig{
+		TenantID:        tenantCode,
+		InstitutionID:   branding.InstitutionID,
+		InstitutionName: branding.Name,
+		TenantSubdomain: branding.Subdomain,
+		ActorSubject:    subject,
+		IsSuperAdmin:    false,
+	})
+	if err != nil {
+		return SessionContext{}, err
+	}
+	defer release()
+
+	err = s.db.QueryRow(scopedCtx, `
 		select
 			u.id::text,
 			u.sub,
@@ -686,7 +706,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 	session.InstitutionID = branding.InstitutionID
 	session.InstitutionName = branding.Name
 
-	roleRows, err := s.db.Query(ctx, `
+	roleRows, err := s.db.Query(scopedCtx, `
 		select distinct role_code
 		from (
 			select ur.role_code
@@ -721,7 +741,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 		return SessionContext{}, err
 	}
 
-	permissionRows, err := s.db.Query(ctx, `
+	permissionRows, err := s.db.Query(scopedCtx, `
 		select distinct permission_code
 		from (
 			select up.permission_code
@@ -772,7 +792,7 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 		return SessionContext{}, err
 	}
 
-	moduleRows, err := s.db.Query(ctx, `
+	moduleRows, err := s.db.Query(scopedCtx, `
 		select m.code, m.active
 		from app_user_modules um
 		join app_modules m on m.code = um.module_code
@@ -908,15 +928,10 @@ func CurrentInstitutionIDFromRequest(r *http.Request) string {
 }
 
 func IsPlatformSuperAdminFromRequest(r *http.Request) bool {
-	session, ok := sessionFromContext(r.Context())
-	if !ok || tenant.DefaultTenantCode(session.InstitutionID, tenant.ResolveBranding(r.Host, "", session.InstitutionID).Subdomain) != "tenant-egueducation" {
-		return false
-	}
-	for _, role := range session.User.Roles {
-		if strings.EqualFold(role, "super_admin") {
-			return true
-		}
-	}
+	// A tenant role, including super_admin, is not a platform-wide grant. Keep
+	// cross-tenant administration fail-closed until it is backed by a dedicated,
+	// auditable platform privilege and execution path.
+	_ = r
 	return false
 }
 

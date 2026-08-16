@@ -20,10 +20,10 @@ insert into app_users (
 	last_login_at
 )
 values (
-	'dianailhan',
-	'DianaMaria Ilhan',
-	'dianailhan@eguilde.cloud',
-	'+40735091230',
+	'tenant-admin',
+	'Tenant Administrator',
+	'tenant-admin@example.test',
+	'+40100000002',
 	'ro',
 	'active',
 	true,
@@ -47,14 +47,14 @@ insert into app_user_roles (user_id, role_code)
 select id, role_code
 from app_users
 cross join (values ('admin')) as roles(role_code)
-where sub = 'dianailhan'
+where sub = 'tenant-admin'
 on conflict do nothing;
 
 insert into app_user_permissions (user_id, permission_code)
 select app_users.id, app_permissions.code
 from app_users
 cross join app_permissions
-where sub = 'dianailhan'
+where sub = 'tenant-admin'
 on conflict do nothing;
 
 insert into app_user_modules (user_id, module_code)
@@ -69,7 +69,7 @@ cross join (values
 	('admin'),
 	('gdpr')
 ) as modules(module_code)
-where sub = 'dianailhan'
+where sub = 'tenant-admin'
 on conflict do nothing;
 
 insert into app_session_context (user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
@@ -80,7 +80,7 @@ select
 	array['oidc_redirect', 'sms_otp', 'passkey', 'eudi_wallet'],
 	array['retention_policies', 'subject_export', 'purpose_limited_access', 'publication_anonymization']
 from app_users
-where sub = 'dianailhan'
+where sub = 'tenant-admin'
 on conflict (user_id) do update
 set institution_id = excluded.institution_id,
 	institution_name = excluded.institution_name,
@@ -97,5 +97,5 @@ select
 	true,
 	'2024-09-01'::date
 from app_users u
-where u.sub = 'dianailhan'
+where u.sub = 'tenant-admin'
 on conflict do nothing;

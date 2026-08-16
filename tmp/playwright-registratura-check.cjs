@@ -4,8 +4,8 @@ const path = require('path');
 
 const OUTPUT_DIR = path.join('E:', 'dev', 'egueducation', 'outputs');
 const APP_URL = 'http://localhost:4200/auth/start?returnUrl=%2Fdocumente';
-const OTP_CODE = '123456';
-const USERNAME = 'thomasgalambos';
+const OTP_CODE = process.env.E2E_OTP_CODE;
+const USERNAME = process.env.E2E_USERNAME;
 const CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 async function wait(ms) {
@@ -23,6 +23,9 @@ async function saveText(name, value) {
 }
 
 async function run() {
+  if (!OTP_CODE || !USERNAME) {
+    throw new Error('Set E2E_USERNAME and E2E_OTP_CODE before running the authenticated browser check.');
+  }
   const browser = await chromium.launch({
     headless: true,
     executablePath: CHROME_PATH,
