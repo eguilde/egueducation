@@ -37,4 +37,18 @@ describe('ThemeMenu', () => {
     expect(rose).toHaveAttribute('aria-pressed', 'true');
     expect(zinc).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('renders distinct official PrimeReact primitive colors in the swatches', () => {
+    render(<PrimeReactProvider {...primeTheme}><ThemeMenu /></PrimeReactProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Tema aplicației' }));
+
+    const emerald = screen.getByRole('button', { name: 'Selectează culoare principală Emerald' });
+    const orange = screen.getByRole('button', { name: 'Selectează culoare principală Orange' });
+    const slate = screen.getByRole('button', { name: 'Selectează suprafață Slate' });
+
+    expect(emerald.style.getPropertyValue('--theme-swatch')).toBe('#10b981');
+    expect(orange.style.getPropertyValue('--theme-swatch')).toBe('#f97316');
+    expect(slate.style.getPropertyValue('--theme-swatch')).toBe('#64748b');
+    expect(emerald.style.getPropertyValue('--theme-swatch')).not.toBe(orange.style.getPropertyValue('--theme-swatch'));
+  });
 });

@@ -4,8 +4,10 @@ html, body, #root { min-height: 100%; margin: 0; }
 body { font-family: var(--p-font-family); background: var(--p-surface-ground); color: var(--p-text-color); }
 .app-toolbar { min-height: 4rem; border-bottom: 1px solid var(--p-content-border-color); background: var(--p-content-background); }
 .app-side-navigation { border-right: 1px solid var(--p-content-border-color); background: var(--p-content-background); }
-.app-theme-swatch { width: 1.5rem; height: 1.5rem; min-width: 1.5rem; padding: 0; border: 2px solid var(--p-content-border-color); border-radius: 50%; background: var(--theme-swatch); color: var(--p-primary-contrast-color); }
-.app-theme-swatch[aria-pressed="true"] { outline: 2px solid var(--p-primary-color); outline-offset: 2px; }
+.app-theme-popover { width: min(22rem, calc(100vw - 2rem)); }
+.app-theme-swatch.p-button { width: 1.75rem; height: 1.75rem; min-width: 1.75rem; padding: 0; border: 2px solid var(--p-content-border-color); border-radius: 50%; background: var(--theme-swatch); color: var(--p-surface-0); }
+.app-theme-swatch.p-button:hover { background: var(--theme-swatch); }
+.app-theme-swatch.p-button[aria-pressed="true"] { outline: 2px solid var(--p-primary-color); outline-offset: 2px; }
 .app-title { color: var(--p-text-color); font-size: 1.125rem; font-weight: 600; text-decoration: none; }
 .app-drawer { width: 18rem; }
 .p-sidebar-layout > .p-sidebar { order: 0; }
