@@ -43,7 +43,7 @@ insert into app_permissions (code, label) values
 on conflict (code) do update set label = excluded.label;
 
 insert into app_role_permissions (role_code, permission_code)
-select role_code, 'earchiva.review'
+select code, 'earchiva.review'
 from app_roles
-where role_code in ('super_admin', 'admin', 'arhivar')
+where code in ('super_admin', 'admin', 'arhivar')
 on conflict do nothing;

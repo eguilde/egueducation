@@ -183,7 +183,9 @@ func newArchiveIntegrationDatabase(t *testing.T) archiveIntegrationDatabase {
 	databaseName := "earchiva_it_" + strings.ReplaceAll(uuid.NewString()[:12], "-", "")
 	roleName := "earchiva_it_u_" + strings.ReplaceAll(uuid.NewString()[:12], "-", "")
 	rolePassword := uuid.NewString()
-	if _, err := admin.Exec(ctx, "create database "+quoteArchiveIdentifier(databaseName)); err != nil {
+	// Do not inherit objects from a locally customized template1. Integration
+	// fixtures must always start from the pristine PostgreSQL template0.
+	if _, err := admin.Exec(ctx, "create database "+quoteArchiveIdentifier(databaseName)+" template template0"); err != nil {
 		admin.Close(ctx)
 		t.Fatalf("create disposable integration database: %v", err)
 	}
