@@ -46,8 +46,8 @@ test('profile activates EUDI Wallet through its supported endpoint on mobile', a
 		expect(route.request().postDataJSON()).toEqual({});
 		await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'active' }) });
 	});
-	await page.goto('/'); await expect(page.getByText('Ana')).toBeVisible();
 	await page.goto('/profil');
+	await expect(page.getByRole('heading', { name: 'Profil' })).toBeVisible();
 	await page.getByRole('button', { name: 'Activează EUDI Wallet' }).click();
 	await expect(page.getByText('EUDI Wallet este activ pentru profilul curent.')).toBeVisible();
 });

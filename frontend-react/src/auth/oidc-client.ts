@@ -1,5 +1,6 @@
 import * as oauth from 'oauth4webapi';
 import type { OidcConfig } from './config';
+import { readThemeScheme, resolveDarkScheme } from '../theme/preferences';
 
 const key = (name: string) => `egueducation.oidc.${name}`;
 let server: oauth.AuthorizationServer | undefined;
@@ -32,7 +33,21 @@ export async function prepareAuthorization(config: OidcConfig, returnTo = '/') {
   sessionStorage.setItem(key('state'), state);
   sessionStorage.setItem(key('nonce'), nonce);
   sessionStorage.setItem(key('returnTo'), returnTo.startsWith('/') ? returnTo : '/');
-  const parameters = new URLSearchParams({ client_id: config.clientId, redirect_uri: config.redirectUri, response_type: 'code', scope: config.scope, state, nonce, code_challenge: await oauth.calculatePKCECodeChallenge(verifier), code_challenge_method: 'S256' });
+  const scheme = readThemeScheme();
+  const parameters = new URLSearchParams({
+    client_id: config.clientId,
+    redirect_uri: config.redirectUri,
+    response_type: 'code',
+    scope: config.scope,
+    state,
+    nonce,
+    code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
+    code_challenge_method: 'S256',
+    ui_theme_scheme: scheme,
+    ui_theme_primary: 'rose',
+    ui_theme_surface: 'slate',
+    ui_theme_dark: resolveDarkScheme(scheme) ? '1' : '0',
+  });
   return `${authorizationServer.authorization_endpoint}?${parameters.toString()}`;
 }
 

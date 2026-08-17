@@ -5,7 +5,31 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 
-export function LandingPage() { return <section className="landing"><h1>eGuEducation</h1><p>Platformă digitală pentru administrarea instituțiilor de învățământ.</p><p>Autentificați-vă pentru a accesa modulele pentru care aveți drepturi.</p></section>; }
+export function LandingPage() {
+    const { user, login } = useAuth();
+    return (
+        <section className="landing">
+            <Card.Root>
+                <Card.Body>
+                    <Card.Title><h1>eGuEducation</h1></Card.Title>
+                    <Card.Content>
+                        <div className="flex flex-col items-center gap-4">
+                            <p>Platformă digitală pentru registratură, fluxuri de documente, eArhivă și activitatea instituției de învățământ.</p>
+                            {user ? (
+                                <p>Folosiți navigația din stânga pentru modulele permise contului dumneavoastră.</p>
+                            ) : (
+                                <>
+                                    <p>Autentificați-vă pentru a vedea și utiliza modulele pentru care aveți drepturi de acces.</p>
+                                    <Button onClick={() => void login()}>Autentificare</Button>
+                                </>
+                            )}
+                        </div>
+                    </Card.Content>
+                </Card.Body>
+            </Card.Root>
+        </section>
+    );
+}
 const Panel = ({ title, children }: { title: string; children: React.ReactNode }) => <Card.Root><Card.Body><Card.Title><h1>{title}</h1></Card.Title><Card.Content>{children}</Card.Content></Card.Body></Card.Root>;
 export function RegistrationPage() { const { login } = useAuth(); return <main className="flex min-h-screen items-center justify-center p-6"><Panel title="Acces eGuEducation"><div className="flex max-w-xl flex-col gap-4"><p>Conturile sunt create și asociate instituției de un administrator autorizat. Auto-înregistrarea publică nu este disponibilă, pentru a proteja datele școlare și separarea dintre instituții.</p><p>Dacă aveți deja cont, continuați cu autentificarea. Pentru un cont nou, contactați administratorul instituției.</p><div className="flex flex-wrap gap-2"><Button onClick={() => void login()}>Autentificare</Button><Button as={Link} to="/" variant="outlined">Prima pagină</Button></div></div></Panel></main>; }
 export function WorkspacePage({ title, description }: { title: string; description: string }) { return <Panel title={title}><p>{description}</p></Panel>; }
