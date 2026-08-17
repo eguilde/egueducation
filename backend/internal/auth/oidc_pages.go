@@ -264,4 +264,5 @@ const oidcLoginScript = `(function(){
 
   var selectAll=document.getElementById('selectAll');
   if(selectAll){selectAll.addEventListener('change',function(){document.querySelectorAll('#consentForm input[name=granted_scope]').forEach(function(input){input.checked=selectAll.checked;});});}
+  document.documentElement.dataset.oidcUiReady='true';
 })();`
