@@ -15,10 +15,23 @@ export type AuthenticatedFetcher = (
   init?: RequestInit,
 ) => Promise<Response>;
 
-const toPage = <T,>(value: T[] | Partial<EducationPage<T>>): EducationPage<T> =>
-  Array.isArray(value)
-    ? { items: value, total: value.length, page: 1, pageSize: value.length }
-    : { items: value.items ?? [], total: value.total ?? 0, page: value.page ?? 1, pageSize: value.pageSize ?? 50 };
+const toPage = <T,>(value: T[] | Partial<EducationPage<T>>): EducationPage<T> => {
+  if (Array.isArray(value)) {
+    return { items: value, total: value.length, page: 1, pageSize: value.length };
+  }
+  const rawItems = (value as { items?: unknown }).items;
+  const items = Array.isArray(rawItems)
+    ? rawItems as T[]
+    : rawItems && typeof rawItems === "object"
+      ? Object.values(rawItems).flatMap((group) => Array.isArray(group) ? group : []) as T[]
+      : [];
+  return {
+    items,
+    total: value.total ?? items.length,
+    page: value.page ?? 1,
+    pageSize: value.pageSize ?? Math.max(items.length, 1),
+  };
+};
 
 export function createEducationApi(
   fetcher: AuthenticatedFetcher,

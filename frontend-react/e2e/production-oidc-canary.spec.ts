@@ -54,6 +54,8 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
   const context = await browser.newContext({ baseURL: productionOrigin });
   try {
     const page = await context.newPage();
+    const pageErrors: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
     await startOTPLogin(page);
 
     const meResponse = page.waitForResponse((response) => {
@@ -100,6 +102,10 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
       'workflow',
     ]));
     await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible();
+
+    await page.goto(productionOrigin + '/scoala');
+    await expect(page.getByRole('region', { name: 'Școală' })).toBeVisible();
+    expect(pageErrors).toEqual([]);
 
     const logoutResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());

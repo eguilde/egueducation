@@ -20,6 +20,17 @@ describe("Education API", () => {
     expect(result).toMatchObject({ total: 1, items: [{ id: "meeting-1" }] });
   });
 
+  it("flattens the backend taxonomy groups before rendering them as table rows", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      items: {
+        governance: [{ id: "t1", code: "ca", label_ro: "Consiliu de administrație" }],
+        portfolios: [{ id: "t2", code: "opis", label_ro: "Opis" }],
+      },
+    })));
+    const result = await createEducationApi(fetcher).relatedRecords("/education/taxonomies");
+    expect(result).toMatchObject({ total: 2, items: [{ id: "t1" }, { id: "t2" }] });
+  });
+
   it("routes each non-governance catalogue domain to its backend records endpoint", async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify([]))));
     const api = createEducationApi(fetcher);
