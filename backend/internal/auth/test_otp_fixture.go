@@ -62,7 +62,19 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return OIDCTestFixtureUser{}, fmt.Errorf("inspect test OTP identity collision: %w", err)
 	}
-	if err == nil && (existingID != user.ID || existingSubject != user.Subject || !stringsEqualFoldTrimmed(existingEmail, user.Identifier)) {
+	if err == nil && (existingID != user.ID || existingSubject != user.Subject) {
+		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture identity collides with an existing user")
+	}
+	var conflictingIdentity bool
+	if err = tx.QueryRow(ctx, `
+		select exists(
+			select 1 from app_users
+			where id<>$1 and (lower(sub)=lower($2) or lower(email)=lower($3))
+		)
+	`, user.ID, user.Subject, user.Identifier).Scan(&conflictingIdentity); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("inspect test OTP identity uniqueness: %w", err)
+	}
+	if conflictingIdentity {
 		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture identity collides with an existing user")
 	}
 	var crossTenantMembership bool
@@ -79,11 +91,12 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_users (id, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel)
-		values ($1, $2, 'OIDC Browser Fixture', $3, '+40100000000', 'ro', 'active', true, true, 'sms')
+		values ($1, $2, 'Utilizator Test', $3, '+40100000000', 'ro', 'active', true, true, 'sms')
 		on conflict (id) do update set
+			sub=excluded.sub, name=excluded.name, email=excluded.email,
 			status='active', email_verified=true, phone_number_verified=true,
 			preferred_otp_channel='sms', updated_at=now()
-		where app_users.sub=excluded.sub and lower(app_users.email)=lower(excluded.email)
+		where app_users.id=excluded.id
 	`, user.ID, user.Subject, user.Identifier); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP user: %w", err)
 	}
@@ -122,9 +135,9 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 		insert into app_user_modules (tenant_code, user_id, module_code)
 		select $2, $1, code
 		from app_modules
-		where active = true and (not $3::boolean or code in ('dashboard', 'admin'))
+		where active = true
 		on conflict do nothing
-	`, user.ID, cfg.TestOTPFixtureTenantCode, cfg.ProductionE2ECanaryEnabled()); err != nil {
+	`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP modules: %w", err)
 	}
 	if err = tx.Commit(ctx); err != nil {

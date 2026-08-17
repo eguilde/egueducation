@@ -17,8 +17,9 @@ concurrency:
 jobs:
   production-oidc-canary:
     name: Production PKCE and OTP canary
-    # The protected production environment contains the three canary secrets.
-    # Keep automatic execution disabled until the gated backend route is deployed.
+    # The production test user follows the same OIDC + OTP flow as a real user.
+    # Its fixed OTP is stored only as a GitHub/Kubernetes secret and its RBAC
+    # role is tenant-scoped and read-only.
     if: >-
       ${{
         vars.ENABLE_PRODUCTION_OIDC_CANARY == 'true' &&
@@ -36,7 +37,6 @@ jobs:
       PRODUCTION_ORIGIN: https://scoalabalotesti.eguilde.cloud
       PRODUCTION_E2E_CANARY_IDENTIFIER: ${{ secrets.PRODUCTION_E2E_CANARY_IDENTIFIER }}
       PRODUCTION_E2E_CANARY_OTP: ${{ secrets.PRODUCTION_E2E_CANARY_OTP }}
-      PRODUCTION_E2E_CANARY_ACTIVATION_KEY: ${{ secrets.PRODUCTION_E2E_CANARY_ACTIVATION_KEY }}
     steps:
       - name: Check out the deployed source revision
         uses: actions/checkout@v4

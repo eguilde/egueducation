@@ -773,7 +773,7 @@ func renderOTPIdentifierStep(
 	// the feature must make a previously provisioned canary unusable instead of
 	// falling back to the normal SMS path.
 	productionCanaryUser := isReservedProductionE2ECanaryUser(cfg, user.ID)
-	if productionCanaryUser && (!isProductionE2ECanaryIdentity(cfg, user, loginBranding.TenantCode) || !validProductionE2ECanaryCookie(r, cfg)) {
+	if productionCanaryUser && !isProductionE2ECanaryIdentity(cfg, user, loginBranding.TenantCode) {
 		// The production canary identity never falls through to normal OTP/SMS.
 		// An ungated interaction receives the same decoy step as an unknown user.
 		sess.StoreParameter("step", "otp")
@@ -789,22 +789,7 @@ func renderOTPIdentifierStep(
 	fixtureEnabled := testOTPFixtureAllowed(r, cfg, user, loginBranding.TenantCode)
 	var code string
 	if fixtureEnabled {
-		if cfg.IsProduction() {
-			claims, ok := productionE2ECanaryClaimsFromRequest(r, cfg)
-			if !ok || storeProductionE2ECanaryChallenge(r.Context(), db, claims, sess.ID, user.ID, loginBranding.TenantCode) != nil {
-				data.Error = "Nu am putut inițializa verificarea automată."
-				data.Identifier = identifier
-				return renderOIDCStep(w, tmpl, data)
-			}
-			sess.StoreParameter("production_e2e_canary_jti", claims.JTI)
-			sess.StoreParameter("production_e2e_canary_tenant", loginBranding.TenantCode)
-			code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
-			if err != nil {
-				deleteProductionE2ECanaryChallenge(r.Context(), db, claims.JTI, sess.ID)
-			}
-		} else {
-			code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
-		}
+		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
 	} else {
 		code, err = otp.Generate(r.Context(), user.ID, otpPurposeLogin)
 	}
@@ -853,7 +838,7 @@ func otpLoginUIMessage(cfg *config.Config, code string, smsConfigured bool) (str
 	return fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code), true
 }
 
-func testOTPFixtureAllowed(r *http.Request, cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+func testOTPFixtureAllowed(_ *http.Request, cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
 	if cfg == nil || !cfg.TestOTPFixtureEnabled() {
 		return false
 	}
@@ -863,7 +848,7 @@ func testOTPFixtureAllowed(r *http.Request, cfg *config.Config, user oidcLoginUs
 	if !identityMatches {
 		return false
 	}
-	return !cfg.IsProduction() || (user.ID == oidcTestFixtureUserID && validProductionE2ECanaryCookie(r, cfg))
+	return !cfg.IsProduction() || (cfg.ProductionE2ECanaryEnabled() && user.ID == oidcTestFixtureUserID)
 }
 
 func isProductionE2ECanaryIdentity(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
@@ -940,36 +925,10 @@ func renderOTPStep(
 		data.Error = "Introduceți codul primit prin SMS."
 		return renderOIDCStep(w, tmpl, data)
 	}
-	jti, hasProductionCanaryChallenge := sess.StoredParameter("production_e2e_canary_jti").(string)
-	isConfiguredProductionCanaryUser := isReservedProductionE2ECanaryUser(cfg, userID)
-	if isConfiguredProductionCanaryUser && !hasProductionCanaryChallenge {
-		data.Error = "Sesiunea de verificare automată a expirat."
-		clearProductionE2ECanaryCookie(w)
-		return renderOIDCStep(w, tmpl, data)
-	}
-	if hasProductionCanaryChallenge {
-		tenantCode, _ := sess.StoredParameter("production_e2e_canary_tenant").(string)
-		claims, cookieValid := productionE2ECanaryClaimsFromRequest(r, cfg)
-		if !cookieValid || claims.JTI != jti || !validProductionE2ECanaryChallenge(r.Context(), db, jti, sess.ID, userID, tenantCode) {
-			data.Error = "Sesiunea de verificare automată a expirat."
-			clearProductionE2ECanaryCookie(w)
-			return renderOIDCStep(w, tmpl, data)
-		}
-	}
 	if err := otp.Verify(r.Context(), userID, otpPurposeLogin, code); err != nil {
 		data.Error = "Cod invalid sau expirat."
 		return renderOIDCStep(w, tmpl, data)
 	}
-	if hasProductionCanaryChallenge {
-		tenantCode, _ := sess.StoredParameter("production_e2e_canary_tenant").(string)
-		if !consumeProductionE2ECanaryChallenge(r.Context(), db, jti, sess.ID, userID, tenantCode) {
-			data.Error = "Sesiunea de verificare automată a expirat."
-			clearProductionE2ECanaryCookie(w)
-			return renderOIDCStep(w, tmpl, data)
-		}
-		clearProductionE2ECanaryCookie(w)
-	}
-
 	sess.SetUserID(userID.String())
 	sess.StoreParameter("step", "consent")
 	return renderConsentStep(w, r, sess, cfg, tmpl, formAction)

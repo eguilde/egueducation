@@ -5,7 +5,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/eguilde/egueducation/internal/config"
 	"github.com/google/uuid"
@@ -22,41 +21,25 @@ func productionCanaryConfig() config.Config {
 		ProductionE2ECanaryActivationKey: strings.Repeat("a", 32),
 		ProductionE2ECanarySigningKey:    strings.Repeat("s", 32),
 		TestOTPFixtureCode:               "482615",
-		TestOTPFixtureIdentifier:         "production.browser.fixture@example.test",
+		TestOTPFixtureIdentifier:         "test@eguilde.cloud",
 		TestOTPFixtureSubject:            "production-browser-fixture-subject",
 		TestOTPFixtureTenantCode:         "tenant-school",
 	}
 }
 
-func TestProductionE2ECanaryRequiresGateBeforeFixedOTP(t *testing.T) {
+func TestProductionE2ECanaryUsesTheDedicatedRBACIdentityThroughNormalOTP(t *testing.T) {
 	cfg := productionCanaryConfig()
 	if err := cfg.ValidateTestOTPFixture(); err != nil {
 		t.Fatalf("valid production canary rejected: %v", err)
 	}
 	user := oidcLoginUser{ID: oidcTestFixtureUserID, Email: cfg.TestOTPFixtureIdentifier, Subject: cfg.TestOTPFixtureSubject}
-	request := httptest.NewRequest(http.MethodPost, "https://school.example.test/api/oidc/login", nil)
-	if testOTPFixtureAllowed(request, &cfg, user, cfg.TestOTPFixtureTenantCode) {
-		t.Fatal("fixed OTP must be unavailable without the signed canary cookie")
-	}
-
-	token, err := issueProductionE2ECanaryToken(&cfg, time.Now().UTC())
-	if err != nil {
-		t.Fatalf("issue canary token: %v", err)
-	}
-	request.AddCookie(&http.Cookie{Name: productionE2ECanaryCookie, Value: token})
-	if !testOTPFixtureAllowed(request, &cfg, user, cfg.TestOTPFixtureTenantCode) {
-		t.Fatal("exact production canary identity must be accepted with a valid signed cookie")
+	if !testOTPFixtureAllowed(nil, &cfg, user, cfg.TestOTPFixtureTenantCode) {
+		t.Fatal("the exact dedicated production identity must receive its configured OTP")
 	}
 	wrongUser := user
 	wrongUser.ID = uuid.New()
-	if testOTPFixtureAllowed(request, &cfg, wrongUser, cfg.TestOTPFixtureTenantCode) {
+	if testOTPFixtureAllowed(nil, &cfg, wrongUser, cfg.TestOTPFixtureTenantCode) {
 		t.Fatal("matching email and subject on a different user must not receive the fixed OTP")
-	}
-
-	request = httptest.NewRequest(http.MethodPost, "https://school.example.test/api/oidc/login", nil)
-	request.AddCookie(&http.Cookie{Name: productionE2ECanaryCookie, Value: token + "tampered"})
-	if testOTPFixtureAllowed(request, &cfg, user, cfg.TestOTPFixtureTenantCode) {
-		t.Fatal("tampered canary cookie must fail closed")
 	}
 }
 

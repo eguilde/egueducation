@@ -11,7 +11,6 @@ import { createRegistraturaApi } from '../features/registratura/api';
 import { createWorkflowApi } from '../features/workflow/api';
 import {
     CallbackPage,
-    CanaryActivationPage,
     LandingPage,
     LogoutCallbackPage,
     RegistrationPage,
@@ -124,7 +123,6 @@ export function App() {
                 <BrowserRouter>
                     <Routes>
                         <Route path="/auth/callback" element={<CallbackPage />} />
-                        <Route path="/auth/e2e-canary" element={<CanaryActivationPage />} />
                         <Route path="/auth/logout" element={<LogoutCallbackPage />} />
                         <Route path="/auth/register" element={<RegistrationPage />} />
                         <Route path="/documente" element={<Navigate to="/registratura" replace />} />

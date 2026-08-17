@@ -236,11 +236,17 @@ func (c Config) ValidateTestOTPFixture() error {
 		if strings.EqualFold(strings.TrimSpace(c.TestOTPFixtureIdentifier), "oidc.browser.fixture@example.test") || c.TestOTPFixtureCode == "173829" {
 			return fmt.Errorf("production E2E canary must not reuse the public loopback fixture identity or OTP")
 		}
+		if !strings.EqualFold(strings.TrimSpace(c.TestOTPFixtureIdentifier), "test@eguilde.cloud") {
+			return fmt.Errorf("production E2E fixture requires the dedicated test@eguilde.cloud identity")
+		}
 	default:
 		return fmt.Errorf("test OTP fixture is allowed only in test or explicitly gated production")
 	}
-	if !strings.HasSuffix(strings.ToLower(c.TestOTPFixtureIdentifier), "@example.test") || strings.TrimSpace(c.TestOTPFixtureSubject) == "" || strings.TrimSpace(c.TestOTPFixtureTenantCode) == "" {
-		return fmt.Errorf("test OTP fixture requires a synthetic example.test identifier, subject, and tenant code")
+	if environment == "test" && !strings.HasSuffix(strings.ToLower(c.TestOTPFixtureIdentifier), "@example.test") {
+		return fmt.Errorf("loopback test OTP fixture requires a synthetic example.test identifier")
+	}
+	if strings.TrimSpace(c.TestOTPFixtureSubject) == "" || strings.TrimSpace(c.TestOTPFixtureTenantCode) == "" {
+		return fmt.Errorf("test OTP fixture requires a subject and tenant code")
 	}
 	if len(c.TestOTPFixtureCode) != 6 {
 		return fmt.Errorf("test OTP fixture code must contain six digits")
