@@ -6,7 +6,7 @@ import Aura from '@primeuix/themes/aura';
 import Lara from '@primeuix/themes/lara';
 import Nora from '@primeuix/themes/nora';
 import Material from '@primeuix/themes/material';
-import { definePreset, type Preset } from '@primeuix/themes';
+import { definePreset, palette, type Preset } from '@primeuix/themes';
 import { Check, Moon, Sun } from '@primeicons/react';
 import {
   applyThemePreferences,
@@ -30,20 +30,22 @@ const primaryPalettes: ThemePalette[] = ['noir', 'emerald', 'green', 'lime', 'or
 // PrimeUIX 3 exposes exactly these neutral primitive palettes in every bundled preset.
 // Apollo-only names (soho, viva, ocean, taupe, mauve, mist, olive) are not fabricated.
 const surfacePalettes: ThemeSurface[] = ['slate', 'gray', 'zinc', 'neutral', 'stone'];
-const scales = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
-
-const paletteTokens = (palette: ThemePalette | ThemeSurface) => Object.fromEntries(
-  scales.map((scale) => [scale, `{${palette}.${scale}}`])
-);
-
 const primaryTokens = (primary: ThemePalette, surface: ThemeSurface) =>
-  primary === 'noir' ? paletteTokens(surface) : paletteTokens(primary);
+  palette(`{${primary === 'noir' ? surface : primary}}`);
+
+type PrimitivePalette = Record<number, string>;
+type PresetWithPrimitives = Preset & { primitive: Record<string, PrimitivePalette> };
+
+function primitiveSwatch(preset: ThemePreferences['preset'], color: string, surface: ThemeSurface): string {
+  const paletteName = color === 'noir' ? surface : color;
+  return (presets[preset] as PresetWithPrimitives).primitive[paletteName][500];
+}
 
 function configurePreset(preferences: ThemePreferences): Preset {
   return definePreset(presets[preferences.preset], {
     semantic: {
       primary: primaryTokens(preferences.primary, preferences.surface),
-      surface: paletteTokens(preferences.surface),
+      surface: palette(`{${preferences.surface}}`),
     },
   });
 }
@@ -113,7 +115,7 @@ export function ThemeMenu() {
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={8}>
-          <Popover.Popup>
+          <Popover.Popup className="app-theme-popover">
             <Popover.Content>
               <div className="flex min-w-64 flex-col gap-3">
                 <div>
@@ -121,8 +123,8 @@ export function ThemeMenu() {
                   <div className="text-sm">Preferințele se păstrează pentru acest dispozitiv.</div>
                 </div>
                 <ThemeChoice label="Preset PrimeReact" value={preferences.preset} options={Object.keys(presets)} onChange={(preset) => setPreferences({ preset: preset as ThemePreferences['preset'] })} />
-                <SwatchChoice label="Culoare principală" value={preferences.primary} options={primaryPalettes} onChange={(primary) => setPreferences({ primary: primary as ThemePalette })} />
-                <SwatchChoice label="Suprafață" value={preferences.surface} options={surfacePalettes} onChange={(surface) => setPreferences({ surface: surface as ThemeSurface })} />
+                <SwatchChoice label="Culoare principală" preset={preferences.preset} surface={preferences.surface} value={preferences.primary} options={primaryPalettes} onChange={(primary) => setPreferences({ primary: primary as ThemePalette })} />
+                <SwatchChoice label="Suprafață" preset={preferences.preset} surface={preferences.surface} value={preferences.surface} options={surfacePalettes} onChange={(surface) => setPreferences({ surface: surface as ThemeSurface })} />
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Mod de culoare">
                   {schemes.map((option) => (
                     <Button
@@ -150,11 +152,11 @@ function ThemeChoice({ label, value, options, onChange }: { label: string; value
   return <div className="flex flex-col gap-1"><span className="text-sm">{label}</span><div className="flex flex-wrap gap-1" role="group" aria-label={label}>{options.map((option) => <Button key={option} size="small" variant={value === option ? undefined : 'outlined'} aria-pressed={value === option} onClick={() => onChange(option)}>{option[0].toUpperCase() + option.slice(1)}</Button>)}</div></div>;
 }
 
-function SwatchChoice({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
+function SwatchChoice({ label, preset, surface, value, options, onChange }: { label: string; preset: ThemePreferences['preset']; surface: ThemeSurface; value: string; options: readonly string[]; onChange: (value: string) => void }) {
   return <div className="flex flex-col gap-1"><span className="text-sm">{label}</span><div className="flex flex-wrap gap-2" role="group" aria-label={label}>{options.map((option) => {
     const display = option[0].toUpperCase() + option.slice(1);
-    const token = option === 'noir' ? 'var(--p-surface-950)' : `var(--p-${option}-500)`;
-    return <Button key={option} className="app-theme-swatch" style={{ '--theme-swatch': token } as CSSProperties} aria-label={`Selectează ${label.toLowerCase()} ${display}`} title={display} aria-pressed={value === option} onClick={() => onChange(option)}>{value === option ? <Check aria-hidden="true" /> : null}</Button>;
+    const swatch = primitiveSwatch(preset, option, surface);
+    return <Button key={option} className="app-theme-swatch" style={{ '--theme-swatch': swatch } as CSSProperties} aria-label={`Selectează ${label.toLowerCase()} ${display}`} title={display} aria-pressed={value === option} onClick={() => onChange(option)}>{value === option ? <Check aria-hidden="true" /> : null}</Button>;
   })}</div></div>;
 }
 
