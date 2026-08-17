@@ -187,7 +187,7 @@ func TestOTPLoginUIAutoAdvancesAndSupportsPasteAndBackspace(t *testing.T) {
 	}
 	for _, required := range []string{
 		`autocomplete="one-time-code"`,
-		`<script src="/api/oidc/ui/login.js" defer></script>`,
+		`<script src="/api/oidc/ui/login.js?v=20260817-otp-autoadvance" defer></script>`,
 	} {
 		if !strings.Contains(oidcLoginHTML, required) {
 			t.Fatalf("OTP login is missing required markup %q", required)
@@ -249,6 +249,9 @@ func TestOIDCLoginScriptIsServedAsCSPCompatibleJavaScript(t *testing.T) {
 	}
 	if contentType := recorder.Header().Get("Content-Type"); !strings.HasPrefix(contentType, "text/javascript") {
 		t.Fatalf("content type = %q, want JavaScript", contentType)
+	}
+	if cacheControl := recorder.Header().Get("Cache-Control"); cacheControl != "no-store" {
+		t.Fatalf("cache control = %q, want no-store", cacheControl)
 	}
 	if !strings.Contains(recorder.Body.String(), `box.addEventListener('input'`) {
 		t.Fatal("served OIDC script is missing OTP input behavior")

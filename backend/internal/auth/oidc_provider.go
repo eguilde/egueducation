@@ -1577,6 +1577,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
       </div>
     </main>
   </div>
-  <script src="/api/oidc/ui/login.js" defer></script>
+  <script src="/api/oidc/ui/login.js?v=20260817-otp-autoadvance" defer></script>
 </body>
 </html>`

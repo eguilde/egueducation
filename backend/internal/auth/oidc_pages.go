@@ -14,7 +14,9 @@ import (
 
 func serveOIDCUIScript(w http.ResponseWriter, r *http.Request, script string) {
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=3600")
+	// Authentication behavior must change atomically with the provider HTML.
+	// A cached script can otherwise leave OTP input handling on an older release.
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if r.Method == http.MethodHead {
 		return
