@@ -79,6 +79,30 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	if err != nil || allowed {
 		t.Fatalf("wired governance authorizer for legacy name-only chair = %t, %v; want false, nil", allowed, err)
 	}
+	var cockpitGovernance DirectorCockpitGovernance
+	if err := service.loadDirectorCockpitGovernance(requestA, fixture.institutionA, "2026-2027", &cockpitGovernance); err != nil {
+		t.Fatalf("load director cockpit governance metrics: %v", err)
+	}
+	var cockpitPortfolios DirectorCockpitPortfolios
+	if err := service.loadDirectorCockpitPortfolios(requestA, fixture.institutionA, "2026-2027", &cockpitPortfolios); err != nil {
+		t.Fatalf("load director cockpit portfolio metrics: %v", err)
+	}
+	var cockpitEvaluations DirectorCockpitEvaluations
+	if err := service.loadDirectorCockpitEvaluations(requestA, fixture.institutionA, "2026-2027", &cockpitEvaluations); err != nil {
+		t.Fatalf("load director cockpit evaluation metrics: %v", err)
+	}
+	var cockpitManagerial DirectorCockpitManagerial
+	if err := service.loadDirectorCockpitManagerial(requestA, fixture.institutionA, "2026-2027", &cockpitManagerial); err != nil {
+		t.Fatalf("load director cockpit managerial metrics: %v", err)
+	}
+	var cockpitPersonnel DirectorCockpitPersonnel
+	if err := service.loadDirectorCockpitPersonnel(requestA, fixture.institutionA, "2026-2027", &cockpitPersonnel); err != nil {
+		t.Fatalf("load director cockpit personnel metrics: %v", err)
+	}
+	var cockpitCompliance DirectorCockpitCompliance
+	if err := service.loadDirectorCockpitCompliance(requestA, fixture.institutionA, &cockpitCompliance); err != nil {
+		t.Fatalf("load director cockpit compliance metrics: %v", err)
+	}
 	// The restricted pool deliberately has one connection so the next tenant
 	// must reuse the same physical connection after session cleanup.
 	releaseA()

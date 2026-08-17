@@ -132,10 +132,10 @@ func (s *Service) loadDirectorCockpitPortfolios(r *http.Request, institutionID s
 		select
 			count(*) as total_records,
 			count(*) filter (where status = 'draft') as draft_records,
-			count(*) filter (where status = 'in_verificare') as review_records,
-			count(*) filter (where status = 'returnat_pentru_completari') as returned_records,
+			count(*) filter (where status = 'submitted') as review_records,
+			0::bigint as returned_records,
 			count(*) filter (where status = 'validated') as validated_records,
-			count(*) filter (where transfer_status in ('trimis', 'transfer_solicitat', 'transferat')) as transfer_in_progress
+			count(*) filter (where transfer_status in ('prepared', 'sent')) as transfer_in_progress
 		from education_portfolios
 		where institution_id = $1
 			and ($2 = '' or school_year = $2)
@@ -192,7 +192,7 @@ func (s *Service) loadDirectorCockpitManagerial(r *http.Request, institutionID s
 				where emd.institution_id = $1
 					and emds.institution_id = $1
 					and ($2 = '' or emds.school_year = $2)
-					and emd.status = 'published'
+					and emd.document_status = 'published'
 			), 0) as published_documents,
 			coalesce((
 				select count(*)
@@ -242,8 +242,8 @@ func (s *Service) loadDirectorCockpitCompliance(r *http.Request, institutionID s
 			coalesce((select count(*) from education_requirement_catalog), 0) as total_requirements,
 			coalesce((select count(*) from education_requirement_catalog where implementation_status = 'implemented'), 0) as implemented_requirements,
 			coalesce((select count(*) from education_requirement_catalog where implementation_status = 'partial'), 0) as partial_requirements,
-			coalesce((select count(*) from education_publications where institution_id = $1 and publication_status <> 'published'), 0) as pending_publications,
-			coalesce((select count(*) from education_publications where institution_id = $1 and anonymization_status in ('necesara', 'pending_anonymization')), 0) as anonymization_pending
+			coalesce((select count(*) from education_publications where institution_id = $1 and publication_status <> 'publicat'), 0) as pending_publications,
+			coalesce((select count(*) from education_publications where institution_id = $1 and anonymization_status = 'necesara'), 0) as anonymization_pending
 	`, institutionID).Scan(
 		&target.TotalRequirements,
 		&target.ImplementedRequirements,
