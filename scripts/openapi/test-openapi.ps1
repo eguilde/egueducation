@@ -197,5 +197,5 @@ if ($educationCoverage.operations.Count -ne 304 -or @($educationCoverage.validat
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 464) { throw "Router extraction drift: expected 464 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+if ($actualCount -ne 465) { throw "Router extraction drift: expected 465 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
 Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 304 Education operations schema-complete."

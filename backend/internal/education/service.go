@@ -174,6 +174,8 @@ func (s *Service) GovernanceMeetings(w http.ResponseWriter, r *http.Request) {
 			em.location,
 			em.chairperson,
 			em.secretary_name,
+			coalesce(em.chairperson_user_id::text, ''),
+			coalesce(em.secretary_user_id::text, ''),
 			em.institution_id,
 			em.summary
 		from education_meetings em
@@ -205,6 +207,8 @@ func (s *Service) GovernanceMeetings(w http.ResponseWriter, r *http.Request) {
 			&item.Location,
 			&item.Chairperson,
 			&item.SecretaryName,
+			&item.ChairpersonUserID,
+			&item.SecretaryUserID,
 			&item.InstitutionID,
 			&item.Summary,
 		); err != nil {
@@ -267,12 +271,26 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 	req.Location = strings.TrimSpace(req.Location)
 	req.Chairperson = strings.TrimSpace(req.Chairperson)
 	req.SecretaryName = strings.TrimSpace(req.SecretaryName)
+	req.ChairpersonUserID = strings.TrimSpace(req.ChairpersonUserID)
+	req.SecretaryUserID = strings.TrimSpace(req.SecretaryUserID)
 	req.Summary = strings.TrimSpace(req.Summary)
 
-	if req.SchoolYear == "" || req.Organism == "" || req.Title == "" || req.MeetingType == "" || req.Status == "" || req.MeetingDate == "" {
+	if req.SchoolYear == "" || req.Organism == "" || req.Title == "" || req.MeetingType == "" || req.Status == "" || req.MeetingDate == "" || req.ChairpersonUserID == "" || req.SecretaryUserID == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_meeting_fields"})
 		return
 	}
+	chairpersonName, err := s.tenantAppUserName(r, req.ChairpersonUserID)
+	if err != nil || chairpersonName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_chairperson_user"})
+		return
+	}
+	secretaryName, err := s.tenantAppUserName(r, req.SecretaryUserID)
+	if err != nil || secretaryName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_secretary_user"})
+		return
+	}
+	req.Chairperson = chairpersonName
+	req.SecretaryName = secretaryName
 	validOrganism, err := s.taxonomyExists(r, "governance_organism", req.Organism)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "meeting_create_failed"})
@@ -320,9 +338,11 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 			location,
 			chairperson,
 			secretary_name,
+			chairperson_user_id,
+			secretary_user_id,
 			institution_id,
 			summary
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 		returning
 			id::text,
 			school_year,
@@ -336,6 +356,8 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 			location,
 			chairperson,
 			secretary_name,
+			chairperson_user_id::text,
+			secretary_user_id::text,
 			institution_id,
 			summary
 	`,
@@ -350,6 +372,8 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		req.Location,
 		req.Chairperson,
 		req.SecretaryName,
+		req.ChairpersonUserID,
+		req.SecretaryUserID,
 		institutionID,
 		req.Summary,
 	).Scan(
@@ -365,6 +389,8 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		&item.Location,
 		&item.Chairperson,
 		&item.SecretaryName,
+		&item.ChairpersonUserID,
+		&item.SecretaryUserID,
 		&item.InstitutionID,
 		&item.Summary,
 	)
@@ -2859,12 +2885,26 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 	req.Location = strings.TrimSpace(req.Location)
 	req.Chairperson = strings.TrimSpace(req.Chairperson)
 	req.SecretaryName = strings.TrimSpace(req.SecretaryName)
+	req.ChairpersonUserID = strings.TrimSpace(req.ChairpersonUserID)
+	req.SecretaryUserID = strings.TrimSpace(req.SecretaryUserID)
 	req.Summary = strings.TrimSpace(req.Summary)
 
-	if req.SchoolYear == "" || req.Organism == "" || req.Title == "" || req.MeetingType == "" || req.Status == "" || req.MeetingDate == "" {
+	if req.SchoolYear == "" || req.Organism == "" || req.Title == "" || req.MeetingType == "" || req.Status == "" || req.MeetingDate == "" || req.ChairpersonUserID == "" || req.SecretaryUserID == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_meeting_fields"})
 		return
 	}
+	chairpersonName, err := s.tenantAppUserName(r, req.ChairpersonUserID)
+	if err != nil || chairpersonName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_chairperson_user"})
+		return
+	}
+	secretaryName, err := s.tenantAppUserName(r, req.SecretaryUserID)
+	if err != nil || secretaryName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_meeting_secretary_user"})
+		return
+	}
+	req.Chairperson = chairpersonName
+	req.SecretaryName = secretaryName
 	validOrganism, err := s.taxonomyExists(r, "governance_organism", req.Organism)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "meeting_update_failed"})
@@ -2918,9 +2958,11 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 			location = $9,
 			chairperson = $10,
 			secretary_name = $11,
-			summary = $12,
+			chairperson_user_id = $12,
+			secretary_user_id = $13,
+			summary = $14,
 			updated_at = now()
-		where id = $13::uuid and institution_id = $14
+		where id = $15::uuid and institution_id = $16
 		returning
 			id::text,
 			school_year,
@@ -2934,6 +2976,8 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 			location,
 			chairperson,
 			secretary_name,
+			chairperson_user_id::text,
+			secretary_user_id::text,
 			institution_id,
 			summary
 	`,
@@ -2948,6 +2992,8 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		req.Location,
 		req.Chairperson,
 		req.SecretaryName,
+		req.ChairpersonUserID,
+		req.SecretaryUserID,
 		req.Summary,
 		meetingID,
 		institutionID,
@@ -4441,6 +4487,8 @@ func (s *Service) GovernanceMeetingDetail(w http.ResponseWriter, r *http.Request
 			location,
 			chairperson,
 			secretary_name,
+			coalesce(chairperson_user_id::text, ''),
+			coalesce(secretary_user_id::text, ''),
 			institution_id,
 			summary
 		from education_meetings
@@ -4458,6 +4506,8 @@ func (s *Service) GovernanceMeetingDetail(w http.ResponseWriter, r *http.Request
 		&item.Location,
 		&item.Chairperson,
 		&item.SecretaryName,
+		&item.ChairpersonUserID,
+		&item.SecretaryUserID,
 		&item.InstitutionID,
 		&item.Summary,
 	)
@@ -4494,6 +4544,8 @@ func (s *Service) GovernanceMeetingFinalizationSummary(w http.ResponseWriter, r 
 			location,
 			chairperson,
 			secretary_name,
+			coalesce(chairperson_user_id::text, ''),
+			coalesce(secretary_user_id::text, ''),
 			institution_id,
 			summary
 		from education_meetings
@@ -4511,6 +4563,8 @@ func (s *Service) GovernanceMeetingFinalizationSummary(w http.ResponseWriter, r 
 		&response.Meeting.Location,
 		&response.Meeting.Chairperson,
 		&response.Meeting.SecretaryName,
+		&response.Meeting.ChairpersonUserID,
+		&response.Meeting.SecretaryUserID,
 		&response.Meeting.InstitutionID,
 		&response.Meeting.Summary,
 	)

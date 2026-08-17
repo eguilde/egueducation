@@ -13,6 +13,8 @@ type GovernanceMeeting struct {
 	Location          string `json:"location"`
 	Chairperson       string `json:"chairperson"`
 	SecretaryName     string `json:"secretary_name"`
+	ChairpersonUserID string `json:"chairperson_user_id,omitempty"`
+	SecretaryUserID   string `json:"secretary_user_id,omitempty"`
 	InstitutionID     string `json:"institution_id"`
 	Summary           string `json:"summary"`
 }
@@ -111,6 +113,8 @@ type CreateGovernanceMeetingRequest struct {
 	Location          string `json:"location"`
 	Chairperson       string `json:"chairperson"`
 	SecretaryName     string `json:"secretary_name"`
+	ChairpersonUserID string `json:"chairperson_user_id"`
+	SecretaryUserID   string `json:"secretary_user_id"`
 	Summary           string `json:"summary"`
 }
 
@@ -198,6 +202,7 @@ type GovernanceMembership struct {
 	SchoolYear    string `json:"school_year"`
 	Organism      string `json:"organism"`
 	FullName      string `json:"full_name"`
+	AppUserID     string `json:"app_user_id"`
 	RoleName      string `json:"role_name"`
 	MandateFrom   string `json:"mandate_from"`
 	MandateTo     string `json:"mandate_to"`
@@ -211,6 +216,7 @@ type CreateGovernanceMembershipRequest struct {
 	SchoolYear  string `json:"school_year"`
 	Organism    string `json:"organism"`
 	FullName    string `json:"full_name"`
+	AppUserID   string `json:"app_user_id"`
 	RoleName    string `json:"role_name"`
 	MandateFrom string `json:"mandate_from"`
 	MandateTo   string `json:"mandate_to"`

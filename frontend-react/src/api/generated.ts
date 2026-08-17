@@ -2044,6 +2044,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/governance/eligible-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List active tenant users eligible for governance identities
+         * @description Returns only immutable user IDs and display names for active users in the current tenant. The IDs are required for chair, secretary and governance membership assignment; display names are presentation-only.
+         */
+        get: operations["get_api_education_governance_eligible_users"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/governance/meetings": {
         parameters: {
             query?: never;
@@ -10090,6 +10110,12 @@ export interface components {
             updated_at?: string;
         };
         get_api_earchiva_taxonomy_response: components["schemas"]["get_api_earchiva_taxonomy_item"][];
+        get_api_education_governance_eligible_users_response: {
+            items: {
+                id: string;
+                name: string;
+            }[];
+        };
         get_api_gdpr_config_response: {
             catalogs?: {
                 domains?: string[];
@@ -15984,6 +16010,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EducationGovernanceBodyCompletenessSummaryResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_governance_eligible_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_education_governance_eligible_users_response"];
                 };
             };
             400: components["responses"]["BadRequest"];

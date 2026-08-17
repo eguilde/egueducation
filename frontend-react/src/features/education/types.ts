@@ -30,6 +30,8 @@ export interface GovernanceMeeting {
   location: string;
   chairperson: string;
   secretary_name: string;
+  chairperson_user_id: string;
+  secretary_user_id: string;
 }
 
 export interface GovernanceDashboard {
@@ -44,6 +46,10 @@ export interface GovernanceDashboard {
 export interface DirectorCockpit {
   [key: string]: unknown;
 }
+export interface EligibleGovernanceUser {
+  id: string;
+  name: string;
+}
 
 /**
  * Most Education domains intentionally expose their own record schema.  Keeping
@@ -55,8 +61,12 @@ export interface EducationRecord {
   [key: string]: unknown;
 }
 
-export type EducationRecordsDomain = Exclude<EducationArea["id"], "overview" | "governance">;
-export type EducationPdfRecordsDomain = "managerial" | "evaluations" | "mobility" | "merit" | "portfolios";
+export type EducationRecordsDomain = Exclude<
+  EducationArea["id"],
+  "overview" | "governance"
+>;
+export type EducationPdfRecordsDomain =
+  "managerial" | "evaluations" | "mobility" | "merit" | "portfolios";
 
 export interface EducationRecordInput {
   [key: string]: string | number | boolean | undefined;
@@ -65,18 +75,42 @@ export interface EducationRecordInput {
 export interface EducationApi {
   governanceDashboard(): Promise<GovernanceDashboard>;
   directorCockpit(): Promise<DirectorCockpit>;
-  governanceMeetings(input?: EducationListQuery): Promise<EducationPage<GovernanceMeeting>>;
+  eligibleGovernanceUsers(): Promise<EligibleGovernanceUser[]>;
+  dashboardAt(path: string): Promise<Record<string, unknown>>;
+  governanceMeetings(
+    input?: EducationListQuery,
+  ): Promise<EducationPage<GovernanceMeeting>>;
   governanceMeetingDetail(id: string): Promise<GovernanceMeeting>;
-  saveGovernanceMeeting(input: EducationRecordInput, id?: string): Promise<GovernanceMeeting>;
+  saveGovernanceMeeting(
+    input: EducationRecordInput,
+    id?: string,
+  ): Promise<GovernanceMeeting>;
   deleteGovernanceMeeting(id: string): Promise<void>;
-  records(domain: EducationRecordsDomain, input?: EducationListQuery): Promise<EducationPage<EducationRecord>>;
-  recordDetail(domain: EducationRecordsDomain, id: string): Promise<EducationRecord>;
-  saveRecord(domain: EducationRecordsDomain, input: EducationRecordInput, id?: string): Promise<EducationRecord>;
+  records(
+    domain: EducationRecordsDomain,
+    input?: EducationListQuery,
+  ): Promise<EducationPage<EducationRecord>>;
+  recordDetail(
+    domain: EducationRecordsDomain,
+    id: string,
+  ): Promise<EducationRecord>;
+  saveRecord(
+    domain: EducationRecordsDomain,
+    input: EducationRecordInput,
+    id?: string,
+  ): Promise<EducationRecord>;
   deleteRecord(domain: EducationRecordsDomain, id: string): Promise<void>;
   recordPdf(domain: EducationPdfRecordsDomain, id: string): Promise<Blob>;
-  relatedRecords(path: string, input?: EducationListQuery): Promise<EducationPage<EducationRecord>>;
+  relatedRecords(
+    path: string,
+    input?: EducationListQuery,
+  ): Promise<EducationPage<EducationRecord>>;
   relatedDetail(path: string, id: string): Promise<EducationRecord>;
-  saveRelated(path: string, input: EducationRecordInput, id?: string): Promise<EducationRecord>;
+  saveRelated(
+    path: string,
+    input: EducationRecordInput,
+    id?: string,
+  ): Promise<EducationRecord>;
   deleteRelated(path: string, id: string): Promise<void>;
   relatedPdf(path: string, id: string): Promise<Blob>;
   exportFile(format: "pdf" | "csv"): Promise<Blob>;

@@ -351,6 +351,7 @@ func main() {
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings/{meetingID}", educationService.GovernanceMeetingDetail)
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings/{meetingID}/finalization-summary", educationService.GovernanceMeetingFinalizationSummary)
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings/filters", educationService.GovernanceFilters)
+				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/eligible-users", educationService.EligibleGovernanceUsers)
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/memberships", educationService.GovernanceMemberships)
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/memberships/{recordID}", educationService.GovernanceMembershipDetail)
 				r.With(authService.RequirePermissions("education.governance.read")).Get("/education/governance/meetings/{meetingID}/participants", educationService.GovernanceMeetingParticipants)

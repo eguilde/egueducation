@@ -24,12 +24,14 @@ func (s *Service) RequireInstitutionContext(next http.Handler) http.Handler {
 }
 
 type governanceMeetingAccessContext struct {
-	ID            string
-	SchoolYear    string
-	Organism      string
-	Chairperson   string
-	SecretaryName string
-	Status        string
+	ID                string
+	SchoolYear        string
+	Organism          string
+	Chairperson       string
+	SecretaryName     string
+	ChairpersonUserID string
+	SecretaryUserID   string
+	Status            string
 }
 
 type governanceMeetingActorRule struct {
@@ -112,17 +114,36 @@ func (s *Service) enforceGovernanceMeetingAction(
 
 func (s *Service) authorizeGovernanceMeetingAction(r *http.Request, meetingID string, permission string, rule governanceMeetingActorRule) (bool, error) {
 	subject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+	return s.authorizeGovernanceMeetingActionForSubject(r, subject, meetingID, permission, rule)
+}
+
+// authorizeGovernanceMeetingActionForSubject contains the complete contextual
+// decision path behind the HTTP/auth adapter above. Keeping the subject explicit
+// lets the PostgreSQL integration test exercise the exact authorizer with a
+// real SessionPool tenant context without manufacturing private auth contexts.
+func (s *Service) authorizeGovernanceMeetingActionForSubject(r *http.Request, subject string, meetingID string, permission string, rule governanceMeetingActorRule) (bool, error) {
+	subject = strings.TrimSpace(subject)
 	if subject == "" {
 		return false, nil
 	}
 
 	allowed, err := s.currentSubjectHasPermission(r, subject, permission)
-	// Meeting names and governance membership names are mutable display data, not
-	// stable identities. Contextual authorization must remain fail-closed until
-	// those records carry an immutable app_user/membership identifier.
-	_ = meetingID
-	_ = rule
-	return allowed, err
+	if err != nil || !allowed {
+		return allowed, err
+	}
+	meeting, err := s.loadGovernanceMeetingAccessContext(r, meetingID)
+	if err != nil {
+		return false, err
+	}
+	actorUserID, err := s.currentActorUserID(r, subject)
+	if err != nil || actorUserID == "" {
+		return false, err
+	}
+	memberships, err := s.governanceMembershipAccess(r, meeting)
+	if err != nil {
+		return false, err
+	}
+	return governanceActorAllowed(actorUserID, meeting, memberships, rule), nil
 }
 
 func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, permission string) (bool, error) {
@@ -170,9 +191,15 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 func (s *Service) currentActorName(r *http.Request, subject string) (string, error) {
 	var actorName string
 	err := s.pool.QueryRow(r.Context(), `
-		select name
-		from app_users
-		where id::text = $1 or lower(sub) = lower($1)
+		select u.name
+		from app_users u
+		where (u.id::text = $1 or lower(u.sub) = lower($1))
+		  and exists (
+			select 1 from app_memberships m
+			where m.user_id = u.id
+			  and m.tenant_code = public.current_tenant_code()
+			  and m.active = true
+		  )
 	`, subject).Scan(&actorName)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", nil
@@ -180,10 +207,49 @@ func (s *Service) currentActorName(r *http.Request, subject string) (string, err
 	return actorName, err
 }
 
+func (s *Service) currentActorUserID(r *http.Request, subject string) (string, error) {
+	var userID string
+	err := s.pool.QueryRow(r.Context(), `
+		select u.id::text
+		from app_users u
+		where lower(u.sub) = lower($1)
+		  and exists (
+			select 1 from app_memberships m
+			where m.user_id = u.id
+			  and m.tenant_code = public.current_tenant_code()
+			  and m.active = true
+		  )
+	`, strings.TrimSpace(subject)).Scan(&userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return userID, err
+}
+
+func (s *Service) tenantAppUserName(r *http.Request, userID string) (string, error) {
+	var name string
+	err := s.pool.QueryRow(r.Context(), `
+		select u.name
+		from app_users u
+		where u.id = $1::uuid
+		  and exists (
+			select 1 from app_memberships m
+			where m.user_id = u.id
+			  and m.tenant_code = public.current_tenant_code()
+			  and m.active = true
+		  )
+	`, strings.TrimSpace(userID)).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return strings.TrimSpace(name), err
+}
+
 func (s *Service) loadGovernanceMeetingAccessContext(r *http.Request, meetingID string) (governanceMeetingAccessContext, error) {
 	var meeting governanceMeetingAccessContext
 	err := s.pool.QueryRow(r.Context(), `
-		select id::text, school_year, organism, chairperson, secretary_name, status
+		select id::text, school_year, organism, chairperson, secretary_name,
+			coalesce(chairperson_user_id::text, ''), coalesce(secretary_user_id::text, ''), status
 		from education_meetings
 		where id = $1::uuid and institution_id = $2
 	`, meetingID, s.institutionID(r)).Scan(
@@ -192,6 +258,8 @@ func (s *Service) loadGovernanceMeetingAccessContext(r *http.Request, meetingID 
 		&meeting.Organism,
 		&meeting.Chairperson,
 		&meeting.SecretaryName,
+		&meeting.ChairpersonUserID,
+		&meeting.SecretaryUserID,
 		&meeting.Status,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -200,14 +268,15 @@ func (s *Service) loadGovernanceMeetingAccessContext(r *http.Request, meetingID 
 	return meeting, err
 }
 
-func (s *Service) actorMatchesGovernanceMembership(
-	r *http.Request,
-	actorName string,
-	meeting governanceMeetingAccessContext,
-	rule governanceMeetingActorRule,
-) (bool, error) {
+type governanceMembershipAccess struct {
+	AppUserID   string
+	RoleName    string
+	VotingRight bool
+}
+
+func (s *Service) governanceMembershipAccess(r *http.Request, meeting governanceMeetingAccessContext) ([]governanceMembershipAccess, error) {
 	rows, err := s.pool.Query(r.Context(), `
-		select full_name, role_name, voting_right
+		select role_name, voting_right, coalesce(app_user_id::text, '')
 		from education_governance_memberships
 		where institution_id = $1
 			and school_year = $2
@@ -215,31 +284,51 @@ func (s *Service) actorMatchesGovernanceMembership(
 			and status = 'activ'
 	`, s.institutionID(r), meeting.SchoolYear, meeting.Organism)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	defer rows.Close()
 
-	normalizedActor := normalizedEducationIdentity(actorName)
+	memberships := make([]governanceMembershipAccess, 0)
 	for rows.Next() {
-		var fullName string
-		var roleName string
-		var votingRight bool
-		if err := rows.Scan(&fullName, &roleName, &votingRight); err != nil {
-			return false, err
+		var membership governanceMembershipAccess
+		if err := rows.Scan(&membership.RoleName, &membership.VotingRight, &membership.AppUserID); err != nil {
+			return nil, err
 		}
-		if normalizedEducationIdentity(fullName) != normalizedActor {
-			continue
-		}
-		if rule.RequireVotingRight && !votingRight {
-			continue
-		}
-		if len(rule.MembershipRoleHints) > 0 && !containsAnyNormalizedWord(roleName, rule.MembershipRoleHints...) {
-			continue
-		}
-		return true, nil
+		memberships = append(memberships, membership)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return memberships, nil
+}
 
-	return false, rows.Err()
+// governanceActorAllowed is deliberately pure: contextual privileges require an
+// immutable app_users.id. Display names and legacy membership rows without an ID
+// can never authorize a privileged governance action.
+func governanceActorAllowed(actorUserID string, meeting governanceMeetingAccessContext, memberships []governanceMembershipAccess, rule governanceMeetingActorRule) bool {
+	actorUserID = strings.TrimSpace(actorUserID)
+	if actorUserID == "" {
+		return false
+	}
+	if rule.AllowMeetingChair && strings.TrimSpace(meeting.ChairpersonUserID) != "" && strings.EqualFold(meeting.ChairpersonUserID, actorUserID) {
+		return true
+	}
+	if rule.AllowMeetingSecretary && strings.TrimSpace(meeting.SecretaryUserID) != "" && strings.EqualFold(meeting.SecretaryUserID, actorUserID) {
+		return true
+	}
+	for _, membership := range memberships {
+		if strings.TrimSpace(membership.AppUserID) == "" || !strings.EqualFold(membership.AppUserID, actorUserID) {
+			continue
+		}
+		if rule.RequireVotingRight && !membership.VotingRight {
+			continue
+		}
+		if len(rule.MembershipRoleHints) > 0 && !containsAnyNormalizedWord(membership.RoleName, rule.MembershipRoleHints...) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func normalizedEducationIdentity(value string) string {

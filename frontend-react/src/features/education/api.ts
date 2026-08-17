@@ -84,6 +84,11 @@ export function createEducationApi(
   return {
     governanceDashboard: () => request<GovernanceDashboard>("/education/dashboard"),
     directorCockpit: () => request<DirectorCockpit>("/education/director/cockpit"),
+    async eligibleGovernanceUsers() {
+      const result = await request<{ items?: Array<{ id: string; name: string }> }>("/education/governance/eligible-users");
+      return result.items ?? [];
+    },
+    dashboardAt: (path) => request<Record<string, unknown>>(path),
     async governanceMeetings(input: EducationListQuery = {}) {
       const query = listQuery(input);
       return toPage(await request<GovernanceMeeting[] | EducationPage<GovernanceMeeting>>(`/education/governance/meetings?${query}`));

@@ -2,10 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type ReactNode,
 } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@primereact/ui/button";
 import { Card } from "@primereact/ui/card";
 import { DataTable } from "@primereact/ui/datatable";
@@ -14,12 +16,14 @@ import { InputText } from "@primereact/ui/inputtext";
 import { Message } from "@primereact/ui/message";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
+import type { SelectValueChangeEvent } from "@primereact/ui/select";
 import { Tag } from "@primereact/ui/tag";
 import { useAuth } from "../../auth/AuthProvider";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { visibleEducationAreas } from "./catalog";
 import type {
   EducationApi,
+  DirectorCockpit,
   EducationArea,
   EducationModule,
   EducationPage,
@@ -42,8 +46,18 @@ const Spinner = () => (
 export interface EducationListPanelProps<T extends { id: string }> {
   title: string;
   description: string;
-  load: (query: string) => Promise<EducationPage<T>>;
-  columns: Array<{ header: string; render: (item: T) => ReactNode }>;
+  load: (
+    query: string,
+    page?: number,
+    pageSize?: number,
+    sort?: { field?: string; direction?: "asc" | "desc" },
+    filters?: Record<string, string>,
+  ) => Promise<EducationPage<T>>;
+  columns: Array<{
+    field?: string;
+    header: string;
+    render: (item: T) => ReactNode;
+  }>;
   emptyMessage: string;
 }
 
@@ -56,6 +70,13 @@ export function EducationListPanel<T extends { id: string }>({
   emptyMessage,
 }: EducationListPanelProps<T>) {
   const [query, setQuery] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [sort, setSort] = useState<{
+    field?: string;
+    direction?: "asc" | "desc";
+  }>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const [page, setPage] = useState<EducationPage<T>>({
     items: [],
     total: 0,
@@ -64,15 +85,35 @@ export function EducationListPanel<T extends { id: string }>({
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
-  const refresh = async (nextQuery = query) => {
+  const requestSequence = useRef(0);
+  const refresh = async (
+    nextQuery = query,
+    nextPage = pageNumber,
+    nextPageSize = pageSize,
+    nextSort = sort,
+    nextFilters = filters,
+  ) => {
+    const sequence = ++requestSequence.current;
     setLoading(true);
     setError(undefined);
     try {
-      setPage(await load(nextQuery));
+      const result = await load(
+        nextQuery,
+        nextPage,
+        nextPageSize,
+        nextSort,
+        nextFilters,
+      );
+      if (sequence === requestSequence.current) {
+        setPage(result);
+        setPageNumber(result.page ?? nextPage);
+        setPageSize(result.pageSize ?? nextPageSize);
+      }
     } catch {
-      setError("Datele nu au putut fi încărcate. Încercați din nou.");
+      if (sequence === requestSequence.current)
+        setError("Datele nu au putut fi încărcate. Încercați din nou.");
     } finally {
-      setLoading(false);
+      if (sequence === requestSequence.current) setLoading(false);
     }
   };
   useEffect(() => {
@@ -98,7 +139,10 @@ export function EducationListPanel<T extends { id: string }>({
               <Button
                 variant="outlined"
                 severity="secondary"
-                onClick={() => void refresh()}
+                onClick={() => {
+                  setPageNumber(1);
+                  void refresh(query, 1, pageSize, sort, filters);
+                }}
                 disabled={loading}
               >
                 Aplică filtre
@@ -132,7 +176,54 @@ export function EducationListPanel<T extends { id: string }>({
                     <DataTable.THeadRow>
                       {columns.map((column) => (
                         <DataTable.THeadCell key={column.header}>
-                          {column.header}
+                          {column.field ? (
+                            <Button
+                              variant="text"
+                              size="small"
+                              onClick={() => {
+                                const field = column.field;
+                                const direction =
+                                  sort.field === field &&
+                                  sort.direction === "asc"
+                                    ? "desc"
+                                    : "asc";
+                                setSort({ field, direction });
+                                setPageNumber(1);
+                                void refresh(
+                                  query,
+                                  1,
+                                  pageSize,
+                                  { field, direction },
+                                  filters,
+                                );
+                              }}
+                            >
+                              {column.header}
+                              {sort.field === column.field
+                                ? sort.direction === "asc"
+                                  ? " ↑"
+                                  : " ↓"
+                                : ""}
+                            </Button>
+                          ) : (
+                            <span>{column.header}</span>
+                          )}
+                          {column.field && (
+                            <InputText
+                              aria-label={`Filtru ${column.header}`}
+                              className="mt-1 w-full"
+                              placeholder="Filtru"
+                              value={filters[column.field] ?? ""}
+                              onChange={(
+                                event: ChangeEvent<HTMLInputElement>,
+                              ) =>
+                                setFilters((current) => ({
+                                  ...current,
+                                  [column.field as string]: event.target.value,
+                                }))
+                              }
+                            />
+                          )}
                         </DataTable.THeadCell>
                       ))}
                     </DataTable.THeadRow>
@@ -154,6 +245,69 @@ export function EducationListPanel<T extends { id: string }>({
                 </DataTable.Table>
               </DataTable.Root>
             )}
+            <div
+              className="flex flex-wrap items-center justify-between gap-2"
+              aria-label="Paginare"
+            >
+              <span>
+                {page.total
+                  ? `${(pageNumber - 1) * pageSize + 1} - ${Math.min(pageNumber * pageSize, page.total)} din ${page.total}`
+                  : "0 rezultate"}
+              </span>
+              <div className="flex items-center gap-2">
+                <Select.Root
+                  value={pageSize}
+                  options={[10, 20, 50, 100].map((value) => ({
+                    label: String(value),
+                    value,
+                  }))}
+                  optionLabel="label"
+                  optionValue="value"
+                  onValueChange={(event: SelectValueChangeEvent) => {
+                    const next = Number(event.value);
+                    setPageSize(next);
+                    setPageNumber(1);
+                    void refresh(query, 1, next, sort, filters);
+                  }}
+                >
+                  <Select.Trigger aria-label="Rânduri pe pagină">
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Portal>
+                    <Select.Positioner>
+                      <Select.Popup>
+                        <Select.List />
+                      </Select.Popup>
+                    </Select.Positioner>
+                  </Select.Portal>
+                </Select.Root>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={pageNumber <= 1 || loading}
+                  onClick={() => {
+                    const next = pageNumber - 1;
+                    setPageNumber(next);
+                    void refresh(query, next, pageSize, sort, filters);
+                  }}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={pageNumber * pageSize >= page.total || loading}
+                  onClick={() => {
+                    const next = pageNumber + 1;
+                    setPageNumber(next);
+                    void refresh(query, next, pageSize, sort, filters);
+                  }}
+                >
+                  Următor
+                </Button>
+              </div>
+            </div>
           </div>
         </Card.Content>
       </Card.Body>
@@ -171,8 +325,8 @@ const governanceFields: RecordField[] = [
   { key: "participants_count", label: "Participanți", kind: "number" },
   { key: "meeting_date", label: "Data", kind: "date" },
   { key: "location", label: "Loc" },
-  { key: "chairperson", label: "Președinte" },
-  { key: "secretary_name", label: "Secretar" },
+  { key: "chairperson_user_id", label: "Președinte", kind: "select" },
+  { key: "secretary_user_id", label: "Secretar", kind: "select" },
   { key: "summary", label: "Rezumat" },
 ];
 function GovernanceMeetingsPage({
@@ -182,6 +336,7 @@ function GovernanceMeetingsPage({
   api: EducationApi;
   canManage: boolean;
 }) {
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<{
     id?: string;
     input: EducationRecordInput;
@@ -192,8 +347,49 @@ function GovernanceMeetingsPage({
   const [refresh, setRefresh] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string>();
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>();
+  const [eligibleUsers, setEligibleUsers] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  useEffect(() => {
+    void api
+      .eligibleGovernanceUsers()
+      .then(setEligibleUsers)
+      .catch(() =>
+        setError("Utilizatorii eligibili nu au putut fi încărcați."),
+      );
+  }, [api]);
+  const meetingFields = useMemo(
+    () =>
+      governanceFields.map((field) =>
+        field.kind === "select"
+          ? {
+              ...field,
+              options: eligibleUsers.map((user) => ({
+                value: user.id,
+                label: user.name,
+              })),
+            }
+          : field,
+      ),
+    [eligibleUsers],
+  );
   const load = useMemo(
-    () => (q: string) => api.governanceMeetings({ q }),
+    () =>
+      (
+        q: string,
+        page = 1,
+        pageSize = 20,
+        sort?: { field?: string; direction?: "asc" | "desc" },
+        filters?: Record<string, string>,
+      ) =>
+        api.governanceMeetings({
+          q,
+          page,
+          pageSize,
+          sort: sort?.field,
+          direction: sort?.direction,
+          filters,
+        }),
     [api, refresh],
   );
   const action = async (fn: () => Promise<void>) => {
@@ -217,16 +413,56 @@ function GovernanceMeetingsPage({
         </Message.Root>
       )}
       {canManage && (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={() =>
               setEditing({
-                input: inputFromRecord(undefined, governanceFields),
+                input: inputFromRecord(undefined, meetingFields),
               })
             }
           >
             Ședință nouă
           </Button>
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/scoala/governance/ca-wizard")}
+          >
+            Ghid ședință CA/CP
+          </Button>
+          {selectedMeetingId && (
+            <>
+              <Button
+                variant="outlined"
+                onClick={() =>
+                  navigate(
+                    `/scoala/governance/minutes-wizard?meetingId=${encodeURIComponent(selectedMeetingId)}`,
+                  )
+                }
+              >
+                Ghid minută
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() =>
+                  navigate(
+                    `/scoala/governance/votes-wizard?meetingId=${encodeURIComponent(selectedMeetingId)}`,
+                  )
+                }
+              >
+                Ghid vot
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() =>
+                  navigate(
+                    `/scoala/governance/resolutions-wizard?meetingId=${encodeURIComponent(selectedMeetingId)}`,
+                  )
+                }
+              >
+                Ghid hotărâre
+              </Button>
+            </>
+          )}
         </div>
       )}
       <EducationListPanel<GovernanceMeeting>
@@ -235,11 +471,27 @@ function GovernanceMeetingsPage({
         load={load}
         emptyMessage="Nu există ședințe care corespund filtrului ales."
         columns={[
-          { header: "Titlu", render: (item) => item.title },
-          { header: "Organism", render: (item) => item.organism },
-          { header: "Data", render: (item) => item.meeting_date },
-          { header: "Președinte", render: (item) => item.chairperson || "—" },
-          { header: "Status", render: (item) => <Tag value={item.status} /> },
+          { field: "title", header: "Titlu", render: (item) => item.title },
+          {
+            field: "organism",
+            header: "Organism",
+            render: (item) => item.organism,
+          },
+          {
+            field: "meeting_date",
+            header: "Data",
+            render: (item) => item.meeting_date,
+          },
+          {
+            field: "chairperson",
+            header: "Președinte",
+            render: (item) => item.chairperson || "—",
+          },
+          {
+            field: "status",
+            header: "Status",
+            render: (item) => <Tag value={item.status} />,
+          },
           {
             header: "Acțiuni",
             render: (item) => (
@@ -296,7 +548,7 @@ function GovernanceMeetingsPage({
       <RecordFormDialog
         open={editing}
         title={`${editing?.id ? "Editează" : "Adaugă"} — ședință`}
-        fields={governanceFields}
+        fields={meetingFields}
         onClose={() => setEditing(undefined)}
         onChange={(input) =>
           setEditing((current) => (current ? { ...current, input } : current))
@@ -338,7 +590,15 @@ function GovernanceMeetingsPage({
             fields: [
               { key: "school_year", label: "An școlar" },
               { key: "organism", label: "Organism" },
-              { key: "full_name", label: "Nume complet" },
+              {
+                key: "app_user_id",
+                label: "Utilizator",
+                kind: "select",
+                options: eligibleUsers.map((user) => ({
+                  value: user.id,
+                  label: user.name,
+                })),
+              },
               { key: "role_name", label: "Rol" },
               { key: "mandate_from", label: "Mandat de la", kind: "date" },
               { key: "mandate_to", label: "Mandat până la", kind: "date" },
@@ -1305,7 +1565,8 @@ function displayRecord(record: EducationRecord, keys: readonly string[]) {
 type RecordField = {
   key: string;
   label: string;
-  kind?: "date" | "number" | "boolean";
+  kind?: "date" | "number" | "boolean" | "select";
+  options?: Array<{ label: string; value: string }>;
 };
 const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
   decisions: [
@@ -1339,17 +1600,21 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "title", label: "Titlu" },
     { key: "status", label: "Stare" },
     { key: "approval_status", label: "Aprobare" },
-    { key: "effective_from", label: "Aplicabil de la", kind: "date" },
     { key: "owner_name", label: "Responsabil" },
+    { key: "review_due_on", label: "Revizuire până la", kind: "date" },
+    { key: "approved_on", label: "Aprobat la", kind: "date" },
+    { key: "summary", label: "Rezumat" },
   ],
   committees: [
     { key: "school_year", label: "An școlar" },
-    { key: "committee_name", label: "Denumire comisie" },
     { key: "committee_type", label: "Tip" },
+    { key: "title", label: "Denumire comisie" },
     { key: "status", label: "Stare" },
-    { key: "chairperson", label: "Președinte" },
-    { key: "mandate_from", label: "Mandat de la", kind: "date" },
-    { key: "mandate_to", label: "Mandat până la", kind: "date" },
+    { key: "decision_reference", label: "Act de constituire" },
+    { key: "starts_on", label: "Începe la", kind: "date" },
+    { key: "ends_on", label: "Se încheie la", kind: "date" },
+    { key: "evaluation_scope", label: "Comisie de evaluare", kind: "boolean" },
+    { key: "notes", label: "Note" },
   ],
   personnel: [
     { key: "employee_code", label: "Cod angajat" },
@@ -1357,6 +1622,8 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "role_title", label: "Funcție" },
     { key: "employment_type", label: "Tip angajare" },
     { key: "status", label: "Stare" },
+    { key: "evaluation_status", label: "Stare evaluare" },
+    { key: "mobility_stage", label: "Etapă mobilitate" },
     { key: "school_year", label: "An școlar" },
     { key: "assigned_unit", label: "Unitate" },
     { key: "phone", label: "Telefon" },
@@ -1365,34 +1632,38 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "notes", label: "Note" },
   ],
   evaluations: [
+    { key: "employee_code", label: "Cod angajat" },
+    { key: "full_name", label: "Angajat" },
+    { key: "role_title", label: "Funcție" },
     { key: "school_year", label: "An școlar" },
-    { key: "employee_name", label: "Angajat" },
-    { key: "evaluation_type", label: "Tip evaluare" },
     { key: "status", label: "Stare" },
-    { key: "period_start", label: "Perioada de la", kind: "date" },
-    { key: "period_end", label: "Perioada până la", kind: "date" },
+    { key: "score", label: "Punctaj", kind: "number" },
     { key: "evaluator_name", label: "Evaluator" },
-    { key: "final_score", label: "Punctaj", kind: "number" },
+    { key: "finalized_on", label: "Finalizat la", kind: "date" },
+    { key: "summary", label: "Rezumat" },
   ],
   declarations: [
+    { key: "employee_code", label: "Cod angajat" },
+    { key: "full_name", label: "Declarant" },
     { key: "school_year", label: "An școlar" },
-    { key: "declarant_name", label: "Declarant" },
     { key: "declaration_type", label: "Tip declarație" },
     { key: "status", label: "Stare" },
     { key: "submitted_on", label: "Depus la", kind: "date" },
-    { key: "reviewed_by", label: "Revizuit de" },
-    { key: "notes", label: "Note" },
+    { key: "valid_until", label: "Valabil până la", kind: "date" },
+    { key: "summary", label: "Rezumat" },
   ],
   mobility: [
+    { key: "employee_code", label: "Cod angajat" },
     { key: "full_name", label: "Nume complet" },
-    { key: "role_title", label: "Funcție" },
     { key: "school_year", label: "An școlar" },
-    { key: "mobility_type", label: "Tip mobilitate" },
-    { key: "status", label: "Stare" },
+    { key: "request_type", label: "Tip mobilitate" },
     { key: "stage", label: "Etapă" },
-    { key: "score", label: "Punctaj", kind: "number" },
-    { key: "committee_name", label: "Comisie" },
-    { key: "decision_date", label: "Data deciziei", kind: "date" },
+    { key: "status", label: "Stare" },
+    { key: "source_school", label: "Unitate sursă" },
+    { key: "destination_school", label: "Unitate destinație" },
+    { key: "submitted_on", label: "Depus la", kind: "date" },
+    { key: "reviewed_by", label: "Analizat de" },
+    { key: "notes", label: "Note" },
   ],
   merit: [
     { key: "full_name", label: "Nume complet" },
@@ -1412,7 +1683,15 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "school_year", label: "An școlar" },
     { key: "status", label: "Stare" },
     { key: "section_count", label: "Secțiuni", kind: "number" },
+    { key: "last_updated_on", label: "Actualizat la", kind: "date" },
     { key: "retention_until", label: "Retenție până la", kind: "date" },
+    { key: "transfer_status", label: "Transfer" },
+    {
+      key: "authenticity_declared",
+      label: "Autenticitate declarată",
+      kind: "boolean",
+    },
+    { key: "consent_captured", label: "Consimțământ", kind: "boolean" },
     { key: "custodian", label: "Custode" },
     { key: "notes", label: "Note" },
   ],
@@ -1433,6 +1712,31 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
 function permissionForDomain(domain: EducationRecordsDomain) {
   return `education.${domain === "merit" ? "gradatii" : domain}.manage`;
 }
+const domainWizardRoutes: Partial<Record<EducationRecordsDomain, string>> = {
+  managerial: "/scoala/governance/managerial-wizard",
+  personnel: "/scoala/personnel/wizard",
+  evaluations: "/scoala/personnel/evaluations-wizard",
+  declarations: "/scoala/personnel/declarations-wizard",
+  mobility: "/scoala/personnel/mobility-wizard",
+  merit: "/scoala/personnel/merit-wizard",
+  portfolios: "/scoala/portfolio/wizard",
+};
+const domainTableFields: Record<
+  EducationRecordsDomain,
+  { primary: string; status: string }
+> = {
+  decisions: { primary: "title", status: "status" },
+  managerial: { primary: "title", status: "status" },
+  regulations: { primary: "title", status: "status" },
+  committees: { primary: "title", status: "status" },
+  personnel: { primary: "full_name", status: "status" },
+  evaluations: { primary: "full_name", status: "status" },
+  declarations: { primary: "full_name", status: "status" },
+  mobility: { primary: "full_name", status: "status" },
+  merit: { primary: "full_name", status: "status" },
+  portfolios: { primary: "owner_name", status: "status" },
+  compliance: { primary: "entity_label", status: "publication_status" },
+};
 function supportsPdf(
   domain: EducationRecordsDomain,
 ): domain is EducationPdfRecordsDomain {
@@ -1487,9 +1791,25 @@ function DomainRecordsPage({
   area: EducationArea;
   canManage: boolean;
 }) {
+  const navigate = useNavigate();
   const domain = area.id as EducationRecordsDomain;
   const load = useMemo(
-    () => (q: string) => api.records(domain, { q }),
+    () =>
+      (
+        q: string,
+        page = 1,
+        pageSize = 20,
+        sort?: { field?: string; direction?: "asc" | "desc" },
+        filters?: Record<string, string>,
+      ) =>
+        api.records(domain, {
+          q,
+          page,
+          pageSize,
+          sort: sort?.field,
+          direction: sort?.direction,
+          filters,
+        }),
     [api, domain],
   );
   const [editing, setEditing] = useState<{
@@ -1502,6 +1822,7 @@ function DomainRecordsPage({
   const [pendingDelete, setPendingDelete] = useState<string>();
   const [selectedRecordId, setSelectedRecordId] = useState<string>();
   const fields = domainFields[domain];
+  const tableFields = domainTableFields[domain];
   const metadata = domainMetadata[domain];
   const action = async (fn: () => Promise<void>) => {
     setError(undefined);
@@ -1516,7 +1837,18 @@ function DomainRecordsPage({
       );
     }
   };
-  const wrappedLoad = useMemo(() => (q: string) => load(q), [load, refresh]);
+  const wrappedLoad = useMemo(
+    () =>
+      (
+        q: string,
+        page = 1,
+        pageSize = 20,
+        sort?: { field?: string; direction?: "asc" | "desc" },
+        filters?: Record<string, string>,
+      ) =>
+        load(q, page, pageSize, sort, filters),
+    [load, refresh],
+  );
   return (
     <div className="flex flex-col gap-3">
       {error && (
@@ -1527,7 +1859,7 @@ function DomainRecordsPage({
         </Message.Root>
       )}
       {canManage && (
-        <div>
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={() =>
               setEditing({ input: inputFromRecord(undefined, fields) })
@@ -1535,6 +1867,14 @@ function DomainRecordsPage({
           >
             Înregistrare nouă
           </Button>
+          {domainWizardRoutes[domain] && (
+            <Button
+              variant="outlined"
+              onClick={() => navigate(domainWizardRoutes[domain] as string)}
+            >
+              Creează prin ghid
+            </Button>
+          )}
         </div>
       )}
       {metadata && <EducationMetadata api={api} paths={metadata} />}
@@ -1545,10 +1885,12 @@ function DomainRecordsPage({
         emptyMessage="Nu există înregistrări care corespund filtrului ales."
         columns={[
           {
+            field: tableFields.primary,
             header: "Înregistrare",
             render: (item) => displayRecord(item, recordPrimaryKeys),
           },
           {
+            field: tableFields.status,
             header: "Stare",
             render: (item) => (
               <Tag
@@ -1862,13 +2204,21 @@ function RecordFormDialog({
                 {fields.map((field) => (
                   <label className="flex flex-col gap-1" key={field.key}>
                     <span>{field.label}</span>
-                    {field.kind === "boolean" ? (
+                    {field.kind === "boolean" || field.kind === "select" ? (
                       <Select.Root
-                        value={String(Boolean(open?.input[field.key]))}
-                        options={[
-                          { label: "Nu", value: "false" },
-                          { label: "Da", value: "true" },
-                        ]}
+                        value={
+                          field.kind === "boolean"
+                            ? String(Boolean(open?.input[field.key]))
+                            : String(open?.input[field.key] ?? "")
+                        }
+                        options={
+                          field.kind === "boolean"
+                            ? [
+                                { label: "Nu", value: "false" },
+                                { label: "Da", value: "true" },
+                              ]
+                            : (field.options ?? [])
+                        }
                         optionLabel="label"
                         optionValue="value"
                         onValueChange={(event: { value: unknown }) =>
@@ -2010,6 +2360,146 @@ function DeleteDialog({
         </Dialog.Positioner>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function dashboardMetrics(value: Record<string, unknown>) {
+  const labels: Record<string, string> = {
+    total_meetings: "Ședințe de guvernanță",
+    validated_portfolios: "Portofolii validate",
+    contested_evaluations: "Evaluări contestate",
+    managerial_dossiers: "Dosare manageriale",
+    active_personnel: "Personal activ",
+    overdue_publications: "Publicări restante",
+    total_records: "Total înregistrări",
+    review_records: "În revizuire",
+    validated_records: "Validate",
+  };
+  return Object.entries(value).flatMap(([key, item]) => {
+    if (["string", "number"].includes(typeof item))
+      return [
+        { label: labels[key] ?? readable(key), value: item as string | number },
+      ];
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    return Object.entries(item as Record<string, unknown>)
+      .filter(([, nested]) => ["string", "number"].includes(typeof nested))
+      .map(([nestedKey, nested]) => ({
+        label: labels[nestedKey] ?? readable(nestedKey),
+        value: nested as string | number,
+      }));
+  });
+}
+
+function DirectorDashboard({
+  api,
+  reports,
+  endpoint,
+  title,
+}: {
+  api: EducationApi;
+  reports: boolean;
+  endpoint?: string;
+  title?: string;
+}) {
+  const [data, setData] = useState<Record<string, unknown>>();
+  const [error, setError] = useState<string>();
+  useEffect(() => {
+    void (endpoint ? api.dashboardAt(endpoint) : api.directorCockpit())
+      .then(setData)
+      .catch(() => setError("Dashboard-ul nu a putut fi încărcat."));
+  }, [api, endpoint]);
+  if (error)
+    return (
+      <Message.Root severity="error">
+        <Message.Content>
+          <Message.Text>{error}</Message.Text>
+        </Message.Content>
+      </Message.Root>
+    );
+  if (!data)
+    return (
+      <div className="flex justify-center p-8">
+        <Spinner />
+      </div>
+    );
+  const entries = dashboardMetrics(data);
+  return (
+    <Card.Root>
+      <Card.Body>
+        <Card.Title>
+          {title ?? (reports ? "Rapoarte standard" : "Cockpit director")}
+        </Card.Title>
+        <Card.Content>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {entries.map(({ label, value }) => (
+              <Card.Root key={label}>
+                <Card.Body>
+                  <Card.Title>{label}</Card.Title>
+                  <Card.Content>
+                    <strong>{String(value)}</strong>
+                  </Card.Content>
+                </Card.Body>
+              </Card.Root>
+            ))}
+          </div>
+        </Card.Content>
+      </Card.Body>
+    </Card.Root>
+  );
+}
+
+function SchoolRoleDashboard({
+  kind,
+  areas,
+  permissions,
+}: {
+  kind: "secretariat" | "compliance";
+  areas: EducationArea[];
+  permissions: readonly string[];
+}) {
+  const title =
+    kind === "secretariat" ? "Cockpit secretariat" : "Cockpit conformitate";
+  const description =
+    kind === "secretariat"
+      ? "Acces rapid la registrele școlare și operațiunile administrative permise."
+      : "Monitorizare și acces la registrele de conformitate permise pentru instituția curentă.";
+  const cards = [
+    ["Domenii vizibile", areas.length],
+    [
+      "Registre disponibile",
+      areas.filter((area) => area.id !== "overview").length,
+    ],
+    [
+      "Operațiuni de administrare",
+      permissions.filter(
+        (permission) =>
+          permission.startsWith("education.") && permission.endsWith(".manage"),
+      ).length,
+    ],
+  ];
+  return (
+    <Card.Root>
+      <Card.Body>
+        <Card.Title>{title}</Card.Title>
+        <Card.Content>
+          <div className="flex flex-col gap-4">
+            <p>{description}</p>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {cards.map(([label, value]) => (
+                <Card.Root key={String(label)}>
+                  <Card.Body>
+                    <Card.Title>{label}</Card.Title>
+                    <Card.Content>
+                      <strong>{value}</strong>
+                    </Card.Content>
+                  </Card.Body>
+                </Card.Root>
+              ))}
+            </div>
+          </div>
+        </Card.Content>
+      </Card.Body>
+    </Card.Root>
   );
 }
 
@@ -2204,16 +2694,27 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
     [auth.apiFetch, institutionId, props.apiFetch],
   );
   const api = props.api ?? fallbackApi;
+  const location = useLocation();
   const areas = useMemo(
     () => visibleEducationAreas(permissions, modules),
     [modules, permissions],
   );
-  const [active, setActive] = useState("overview");
+  const routeActive = location.pathname.includes("/governance")
+    ? "governance"
+    : location.pathname.includes("/personnel")
+      ? "personnel"
+      : location.pathname.includes("/portfolio")
+        ? "portfolios"
+        : location.pathname.includes("/compliance")
+          ? "compliance"
+          : "overview";
+  const [active, setActive] = useState(routeActive);
   const [exportError, setExportError] = useState<string>();
   useEffect(() => {
+    setActive(routeActive);
     if (!areas.some((area) => area.id === active))
       setActive(areas[0]?.id ?? "overview");
-  }, [active, areas]);
+  }, [active, areas, routeActive]);
 
   if (!institutionId)
     return (
@@ -2306,7 +2807,32 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           </Card.Content>
         </Card.Body>
       </Card.Root>
-      {active === "overview" ? (
+      {location.pathname.includes("/dashboard/director") ||
+      location.pathname.endsWith("/reports") ? (
+        <DirectorDashboard
+          api={api}
+          reports={location.pathname.endsWith("/reports")}
+        />
+      ) : location.pathname.includes("/teacher") ? (
+        <DirectorDashboard
+          api={api}
+          reports={false}
+          endpoint="/education/portfolios/dashboard"
+          title="Dashboard cadru didactic"
+        />
+      ) : location.pathname.includes("/secretariat") ? (
+        <SchoolRoleDashboard
+          kind="secretariat"
+          areas={areas}
+          permissions={permissions}
+        />
+      ) : location.pathname.includes("/compliance") ? (
+        <SchoolRoleDashboard
+          kind="compliance"
+          areas={areas}
+          permissions={permissions}
+        />
+      ) : active === "overview" ? (
         <Overview
           api={api}
           canReadGovernance={permissions.includes("education.governance.read")}

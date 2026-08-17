@@ -1,4 +1,13 @@
 {
+  "GET /api/education/governance/eligible-users": {
+    "summary": "List active tenant users eligible for governance identities",
+    "description": "Returns only immutable user IDs and display names for active users in the current tenant. The IDs are required for chair, secretary and governance membership assignment; display names are presentation-only.",
+    "tags": ["Scoala"],
+    "responseSchema": "get_api_education_governance_eligible_users_response",
+    "requiredPermission": "education.governance.read",
+    "tenantScope": true,
+    "status": "detailed"
+  },
   "POST /api/registratura/documents/{documentID}/cancel": { "requestBody": false, "status": "detailed" },
   "PATCH /api/registratura/registre/{id}/set-default": { "requestBody": false, "status": "detailed" },
   "POST /api/oidc/session/logout": {

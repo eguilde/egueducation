@@ -45,6 +45,7 @@ func (s *Service) GovernanceMemberships(w http.ResponseWriter, r *http.Request) 
 			egm.school_year,
 			egm.organism,
 			egm.full_name,
+			coalesce(egm.app_user_id::text, ''),
 			egm.role_name,
 			to_char(egm.mandate_from, 'YYYY-MM-DD'),
 			to_char(egm.mandate_to, 'YYYY-MM-DD'),
@@ -71,6 +72,7 @@ func (s *Service) GovernanceMemberships(w http.ResponseWriter, r *http.Request) 
 			&item.SchoolYear,
 			&item.Organism,
 			&item.FullName,
+			&item.AppUserID,
 			&item.RoleName,
 			&item.MandateFrom,
 			&item.MandateTo,
@@ -101,6 +103,7 @@ func (s *Service) GovernanceMembershipDetail(w http.ResponseWriter, r *http.Requ
 			egm.school_year,
 			egm.organism,
 			egm.full_name,
+			coalesce(egm.app_user_id::text, ''),
 			egm.role_name,
 			to_char(egm.mandate_from, 'YYYY-MM-DD'),
 			to_char(egm.mandate_to, 'YYYY-MM-DD'),
@@ -115,6 +118,7 @@ func (s *Service) GovernanceMembershipDetail(w http.ResponseWriter, r *http.Requ
 		&item.SchoolYear,
 		&item.Organism,
 		&item.FullName,
+		&item.AppUserID,
 		&item.RoleName,
 		&item.MandateFrom,
 		&item.MandateTo,
@@ -143,10 +147,16 @@ func (s *Service) CreateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 	}
 
 	normalizeGovernanceMembershipRequest(&req)
-	if req.SchoolYear == "" || req.Organism == "" || req.FullName == "" || req.RoleName == "" || req.MandateFrom == "" || req.MandateTo == "" || req.Status == "" {
+	if req.SchoolYear == "" || req.Organism == "" || req.AppUserID == "" || req.RoleName == "" || req.MandateFrom == "" || req.MandateTo == "" || req.Status == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_governance_membership_fields"})
 		return
 	}
+	memberName, err := s.tenantAppUserName(r, req.AppUserID)
+	if err != nil || memberName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_membership_app_user"})
+		return
+	}
+	req.FullName = memberName
 	if !containsString([]string{"ca", "cp", "ceac", "cfdcd"}, req.Organism) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_membership_organism"})
 		return
@@ -176,6 +186,7 @@ func (s *Service) CreateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 			school_year,
 			organism,
 			full_name,
+			app_user_id,
 			role_name,
 			mandate_from,
 			mandate_to,
@@ -183,12 +194,13 @@ func (s *Service) CreateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 			status,
 			institution_id,
 			notes
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		returning
 			id::text,
 			school_year,
 			organism,
 			full_name,
+			app_user_id::text,
 			role_name,
 			to_char(mandate_from, 'YYYY-MM-DD'),
 			to_char(mandate_to, 'YYYY-MM-DD'),
@@ -196,11 +208,12 @@ func (s *Service) CreateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 			status,
 			institution_id,
 			notes
-	`, req.SchoolYear, req.Organism, req.FullName, req.RoleName, req.MandateFrom, req.MandateTo, req.VotingRight, req.Status, s.institutionID(r), req.Notes).Scan(
+	`, req.SchoolYear, req.Organism, req.FullName, req.AppUserID, req.RoleName, req.MandateFrom, req.MandateTo, req.VotingRight, req.Status, s.institutionID(r), req.Notes).Scan(
 		&item.ID,
 		&item.SchoolYear,
 		&item.Organism,
 		&item.FullName,
+		&item.AppUserID,
 		&item.RoleName,
 		&item.MandateFrom,
 		&item.MandateTo,
@@ -232,10 +245,16 @@ func (s *Service) UpdateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 	}
 
 	normalizeGovernanceMembershipRequest(&req)
-	if req.SchoolYear == "" || req.Organism == "" || req.FullName == "" || req.RoleName == "" || req.MandateFrom == "" || req.MandateTo == "" || req.Status == "" {
+	if req.SchoolYear == "" || req.Organism == "" || req.AppUserID == "" || req.RoleName == "" || req.MandateFrom == "" || req.MandateTo == "" || req.Status == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_governance_membership_fields"})
 		return
 	}
+	memberName, err := s.tenantAppUserName(r, req.AppUserID)
+	if err != nil || memberName == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_membership_app_user"})
+		return
+	}
+	req.FullName = memberName
 	if !containsString([]string{"ca", "cp", "ceac", "cfdcd"}, req.Organism) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_governance_membership_organism"})
 		return
@@ -262,14 +281,15 @@ func (s *Service) UpdateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 	var item GovernanceMembership
 	err = s.pool.QueryRow(r.Context(), `
 		update education_governance_memberships
-		set school_year = $1, organism = $2, full_name = $3, role_name = $4, mandate_from = $5, mandate_to = $6,
-			voting_right = $7, status = $8, notes = $9, updated_at = now()
-		where id = $10 and institution_id = $11
+		set school_year = $1, organism = $2, full_name = $3, app_user_id = $4, role_name = $5, mandate_from = $6, mandate_to = $7,
+			voting_right = $8, status = $9, notes = $10, updated_at = now()
+		where id = $11 and institution_id = $12
 		returning
 			id::text,
 			school_year,
 			organism,
 			full_name,
+			app_user_id::text,
 			role_name,
 			to_char(mandate_from, 'YYYY-MM-DD'),
 			to_char(mandate_to, 'YYYY-MM-DD'),
@@ -277,11 +297,12 @@ func (s *Service) UpdateGovernanceMembership(w http.ResponseWriter, r *http.Requ
 			status,
 			institution_id,
 			notes
-	`, req.SchoolYear, req.Organism, req.FullName, req.RoleName, req.MandateFrom, req.MandateTo, req.VotingRight, req.Status, req.Notes, recordID, s.institutionID(r)).Scan(
+	`, req.SchoolYear, req.Organism, req.FullName, req.AppUserID, req.RoleName, req.MandateFrom, req.MandateTo, req.VotingRight, req.Status, req.Notes, recordID, s.institutionID(r)).Scan(
 		&item.ID,
 		&item.SchoolYear,
 		&item.Organism,
 		&item.FullName,
+		&item.AppUserID,
 		&item.RoleName,
 		&item.MandateFrom,
 		&item.MandateTo,

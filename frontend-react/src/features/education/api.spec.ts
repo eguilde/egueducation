@@ -2,6 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 import { createEducationApi } from "./api";
 
 describe("Education API", () => {
+  it("serializes server page, exact sort field and field filters", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 3, pageSize: 10 }), { headers: { "content-type": "application/json" } }));
+    const result = await createEducationApi(fetcher).records("personnel", { page: 3, pageSize: 10, sort: "full_name", direction: "asc", filters: { status: "active", school_year: "2025-2026" } });
+    expect(result).toMatchObject({ page: 3, pageSize: 10 });
+    const url = String(fetcher.mock.calls[0][0]);
+    expect(url).toContain("page=3");
+    expect(url).toContain("pageSize=10");
+    expect(url).toContain("sort=full_name");
+    expect(url).toContain("direction=asc");
+    expect(url).toContain("filter.status=active");
+    expect(url).toContain("filter.school_year=2025-2026");
+  });
   it("uses the authenticated fetcher and server pagination without a client-selected tenant header", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 50 }), { headers: { "content-type": "application/json" } }));
     const api = createEducationApi(fetcher, "/api");

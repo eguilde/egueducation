@@ -30,7 +30,7 @@ async function authenticatedRegistratura(page: Page) {
 test('registratura creates an incoming document with operational fields', async ({ page }) => {
   await authenticatedRegistratura(page);
   await page.route('**/api/registratura/documents', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(document) }));
-  await page.getByRole('button', { name: 'Intrare' }).click();
+  await page.getByRole('button', { name: 'Intrare', exact: true }).click();
   const createDialog = page.getByRole('dialog', { name: 'Înregistrare intrare' });
   await createDialog.getByRole('textbox', { name: 'Conținut', exact: true }).fill('Cerere înscriere');
   await createDialog.getByRole('textbox', { name: 'Emitent', exact: true }).fill('Ana Pop');
@@ -78,7 +78,7 @@ test('registratura mirrors the Costești table controls with server-side request
 test('registratura stays usable in the narrow responsive layout and exposes administration', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await authenticatedRegistratura(page);
-  await expect(page.getByRole('button', { name: 'Intrare' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Intrare', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Administrare' })).toBeVisible();
   await page.getByRole('button', { name: 'Administrare' }).click();
   await expect(page.getByRole('dialog', { name: 'Administrare Registratură' })).toBeVisible();
