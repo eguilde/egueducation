@@ -8,6 +8,7 @@ test('completes real PKCE, OTP, callback, refresh-cookie and /api/me flow', asyn
 
   await page.getByRole('button', { name: 'Tema aplicației' }).click();
   await page.getByRole('button', { name: 'Întunecat' }).click();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
 
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);

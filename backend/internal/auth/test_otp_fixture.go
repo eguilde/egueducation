@@ -2,10 +2,13 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/eguilde/egueducation/internal/config"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -41,41 +44,95 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	if _, err = tx.Exec(ctx, `select set_config('app.is_super_admin', 'true', true)`); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("scope test OTP fixture: %w", err)
 	}
+	// Serialize idempotent provisioning across rolling replicas. The lock is
+	// transaction-scoped and contains no credential material.
+	if _, err = tx.Exec(ctx, `select pg_advisory_xact_lock(hashtext('egueducation:oidc-canary:' || $1))`, cfg.TestOTPFixtureTenantCode); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("lock test OTP fixture: %w", err)
+	}
+
+	var existingID uuid.UUID
+	var existingSubject, existingEmail string
+	err = tx.QueryRow(ctx, `
+		select id, sub, email
+		from app_users
+		where id=$1 or lower(sub)=lower($2) or lower(email)=lower($3)
+		order by case when id=$1 then 0 else 1 end
+		limit 1
+	`, user.ID, user.Subject, user.Identifier).Scan(&existingID, &existingSubject, &existingEmail)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return OIDCTestFixtureUser{}, fmt.Errorf("inspect test OTP identity collision: %w", err)
+	}
+	if err == nil && (existingID != user.ID || existingSubject != user.Subject || !stringsEqualFoldTrimmed(existingEmail, user.Identifier)) {
+		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture identity collides with an existing user")
+	}
+	var crossTenantMembership bool
+	if err = tx.QueryRow(ctx, `
+		select exists(
+			select 1 from app_memberships
+			where user_id=$1 and tenant_code<>$2
+		)
+	`, user.ID, cfg.TestOTPFixtureTenantCode).Scan(&crossTenantMembership); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("inspect test OTP cross-tenant membership: %w", err)
+	}
+	if crossTenantMembership {
+		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture user already belongs to another tenant")
+	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_users (id, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel)
 		values ($1, $2, 'OIDC Browser Fixture', $3, '+40100000000', 'ro', 'active', true, true, 'sms')
-		on conflict (id) do update set sub=excluded.sub, email=excluded.email, status='active', email_verified=true, phone_number_verified=true, preferred_otp_channel='sms', updated_at=now()
+		on conflict (id) do update set
+			status='active', email_verified=true, phone_number_verified=true,
+			preferred_otp_channel='sms', updated_at=now()
+		where app_users.sub=excluded.sub and lower(app_users.email)=lower(excluded.email)
 	`, user.ID, user.Subject, user.Identifier); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP user: %w", err)
 	}
+	var institutionID, institutionName, rootOrgUnitCode string
+	if err = tx.QueryRow(ctx, `
+		select institution_id, display_name, root_org_unit_code
+		from app_tenants
+		where code=$1 and active=true
+	`, cfg.TestOTPFixtureTenantCode).Scan(&institutionID, &institutionName, &rootOrgUnitCode); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("resolve test OTP tenant: %w", err)
+	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_session_context (user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
-		values ($1, 'inst-001', 'EguEducation Test Fixture', array['oidc_redirect', 'sms_otp'], '{}')
-		on conflict (user_id) do update set auth_methods=excluded.auth_methods
-	`, user.ID); err != nil {
+		values ($1, $2, $3, array['oidc_redirect', 'sms_otp'], '{}')
+		on conflict (user_id) do update set institution_id=excluded.institution_id, institution_name=excluded.institution_name, auth_methods=excluded.auth_methods
+	`, user.ID, institutionID, institutionName); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP session context: %w", err)
 	}
-	if _, err = tx.Exec(ctx, `delete from app_memberships where user_id=$1`, user.ID); err != nil {
+	if _, err = tx.Exec(ctx, `delete from app_memberships where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP memberships: %w", err)
+	}
+	positionCode := "super_admin"
+	if cfg.ProductionE2ECanaryEnabled() {
+		positionCode = "e2e_canary"
 	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_memberships (user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date)
-		values ($1, $2, 'super_admin', 'unit-root', 'EguEducation Test Fixture', true, true, current_date)
-	`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+		values ($1, $2, $3, $4, $5, true, true, current_date)
+	`, user.ID, cfg.TestOTPFixtureTenantCode, positionCode, rootOrgUnitCode, institutionName); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP membership: %w", err)
 	}
-	if _, err = tx.Exec(ctx, `delete from app_user_modules where user_id=$1`, user.ID); err != nil {
+	if _, err = tx.Exec(ctx, `delete from app_user_modules where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP modules: %w", err)
 	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_user_modules (tenant_code, user_id, module_code)
-		select $2, $1, code from app_modules where active = true
+		select $2, $1, code
+		from app_modules
+		where active = true and (not $3::boolean or code in ('dashboard', 'admin'))
 		on conflict do nothing
-	`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+	`, user.ID, cfg.TestOTPFixtureTenantCode, cfg.ProductionE2ECanaryEnabled()); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP modules: %w", err)
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("commit test OTP fixture: %w", err)
 	}
 	return user, nil
+}
+
+func stringsEqualFoldTrimmed(left, right string) bool {
+	return strings.EqualFold(strings.TrimSpace(left), strings.TrimSpace(right))
 }

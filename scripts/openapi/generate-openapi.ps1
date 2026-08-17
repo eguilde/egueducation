@@ -346,6 +346,8 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if ($requiresSecurity) {
         if ($override -and $override.security -eq 'refreshCookie') {
             $operation.security = @(@{ refreshCookie = @() })
+        } elseif ($override -and $override.security -eq 'productionE2ECanaryActivation') {
+            $operation.security = @(@{ productionE2ECanaryActivation = @() })
         } else {
             $operation.security = @(@{ oidcAuthorizationCode = @() })
         }

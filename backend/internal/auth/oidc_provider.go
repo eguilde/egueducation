@@ -633,7 +633,7 @@ func buildLoginPolicy(
 			case "otp_identifier":
 				return renderOTPIdentifierStep(w, r, sess, db, cfg, smsService, tmpl, formAction, otp)
 			case "otp":
-				return renderOTPStep(w, r, sess, cfg, tmpl, formAction, otp)
+				return renderOTPStep(w, r, sess, db, cfg, tmpl, formAction, otp)
 			case "consent":
 				return renderConsentStep(w, r, sess, cfg, tmpl, formAction)
 			default:
@@ -769,10 +769,42 @@ func renderOTPIdentifierStep(
 			Theme:   resolveOIDCThemeSettings(r, sess),
 		})
 	}
-	fixtureEnabled := testOTPFixtureAllowed(cfg, user, loginBranding.TenantCode)
+	// The fixed canary UUID is permanently reserved in production. Disabling
+	// the feature must make a previously provisioned canary unusable instead of
+	// falling back to the normal SMS path.
+	productionCanaryUser := isReservedProductionE2ECanaryUser(cfg, user.ID)
+	if productionCanaryUser && (!isProductionE2ECanaryIdentity(cfg, user, loginBranding.TenantCode) || !validProductionE2ECanaryCookie(r, cfg)) {
+		// The production canary identity never falls through to normal OTP/SMS.
+		// An ungated interaction receives the same decoy step as an unknown user.
+		sess.StoreParameter("step", "otp")
+		sess.StoreParameter("otp_user_id", uuid.New().String())
+		sess.StoreParameter("identifier", identifier)
+		return renderOIDCStep(w, tmpl, oidcLoginData{
+			Step: "otp", StepLabel: "Pasul 3", CustomerName: customerName,
+			FormAction: formAction, Identifier: identifier,
+			Message: "Dacă există un cont eligibil, codul OTP a fost trimis. Valabil 10 minute.",
+			Theme:   resolveOIDCThemeSettings(r, sess),
+		})
+	}
+	fixtureEnabled := testOTPFixtureAllowed(r, cfg, user, loginBranding.TenantCode)
 	var code string
 	if fixtureEnabled {
-		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
+		if cfg.IsProduction() {
+			claims, ok := productionE2ECanaryClaimsFromRequest(r, cfg)
+			if !ok || storeProductionE2ECanaryChallenge(r.Context(), db, claims, sess.ID, user.ID, loginBranding.TenantCode) != nil {
+				data.Error = "Nu am putut inițializa verificarea automată."
+				data.Identifier = identifier
+				return renderOIDCStep(w, tmpl, data)
+			}
+			sess.StoreParameter("production_e2e_canary_jti", claims.JTI)
+			sess.StoreParameter("production_e2e_canary_tenant", loginBranding.TenantCode)
+			code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
+			if err != nil {
+				deleteProductionE2ECanaryChallenge(r.Context(), db, claims.JTI, sess.ID)
+			}
+		} else {
+			code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
+		}
 	} else {
 		code, err = otp.Generate(r.Context(), user.ID, otpPurposeLogin)
 	}
@@ -821,13 +853,32 @@ func otpLoginUIMessage(cfg *config.Config, code string, smsConfigured bool) (str
 	return fmt.Sprintf("Mediu de dezvoltare: codul OTP este %s. Valabil 10 minute.", code), true
 }
 
-func testOTPFixtureAllowed(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+func testOTPFixtureAllowed(r *http.Request, cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
 	if cfg == nil || !cfg.TestOTPFixtureEnabled() {
 		return false
 	}
-	return strings.EqualFold(strings.TrimSpace(user.Email), cfg.TestOTPFixtureIdentifier) &&
+	identityMatches := strings.EqualFold(strings.TrimSpace(user.Email), cfg.TestOTPFixtureIdentifier) &&
 		strings.TrimSpace(user.Subject) == cfg.TestOTPFixtureSubject &&
 		strings.TrimSpace(tenantCode) == cfg.TestOTPFixtureTenantCode
+	if !identityMatches {
+		return false
+	}
+	return !cfg.IsProduction() || (user.ID == oidcTestFixtureUserID && validProductionE2ECanaryCookie(r, cfg))
+}
+
+func isProductionE2ECanaryIdentity(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+	return isProductionE2ECanaryUser(cfg, user, tenantCode) &&
+		strings.EqualFold(strings.TrimSpace(user.Email), cfg.TestOTPFixtureIdentifier) &&
+		strings.TrimSpace(user.Subject) == cfg.TestOTPFixtureSubject
+}
+
+func isProductionE2ECanaryUser(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+	return cfg != nil && cfg.ProductionE2ECanaryEnabled() && user.ID == oidcTestFixtureUserID &&
+		strings.TrimSpace(tenantCode) == cfg.TestOTPFixtureTenantCode
+}
+
+func isReservedProductionE2ECanaryUser(cfg *config.Config, userID uuid.UUID) bool {
+	return cfg != nil && cfg.IsProduction() && userID == oidcTestFixtureUserID
 }
 
 func developmentOTPDisplayAllowed(cfg *config.Config) bool {
@@ -845,6 +896,7 @@ func renderOTPStep(
 	w http.ResponseWriter,
 	r *http.Request,
 	sess *goidc.AuthnSession,
+	db *pgxpool.Pool,
 	cfg *config.Config,
 	tmpl *template.Template,
 	formAction string,
@@ -888,9 +940,34 @@ func renderOTPStep(
 		data.Error = "Introduceți codul primit prin SMS."
 		return renderOIDCStep(w, tmpl, data)
 	}
+	jti, hasProductionCanaryChallenge := sess.StoredParameter("production_e2e_canary_jti").(string)
+	isConfiguredProductionCanaryUser := isReservedProductionE2ECanaryUser(cfg, userID)
+	if isConfiguredProductionCanaryUser && !hasProductionCanaryChallenge {
+		data.Error = "Sesiunea de verificare automată a expirat."
+		clearProductionE2ECanaryCookie(w)
+		return renderOIDCStep(w, tmpl, data)
+	}
+	if hasProductionCanaryChallenge {
+		tenantCode, _ := sess.StoredParameter("production_e2e_canary_tenant").(string)
+		claims, cookieValid := productionE2ECanaryClaimsFromRequest(r, cfg)
+		if !cookieValid || claims.JTI != jti || !validProductionE2ECanaryChallenge(r.Context(), db, jti, sess.ID, userID, tenantCode) {
+			data.Error = "Sesiunea de verificare automată a expirat."
+			clearProductionE2ECanaryCookie(w)
+			return renderOIDCStep(w, tmpl, data)
+		}
+	}
 	if err := otp.Verify(r.Context(), userID, otpPurposeLogin, code); err != nil {
 		data.Error = "Cod invalid sau expirat."
 		return renderOIDCStep(w, tmpl, data)
+	}
+	if hasProductionCanaryChallenge {
+		tenantCode, _ := sess.StoredParameter("production_e2e_canary_tenant").(string)
+		if !consumeProductionE2ECanaryChallenge(r.Context(), db, jti, sess.ID, userID, tenantCode) {
+			data.Error = "Sesiunea de verificare automată a expirat."
+			clearProductionE2ECanaryCookie(w)
+			return renderOIDCStep(w, tmpl, data)
+		}
+		clearProductionE2ECanaryCookie(w)
 	}
 
 	sess.SetUserID(userID.String())
@@ -1108,36 +1185,40 @@ type oidcLoginData struct {
 }
 
 type oidcThemeSettings struct {
-	Scheme     string
-	Dark       bool
-	Primary    string
-	Surface    string
-	Primary50  string
-	Primary500 string
-	Primary600 string
-	Primary700 string
-	Surface0   string
-	Surface50  string
-	Surface100 string
-	Surface200 string
-	Surface300 string
-	Surface500 string
-	Surface700 string
-	Surface900 string
-	Bg         string
-	Card       string
-	CardSoft   string
-	Border     string
-	Text       string
-	Muted      string
-	Soft       string
-	Focus      string
-	Shadow     string
+	Scheme        string
+	Preset        string
+	Dark          bool
+	Primary       string
+	Surface       string
+	Primary50     string
+	Primary500    string
+	Primary600    string
+	Primary700    string
+	Surface0      string
+	Surface50     string
+	Surface100    string
+	Surface200    string
+	Surface300    string
+	Surface500    string
+	Surface700    string
+	Surface900    string
+	Bg            string
+	Card          string
+	CardSoft      string
+	Border        string
+	Text          string
+	Muted         string
+	Soft          string
+	Focus         string
+	Shadow        string
+	PanelRadius   string
+	ControlRadius string
 }
 
 func resolveOIDCThemeSettings(r *http.Request, sess *goidc.AuthnSession) oidcThemeSettings {
 	settings := oidcThemeSettings{
 		Scheme:  "system",
+		Preset:  "aura",
 		Primary: "rose",
 		Surface: "slate",
 		Dark:    false,
@@ -1159,6 +1240,9 @@ func resolveOIDCThemeSettings(r *http.Request, sess *goidc.AuthnSession) oidcThe
 
 	if value := read("ui_theme_scheme"); value == "light" || value == "dark" || value == "system" {
 		settings.Scheme = value
+	}
+	if value := strings.ToLower(read("ui_theme_preset")); value == "aura" || value == "lara" || value == "nora" || value == "material" {
+		settings.Preset = value
 	}
 	if value := read("ui_theme_primary"); value != "" {
 		settings.Primary = value
@@ -1209,6 +1293,16 @@ func resolveOIDCThemeSettings(r *http.Request, sess *goidc.AuthnSession) oidcThe
 	}
 	settings.Soft = fmt.Sprintf("color-mix(in srgb, %s 12%%, %s)", settings.Primary500, settings.Surface0)
 	settings.Focus = fmt.Sprintf("color-mix(in srgb, %s 22%%, transparent)", settings.Primary500)
+	switch settings.Preset {
+	case "lara":
+		settings.PanelRadius, settings.ControlRadius = "12px", "6px"
+	case "nora":
+		settings.PanelRadius, settings.ControlRadius = "6px", "4px"
+	case "material":
+		settings.PanelRadius, settings.ControlRadius = "8px", "4px"
+	default:
+		settings.PanelRadius, settings.ControlRadius = "18px", "10px"
+	}
 	return settings
 }
 
@@ -1220,7 +1314,7 @@ func storeOIDCThemeSettings(sess *goidc.AuthnSession, r *http.Request) {
 	if sess == nil || r == nil {
 		return
 	}
-	for _, key := range []string{"ui_theme_scheme", "ui_theme_primary", "ui_theme_surface", "ui_theme_dark"} {
+	for _, key := range []string{"ui_theme_scheme", "ui_theme_preset", "ui_theme_primary", "ui_theme_surface", "ui_theme_dark"} {
 		if value := strings.TrimSpace(r.URL.Query().Get(key)); value != "" {
 			sess.StoreParameter(key, value)
 		}
@@ -1324,12 +1418,12 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <title>{{.CustomerName}} - Autentificare</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{color-scheme:{{if .Theme.Dark}}dark{{else}}light{{end}};--primary-50:{{.Theme.Primary50}};--primary-500:{{.Theme.Primary500}};--primary-600:{{.Theme.Primary600}};--primary-700:{{.Theme.Primary700}};--surface-0:{{.Theme.Surface0}};--surface-50:{{.Theme.Surface50}};--surface-100:{{.Theme.Surface100}};--surface-200:{{.Theme.Surface200}};--surface-300:{{.Theme.Surface300}};--surface-500:{{.Theme.Surface500}};--surface-700:{{.Theme.Surface700}};--surface-900:{{.Theme.Surface900}};--bg:{{.Theme.Bg}};--card:{{.Theme.Card}};--card-soft:{{.Theme.CardSoft}};--border:{{.Theme.Border}};--text:{{.Theme.Text}};--muted:{{.Theme.Muted}};--soft:color-mix(in srgb,var(--primary-500) 12%,var(--card));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:{{if .Theme.Dark}}0 24px 60px rgba(2,6,23,.45){{else}}0 24px 60px rgba(15,23,42,.14){{end}}}
+    :root{color-scheme:{{if .Theme.Dark}}dark{{else}}light{{end}};--primary-50:{{.Theme.Primary50}};--primary-500:{{.Theme.Primary500}};--primary-600:{{.Theme.Primary600}};--primary-700:{{.Theme.Primary700}};--surface-0:{{.Theme.Surface0}};--surface-50:{{.Theme.Surface50}};--surface-100:{{.Theme.Surface100}};--surface-200:{{.Theme.Surface200}};--surface-300:{{.Theme.Surface300}};--surface-500:{{.Theme.Surface500}};--surface-700:{{.Theme.Surface700}};--surface-900:{{.Theme.Surface900}};--bg:{{.Theme.Bg}};--card:{{.Theme.Card}};--card-soft:{{.Theme.CardSoft}};--border:{{.Theme.Border}};--text:{{.Theme.Text}};--muted:{{.Theme.Muted}};--soft:color-mix(in srgb,var(--primary-500) 12%,var(--card));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:{{if .Theme.Dark}}0 24px 60px rgba(2,6,23,.45){{else}}0 24px 60px rgba(15,23,42,.14){{end}};--panel-radius:{{.Theme.PanelRadius}};--control-radius:{{.Theme.ControlRadius}}}
     html,body{height:100%}
     body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow-y:auto}
     .auth-shell{min-height:100vh;width:100%;display:grid;place-items:center;padding:clamp(16px,4vw,48px);background:var(--bg)}
     .auth-panel{width:min(100%,420px)}
-    #content{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
+    #content{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--border);border-radius:var(--panel-radius);background:var(--card);box-shadow:var(--shadow)}
     .header{text-align:center;margin-bottom:18px}
     .step{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:var(--soft);color:var(--primary-700);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
     h1{font-size:20px;font-weight:700;color:var(--text)}
@@ -1338,7 +1432,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .error-banner p{color:#b91c1c;font-size:12px;font-weight:500;line-height:1.5}
     .info-banner{background:var(--soft);border-left:4px solid var(--primary-500);padding:10px 12px;margin-bottom:16px;border-radius:0 10px 10px 0;font-size:12px;color:var(--text);line-height:1.5}
     .method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
-    .method-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);text-align:center;cursor:pointer;color:inherit;font:inherit;transition:transform .2s,box-shadow .2s,border-color .2s,background .2s;width:100%}
+    .method-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;border-radius:var(--control-radius);border:1px solid var(--border);background:var(--card);text-align:center;cursor:pointer;color:inherit;font:inherit;transition:transform .2s,box-shadow .2s,border-color .2s,background .2s;width:100%}
     .method-card:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(15,23,42,.12);border-color:var(--primary-500);background:var(--soft)}
     .method-card:disabled{cursor:not-allowed;opacity:.6;box-shadow:none;transform:none}
     .method-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:12px;background:var(--soft);color:var(--primary-600)}
@@ -1347,10 +1441,10 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .passkey-banner{display:flex;align-items:center;gap:8px;padding:10px;margin-top:10px;border-radius:12px;border:1px solid var(--border);background:var(--card-soft);font-size:12px;color:var(--text)}
     .field{margin-bottom:16px}
     .field label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
-    .field input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+    .field input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--control-radius);font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
     .field input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus);background:var(--card)}
     .hint{font-size:12px;line-height:1.5;color:var(--muted);margin-top:6px}
-    .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--primary-500);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
+    .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--primary-500);color:#fff;border:none;border-radius:var(--control-radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
     .btn:hover{background:var(--primary-600);box-shadow:0 10px 20px rgba(15,23,42,.16)}
     .btn:disabled{background:var(--surface-300);color:var(--surface-500);cursor:not-allowed;box-shadow:none}
     .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text);margin-top:8px}
@@ -1360,7 +1454,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .back-link{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;margin-bottom:16px;text-decoration:none}
     .back-link:hover{color:var(--primary-600)}
     .otp-boxes{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
-    .otp-box{width:44px;height:52px;border:1.5px solid var(--border);border-radius:10px;font-size:22px;font-weight:600;text-align:center;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;caret-color:transparent;background:var(--card-soft)}
+    .otp-box{width:44px;height:52px;border:1.5px solid var(--border);border-radius:var(--control-radius);font-size:22px;font-weight:600;text-align:center;color:var(--text);font-family:inherit;outline:none;transition:border-color .15s,box-shadow .15s,background .15s;caret-color:transparent;background:var(--card-soft)}
     .otp-box:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus)}
     .otp-box.filled{border-color:var(--primary-500);background:var(--soft)}
     .client-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card-soft);margin-bottom:16px}

@@ -28,7 +28,9 @@ test('mobile admin sends the exact role DTO only after its manage permission', a
 		}
 		await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 50 }) });
 	});
-	await page.goto('/'); await expect(page.getByText('Ana')).toBeVisible();
+	await page.goto('/');
+	await page.getByRole('button', { name: 'Deschide navigația' }).click();
+	await expect(page.getByText('Ana')).toBeVisible();
 	await page.goto('/administrare');
 	await page.getByRole('button', { name: 'Adaugă sau actualizează' }).click();
 	await page.getByLabel('Cod').fill('reviewer');

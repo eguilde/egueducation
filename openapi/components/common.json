@@ -25,6 +25,12 @@
         "name": "egueducation_rt",
         "description": "HttpOnly, Secure, SameSite=Lax refresh-session cookie scoped to /api/oidc. It cannot be read by browser JavaScript."
       },
+      "productionE2ECanaryActivation": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Protected production-canary activation credential. The value uses the `Bearer <secret>` form and is available only to the isolated deployment verification workflow."
+      },
       "dpop": {
         "type": "apiKey",
         "in": "header",

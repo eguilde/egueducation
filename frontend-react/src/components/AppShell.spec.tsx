@@ -26,9 +26,9 @@ describe('AppShell', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Deschide navigația' }));
         expect(screen.getByRole('button', { name: 'Închide navigația' })).toBeInTheDocument();
-        expect(screen.getAllByText('eGuEducation')).toHaveLength(2);
-        expect(document.getElementById('main-navigation')).toHaveAttribute('data-side', 'left');
-        expect(document.getElementById('main-navigation')).toHaveAttribute('data-collapsible-mode', 'offcanvas');
+        expect(document.getElementById('main-navigation')).toHaveAttribute('role', 'complementary');
+        fireEvent.click(screen.getByRole('button', { name: 'Închide navigația' }));
+        await waitFor(() => expect(screen.queryByRole('button', { name: 'Închide navigația' })).not.toBeInTheDocument());
         await waitFor(() => expect(document.querySelector('.app-title')).toHaveTextContent('Școala Balotești'));
     });
 
@@ -47,8 +47,7 @@ describe('AppShell', () => {
             </PrimeReactProvider>
         );
 
-        expect(document.getElementById('main-navigation')).toHaveAttribute('data-side', 'left');
-        expect(document.getElementById('main-navigation')).toHaveAttribute('data-state', 'expanded');
+        expect(document.getElementById('main-navigation')).toHaveAttribute('aria-label', 'Navigație principală');
         expect(screen.queryByRole('button', { name: /navigația/i })).not.toBeInTheDocument();
     });
 });

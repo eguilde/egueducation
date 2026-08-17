@@ -40,7 +40,7 @@ func TestTestOTPFixtureFailsClosedUnlessExplicitLoopbackConfigurationAndExactIde
 		TestOTPFixtureTenantCode: "tenant-egueducation",
 	}
 	user := oidcLoginUser{Email: valid.TestOTPFixtureIdentifier, Subject: valid.TestOTPFixtureSubject}
-	if !testOTPFixtureAllowed(&valid, user, valid.TestOTPFixtureTenantCode) {
+	if !testOTPFixtureAllowed(nil, &valid, user, valid.TestOTPFixtureTenantCode) {
 		t.Fatal("explicit loopback fixture configuration must allow the exact synthetic identity")
 	}
 
@@ -67,7 +67,7 @@ func TestTestOTPFixtureFailsClosedUnlessExplicitLoopbackConfigurationAndExactIde
 			} else if service, serviceErr := NewService(test.cfg, nil, nil); serviceErr == nil || service != nil {
 				t.Fatal("unsafe fixture configuration must fail service initialization")
 			}
-			if testOTPFixtureAllowed(&test.cfg, test.user, test.tenant) {
+			if testOTPFixtureAllowed(nil, &test.cfg, test.user, test.tenant) {
 				t.Fatal("fixture must fail closed")
 			}
 		})
@@ -210,7 +210,7 @@ func TestOTPLoginUIAutoAdvancesAndSupportsPasteAndBackspace(t *testing.T) {
 }
 
 func TestOIDCLoginRendersSelectedDarkTheme(t *testing.T) {
-	request := httptest.NewRequest(http.MethodGet, "/api/oidc/authorize?ui_theme_scheme=dark&ui_theme_primary=rose&ui_theme_surface=slate&ui_theme_dark=1", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/oidc/authorize?ui_theme_scheme=dark&ui_theme_preset=nora&ui_theme_primary=rose&ui_theme_surface=slate&ui_theme_dark=1", nil)
 	data := oidcLoginData{
 		CustomerName: "Școala Test",
 		Step:         "methods",
@@ -227,6 +227,8 @@ func TestOIDCLoginRendersSelectedDarkTheme(t *testing.T) {
 		"--bg:#0f172a",
 		"--card:#1e293b",
 		"--text:#ffffff",
+		"--panel-radius:6px",
+		"--control-radius:4px",
 	} {
 		if !strings.Contains(page, expected) {
 			t.Fatalf("dark OIDC login is missing theme token %q", expected)

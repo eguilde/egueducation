@@ -12,10 +12,9 @@ test('desktop shell keeps the left navigation open, hides bars, and shows the te
     await expect(page.getByText('Autentificarea este necesară pentru acces.')).toBeVisible();
     await expect(page.getByText(/Platformă digitală|registratură, fluxuri|activitatea instituției/)).toHaveCount(0);
     await expect(page.locator('.landing').getByRole('button', { name: 'Autentificare' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Școala Gimnazială nr. 1 Balotești' })).toBeVisible();
+    await expect(page.locator('.app-title')).toHaveText('Școala Gimnazială nr. 1 Balotești');
     const navigation = page.locator('#main-navigation');
-    await expect(navigation).toHaveAttribute('data-side', 'left');
-    await expect(navigation).toHaveAttribute('data-state', 'expanded');
+    await expect(navigation).toHaveAttribute('aria-label', 'Navigație principală');
     await expect(page.locator('header').getByRole('button', { name: /navigația/i })).toHaveCount(0);
 });
 
@@ -24,14 +23,12 @@ test('mobile shell opens and closes the left off-canvas navigation from bars con
     await page.goto('/');
 
     const navigation = page.locator('#main-navigation');
-    await expect(navigation).toHaveAttribute('data-side', 'left');
-    await expect(navigation).toHaveAttribute('data-collapsible-mode', 'offcanvas');
-    await expect(navigation).toHaveAttribute('data-state', 'collapsed');
+    await expect(navigation).not.toBeVisible();
     await page.locator('header').getByRole('button', { name: 'Deschide navigația' }).click();
-    await expect(navigation).toHaveAttribute('data-state', 'expanded');
+    await expect(navigation).toHaveAttribute('role', 'complementary');
     await expect(page.getByText('Componente')).toBeVisible();
     await page.getByRole('button', { name: 'Închide navigația' }).click();
-    await expect(navigation).toHaveAttribute('data-state', 'collapsed');
+    await expect(navigation).not.toBeVisible();
 });
 
 test('theme popover changes and persists the PrimeReact color scheme', async ({ page }) => {
@@ -39,8 +36,12 @@ test('theme popover changes and persists the PrimeReact color scheme', async ({ 
     await page.getByRole('button', { name: 'Tema aplicației' }).click();
     await expect(page.getByRole('group', { name: 'Mod de culoare' })).toBeVisible();
     await page.getByRole('button', { name: 'Întunecat' }).click();
+    await page.getByRole('button', { name: 'Selectează culoare principală Blue' }).click();
+    await page.getByRole('button', { name: 'Selectează suprafață Zinc' }).click();
     await expect(page.locator('html')).toHaveClass(/app-dark/);
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('egueducation.scheme'))).toBe('dark');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('egueducation.theme'))).toContain('"scheme":"dark"');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('egueducation.theme'))).toContain('"primary":"blue"');
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('egueducation.theme'))).toContain('"surface":"zinc"');
     await page.reload();
     await expect(page.locator('html')).toHaveClass(/app-dark/);
 });

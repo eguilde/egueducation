@@ -19,6 +19,9 @@ async function authenticatedRegistratura(page: Page) {
   await page.route('**/api/registratura/document-links?**', (route) => route.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/api/registratura/document-links', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ link_id: 'link-1', document_id: 'doc-1', registry_number: 'REG-1', subject: 'Cerere înscriere', document_type: 'DOCUMENT', status: 'INCOMING', relation_type: 'supporting', registered_at: '2026-08-16', confidentiality: 'normal' }) }));
   await page.goto('/');
+  if ((page.viewportSize()?.width ?? 1280) < 768) {
+    await page.getByRole('button', { name: 'Deschide navigația' }).click();
+  }
   await expect(page.getByText('Ana')).toBeVisible();
   await page.goto('/registratura');
   await expect(page.getByLabel('Registratură')).toBeVisible();
