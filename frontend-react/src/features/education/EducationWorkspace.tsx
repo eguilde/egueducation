@@ -2096,9 +2096,21 @@ function recordsBasePath(domain: EducationRecordsDomain) {
   )[domain];
 }
 function readable(value: string) {
+  if (value === "school_year") return "An școlar";
   return value
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function isDisplayableMetadataValue(value: unknown) {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    (Array.isArray(value) &&
+      value.every(
+        (entry) => typeof entry === "string" || typeof entry === "number",
+      ))
+  );
 }
 function EducationMetadata({
   api,
@@ -2132,10 +2144,8 @@ function EducationMetadata({
     );
   const values = items.flatMap((item) =>
     Object.entries(item).filter(
-      ([, value]) =>
-        typeof value === "string" ||
-        typeof value === "number" ||
-        Array.isArray(value),
+      ([key, value]) =>
+        key !== "institution_id" && isDisplayableMetadataValue(value),
     ),
   );
   return (
