@@ -32,8 +32,30 @@ export function AppShell() {
     const location = useLocation();
     const isDesktop = useDesktopLayout();
     const [open, setOpen] = useState(isDesktop);
+    const [tenantTitle, setTenantTitle] = useState('eGuEducation');
 
     useEffect(() => setOpen(isDesktop), [isDesktop]);
+
+    useEffect(() => {
+        if (session?.institution_name) {
+            setTenantTitle(session.institution_name);
+            return;
+        }
+
+        const controller = new AbortController();
+        void fetch('/api/config', { signal: controller.signal })
+            .then(async (response) => response.ok ? response.json() as Promise<unknown> : undefined)
+            .then((value) => {
+                if (!value || typeof value !== 'object') return;
+                const config = value as { institutionName?: unknown; service?: { title?: unknown } };
+                const title = typeof config.institutionName === 'string'
+                    ? config.institutionName
+                    : typeof config.service?.title === 'string' ? config.service.title : undefined;
+                if (title?.trim()) setTenantTitle(title.trim());
+            })
+            .catch(() => undefined);
+        return () => controller.abort();
+    }, [session?.institution_name]);
 
     const items = useMemo(
         () => navigation.filter((item) =>
@@ -49,7 +71,7 @@ export function AppShell() {
             <Sidebar.Root
                 id="main-navigation"
                 aria-label="Navigație principală"
-                side="right"
+                side="left"
                 width="18rem"
                 collapsible={isDesktop ? 'none' : 'offcanvas'}
                 overlay={!isDesktop}
@@ -68,6 +90,19 @@ export function AppShell() {
                                         </Avatar.Root>
                                         <span>eGuEducation</span>
                                     </Sidebar.MenuButton>
+                                    {!isDesktop && (
+                                        <Sidebar.MenuAction
+                                            as={Button}
+                                            aria-label="Închide navigația"
+                                            title="Închide navigația"
+                                            variant="text"
+                                            rounded
+                                            iconOnly
+                                            onClick={() => setOpen(false)}
+                                        >
+                                            <Bars />
+                                        </Sidebar.MenuAction>
+                                    )}
                                 </Sidebar.MenuItem>
                             </Sidebar.Menu>
                         </Sidebar.Header>
@@ -137,16 +172,19 @@ export function AppShell() {
                     <Toolbar.Root className="app-toolbar">
                         <Toolbar.Start>
                             <div className="flex items-center gap-2">
-                                <Sidebar.Trigger
-                                    as={Button}
-                                    aria-label={open ? 'Închide navigația' : 'Deschide navigația'}
-                                    variant="text"
-                                    rounded
-                                    iconOnly
-                                >
-                                    <Bars />
-                                </Sidebar.Trigger>
-                                <Link to="/" className="app-title">eGuEducation</Link>
+                                {!isDesktop && (
+                                    <Button
+                                        aria-label="Deschide navigația"
+                                        title="Deschide navigația"
+                                        variant="text"
+                                        rounded
+                                        iconOnly
+                                        onClick={() => setOpen(true)}
+                                    >
+                                        <Bars />
+                                    </Button>
+                                )}
+                                <Link to="/" className="app-title">{tenantTitle}</Link>
                             </div>
                         </Toolbar.Start>
                         <Toolbar.End>

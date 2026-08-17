@@ -1,27 +1,47 @@
 import { test, expect } from '@playwright/test';
 
-test('desktop shell keeps the right navigation open and landing compact', async ({ page }) => {
+test('desktop shell keeps the left navigation open, hides bars, and shows the tenant title', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
+    await page.route('**/api/config', (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ institutionName: 'Școala Gimnazială nr. 1 Balotești' })
+    }));
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'eGuEducation' })).toBeVisible();
-    await expect(page.getByText('Platformă digitală pentru administrarea instituțiilor de învățământ.')).toBeVisible();
+    await expect(page.getByText(/Platformă digitală pentru registratură/)).toBeVisible();
+    await expect(page.locator('.landing').getByRole('button', { name: 'Autentificare' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Școala Gimnazială nr. 1 Balotești' })).toBeVisible();
     const navigation = page.locator('#main-navigation');
-    await expect(navigation).toHaveAttribute('data-side', 'right');
+    await expect(navigation).toHaveAttribute('data-side', 'left');
     await expect(navigation).toHaveAttribute('data-state', 'expanded');
-    await expect(page.locator('header').getByRole('button', { name: /navigația/i })).toBeVisible();
+    await expect(page.locator('header').getByRole('button', { name: /navigația/i })).toHaveCount(0);
 });
 
-test('mobile shell opens the right off-canvas navigation from the bars control', async ({ page }) => {
+test('mobile shell opens and closes the left off-canvas navigation from bars controls', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
 
     const navigation = page.locator('#main-navigation');
+    await expect(navigation).toHaveAttribute('data-side', 'left');
     await expect(navigation).toHaveAttribute('data-collapsible-mode', 'offcanvas');
     await expect(navigation).toHaveAttribute('data-state', 'collapsed');
     await page.locator('header').getByRole('button', { name: 'Deschide navigația' }).click();
     await expect(navigation).toHaveAttribute('data-state', 'expanded');
     await expect(page.getByText('Componente')).toBeVisible();
+    await page.getByRole('button', { name: 'Închide navigația' }).click();
+    await expect(navigation).toHaveAttribute('data-state', 'collapsed');
+});
+
+test('theme popover changes and persists the PrimeReact color scheme', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Tema aplicației' }).click();
+    await expect(page.getByRole('group', { name: 'Mod de culoare' })).toBeVisible();
+    await page.getByRole('button', { name: 'Întunecat' }).click();
+    await expect(page.locator('html')).toHaveClass(/app-dark/);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('egueducation.scheme'))).toBe('dark');
+    await page.reload();
+    await expect(page.locator('html')).toHaveClass(/app-dark/);
 });
 
 test('OIDC registration hand-off explains audited administrator provisioning', async ({ page }) => {

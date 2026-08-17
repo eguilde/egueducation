@@ -19,6 +19,7 @@ const runtimeCrypto = globalThis.crypto;
 describe('OIDC authorization', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    window.localStorage.clear();
     vi.restoreAllMocks();
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -47,6 +48,9 @@ describe('OIDC authorization', () => {
     expect(request.searchParams.get('state')).toBeTruthy();
     expect(request.searchParams.get('nonce')).toBeTruthy();
     expect(request.searchParams.get('scope')).toContain('offline_access');
+    expect(request.searchParams.get('ui_theme_scheme')).toBe('system');
+    expect(request.searchParams.get('ui_theme_dark')).toBe('0');
+    expect(request.searchParams.get('ui_theme_primary')).toBe('rose');
     expect(sessionStorage.getItem('egueducation.oidc.verifier')).toBeTruthy();
     expect(sessionStorage.getItem('egueducation.oidc.returnTo')).toBe('/registratura?status=INCOMING');
   });
@@ -63,6 +67,19 @@ describe('OIDC authorization', () => {
     expect(sessionStorage.getItem('egueducation.oidc.verifier')).toBeNull();
     expect(sessionStorage.getItem('egueducation.oidc.state')).toBeNull();
     expect(sessionStorage.getItem('egueducation.oidc.nonce')).toBeNull();
+  });
+
+  it('carries the selected PrimeReact color scheme into the provider interaction', async () => {
+    useDeterministicDigest();
+    window.localStorage.setItem('egueducation.scheme', 'dark');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(discovery), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }));
+
+    const request = new URL(await prepareAuthorization(config));
+    expect(request.searchParams.get('ui_theme_scheme')).toBe('dark');
+    expect(request.searchParams.get('ui_theme_dark')).toBe('1');
   });
 
   it('builds and validates an RP-initiated logout transaction', async () => {
