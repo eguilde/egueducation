@@ -73,6 +73,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("auth service initialization failed", zap.Error(err))
 	}
+	if cfg.TestOTPFixtureEnabled() {
+		if _, err = auth.EnsureOIDCTestFixtureUser(ctx, pool, cfg); err != nil {
+			logger.Fatal("test OIDC fixture bootstrap failed", zap.Error(err))
+		}
+	}
 	archiveStorage, err := earchiva.NewArchiveStorage(ctx, cfg)
 	if err != nil {
 		logger.Fatal("archive storage initialization failed", zap.Error(err))

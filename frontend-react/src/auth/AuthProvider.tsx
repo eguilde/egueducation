@@ -13,7 +13,6 @@ import {
     beginLogout,
     completeAuthorization,
     completeLogout,
-    consumeReturnTo,
     refreshWithCookie,
     type Tokens
 } from './oidc-client';
@@ -124,7 +123,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const complete = useCallback(async () => {
         const next = await completeAuthorization(config);
         await apply(next);
-        return consumeReturnTo();
+        return next.returnTo ?? '/';
     }, [apply]);
     const finishLogout = useCallback(() => completeLogout(), []);
     const has = useCallback((permission: string) => Boolean(
