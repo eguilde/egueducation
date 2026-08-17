@@ -38,10 +38,17 @@ async function startOTPLogin(page: Page): Promise<void> {
 
 async function submitOTP(page: Page): Promise<void> {
   const otpBoxes = page.locator('.otp-box');
+  await otpBoxes.first().click();
+  await page.keyboard.type(canaryOTP, { delay: 40 });
+
+  await expect(otpBoxes).toHaveCount(6);
   for (const [index, digit] of [...canaryOTP].entries()) {
-    await otpBoxes.nth(index).fill(digit);
+    await expect(otpBoxes.nth(index)).toHaveValue(digit);
   }
-  await page.getByRole('button', { name: 'Verifica codul' }).click();
+
+  const verifyButton = page.getByRole('button', { name: 'Verifica codul' });
+  await expect(verifyButton).toBeEnabled();
+  await verifyButton.click();
 }
 
 async function activateCanary(context: BrowserContext): Promise<void> {
