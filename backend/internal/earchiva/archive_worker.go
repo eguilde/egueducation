@@ -223,17 +223,24 @@ func (w *IngestionWorker) claimJob(ctx context.Context) (*archiveIngestionJob, e
 	}
 	defer tx.Rollback(claimCtx) //nolint:errcheck
 
+	// Reclaim expired leases as a separate statement inside the same transaction.
+	// PostgreSQL data-modifying CTEs share one snapshot, so a row changed from
+	// running to pending in a CTE is not reliably selectable as pending by a
+	// sibling CTE in that same statement.
+	if _, err := tx.Exec(claimCtx, `
+		update archive_ingestion_jobs
+		set status = 'pending', locked_at = null, locked_by = '',
+			available_at = now(), updated_at = now(),
+			last_error = case when last_error = '' then 'worker lease expired; job reclaimed' else last_error end
+		where status = 'running'
+			and (locked_at is null or locked_at < now() - interval '90 minutes')
+	`); err != nil {
+		return nil, fmt.Errorf("reclaim expired archive job leases: %w", err)
+	}
+
 	var job archiveIngestionJob
 	err = tx.QueryRow(claimCtx, `
-		with reclaimed_jobs as (
-			update archive_ingestion_jobs
-			set status = 'pending', locked_at = null, locked_by = '',
-				available_at = now(), updated_at = now(),
-				last_error = case when last_error = '' then 'worker lease expired; job reclaimed' else last_error end
-			where status = 'running'
-				and (locked_at is null or locked_at < now() - interval '90 minutes')
-			returning id
-		), active_tenants as (
+		with active_tenants as (
 			select institution_id, min(code) as tenant_id
 			from app_tenants
 			where active = true
