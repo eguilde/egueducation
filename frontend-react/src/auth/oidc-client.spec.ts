@@ -50,7 +50,9 @@ describe('OIDC authorization', () => {
     expect(request.searchParams.get('scope')).toContain('offline_access');
     expect(request.searchParams.get('ui_theme_scheme')).toBe('system');
     expect(request.searchParams.get('ui_theme_dark')).toBe('0');
+    expect(request.searchParams.get('ui_theme_preset')).toBe('aura');
     expect(request.searchParams.get('ui_theme_primary')).toBe('rose');
+    expect(request.searchParams.get('ui_theme_surface')).toBe('slate');
     const state = request.searchParams.get('state');
     const transaction = JSON.parse(sessionStorage.getItem(`egueducation.oidc.authorization.${state}`) ?? '{}') as { verifier?: string; returnTo?: string };
     expect(transaction.verifier).toBeTruthy();

@@ -5113,6 +5113,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/oidc/e2e-canary/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an isolated production OIDC canary session
+         * @description Creates a short-lived, HttpOnly, interaction-bound capability used only by the protected production deployment verification workflow. The deterministic OTP remains unusable without this separate activation credential.
+         */
+        post: operations["post_api_oidc_e2e_canary_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/oidc/jwks": {
         parameters: {
             query?: never;
@@ -23474,6 +23494,27 @@ export interface operations {
                 };
                 content?: never;
             };
+        };
+    };
+    post_api_oidc_e2e_canary_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
         };
     };
     get_oidc_jwks: {

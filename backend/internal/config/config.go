@@ -43,6 +43,9 @@ type Config struct {
 	EnableWallet                            bool
 	EnableSMSOTP                            bool
 	EnableTestOTPFixture                    bool
+	EnableProductionE2ECanary               bool
+	ProductionE2ECanaryActivationKey        string
+	ProductionE2ECanarySigningKey           string
 	TestOTPFixtureCode                      string
 	TestOTPFixtureIdentifier                string
 	TestOTPFixtureSubject                   string
@@ -105,6 +108,9 @@ func Load() Config {
 		EnableWallet:                            envBool("ENABLE_EUDI_WALLET", true),
 		EnableSMSOTP:                            envBool("ENABLE_SMS_OTP", true),
 		EnableTestOTPFixture:                    envBool("ENABLE_TEST_OTP_FIXTURE", false),
+		EnableProductionE2ECanary:               envBool("ENABLE_PRODUCTION_E2E_CANARY", false),
+		ProductionE2ECanaryActivationKey:        strings.TrimSpace(os.Getenv("PRODUCTION_E2E_CANARY_ACTIVATION_KEY")),
+		ProductionE2ECanarySigningKey:           strings.TrimSpace(os.Getenv("PRODUCTION_E2E_CANARY_SIGNING_KEY")),
 		TestOTPFixtureCode:                      strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_CODE")),
 		TestOTPFixtureIdentifier:                strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_IDENTIFIER")),
 		TestOTPFixtureSubject:                   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_SUBJECT")),
@@ -185,9 +191,9 @@ func (c Config) IsProduction() bool {
 	return value == "production" || value == "prod"
 }
 
-// TestOTPFixtureEnabled is deliberately narrower than a development switch.
-// A deterministic OTP is accepted only by an explicitly configured test
-// process; production and development deployments always return false.
+// TestOTPFixtureEnabled reports whether the deterministic OTP identity passed
+// either the isolated loopback-test policy or the separately gated production
+// canary policy.
 func (c Config) TestOTPFixtureEnabled() bool {
 	return c.ValidateTestOTPFixture() == nil && c.testOTPFixtureConfigured()
 }
@@ -199,11 +205,39 @@ func (c Config) ValidateTestOTPFixture() error {
 	if !c.testOTPFixtureConfigured() {
 		return nil
 	}
-	if !c.EnableTestOTPFixture || !strings.EqualFold(strings.TrimSpace(c.Environment), "test") {
-		return fmt.Errorf("test OTP fixture requires APP_ENV=test and ENABLE_TEST_OTP_FIXTURE=true")
+	if !c.EnableTestOTPFixture {
+		return fmt.Errorf("test OTP fixture requires ENABLE_TEST_OTP_FIXTURE=true")
 	}
-	if !loopbackURL(c.FrontendOrigin) || !loopbackURL(c.BackendURL) || !loopbackURL(c.OIDCIssuer) {
-		return fmt.Errorf("test OTP fixture requires loopback FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
+	environment := strings.ToLower(strings.TrimSpace(c.Environment))
+	switch environment {
+	case "test":
+		if !loopbackURL(c.FrontendOrigin) || !loopbackURL(c.BackendURL) || !loopbackURL(c.OIDCIssuer) {
+			return fmt.Errorf("test OTP fixture requires loopback FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
+		}
+	case "production", "prod":
+		if !c.EnableProductionE2ECanary {
+			return fmt.Errorf("production OTP fixture requires ENABLE_PRODUCTION_E2E_CANARY=true")
+		}
+		if len(c.ProductionE2ECanaryActivationKey) < 32 || len(c.ProductionE2ECanarySigningKey) < 32 {
+			return fmt.Errorf("production E2E canary activation and signing keys must each contain at least 32 characters")
+		}
+		if c.ProductionE2ECanaryActivationKey == c.ProductionE2ECanarySigningKey {
+			return fmt.Errorf("production E2E canary activation and signing keys must be distinct")
+		}
+		if c.ProductionE2ECanaryActivationKey == c.TestOTPFixtureCode || c.ProductionE2ECanarySigningKey == c.TestOTPFixtureCode {
+			return fmt.Errorf("production E2E canary keys must be distinct from the OTP")
+		}
+		if !securePublicURL(c.FrontendOrigin) || !securePublicURL(c.BackendURL) || !securePublicURL(c.OIDCIssuer) {
+			return fmt.Errorf("production E2E canary requires HTTPS FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
+		}
+		if !sameURLHost(c.FrontendOrigin, c.BackendURL) || !sameURLHost(c.FrontendOrigin, c.OIDCIssuer) {
+			return fmt.Errorf("production E2E canary frontend, backend, and issuer must use the same host")
+		}
+		if strings.EqualFold(strings.TrimSpace(c.TestOTPFixtureIdentifier), "oidc.browser.fixture@example.test") || c.TestOTPFixtureCode == "173829" {
+			return fmt.Errorf("production E2E canary must not reuse the public loopback fixture identity or OTP")
+		}
+	default:
+		return fmt.Errorf("test OTP fixture is allowed only in test or explicitly gated production")
 	}
 	if !strings.HasSuffix(strings.ToLower(c.TestOTPFixtureIdentifier), "@example.test") || strings.TrimSpace(c.TestOTPFixtureSubject) == "" || strings.TrimSpace(c.TestOTPFixtureTenantCode) == "" {
 		return fmt.Errorf("test OTP fixture requires a synthetic example.test identifier, subject, and tenant code")
@@ -220,7 +254,11 @@ func (c Config) ValidateTestOTPFixture() error {
 }
 
 func (c Config) testOTPFixtureConfigured() bool {
-	return c.EnableTestOTPFixture || c.TestOTPFixtureCode != "" || c.TestOTPFixtureIdentifier != "" || c.TestOTPFixtureSubject != "" || c.TestOTPFixtureTenantCode != ""
+	return c.EnableTestOTPFixture || c.EnableProductionE2ECanary || c.ProductionE2ECanaryActivationKey != "" || c.ProductionE2ECanarySigningKey != "" || c.TestOTPFixtureCode != "" || c.TestOTPFixtureIdentifier != "" || c.TestOTPFixtureSubject != "" || c.TestOTPFixtureTenantCode != ""
+}
+
+func (c Config) ProductionE2ECanaryEnabled() bool {
+	return c.IsProduction() && c.EnableProductionE2ECanary && c.TestOTPFixtureEnabled()
 }
 
 func loopbackURL(raw string) bool {
@@ -230,6 +268,17 @@ func loopbackURL(raw string) bool {
 	}
 	host := strings.ToLower(parsed.Hostname())
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func securePublicURL(raw string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && parsed.Fragment == ""
+}
+
+func sameURLHost(left, right string) bool {
+	leftURL, leftErr := url.Parse(strings.TrimSpace(left))
+	rightURL, rightErr := url.Parse(strings.TrimSpace(right))
+	return leftErr == nil && rightErr == nil && strings.EqualFold(leftURL.Hostname(), rightURL.Hostname())
 }
 
 func env(key, fallback string) string {

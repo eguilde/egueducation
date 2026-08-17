@@ -13,6 +13,18 @@
     "requiredPermission": "valid tenant-bound refresh session cookie",
     "errors": [400, 401, 500]
   },
+  "POST /api/oidc/e2e-canary/session": {
+    "summary": "Start an isolated production OIDC canary session",
+    "description": "Creates a short-lived, HttpOnly, interaction-bound capability used only by the protected production deployment verification workflow. The deterministic OTP remains unusable without this separate activation credential.",
+    "tags": ["Authentication", "OIDC Provider"],
+    "responseStatus": "204",
+    "requestBody": false,
+    "status": "detailed",
+    "security": "productionE2ECanaryActivation",
+    "tenantScope": true,
+    "requiredPermission": "protected production deployment canary activation credential",
+    "errors": [401, 404, 500]
+  },
   "GET /api/oidc/ui/login.js": {
     "summary": "OIDC login interaction progressive-enhancement script",
     "description": "Public JavaScript served only to the provider-owned login interaction. It supports OTP input focus movement and paste handling; it is not an API payload.",

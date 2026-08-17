@@ -189,6 +189,9 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 		return
 	}
+	if s.rejectProductionE2ECanaryMutation(w, session.User.ID) {
+		return
+	}
 
 	var req UpdateProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -279,6 +282,9 @@ func (s *Service) BeginPasskeyRegistration(w http.ResponseWriter, r *http.Reques
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 		return
 	}
+	if s.rejectProductionE2ECanaryMutation(w, session.User.ID) {
+		return
+	}
 
 	challengeBytes := make([]byte, 32)
 	if _, err := rand.Read(challengeBytes); err != nil {
@@ -336,6 +342,9 @@ func (s *Service) FinishPasskeyRegistration(w http.ResponseWriter, r *http.Reque
 	session, ok := sessionFromContext(r.Context())
 	if !ok {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
+		return
+	}
+	if s.rejectProductionE2ECanaryMutation(w, session.User.ID) {
 		return
 	}
 
@@ -595,6 +604,9 @@ func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unauthenticated"})
 		return
 	}
+	if s.rejectProductionE2ECanaryMutation(w, session.User.ID) {
+		return
+	}
 
 	_, err := s.db.Exec(r.Context(), `
 		insert into app_eudi_wallets (user_id, status, activated_at, updated_at)
@@ -611,6 +623,14 @@ func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
 
 	s.logAudit(r.Context(), session.User.Sub, "profile.eudi.activate", "user", session.User.ID, "success", "User activated EUDI wallet status.", nil)
 	httpx.JSON(w, http.StatusOK, map[string]any{"status": "active"})
+}
+
+func (s *Service) rejectProductionE2ECanaryMutation(w http.ResponseWriter, userID string) bool {
+	if !s.cfg.IsProduction() || userID != oidcTestFixtureUserID.String() {
+		return false
+	}
+	httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "e2e_canary_read_only"})
+	return true
 }
 
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {

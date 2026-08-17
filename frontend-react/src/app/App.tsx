@@ -1,9 +1,8 @@
 import { lazy, Suspense, useMemo, type ReactNode } from 'react';
-import { PrimeReactProvider } from '@primereact/core/config';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { AppShell } from '../components/AppShell';
-import { primeTheme } from '../components/ThemeMenu';
+import { AppThemeProvider } from '../components/ThemeMenu';
 import { createAdminApi } from '../features/admin/api';
 import { createArchiveApi } from '../features/earchiva/api';
 import { createProfileApi } from '../features/profile/api';
@@ -119,7 +118,7 @@ function AdministrationRoute() {
 
 export function App() {
     return (
-        <PrimeReactProvider {...primeTheme} license={import.meta.env.VITE_PRIMEUI_LICENSE}>
+        <AppThemeProvider>
             <AuthProvider>
                 <BrowserRouter>
                     <Routes>
@@ -143,6 +142,6 @@ export function App() {
                     </Routes>
                 </BrowserRouter>
             </AuthProvider>
-        </PrimeReactProvider>
+        </AppThemeProvider>
     );
 }

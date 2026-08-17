@@ -143,6 +143,7 @@ func main() {
 		r.Post("/oidc/session/logout", authService.Logout)
 		r.Get("/oidc/ui/login.js", authService.OIDCLoginScript)
 		r.Get("/oidc/ui/logout.js", authService.OIDCLogoutScript)
+		r.Post("/oidc/e2e-canary/session", authService.BeginProductionE2ECanary)
 		r.Handle("/oidc", oidcHandler)
 		r.Handle("/oidc/*", oidcHandler)
 		r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)

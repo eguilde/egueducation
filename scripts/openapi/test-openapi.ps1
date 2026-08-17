@@ -171,6 +171,11 @@ if (-not $logout -or $logout.requestBody -or $logout.security.Count -ne 1 -or -n
     throw 'OIDC browser logout contract must be refresh-cookie secured, bodyless and return LogoutResponse.'
 }
 
+$productionCanary = $specData.paths['/api/oidc/e2e-canary/session'].post
+if (-not $productionCanary -or $productionCanary.requestBody -or $productionCanary.security.Count -ne 1 -or -not $productionCanary.security[0].Contains('productionE2ECanaryActivation') -or -not $productionCanary.responses['204']) {
+    throw 'Production OIDC canary activation must be bodyless, activation-key secured and return 204.'
+}
+
 $revoke = $specData.paths['/api/oidc/revoke'].post
 if (-not $revoke -or $revoke.security.Count -ne 0 -or $revoke.description -notmatch 'actual token') {
     throw 'OIDC RFC 7009 revocation contract must be public-client authenticated and prohibit cookie substitution.'
@@ -192,5 +197,5 @@ if ($educationCoverage.operations.Count -ne 304 -or @($educationCoverage.validat
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 463) { throw "Router extraction drift: expected 463 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+if ($actualCount -ne 464) { throw "Router extraction drift: expected 464 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
 Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 304 Education operations schema-complete."

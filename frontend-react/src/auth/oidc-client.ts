@@ -1,6 +1,6 @@
 import * as oauth from 'oauth4webapi';
 import type { OidcConfig } from './config';
-import { readThemeScheme, resolveDarkScheme } from '../theme/preferences';
+import { readThemePreferences, resolveDarkScheme } from '../theme/preferences';
 
 const key = (name: string) => `egueducation.oidc.${name}`;
 const authorizationTransactionKey = (state: string) => key(`authorization.${state}`);
@@ -67,7 +67,7 @@ export async function prepareAuthorization(config: OidcConfig, returnTo = '/') {
     returnTo: safeReturnTo,
     createdAt: Date.now(),
   } satisfies AuthorizationTransaction));
-  const scheme = readThemeScheme();
+  const theme = readThemePreferences();
   const parameters = new URLSearchParams({
     client_id: config.clientId,
     redirect_uri: config.redirectUri,
@@ -77,10 +77,13 @@ export async function prepareAuthorization(config: OidcConfig, returnTo = '/') {
     nonce,
     code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
     code_challenge_method: 'S256',
-    ui_theme_scheme: scheme,
-    ui_theme_primary: 'rose',
-    ui_theme_surface: 'slate',
-    ui_theme_dark: resolveDarkScheme(scheme) ? '1' : '0',
+    // The OIDC UI may consume these optional hints. The theme cookie is also
+    // available on this origin for an authorization UI that does not forward query parameters.
+    ui_theme_scheme: theme.scheme,
+    ui_theme_preset: theme.preset,
+    ui_theme_primary: theme.primary,
+    ui_theme_surface: theme.surface,
+    ui_theme_dark: resolveDarkScheme(theme.scheme) ? '1' : '0',
   });
   return `${authorizationServer.authorization_endpoint}?${parameters.toString()}`;
 }
