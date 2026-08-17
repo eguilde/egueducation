@@ -31,12 +31,13 @@ func NewService(cfg config.Config, pool *appdb.SessionPool) *Service {
 
 func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
 	institutionID := s.institutionID(r)
+	tenantCode := s.tenantCode(r)
 	readyDossiers, blockedDossiers := s.readinessStats(r.Context(), institutionID)
-	users := s.scalarCount("select count(*) from app_users")
-	memberships := s.scalarCount("select count(*) from app_memberships")
-	positions := s.scalarCount("select count(*) from app_positions")
-	permissions := s.scalarCount("select count(*) from app_permissions")
-	workflows := s.scalarCount("select count(*) from workflow_definitions")
+	users := s.scalarCount(r.Context(), "select count(distinct user_id) from app_memberships where tenant_code = $1 and active = true", tenantCode)
+	memberships := s.scalarCount(r.Context(), "select count(*) from app_memberships where tenant_code = $1 and active = true", tenantCode)
+	positions := s.scalarCount(r.Context(), "select count(*) from app_positions")
+	permissions := s.scalarCount(r.Context(), "select count(*) from app_permissions")
+	workflows := s.scalarCount(r.Context(), "select count(*) from workflow_definitions")
 	archives := s.scalarCountWhere(r.Context(), "select count(*) from archive_records where institution_id = $1", institutionID)
 	httpx.JSON(w, http.StatusOK, DashboardResponse{
 		Stats: DashboardStats{
@@ -74,9 +75,7 @@ func (s *Service) Dashboard(w http.ResponseWriter, r *http.Request) {
 			"auth_methods",
 			"audit",
 		},
-		Warnings: []string{
-			"OIDC provider, workflow runtime, archive ingestion, and education domain services are scaffolded but not yet fully ported.",
-		},
+		Warnings: []string{},
 	})
 }
 
@@ -112,12 +111,12 @@ func requirePlatformSuperAdmin(w http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
-func (s *Service) scalarCount(sql string) int {
+func (s *Service) scalarCount(ctx context.Context, sql string, args ...any) int {
 	var count int
 	if s.pool == nil {
 		return 0
 	}
-	if err := s.pool.QueryRow(context.Background(), sql).Scan(&count); err != nil {
+	if err := s.pool.QueryRow(ctx, sql, args...).Scan(&count); err != nil {
 		return 0
 	}
 	return count
