@@ -257,15 +257,16 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if meResponse.StatusCode != http.StatusOK {
 		t.Fatalf("/api/me status = %d, want 200", meResponse.StatusCode)
 	}
-	var me struct {
-		InstitutionID string `json:"institution_id"`
-		User          struct {
-			Sub string `json:"sub"`
-		} `json:"user"`
-	}
+	var me SessionContext
 	decodeJSONResponse(t, meResponse.Body, &me)
 	if me.InstitutionID != "inst-001" || me.User.Sub != user.Subject {
 		t.Fatal("/api/me did not resolve the host and authenticated tenant membership")
+	}
+	if me.User.Roles == nil || me.Permissions == nil || me.Modules == nil || me.Authentication == nil || me.GDPRCapabilities == nil {
+		t.Fatal("/api/me must encode collection fields as JSON arrays, never null")
+	}
+	if len(me.Modules) == 0 {
+		t.Fatal("browser fixture must be assigned active modules for full UI coverage")
 	}
 
 	mismatchRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/api/me", nil)

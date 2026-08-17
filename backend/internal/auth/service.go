@@ -635,7 +635,13 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) loadSessionContext(ctx context.Context, host string, subject string) (SessionContext, error) {
-	var session SessionContext
+	session := SessionContext{
+		User:             SessionUser{Roles: []string{}},
+		Permissions:      []string{},
+		Modules:          []SessionModule{},
+		Authentication:   []string{},
+		GDPRCapabilities: []string{},
+	}
 	configuredTenantHint := strings.TrimSpace(s.cfg.CustomerDomain + " " + s.cfg.CustomerName)
 	branding := tenant.ResolveBranding(host, s.cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
 	tenantCode := branding.TenantCode
@@ -698,6 +704,12 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 	)
 	if err != nil {
 		return SessionContext{}, err
+	}
+	if session.Authentication == nil {
+		session.Authentication = []string{}
+	}
+	if session.GDPRCapabilities == nil {
+		session.GDPRCapabilities = []string{}
 	}
 
 	session.InstitutionID = branding.InstitutionID

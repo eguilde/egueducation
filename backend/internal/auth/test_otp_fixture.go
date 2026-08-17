@@ -64,6 +64,16 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP membership: %w", err)
 	}
+	if _, err = tx.Exec(ctx, `delete from app_user_modules where user_id=$1`, user.ID); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP modules: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `
+		insert into app_user_modules (tenant_code, user_id, module_code)
+		select $2, $1, code from app_modules where active = true
+		on conflict do nothing
+	`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP modules: %w", err)
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("commit test OTP fixture: %w", err)
 	}
