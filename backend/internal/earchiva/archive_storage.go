@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"path"
 	"strings"
 
@@ -17,10 +18,11 @@ import (
 )
 
 type ArchiveStorage struct {
-	client  *s3.Client
-	bucket  string
-	region  string
-	enabled bool
+	client       *s3.Client
+	bucket       string
+	region       string
+	enabled      bool
+	createBucket bool
 }
 
 func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage, error) {
@@ -28,6 +30,13 @@ func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage,
 	bucket := strings.TrimSpace(cfg.ArchiveStorageBucket)
 	if endpoint == "" || bucket == "" {
 		return &ArchiveStorage{bucket: bucket, enabled: false}, nil
+	}
+	parsedEndpoint, err := url.Parse(endpoint)
+	if err != nil || parsedEndpoint.Scheme == "" || parsedEndpoint.Host == "" {
+		return nil, fmt.Errorf("invalid archive storage endpoint")
+	}
+	if cfg.IsProduction() && !strings.EqualFold(parsedEndpoint.Scheme, "https") {
+		return nil, fmt.Errorf("archive storage endpoint must use HTTPS in production")
 	}
 
 	loadOptions := []func(*awsconfig.LoadOptions) error{
@@ -47,7 +56,13 @@ func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage,
 		o.UsePathStyle = cfg.ArchiveStorageUsePathStyle
 	})
 
-	storage := &ArchiveStorage{client: client, bucket: bucket, region: strings.TrimSpace(cfg.ArchiveStorageRegion), enabled: true}
+	storage := &ArchiveStorage{
+		client:       client,
+		bucket:       bucket,
+		region:       strings.TrimSpace(cfg.ArchiveStorageRegion),
+		enabled:      true,
+		createBucket: cfg.ArchiveStorageCreateBucket,
+	}
 	if err := storage.EnsureBucket(ctx); err != nil {
 		return nil, err
 	}
@@ -72,6 +87,8 @@ func (s *ArchiveStorage) EnsureBucket(ctx context.Context) error {
 
 	if _, err := s.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(s.bucket)}); err == nil {
 		return nil
+	} else if !s.createBucket {
+		return fmt.Errorf("archive bucket is unavailable")
 	}
 
 	input := &s3.CreateBucketInput{Bucket: aws.String(s.bucket)}

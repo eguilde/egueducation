@@ -703,7 +703,9 @@ func (s *Service) ListAuditEvents(w http.ResponseWriter, r *http.Request) {
 		[]string{"actor_subject", "domain", "action", "target_type", "status", "created_at"},
 	)
 
-	clauses := []string{"1 = 1"}
+	// Retain this predicate alongside RLS so audit reads stay institution-scoped
+	// even when an administrative database role has broader privileges.
+	clauses := []string{"institution_id = public.current_institution_id()"}
 	args := []any{}
 	if value := strings.TrimSpace(query.Filters["actor_subject"]); value != "" {
 		args = append(args, "%"+strings.ToLower(value)+"%")
@@ -809,17 +811,17 @@ func (s *Service) AuditFilters(w http.ResponseWriter, r *http.Request) {
 		return values, rows.Err()
 	}
 
-	domains, err := load(`select distinct split_part(action, '.', 1) as domain from app_audit_log order by domain`)
+	domains, err := load(`select distinct split_part(action, '.', 1) as domain from app_audit_log where institution_id = public.current_institution_id() order by domain`)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_audit_filters_failed"})
 		return
 	}
-	targetTypes, err := load(`select distinct target_type from app_audit_log order by target_type`)
+	targetTypes, err := load(`select distinct target_type from app_audit_log where institution_id = public.current_institution_id() order by target_type`)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_audit_filters_failed"})
 		return
 	}
-	statuses, err := load(`select distinct status from app_audit_log order by status`)
+	statuses, err := load(`select distinct status from app_audit_log where institution_id = public.current_institution_id() order by status`)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_audit_filters_failed"})
 		return

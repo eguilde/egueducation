@@ -99,6 +99,35 @@ jobs:
         working-directory: backend
         run: go test ./internal/tenant -run '^TestDatabaseResolverIntegration$' -count=1 -timeout 60s
 
+  archive-postgres-integration:
+    name: eArhiva PostgreSQL integration
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - name: Exercise clean and legacy eArhiva migrations with tenant isolation
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
+        run: go test -tags=integration ./internal/earchiva -run 'TestArchive(MigrationsAndTenantIsolation|LegacyMigration)Integration' -count=1
+
   frontend:
     name: Frontend tests, build, and audit
     runs-on: ubuntu-24.04

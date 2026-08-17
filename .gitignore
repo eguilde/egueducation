@@ -12,6 +12,16 @@ backend/bin/
 backend/tmp/
 backend/.env
 scripts/openapi/go-schema-helper/openapi-schema-helper.exe
+docs/earchiva-balotesti/*checkpoint*.json
+docs/earchiva-balotesti/*checkpoint*.tmp
+# Real archive inventories contain production filenames, hashes and local paths.
+# Keep them local; only synthetic fixtures and operational documentation belong in Git.
+docs/earchiva-balotesti/balotesti-pdf-manifest.json
+docs/earchiva-balotesti/balotesti-pdf-manifest.csv
+docs/earchiva-balotesti/balotesti-import-manifest.json
+docs/earchiva-balotesti/balotesti-import-manifest.json.sha256
+docs/earchiva-balotesti/balotesti-quality-sample.json
+docs/earchiva-balotesti/balotesti-duplicate-groups.json
 
 # Frontend
 frontend/node_modules/

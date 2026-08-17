@@ -2,14 +2,14 @@ package earchiva
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -19,16 +19,37 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
+	"github.com/eguilde/egueducation/internal/audit"
 	authruntime "github.com/eguilde/egueducation/internal/auth"
 	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
+const (
+	archiveUploadMaxBytes = 100 << 20
+	archiveUploadMaxPages = 2000
+	archiveUploadOverhead = 1 << 20
+)
+
+// Bound disk, scanner, and object-storage pressure from concurrent archive
+// imports. The worker remains asynchronous after the upload is accepted.
+var archiveUploadSlots = make(chan struct{}, 2)
+
+// Scanner permits the archive boundary to require an antivirus verdict before
+// any archive material is persisted to object storage.
+type Scanner interface {
+	Scan(context.Context, io.Reader) (clean bool, err error)
+}
+
 type DocumentService struct {
 	pool    *appdb.SessionPool
 	storage *ArchiveStorage
+	scanner Scanner
 }
+
+func (s *DocumentService) SetScanner(scanner Scanner) { s.scanner = scanner }
 
 func NewDocumentService(pool *appdb.SessionPool, storage *ArchiveStorage) *DocumentService {
 	return &DocumentService{pool: pool, storage: storage}
@@ -47,10 +68,10 @@ type ArchiveDocument struct {
 	TaxonomyCode      *string        `json:"taxonomy_code,omitempty"`
 	TaxonomyLabel     *string        `json:"taxonomy_label,omitempty"`
 	Status            string         `json:"status"`
-	OriginalBucket    string         `json:"original_bucket"`
-	OriginalObjectKey string         `json:"original_object_key"`
-	ArtifactBucket    string         `json:"artifact_bucket"`
-	ArtifactObjectKey string         `json:"artifact_object_key"`
+	OriginalBucket    string         `json:"-"`
+	OriginalObjectKey string         `json:"-"`
+	ArtifactBucket    string         `json:"-"`
+	ArtifactObjectKey string         `json:"-"`
 	DocumentDate      *string        `json:"document_date,omitempty"`
 	Metadata          map[string]any `json:"metadata,omitempty"`
 	CurrentVersionNo  int            `json:"current_version_no"`
@@ -63,15 +84,15 @@ type ArchiveDocumentVersion struct {
 	ID                string `json:"id"`
 	DocumentID        string `json:"document_id"`
 	VersionNo         int    `json:"version_no"`
-	SourceBucket      string `json:"source_bucket"`
-	SourceObjectKey   string `json:"source_object_key"`
-	ArtifactBucket    string `json:"artifact_bucket"`
-	ArtifactObjectKey string `json:"artifact_object_key"`
+	SourceBucket      string `json:"-"`
+	SourceObjectKey   string `json:"-"`
+	ArtifactBucket    string `json:"-"`
+	ArtifactObjectKey string `json:"-"`
 	SourceSHA256      string `json:"source_sha256"`
 	SourceSizeBytes   int64  `json:"source_size_bytes"`
 	PageCount         int    `json:"page_count"`
 	TextStatus        string `json:"text_status"`
-	CreatedBy         string `json:"created_by"`
+	CreatedBy         string `json:"-"`
 	CreatedAt         string `json:"created_at"`
 }
 
@@ -122,6 +143,7 @@ type archiveUploadPayload struct {
 	ArtifactObjectKey string
 	OriginalBucket    string
 	ArtifactBucket    string
+	IdempotencyKey    string
 }
 
 func (s *DocumentService) SearchDocuments(w http.ResponseWriter, r *http.Request) {
@@ -388,7 +410,7 @@ func (s *DocumentService) SearchDocumentsVector(w http.ResponseWriter, r *http.R
 		left join archive_taxonomy_nodes t on t.id = d.taxonomy_node_id
 		join archive_document_versions v on v.document_id = d.id and v.version_no = d.current_version_no
 		%s and archive_vector_dot(v.search_embedding, $%d::double precision[]) >= $%d
-	`, where, len(args)+2, len(args)+3)
+	`, where, len(args)+1, len(args)+2)
 	var total int
 	if err := s.pool.QueryRow(r.Context(), countSQL, baseArgs...).Scan(&total); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_documents_search_failed"})
@@ -431,7 +453,7 @@ func (s *DocumentService) SearchDocumentsVector(w http.ResponseWriter, r *http.R
 		%s and archive_vector_dot(v.search_embedding, $%d::double precision[]) >= $%d
 		order by score desc, d.updated_at desc, d.title asc
 		limit $%d offset $%d
-	`, len(args)+2, where, len(args)+2, len(args)+3, len(selectArgs)-1, len(selectArgs))
+	`, len(args)+1, where, len(args)+1, len(args)+2, len(selectArgs)-1, len(selectArgs))
 
 	rows, err := s.pool.Query(r.Context(), selectSQL, selectArgs...)
 	if err != nil {
@@ -623,7 +645,7 @@ func (s *DocumentService) GetDocument(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	document, err := s.loadDocumentDetail(r.Context(), documentID)
+	document, err := s.loadDocumentDetail(r.Context(), authruntime.CurrentInstitutionIDFromRequest(r), documentID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "archive_document_not_found"})
@@ -634,6 +656,57 @@ func (s *DocumentService) GetDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.JSON(w, http.StatusOK, document)
+}
+
+func (s *DocumentService) DownloadOriginal(w http.ResponseWriter, r *http.Request) {
+	if s.storage == nil || !s.storage.Enabled() {
+		httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "archive_storage_unavailable"})
+		return
+	}
+	institutionID := strings.TrimSpace(authruntime.CurrentInstitutionIDFromRequest(r))
+	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
+	if institutionID == "" {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "missing_institution_context"})
+		return
+	}
+	if _, err := uuid.Parse(documentID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_document_id"})
+		return
+	}
+	var objectKey string
+	if err := s.pool.QueryRow(r.Context(), `
+		select original_object_key
+		from archive_documents
+		where id = $1::uuid and institution_id = $2
+	`, documentID, institutionID).Scan(&objectKey); errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "archive_document_not_found"})
+		return
+	} else if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_document_download_failed"})
+		return
+	}
+	actor := authruntime.CurrentSubjectFromRequest(r)
+	if err := audit.Log(r.Context(), s.pool, audit.Event{ActorSubject: actor, Action: "earchiva.document.download.requested", TargetType: "archive_document", TargetID: documentID, Summary: "Archive original download authorized."}); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_document_download_audit_failed"})
+		return
+	}
+	content, err := s.storage.OpenObject(r.Context(), objectKey)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadGateway, map[string]any{"code": "archive_document_download_failed"})
+		return
+	}
+	defer content.Close() //nolint:errcheck
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="archive-%s.pdf"`, documentID))
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, copyErr := io.Copy(w, content)
+	auditCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 2*time.Second)
+	defer cancel()
+	outcome := "completed"
+	if copyErr != nil {
+		outcome = "interrupted"
+	}
+	_ = audit.Log(auditCtx, s.pool, audit.Event{ActorSubject: actor, Action: "earchiva.document.download." + outcome, TargetType: "archive_document", TargetID: documentID, Summary: "Archive original download " + outcome + "."})
 }
 
 func (s *DocumentService) ListDocumentVersions(w http.ResponseWriter, r *http.Request) {
@@ -661,10 +734,10 @@ func (s *DocumentService) ListDocumentVersions(w http.ResponseWriter, r *http.Re
 			count(c.id)::int
 		from archive_document_versions v
 		left join archive_document_chunks c on c.version_id = v.id
-		where v.document_id::text = $1
+		where v.document_id::text = $1 and v.institution_id = $2
 		group by v.id
 		order by v.version_no desc
-	`, documentID)
+	`, documentID, authruntime.CurrentInstitutionIDFromRequest(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_document_versions_failed"})
 		return
@@ -777,7 +850,16 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	select {
+	case archiveUploadSlots <- struct{}{}:
+		defer func() { <-archiveUploadSlots }()
+	default:
+		httpx.JSON(w, http.StatusTooManyRequests, map[string]any{"code": "archive_upload_busy"})
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, archiveUploadMaxBytes+archiveUploadOverhead)
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload"})
 		return
 	}
@@ -805,46 +887,98 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload", "message": err.Error()})
 		return
 	}
+	if existingID, found, err := s.findIdempotentArchiveDocument(r.Context(), institutionID, payload.IdempotencyKey); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_idempotency_lookup_failed"})
+		return
+	} else if found {
+		detail, err := s.loadDocumentDetail(r.Context(), institutionID, existingID)
+		if err != nil {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+			return
+		}
+		httpx.JSON(w, http.StatusOK, detail)
+		return
+	}
+
+	staged, err := stageAndValidateArchivePDF(r.Context(), file, s.scanner)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_file", "message": err.Error()})
+		return
+	}
+	defer os.Remove(staged.Path)
+	payload.FileSize, payload.ChecksumSHA256 = staged.Size, staged.SHA256
+	payload.MimeType = "application/pdf"
+	payload.Metadata["source_file_name"] = payload.FileName
+	payload.Metadata["source_page_count"] = staged.PageCount
+	if payload.IdempotencyKey == "" {
+		payload.IdempotencyKey = deriveArchiveIdempotencyKey(payload)
+	}
+	if existingID, found, lookupErr := s.findIdempotentArchiveDocument(r.Context(), institutionID, payload.IdempotencyKey); lookupErr != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_idempotency_lookup_failed"})
+		return
+	} else if found {
+		detail, loadErr := s.loadDocumentDetail(r.Context(), institutionID, existingID)
+		if loadErr != nil {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+			return
+		}
+		httpx.JSON(w, http.StatusOK, detail)
+		return
+	}
 
 	documentID := uuid.NewString()
 	versionID := uuid.NewString()
 	payload.OriginalBucket = s.storage.Bucket()
 	payload.ArtifactBucket = s.storage.Bucket()
-	payload.OriginalObjectKey = s.storage.OriginalObjectKey(institutionID, documentID, payload.FileName)
+	payload.OriginalObjectKey = s.storage.OriginalObjectKey(institutionID, documentID, canonicalArchiveStorageFileName(documentID))
 	payload.ArtifactObjectKey = s.storage.ArtifactObjectKey(institutionID, documentID, 1)
 
-	hash := sha256.New()
-	tee := io.TeeReader(file, hash)
-	if err := s.storage.PutObject(r.Context(), payload.OriginalObjectKey, payload.MimeType, tee, payload.FileSize); err != nil {
+	stagedFile, err := os.Open(staged.Path)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_staging_failed"})
+		return
+	}
+	defer stagedFile.Close() //nolint:errcheck
+	if err := s.storage.PutObject(r.Context(), payload.OriginalObjectKey, payload.MimeType, stagedFile, payload.FileSize); err != nil {
 		httpx.JSON(w, http.StatusBadGateway, map[string]any{"code": "archive_upload_storage_failed"})
 		return
 	}
-	payload.ChecksumSHA256 = hex.EncodeToString(hash.Sum(nil))
 
-	tx, err := s.pool.Begin(r.Context())
+	// Once object storage accepted the bitstream, finish the database boundary
+	// independently of a client disconnect. Otherwise a cancelled request can
+	// leave an untracked object or a committed document without its audit event.
+	persistCtx, cancelPersist := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
+	defer cancelPersist()
+	cleanupObject := func() {
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
+		defer cancel()
+		_ = s.storage.DeleteObject(cleanupCtx, payload.OriginalObjectKey)
+	}
+
+	tx, err := s.pool.Begin(persistCtx)
 	if err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
 		return
 	}
-	defer tx.Rollback(r.Context()) //nolint:errcheck
+	defer tx.Rollback(persistCtx) //nolint:errcheck
 
-	taxonomyNodeID, taxonomyCode, taxonomyLabel, err := s.ensureTaxonomyNodeTx(r.Context(), tx, institutionID, payload.TaxonomyCode, payload.TaxonomyLabel, payload.TaxonomyParent)
+	taxonomyNodeID, taxonomyCode, taxonomyLabel, err := s.ensureTaxonomyNodeTx(persistCtx, tx, institutionID, payload.TaxonomyCode, payload.TaxonomyLabel, payload.TaxonomyParent)
 	if err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "archive_taxonomy_failed", "message": err.Error()})
 		return
 	}
 
 	metadataJSON, err := json.Marshal(payload.Metadata)
 	if err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "archive_metadata_failed"})
 		return
 	}
 
 	var document ArchiveDocument
-	if err := tx.QueryRow(r.Context(), `
+	if err := tx.QueryRow(persistCtx, `
 		insert into archive_documents (
 			id,
 			institution_id,
@@ -862,6 +996,8 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			artifact_object_key,
 			document_date,
 			metadata,
+			idempotency_key,
+			created_by,
 			current_version_no,
 			received_at
 		) values (
@@ -881,6 +1017,8 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			$13,
 			$14::date,
 			$15::jsonb,
+			$16,
+			$17,
 			1,
 			now()
 		)
@@ -905,7 +1043,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			to_char(received_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-	`, documentID, institutionID, payload.Title, payload.FileName, payload.MimeType, payload.SourceKind, payload.SourceSystem, payload.ExternalReference, taxonomyNodeID, payload.OriginalBucket, payload.OriginalObjectKey, payload.ArtifactBucket, payload.ArtifactObjectKey, payload.DocumentDate, metadataJSON).Scan(
+	`, documentID, institutionID, payload.Title, payload.FileName, payload.MimeType, payload.SourceKind, payload.SourceSystem, payload.ExternalReference, taxonomyNodeID, payload.OriginalBucket, payload.OriginalObjectKey, payload.ArtifactBucket, payload.ArtifactObjectKey, payload.DocumentDate, metadataJSON, payload.IdempotencyKey, authruntime.CurrentSubjectFromRequest(r)).Scan(
 		&document.ID,
 		&document.InstitutionID,
 		&document.Title,
@@ -927,12 +1065,21 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		&document.CreatedAt,
 		&document.UpdatedAt,
 	); err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
+		if isArchiveIdempotencyConflict(err) {
+			if existingID, found, lookupErr := s.findIdempotentArchiveDocument(persistCtx, institutionID, payload.IdempotencyKey); lookupErr == nil && found {
+				detail, loadErr := s.loadDocumentDetail(persistCtx, institutionID, existingID)
+				if loadErr == nil {
+					httpx.JSON(w, http.StatusOK, detail)
+					return
+				}
+			}
+		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
 		return
 	}
 	if err := unmarshalMetadata(metadataJSON, &document.Metadata); err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
 		return
 	}
@@ -940,12 +1087,21 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	document.TaxonomyLabel = taxonomyLabel
 
 	var version ArchiveDocumentVersion
-	if err := tx.QueryRow(r.Context(), `
+	if err := tx.QueryRow(persistCtx, `
 		insert into archive_document_versions (
 			id,
 			institution_id,
 			document_id,
 			version_no,
+			mime_type,
+			title,
+			bucket_name,
+			object_key,
+			hash_sha256,
+			size_bytes,
+			metadata,
+			ocr_text,
+			status,
 			source_bucket,
 			source_object_key,
 			artifact_bucket,
@@ -968,11 +1124,20 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			$7,
 			$8,
 			$9,
+			$10::jsonb,
+			'',
+			'active',
+			$6,
+			$7,
+			$11,
+			$12,
+			$8,
+			$9,
 			0,
 			'pending',
 			'',
 			$10::jsonb,
-			$11
+			$13
 		)
 		returning
 			id::text,
@@ -988,7 +1153,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			text_status,
 			created_by,
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-	`, versionID, institutionID, documentID, payload.OriginalBucket, payload.OriginalObjectKey, payload.ArtifactBucket, payload.ArtifactObjectKey, payload.ChecksumSHA256, payload.FileSize, metadataJSON, authruntime.CurrentSubjectFromRequest(r)).Scan(
+	`, versionID, institutionID, documentID, payload.MimeType, payload.Title, payload.OriginalBucket, payload.OriginalObjectKey, payload.ChecksumSHA256, payload.FileSize, metadataJSON, payload.ArtifactBucket, payload.ArtifactObjectKey, authruntime.CurrentSubjectFromRequest(r)).Scan(
 		&version.ID,
 		&version.DocumentID,
 		&version.VersionNo,
@@ -1003,12 +1168,12 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		&version.CreatedBy,
 		&version.CreatedAt,
 	); err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		cleanupObject()
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
 		return
 	}
 
-	if _, err := tx.Exec(r.Context(), `
+	if _, err := tx.Exec(persistCtx, `
 		insert into archive_ingestion_jobs (
 			id,
 			institution_id,
@@ -1019,26 +1184,36 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			available_at,
 			created_by
 		) values ($1::uuid, $2, $3::uuid, $4::uuid, 'extract_text', 'pending', now(), $5)
-	`, uuid.NewString(), institutionID, documentID, version.ID, authruntime.CurrentSubjectFromRequest(r)); err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
+		`, uuid.NewString(), institutionID, documentID, version.ID, authruntime.CurrentSubjectFromRequest(r)); err != nil {
+		cleanupObject()
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
 		return
 	}
 
-	if err := tx.Commit(r.Context()); err != nil {
-		_ = s.storage.DeleteObject(r.Context(), payload.OriginalObjectKey)
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
+	if err := audit.Log(persistCtx, tx, audit.Event{ActorSubject: authruntime.CurrentSubjectFromRequest(r), Action: "earchiva.document.upload", TargetType: "archive_document", TargetID: documentID, Summary: "Archive document accepted for ingestion.", Details: map[string]any{"source_kind": payload.SourceKind, "page_count": staged.PageCount}}); err != nil {
+		cleanupObject()
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_audit_failed"})
 		return
 	}
 
-	detail, err := s.loadDocumentDetail(r.Context(), documentID)
+	if err := tx.Commit(persistCtx); err != nil {
+		// Only delete when PostgreSQL confirms the transaction was rolled back.
+		// For transport/commit-ack failures the outcome is indeterminate; deleting
+		// then could remove the source object of a committed archive record.
+		if errors.Is(err, pgx.ErrTxCommitRollback) {
+			cleanupObject()
+		}
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_failed"})
+		return
+	}
+	detail, err := s.loadDocumentDetail(persistCtx, institutionID, documentID)
 	if err != nil {
 		detail = ArchiveDocumentDetail{ArchiveDocument: document}
 	}
 	httpx.JSON(w, http.StatusCreated, detail)
 }
 
-func (s *DocumentService) loadDocumentDetail(ctx context.Context, documentID string) (ArchiveDocumentDetail, error) {
+func (s *DocumentService) loadDocumentDetail(ctx context.Context, institutionID, documentID string) (ArchiveDocumentDetail, error) {
 	var detail ArchiveDocumentDetail
 	var metadataJSON []byte
 	var taxonomyID sql.NullString
@@ -1071,8 +1246,8 @@ func (s *DocumentService) loadDocumentDetail(ctx context.Context, documentID str
 			to_char(d.updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		from archive_documents d
 		left join archive_taxonomy_nodes t on t.id = d.taxonomy_node_id
-		where d.id::text = $1
-	`, documentID).Scan(
+		where d.id::text = $1 and d.institution_id = $2
+	`, documentID, institutionID).Scan(
 		&detail.ID,
 		&detail.InstitutionID,
 		&detail.Title,
@@ -1283,6 +1458,7 @@ func parseArchiveUploadPayload(r *http.Request, header *multipart.FileHeader) (a
 		MimeType:          strings.TrimSpace(header.Header.Get("Content-Type")),
 		FileName:          strings.TrimSpace(header.Filename),
 		FileSize:          header.Size,
+		IdempotencyKey:    strings.TrimSpace(firstNonEmpty(r.Header.Get("Idempotency-Key"), r.FormValue("idempotency_key"))),
 	}
 	if payload.SourceSystem == "" {
 		payload.SourceSystem = "manual-upload"
@@ -1316,10 +1492,13 @@ func validateArchiveUploadPayload(payload archiveUploadPayload) error {
 	if payload.FileName == "" {
 		return fmt.Errorf("missing file name")
 	}
+	if len(payload.IdempotencyKey) > 200 {
+		return fmt.Errorf("idempotency key is too long")
+	}
 	if payload.FileSize <= 0 {
 		return fmt.Errorf("missing file content")
 	}
-	if payload.MimeType != "application/pdf" && payload.MimeType != "text/plain" && payload.MimeType != "application/octet-stream" {
+	if payload.MimeType != "application/pdf" && payload.MimeType != "application/octet-stream" {
 		return fmt.Errorf("unsupported mime type %s", payload.MimeType)
 	}
 	if payload.SourceKind == "" {
@@ -1332,11 +1511,43 @@ func parseArchiveMetadata(raw string) (map[string]any, error) {
 	if strings.TrimSpace(raw) == "" {
 		return map[string]any{}, nil
 	}
+	if len(raw) > 64<<10 {
+		return nil, fmt.Errorf("metadata exceeds the 64 KiB limit")
+	}
 	decoded := map[string]any{}
 	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
 		return nil, fmt.Errorf("metadata must be valid json")
 	}
 	return decoded, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value = strings.TrimSpace(value); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func (s *DocumentService) findIdempotentArchiveDocument(ctx context.Context, institutionID, key string) (string, bool, error) {
+	if strings.TrimSpace(key) == "" {
+		return "", false, nil
+	}
+	var id string
+	err := s.pool.QueryRow(ctx, `select id::text from archive_documents where institution_id = $1 and idempotency_key = $2`, institutionID, key).Scan(&id)
+	if err == pgx.ErrNoRows {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return id, true, nil
+}
+
+func isArchiveIdempotencyConflict(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505" && strings.Contains(pgErr.ConstraintName, "archive_documents_institution_idempotency")
 }
 
 func parseOptionalDate(raw string) (*string, error) {

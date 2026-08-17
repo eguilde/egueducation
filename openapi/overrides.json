@@ -121,15 +121,6 @@
     "institutionContext": false,
     "status": "detailed"
   },
-  "POST /api/earchiva/documents": {
-    "summary": "Upload an archived document",
-    "description": "Stores a document in the institution context validated from the authenticated token/session and request host. Media type and upload protocol are validated by the service.",
-    "tags": ["eArhiva"],
-    "requestSchema": "Mutation",
-    "responseSchema": "ArchiveDocument",
-    "institutionContext": false,
-    "status": "detailed"
-  },
   "GET /api/me": {
     "summary": "Read authenticated session context",
     "description": "The frontend uses this endpoint as the source of truth for the current identity, tenant context and effective permissions. Do not trust browser-stored roles.",
@@ -189,6 +180,87 @@
     "requestSchema": "RegistraturaRequest",
     "responseSchema": "BinaryFile",
     "responseContentType": "application/pdf",
+    "status": "detailed"
+  },
+  "POST /api/earchiva/documents": {
+    "summary": "Upload an archived PDF",
+    "description": "Accepts a bounded multipart PDF. The active tenant is derived from the authenticated session; the client cannot select an institution. The server validates the PDF, malware-scans it, stores the original and queues OCR/indexing.",
+    "tags": ["eArhiva"],
+    "requestSchema": "Mutation",
+    "requestContentType": "multipart/form-data",
+    "responseSchema": "ArchiveDocument",
+    "responseStatus": "201",
+    "responseContentType": "application/json",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/admin/health": {
+    "summary": "Read eArhiva component health",
+    "description": "Returns tenant-scoped operational health and queue counts without exposing credentials, bucket names or object keys.",
+    "tags": ["eArhiva", "Administration"],
+    "responseSchema": "ArchiveAdminHealth",
+    "requiredPermission": "earchiva.manage",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/documents/{documentID}/content": {
+    "summary": "Download the original archived document",
+    "description": "Streams the original PDF only after tenant, document and archive-content permission checks. Storage bucket and object keys are never returned as JSON.",
+    "tags": ["eArhiva"],
+    "responseSchema": "BinaryFile",
+    "responseContentType": "application/pdf",
+    "requiredPermission": "earchiva.content.read",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/admin/stats": {
+    "summary": "Read eArhiva statistics",
+    "description": "Returns document and ingestion-job counts for the active tenant only.",
+    "tags": ["eArhiva", "Administration"],
+    "responseSchema": "ArchiveAdminStats",
+    "requiredPermission": "earchiva.manage",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/admin/jobs": {
+    "summary": "List eArhiva ingestion jobs",
+    "description": "Lists ingestion jobs for the active tenant. Failed-job details are reduced to safe categories and never expose OCR or storage error payloads.",
+    "tags": ["eArhiva", "Administration"],
+    "responseSchema": "ArchiveAdminJobPage",
+    "requiredPermission": "earchiva.manage",
+    "queryParameters": ["page", "pageSize", "status"],
+    "status": "detailed"
+  },
+  "POST /api/earchiva/admin/jobs/{jobID}/retry": {
+    "summary": "Retry a failed eArhiva ingestion job",
+    "description": "Requeues a failed ingestion job after verifying that it belongs to the active tenant. Cross-tenant and non-failed job identifiers return not found.",
+    "tags": ["eArhiva", "Administration"],
+    "requestBody": false,
+    "responseSchema": "ArchiveAdminJob",
+    "requiredPermission": "earchiva.manage",
+    "status": "detailed"
+  },
+  "GET /api/earchiva/classification-reviews": {
+    "summary": "List OCR classification reviews",
+    "description": "Lists human-review tasks generated from OCR for the active institution only. Suggestions are explainable and never become final metadata without an explicit review decision.",
+    "tags": ["eArhiva", "Classification"],
+    "responseSchema": "ArchiveClassificationReviewPage",
+    "requiredPermission": "earchiva.review",
+    "queryParameters": ["state", "page", "pageSize"],
+    "status": "detailed"
+  },
+  "POST /api/earchiva/classification-reviews/{reviewID}/approve": {
+    "summary": "Approve an OCR classification suggestion",
+    "description": "Approves the stored suggestion using optimistic revision control. The caller cannot replace classification fields through this operation.",
+    "tags": ["eArhiva", "Classification"],
+    "requestSchema": "Mutation",
+    "responseSchema": "ArchiveClassificationReview",
+    "requiredPermission": "earchiva.review",
+    "status": "detailed"
+  },
+  "POST /api/earchiva/classification-reviews/{reviewID}/correct": {
+    "summary": "Correct an OCR classification suggestion",
+    "description": "Stores a reviewed, closed classification DTO using optimistic revision control; unknown fields and cross-tenant identifiers are rejected.",
+    "tags": ["eArhiva", "Classification"],
+    "requestSchema": "Mutation",
+    "responseSchema": "ArchiveClassificationReview",
+    "requiredPermission": "earchiva.review",
     "status": "detailed"
   }
 }

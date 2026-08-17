@@ -77,15 +77,21 @@ func main() {
 	if err != nil {
 		logger.Fatal("archive storage initialization failed", zap.Error(err))
 	}
-	archiveTextract, err := earchiva.NewArchiveTextract(ctx, cfg)
+	archiveOCR, err := earchiva.NewArchiveOCR(ctx, cfg)
 	if err != nil {
-		logger.Fatal("archive textract initialization failed", zap.Error(err))
+		logger.Fatal("archive OCR initialization failed", zap.Error(err))
+	}
+	if cfg.IsProduction() && cfg.ArchiveWorkerEnabled && (!archiveStorage.Enabled() || !archiveOCR.Enabled()) {
+		logger.Fatal("archive worker requires configured storage and OCR in production")
 	}
 	adminService := admin.NewService(cfg, sessionDB)
 	educationService := education.NewService(sessionDB)
 	earchivaService := earchiva.NewService(sessionDB)
 	archiveDocumentService := earchiva.NewDocumentService(sessionDB, archiveStorage)
-	archiveWorker := earchiva.NewIngestionWorker(sessionDB, archiveStorage, archiveTextract, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second)
+	archiveDocumentService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
+	archiveAdminService := earchiva.NewArchiveAdminService(sessionDB, archiveStorage, archiveOCR, cfg.ArchiveWorkerMaxAttempts)
+	archiveClassificationService := earchiva.NewClassificationReviewService(sessionDB)
+	archiveWorker := earchiva.NewIngestionWorkerWithMaxAttempts(sessionDB, archiveStorage, archiveOCR, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
 	gdprService := gdpr.NewService(sessionDB)
 	registraturaService := registratura.NewService(sessionDB, archiveStorage)
 	registraturaService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
@@ -267,7 +273,15 @@ func main() {
 				r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/documents", archiveDocumentService.UploadDocument)
 				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/documents/{documentID}", archiveDocumentService.GetDocument)
 				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/documents/{documentID}/versions", archiveDocumentService.ListDocumentVersions)
+				r.With(authService.RequirePermissions("earchiva.content.read")).Get("/earchiva/documents/{documentID}/content", archiveDocumentService.DownloadOriginal)
 				r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/taxonomy", archiveDocumentService.ListTaxonomyNodes)
+				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/health", archiveAdminService.Health)
+				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/stats", archiveAdminService.Stats)
+				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/jobs", archiveAdminService.ListJobs)
+				r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/admin/jobs/{jobID}/retry", archiveAdminService.RetryJob)
+				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Get("/earchiva/classification-reviews", archiveClassificationService.ListPending)
+				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Post("/earchiva/classification-reviews/{reviewID}/approve", archiveClassificationService.Approve)
+				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Post("/earchiva/classification-reviews/{reviewID}/correct", archiveClassificationService.Correct)
 			})
 
 			r.Group(func(r chi.Router) {
