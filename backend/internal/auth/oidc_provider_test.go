@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"bytes"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -204,6 +206,34 @@ func TestOTPLoginUIAutoAdvancesAndSupportsPasteAndBackspace(t *testing.T) {
 	}
 	if strings.Contains(oidcLoginHTML, "<script>") || strings.Contains(oidcLoginHTML, " onchange=") || strings.Contains(oidcLoginHTML, " onclick=") {
 		t.Fatal("OIDC login must not depend on inline script or event handlers blocked by the frontend CSP")
+	}
+}
+
+func TestOIDCLoginRendersSelectedDarkTheme(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/api/oidc/authorize?ui_theme_scheme=dark&ui_theme_primary=rose&ui_theme_surface=slate&ui_theme_dark=1", nil)
+	data := oidcLoginData{
+		CustomerName: "Școala Test",
+		Step:         "methods",
+		Theme:        resolveOIDCThemeSettings(request, nil),
+	}
+	loginTemplate := template.Must(template.New("login-theme-test").Parse(oidcLoginHTML))
+	var rendered bytes.Buffer
+	if err := loginTemplate.Execute(&rendered, data); err != nil {
+		t.Fatalf("render OIDC login: %v", err)
+	}
+	page := rendered.String()
+	for _, expected := range []string{
+		"color-scheme:dark",
+		"--bg:#0f172a",
+		"--card:#1e293b",
+		"--text:#ffffff",
+	} {
+		if !strings.Contains(page, expected) {
+			t.Fatalf("dark OIDC login is missing theme token %q", expected)
+		}
+	}
+	if strings.Contains(page, "ZgotmplZ") {
+		t.Fatal("dark OIDC login contains a rejected template CSS value")
 	}
 }
 

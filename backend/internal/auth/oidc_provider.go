@@ -1112,6 +1112,7 @@ type oidcThemeSettings struct {
 	Dark       bool
 	Primary    string
 	Surface    string
+	Primary50  string
 	Primary500 string
 	Primary600 string
 	Primary700 string
@@ -1176,6 +1177,7 @@ func resolveOIDCThemeSettings(r *http.Request, sess *goidc.AuthnSession) oidcThe
 
 	primary := resolveOIDCPrimaryPalette(settings.Primary)
 	surface := resolveOIDCSurfacePalette(settings.Surface)
+	settings.Primary50 = primary[50]
 	settings.Primary500 = primary[500]
 	settings.Primary600 = primary[600]
 	settings.Primary700 = primary[700]
@@ -1322,7 +1324,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
   <title>{{.CustomerName}} - Autentificare</title>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{color-scheme:light;--primary-50:#fff1f2;--primary-500:#f43f5e;--primary-600:#e11d48;--primary-700:#be123c;--surface-0:#fff;--surface-50:#f8fafc;--surface-100:#f1f5f9;--surface-200:#e2e8f0;--surface-300:#cbd5e1;--surface-500:#64748b;--surface-700:#334155;--surface-900:#0f172a;--bg:var(--surface-50);--card:var(--surface-0);--card-soft:var(--surface-50);--border:var(--surface-200);--text:var(--surface-900);--muted:var(--surface-500);--soft:color-mix(in srgb,var(--primary-500) 12%,var(--surface-0));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:0 24px 60px rgba(15,23,42,.14)}
+    :root{color-scheme:{{if .Theme.Dark}}dark{{else}}light{{end}};--primary-50:{{.Theme.Primary50}};--primary-500:{{.Theme.Primary500}};--primary-600:{{.Theme.Primary600}};--primary-700:{{.Theme.Primary700}};--surface-0:{{.Theme.Surface0}};--surface-50:{{.Theme.Surface50}};--surface-100:{{.Theme.Surface100}};--surface-200:{{.Theme.Surface200}};--surface-300:{{.Theme.Surface300}};--surface-500:{{.Theme.Surface500}};--surface-700:{{.Theme.Surface700}};--surface-900:{{.Theme.Surface900}};--bg:{{.Theme.Bg}};--card:{{.Theme.Card}};--card-soft:{{.Theme.CardSoft}};--border:{{.Theme.Border}};--text:{{.Theme.Text}};--muted:{{.Theme.Muted}};--soft:color-mix(in srgb,var(--primary-500) 12%,var(--card));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:{{if .Theme.Dark}}0 24px 60px rgba(2,6,23,.45){{else}}0 24px 60px rgba(15,23,42,.14){{end}}}
     html,body{height:100%}
     body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow:hidden}
     .auth-shell{min-height:100vh;width:100%;display:grid;grid-template-columns:minmax(360px,440px) minmax(0,1fr);background:var(--card)}
