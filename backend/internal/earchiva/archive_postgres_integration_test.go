@@ -25,7 +25,7 @@ import (
 func TestArchiveMigrationsAndTenantIsolationIntegration(t *testing.T) {
 	it := newArchiveIntegrationDatabase(t)
 	ctx := context.Background()
-	pool := openArchiveIntegrationPool(t, ctx, it.databaseURL)
+	pool := openArchiveIntegrationPool(t, ctx, it.databaseConfig)
 	defer pool.Close()
 
 	if err := appdb.Migrate(ctx, pool); err != nil {
@@ -107,7 +107,7 @@ func TestArchiveMigrationsAndTenantIsolationIntegration(t *testing.T) {
 func TestArchiveLegacyMigrationIntegration(t *testing.T) {
 	it := newArchiveIntegrationDatabase(t)
 	ctx := context.Background()
-	pool := openArchiveIntegrationPool(t, ctx, it.databaseURL)
+	pool := openArchiveIntegrationPool(t, ctx, it.databaseConfig)
 	defer pool.Close()
 
 	applyArchiveMigrationRange(t, ctx, pool, "0001", "0074")
@@ -161,8 +161,8 @@ func TestArchiveLegacyMigrationIntegration(t *testing.T) {
 }
 
 type archiveIntegrationDatabase struct {
-	databaseURL string
-	readerPool  *pgxpool.Pool
+	databaseConfig *pgxpool.Config
+	readerPool     *pgxpool.Pool
 }
 
 func newArchiveIntegrationDatabase(t *testing.T) archiveIntegrationDatabase {
@@ -196,13 +196,15 @@ func newArchiveIntegrationDatabase(t *testing.T) archiveIntegrationDatabase {
 	}
 	admin.Close(ctx)
 
-	targetConfig := baseConfig.Copy()
-	targetConfig.Database = databaseName
-	targetURL := targetConfig.ConnString()
+	targetConfig, err := pgxpool.ParseConfig(baseURL)
+	if err != nil {
+		t.Fatalf("parse target pool config: %v", err)
+	}
+	targetConfig.ConnConfig.Database = databaseName
 	readerConfig := targetConfig.Copy()
-	readerConfig.User = roleName
-	readerConfig.Password = rolePassword
-	readerPool, err := pgxpool.New(ctx, readerConfig.ConnString())
+	readerConfig.ConnConfig.User = roleName
+	readerConfig.ConnConfig.Password = rolePassword
+	readerPool, err := pgxpool.NewWithConfig(ctx, readerConfig)
 	if err != nil {
 		t.Fatalf("open restricted integration pool: %v", err)
 	}
@@ -221,14 +223,19 @@ func newArchiveIntegrationDatabase(t *testing.T) archiveIntegrationDatabase {
 			t.Errorf("drop restricted integration role: %v", err)
 		}
 	})
-	return archiveIntegrationDatabase{databaseURL: targetURL, readerPool: readerPool}
+	return archiveIntegrationDatabase{databaseConfig: targetConfig, readerPool: readerPool}
 }
 
-func openArchiveIntegrationPool(t *testing.T, ctx context.Context, databaseURL string) *pgxpool.Pool {
+func openArchiveIntegrationPool(t *testing.T, ctx context.Context, databaseConfig *pgxpool.Config) *pgxpool.Pool {
 	t.Helper()
-	pool, err := pgxpool.New(ctx, databaseURL)
+	pool, err := pgxpool.NewWithConfig(ctx, databaseConfig.Copy())
 	if err != nil {
 		t.Fatalf("open integration database: %v", err)
+	}
+	var currentDatabase string
+	if err := pool.QueryRow(ctx, `select current_database()`).Scan(&currentDatabase); err != nil || currentDatabase != databaseConfig.ConnConfig.Database {
+		pool.Close()
+		t.Fatalf("integration pool database mismatch: got %q want %q (err=%v)", currentDatabase, databaseConfig.ConnConfig.Database, err)
 	}
 	return pool
 }
