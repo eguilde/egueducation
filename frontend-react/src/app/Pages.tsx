@@ -9,24 +9,9 @@ export function LandingPage() {
     const { user, login } = useAuth();
     return (
         <section className="landing">
-            <Card.Root>
-                <Card.Body>
-                    <Card.Title><h1>eGuEducation</h1></Card.Title>
-                    <Card.Content>
-                        <div className="flex flex-col items-center gap-4">
-                            <p>Platformă digitală pentru registratură, fluxuri de documente, eArhivă și activitatea instituției de învățământ.</p>
-                            {user ? (
-                                <p>Folosiți navigația din stânga pentru modulele permise contului dumneavoastră.</p>
-                            ) : (
-                                <>
-                                    <p>Autentificați-vă pentru a vedea și utiliza modulele pentru care aveți drepturi de acces.</p>
-                                    <Button onClick={() => void login()}>Autentificare</Button>
-                                </>
-                            )}
-                        </div>
-                    </Card.Content>
-                </Card.Body>
-            </Card.Root>
+            <h1>eGuEducation</h1>
+            <p>{user ? 'Selectați un modul din navigație.' : 'Autentificarea este necesară pentru acces.'}</p>
+            {!user && <Button onClick={() => void login()}>Autentificare</Button>}
         </section>
     );
 }

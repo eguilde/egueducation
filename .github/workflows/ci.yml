@@ -99,6 +99,70 @@ jobs:
         working-directory: backend
         run: go test ./internal/tenant -run '^TestDatabaseResolverIntegration$' -count=1 -timeout 60s
 
+  oidc-browser-integration:
+    name: OIDC browser login with deterministic test fixture
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: egueducation_browser
+          POSTGRES_USER: egueducation
+          POSTGRES_PASSWORD: egueducation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U egueducation -d egueducation_browser"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      APP_ENV: test
+      PORT: 8080
+      DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_browser?sslmode=disable
+      MIGRATION_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_browser?sslmode=disable
+      FRONTEND_ORIGIN: http://127.0.0.1:4173
+      BACKEND_URL: http://127.0.0.1:8080
+      OIDC_ISSUER: http://127.0.0.1:4173/api/oidc
+      OIDC_CLIENT_ID: egueducation-spa
+      OIDC_AUDIENCE: egueducation-api
+      CUSTOMER_NAME: EguEducation Test Fixture
+      ENABLE_TEST_OTP_FIXTURE: true
+      TEST_OTP_FIXTURE_CODE: "173829"
+      TEST_OTP_FIXTURE_IDENTIFIER: oidc.browser.fixture@example.test
+      TEST_OTP_FIXTURE_SUBJECT: oidc-browser-fixture-subject
+      TEST_OTP_FIXTURE_TENANT_CODE: tenant-egueducation
+      ARCHIVE_WORKER_ENABLED: false
+      ENABLE_EUDI_WALLET: false
+      FORCE_SECURE_COOKIES: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+      - name: Install React dependencies and Chromium
+        working-directory: frontend-react
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Real browser authorization-code, OTP, callback, refresh and session flow
+        working-directory: frontend-react
+        run: npx playwright test --config=playwright.oidc.config.ts --workers=1
+      - name: Upload failed OIDC browser trace
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oidc-browser-integration-trace
+          path: frontend-react/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
   archive-postgres-integration:
     name: eArhiva PostgreSQL integration
     runs-on: ubuntu-24.04

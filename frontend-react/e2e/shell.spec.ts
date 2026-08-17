@@ -9,7 +9,8 @@ test('desktop shell keeps the left navigation open, hides bars, and shows the te
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'eGuEducation' })).toBeVisible();
-    await expect(page.getByText(/Platformă digitală pentru registratură/)).toBeVisible();
+    await expect(page.getByText('Autentificarea este necesară pentru acces.')).toBeVisible();
+    await expect(page.getByText(/Platformă digitală|registratură, fluxuri|activitatea instituției/)).toHaveCount(0);
     await expect(page.locator('.landing').getByRole('button', { name: 'Autentificare' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Școala Gimnazială nr. 1 Balotești' })).toBeVisible();
     const navigation = page.locator('#main-navigation');

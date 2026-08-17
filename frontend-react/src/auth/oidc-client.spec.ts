@@ -51,22 +51,42 @@ describe('OIDC authorization', () => {
     expect(request.searchParams.get('ui_theme_scheme')).toBe('system');
     expect(request.searchParams.get('ui_theme_dark')).toBe('0');
     expect(request.searchParams.get('ui_theme_primary')).toBe('rose');
-    expect(sessionStorage.getItem('egueducation.oidc.verifier')).toBeTruthy();
-    expect(sessionStorage.getItem('egueducation.oidc.returnTo')).toBe('/registratura?status=INCOMING');
+    const state = request.searchParams.get('state');
+    const transaction = JSON.parse(sessionStorage.getItem(`egueducation.oidc.authorization.${state}`) ?? '{}') as { verifier?: string; returnTo?: string };
+    expect(transaction.verifier).toBeTruthy();
+    expect(transaction.returnTo).toBe('/registratura?status=INCOMING');
   });
 
-  it('rejects a callback with the wrong state and consumes the transaction', async () => {
+  it('rejects a callback with an unknown state without destroying the valid transaction', async () => {
     useDeterministicDigest();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(discovery), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     }));
-    await prepareAuthorization(config);
+    const request = new URL(await prepareAuthorization(config));
+    const state = request.searchParams.get('state');
 
     await expect(completeAuthorization(config, new URLSearchParams({ code: 'authorization-code', state: 'attacker-state' }))).rejects.toThrow();
-    expect(sessionStorage.getItem('egueducation.oidc.verifier')).toBeNull();
-    expect(sessionStorage.getItem('egueducation.oidc.state')).toBeNull();
-    expect(sessionStorage.getItem('egueducation.oidc.nonce')).toBeNull();
+    expect(sessionStorage.getItem(`egueducation.oidc.authorization.${state}`)).toBeTruthy();
+  });
+
+  it('keeps overlapping login attempts isolated by their returned state', async () => {
+    useDeterministicDigest();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(discovery), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }));
+
+    const first = new URL(await prepareAuthorization(config, '/registratura'));
+    const second = new URL(await prepareAuthorization(config, '/earchiva'));
+    const firstState = first.searchParams.get('state');
+    const secondState = second.searchParams.get('state');
+
+    expect(firstState).toBeTruthy();
+    expect(secondState).toBeTruthy();
+    expect(firstState).not.toBe(secondState);
+    expect(JSON.parse(sessionStorage.getItem(`egueducation.oidc.authorization.${firstState}`) ?? '{}')).toMatchObject({ returnTo: '/registratura' });
+    expect(JSON.parse(sessionStorage.getItem(`egueducation.oidc.authorization.${secondState}`) ?? '{}')).toMatchObject({ returnTo: '/earchiva' });
   });
 
   it('carries the selected PrimeReact color scheme into the provider interaction', async () => {

@@ -1326,15 +1326,9 @@ const oidcLoginHTML = `<!DOCTYPE html>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{color-scheme:{{if .Theme.Dark}}dark{{else}}light{{end}};--primary-50:{{.Theme.Primary50}};--primary-500:{{.Theme.Primary500}};--primary-600:{{.Theme.Primary600}};--primary-700:{{.Theme.Primary700}};--surface-0:{{.Theme.Surface0}};--surface-50:{{.Theme.Surface50}};--surface-100:{{.Theme.Surface100}};--surface-200:{{.Theme.Surface200}};--surface-300:{{.Theme.Surface300}};--surface-500:{{.Theme.Surface500}};--surface-700:{{.Theme.Surface700}};--surface-900:{{.Theme.Surface900}};--bg:{{.Theme.Bg}};--card:{{.Theme.Card}};--card-soft:{{.Theme.CardSoft}};--border:{{.Theme.Border}};--text:{{.Theme.Text}};--muted:{{.Theme.Muted}};--soft:color-mix(in srgb,var(--primary-500) 12%,var(--card));--focus:color-mix(in srgb,var(--primary-500) 22%,transparent);--shadow:{{if .Theme.Dark}}0 24px 60px rgba(2,6,23,.45){{else}}0 24px 60px rgba(15,23,42,.14){{end}}}
     html,body{height:100%}
-    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow:hidden}
-    .auth-shell{min-height:100vh;width:100%;display:grid;grid-template-columns:minmax(360px,440px) minmax(0,1fr);background:var(--card)}
-    .auth-panel{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:clamp(24px,4vw,64px);overflow-y:auto}
-    .auth-visual{position:relative;display:flex;align-items:flex-end;min-height:100vh;padding:clamp(40px,6vw,80px);color:#fff;background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(190,18,60,.82) 46%,rgba(8,47,73,.48));overflow:hidden}
-    .auth-visual::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 24% 20%,rgba(255,255,255,.18),transparent 28%),linear-gradient(180deg,transparent 45%,rgba(14,8,18,.36));pointer-events:none}
-    .visual-copy{position:relative;z-index:1;max-width:560px}
-    .visual-kicker{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.8;margin-bottom:14px}
-    .visual-copy h2{font-size:clamp(34px,4.5vw,60px);line-height:1.02;font-weight:750;margin-bottom:18px;color:#fff}
-    .visual-copy p{max-width:460px;font-size:16px;line-height:1.6;color:rgba(255,255,255,.86)}
+    body{font-family:'Inter Variable','Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;background:var(--bg);color:var(--text);min-height:100%;overflow-y:auto}
+    .auth-shell{min-height:100vh;width:100%;display:grid;place-items:center;padding:clamp(16px,4vw,48px);background:var(--bg)}
+    .auth-panel{width:min(100%,420px)}
     #content{width:100%;max-width:420px;padding:24px 24px 20px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow)}
     .header{text-align:center;margin-bottom:18px}
     .step{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:var(--soft);color:var(--primary-700);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
@@ -1380,8 +1374,8 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .scope-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--primary-500);cursor:pointer}
     .scope-label{font-size:14px;font-weight:500;color:var(--text)}
     .gdpr-notice{font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
-    @media (max-width: 960px){body{overflow-y:auto}.auth-shell{grid-template-columns:1fr}.auth-visual{display:none}.auth-panel{min-height:auto;padding:24px 16px}.method-grid{grid-template-columns:1fr}.otp-box{width:40px;height:48px}}
-    @media (max-width: 520px){.auth-panel{padding:0}#content{max-width:none;min-height:100vh;border:0;border-radius:0;box-shadow:none;padding:24px 18px}.otp-boxes{gap:6px}}
+    @media (max-width: 720px){.method-grid{grid-template-columns:1fr}.otp-box{width:40px;height:48px}}
+    @media (max-width: 520px){.auth-shell{padding:0}.auth-panel{width:100%}#content{max-width:none;min-height:100vh;border:0;border-radius:0;box-shadow:none;padding:24px 18px}.otp-boxes{gap:6px}}
   </style>
 </head>
 <body>
@@ -1488,13 +1482,6 @@ const oidcLoginHTML = `<!DOCTYPE html>
         {{end}}
       </div>
     </main>
-    <aside class="auth-visual" aria-hidden="true">
-      <div class="visual-copy">
-        <div class="visual-kicker">eGuilde Identity</div>
-        <h2>Acces securizat la servicii educationale digitale.</h2>
-        <p>Autentificare moderna pentru OTP, passkey si EUDI Wallet, cu pasi clari si consistenti pentru fiecare institutie.</p>
-      </div>
-    </aside>
   </div>
   <script src="/api/oidc/ui/login.js" defer></script>
 </body>
