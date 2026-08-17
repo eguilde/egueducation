@@ -110,9 +110,9 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
     expect(pageErrors).toEqual([]);
 
     await page.goto(productionOrigin + '/registratura');
-    await expect(page.getByRole('button', { name: 'Intrare' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'Ieșire' })).toBeEnabled();
-    await expect(page.getByRole('button', { name: 'MULTIPLU' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Intrare', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Ieșire', exact: true })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'MULTIPLU', exact: true })).toBeEnabled();
 
     const logoutResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());
