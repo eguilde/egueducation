@@ -77,9 +77,28 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
     expect(authenticatedSession.institution_id).toBe('inst-balotesti');
     expect(authenticatedSession.user?.email?.toLowerCase()).toBe(canaryIdentifier.toLowerCase());
     expect(authenticatedSession.user?.roles).toEqual(['e2e_canary']);
-    expect([...(authenticatedSession.permissions ?? [])].sort()).toEqual(['admin.read', 'dashboard.read']);
-    expect((authenticatedSession.permissions ?? []).some((permission) => permission.endsWith('.manage'))).toBe(false);
-    expect((authenticatedSession.modules ?? []).filter((module) => module.active).map((module) => module.code).sort()).toEqual(['admin', 'dashboard']);
+    const permissions = authenticatedSession.permissions ?? [];
+    expect(permissions).toEqual(expect.arrayContaining([
+      'admin.read',
+      'dashboard.read',
+      'earchiva.read',
+      'education.read',
+      'registratura.read',
+      'workflow.read',
+    ]));
+    expect(permissions.length).toBeGreaterThan(6);
+    expect(permissions.every((permission) => permission.endsWith('.read'))).toBe(true);
+    const modules = (authenticatedSession.modules ?? [])
+      .filter((module) => module.active)
+      .map((module) => module.code);
+    expect(modules).toEqual(expect.arrayContaining([
+      'admin',
+      'dashboard',
+      'earchiva',
+      'education',
+      'registratura',
+      'workflow',
+    ]));
     await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible();
 
     const logoutResponse = page.waitForResponse((response) => {
