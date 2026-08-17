@@ -182,9 +182,7 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_registry"})
 		return
 	}
-	if req.Subject == "" {
-		req.Subject = "Document multiplu"
-	}
+	generatedSubject := req.Subject == ""
 	if req.Confidentiality == "" {
 		req.Confidentiality = "normal"
 	}
@@ -217,8 +215,8 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 			DueDate:              req.DueDate,
 			RecordKind:           "document",
 		}
-		if req.Count > 1 {
-			createReq.Subject = fmt.Sprintf("%s #%d", req.Subject, i+1)
+		if generatedSubject {
+			createReq.Subject = fmt.Sprintf("Document multiplu %d/%d", i+1, req.Count)
 		}
 
 		item, err := s.createDocumentTx(r.Context(), tx, createReq, authruntime.CurrentSubjectFromRequest(r), s.institutionID(r))

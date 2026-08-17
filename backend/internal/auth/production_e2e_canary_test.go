@@ -54,24 +54,6 @@ func TestProductionCanaryIdentityRemainsReservedWhenFeatureIsDisabled(t *testing
 	}
 }
 
-func TestProductionCanarySelfServiceMutationsAreReadOnly(t *testing.T) {
-	service := &Service{cfg: productionCanaryConfig()}
-	response := httptest.NewRecorder()
-	if !service.rejectProductionE2ECanaryMutation(response, oidcTestFixtureUserID.String()) {
-		t.Fatal("reserved production canary mutation must be rejected")
-	}
-	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), "e2e_canary_read_only") {
-		t.Fatalf("unexpected canary mutation response: %d %s", response.Code, response.Body.String())
-	}
-	if service.rejectProductionE2ECanaryMutation(httptest.NewRecorder(), uuid.NewString()) {
-		t.Fatal("ordinary production users must retain self-service mutations")
-	}
-	service.cfg.Environment = "test"
-	if service.rejectProductionE2ECanaryMutation(httptest.NewRecorder(), oidcTestFixtureUserID.String()) {
-		t.Fatal("the loopback-only test fixture must retain test-environment behavior")
-	}
-}
-
 func TestBeginProductionE2ECanaryDoesNotPutGateKeyInCookie(t *testing.T) {
 	cfg := productionCanaryConfig()
 	service := &Service{cfg: cfg}

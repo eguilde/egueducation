@@ -85,11 +85,13 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
       'dashboard.read',
       'earchiva.read',
       'education.read',
+      'registratura.manage',
       'registratura.read',
+      'registratura.links.manage',
+      'workflow.manage',
       'workflow.read',
     ]));
     expect(permissions.length).toBeGreaterThan(6);
-    expect(permissions.every((permission) => permission.endsWith('.read'))).toBe(true);
     const modules = (authenticatedSession.modules ?? [])
       .filter((module) => module.active)
       .map((module) => module.code);
@@ -106,6 +108,11 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
     await page.goto(productionOrigin + '/scoala');
     await expect(page.getByRole('region', { name: 'Școală' })).toBeVisible();
     expect(pageErrors).toEqual([]);
+
+    await page.goto(productionOrigin + '/registratura');
+    await expect(page.getByRole('button', { name: 'Intrare' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Ieșire' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'MULTIPLU' })).toBeEnabled();
 
     const logoutResponse = page.waitForResponse((response) => {
       const url = new URL(response.url());

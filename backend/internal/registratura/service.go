@@ -224,6 +224,7 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 		map[string]struct{}{
 			"registru_id":        {},
 			"registry_number":    {},
+			"external_number":    {},
 			"subject":            {},
 			"document_type":      {},
 			"direction":          {},
@@ -234,11 +235,15 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 			"registered_at":      {},
 			"registered_at_from": {},
 			"registered_at_to":   {},
+			"entry_at_from":      {},
+			"entry_at_to":        {},
+			"exit_at_from":       {},
+			"exit_at_to":         {},
 			"due_date":           {},
 			"due_date_from":      {},
 			"due_date_to":        {},
 		},
-		[]string{"registry_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at"},
+		[]string{"registry_number", "external_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at", "entry_at", "exit_at"},
 	)
 
 	whereClause, args := buildDocumentFilters(s.institutionID(r), query.Filters)
@@ -1442,6 +1447,9 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 	if value := filters["registry_number"]; value != "" {
 		addContains("d.registry_number", value)
 	}
+	if value := filters["external_number"]; value != "" {
+		addContains("coalesce(d.external_number, '')", value)
+	}
 	if value := filters["registru_id"]; value != "" {
 		addEqual("d.registru_id::text", value)
 	}
@@ -1478,6 +1486,22 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("d.registered_at::date <= $%d::date", len(args)))
 	}
+	if value := filters["entry_at_from"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.entry_at::date >= $%d::date", len(args)))
+	}
+	if value := filters["entry_at_to"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.entry_at::date <= $%d::date", len(args)))
+	}
+	if value := filters["exit_at_from"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.exit_at::date >= $%d::date", len(args)))
+	}
+	if value := filters["exit_at_to"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.exit_at::date <= $%d::date", len(args)))
+	}
 	if value := filters["due_date_from"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("d.due_date >= $%d::date", len(args)))
@@ -1494,6 +1518,8 @@ func sortColumn(field string) string {
 	switch field {
 	case "registry_number":
 		return "d.registry_number"
+	case "external_number":
+		return "d.external_number"
 	case "subject":
 		return "d.subject"
 	case "document_type":
@@ -1510,6 +1536,10 @@ func sortColumn(field string) string {
 		return "d.confidentiality"
 	case "due_date":
 		return "d.due_date"
+	case "entry_at":
+		return "d.entry_at"
+	case "exit_at":
+		return "d.exit_at"
 	default:
 		return "d.registered_at"
 	}

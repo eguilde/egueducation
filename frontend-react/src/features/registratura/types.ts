@@ -12,7 +12,7 @@ export interface RegistryDocument {
   workflow_assignment?: WorkflowAssignment | null;
 }
 export interface Page<T> { items: T[]; total: number; page: number; pageSize: number }
-export interface DocumentFilters { registry_number?: string; subject?: string; document_type?: string; direction?: string; status?: string; correspondent?: string; assigned_to?: string; confidentiality?: string; registered_at_from?: string; registered_at_to?: string; due_date_from?: string; due_date_to?: string; q?: string }
+export interface DocumentFilters { registry_number?: string; external_number?: string; subject?: string; document_type?: string; direction?: string; status?: string; correspondent?: string; assigned_to?: string; confidentiality?: string; registered_at_from?: string; registered_at_to?: string; entry_at_from?: string; entry_at_to?: string; exit_at_from?: string; exit_at_to?: string; due_date_from?: string; due_date_to?: string; q?: string }
 export interface DocumentFilterOptions { document_types: string[]; directions: string[]; statuses: string[]; confidentialities: string[] }
 export type WorkflowAction = 'assign_department' | 'assign_user' | 'claim' | 'send_for_approval' | 'approve' | 'reject';
 export interface WorkflowAssignment { department_id?: string | null; department_name?: string | null; user_id?: string | null; user_name?: string | null; approver_id?: string | null; approver_name?: string | null }
