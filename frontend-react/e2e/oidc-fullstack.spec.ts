@@ -31,13 +31,13 @@ test('completes real PKCE, OTP, callback, refresh-cookie and /api/me flow', asyn
   if (await consent.count()) await consent.click();
 
   await expect(page).toHaveURL('http://127.0.0.1:4173/');
-  await expect(page.getByText('OIDC Browser Fixture')).toBeVisible();
+  await expect(page.getByText('Utilizator Test')).toBeVisible();
 
   const me = await page.request.get('/api/me');
   expect(me.status()).toBe(401);
 
   await page.reload();
-  await expect(page.getByText('OIDC Browser Fixture')).toBeVisible();
+  await expect(page.getByText('Utilizator Test')).toBeVisible();
   await page.goto('/administrare');
   await expect(page).toHaveURL(/\/administrare$/);
 });
