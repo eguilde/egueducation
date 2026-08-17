@@ -87,7 +87,7 @@ test('rejects the fixed OTP without production canary activation', async ({ brow
     await submitOTP(page);
     await expect(page.getByText('Cod invalid sau expirat.')).toBeVisible();
   } finally {
-    await context.close();
+    await context.close().catch(() => undefined);
   }
 });
 
@@ -130,8 +130,9 @@ test('completes production PKCE login, /api/me, and logout with a gated OTP', as
     });
     await page.getByRole('button', { name: 'Deconectare' }).click();
     expect((await logoutResponse).status()).toBe(200);
-    await expect(page).toHaveURL(/\/auth\/logout/);
+    await expect(page).toHaveURL(productionOrigin + '/');
+    await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   } finally {
-    await context.close();
+    await context.close().catch(() => undefined);
   }
 });
