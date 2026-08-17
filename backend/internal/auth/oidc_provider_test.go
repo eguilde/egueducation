@@ -199,6 +199,7 @@ func TestOTPLoginUIAutoAdvancesAndSupportsPasteAndBackspace(t *testing.T) {
 		`box.addEventListener('paste'`,
 		`box.addEventListener('keydown'`,
 		`event.key==='Backspace'`,
+		`document.documentElement.dataset.oidcUiReady='true'`,
 	} {
 		if !strings.Contains(oidcLoginScript, required) {
 			t.Fatalf("OTP login is missing required keyboard behavior %q", required)

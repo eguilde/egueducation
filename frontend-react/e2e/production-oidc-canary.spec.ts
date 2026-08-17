@@ -34,6 +34,7 @@ async function startOTPLogin(page: Page): Promise<void> {
   await page.getByLabel('Utilizator, email sau numar de telefon').fill(canaryIdentifier);
   await page.getByRole('button', { name: 'Trimite codul prin SMS' }).click();
   await expect(page.locator('.otp-box')).toHaveCount(6);
+  await expect(page.locator('html[data-oidc-ui-ready="true"]')).toHaveCount(1);
 }
 
 async function submitOTP(page: Page): Promise<void> {
