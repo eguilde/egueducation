@@ -251,8 +251,9 @@ func (s *Service) loadGovernanceMeetingAccessContext(r *http.Request, meetingID 
 		select id::text, school_year, organism, chairperson, secretary_name,
 			coalesce(chairperson_user_id::text, ''), coalesce(secretary_user_id::text, ''), status
 		from education_meetings
-		where id = $1::uuid and institution_id = $2
-	`, meetingID, s.institutionID(r)).Scan(
+		where id = $1::uuid
+		  and institution_id = public.current_institution_id()
+	`, meetingID).Scan(
 		&meeting.ID,
 		&meeting.SchoolYear,
 		&meeting.Organism,
@@ -278,11 +279,11 @@ func (s *Service) governanceMembershipAccess(r *http.Request, meeting governance
 	rows, err := s.pool.Query(r.Context(), `
 		select role_name, voting_right, coalesce(app_user_id::text, '')
 		from education_governance_memberships
-		where institution_id = $1
-			and school_year = $2
-			and organism = $3
+		where institution_id = public.current_institution_id()
+			and school_year = $1
+			and organism = $2
 			and status = 'activ'
-	`, s.institutionID(r), meeting.SchoolYear, meeting.Organism)
+	`, meeting.SchoolYear, meeting.Organism)
 	if err != nil {
 		return nil, err
 	}
