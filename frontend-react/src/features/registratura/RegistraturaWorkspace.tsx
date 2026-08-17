@@ -107,6 +107,7 @@ export function RegistraturaWorkspace({
   const [registryId, setRegistryId] = useState<number>();
   const [documents, setDocuments] = useState<RegistryDocument[]>([]);
   const [filters, setFilters] = useState<DocumentFilters>({});
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [filterOptions, setFilterOptions] = useState<DocumentFilterOptions>();
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -388,6 +389,17 @@ export function RegistraturaWorkspace({
                   </Button>
                   {canManage && <Button variant="outlined" severity="secondary" onClick={openAdmin}><Cog /> Administrare</Button>}
                   <Button variant="outlined" severity="secondary" disabled={!registryId} onClick={() => registryId && api.exportPdf({ registru_id: registryId }).then((blob) => saveBlob(blob, "registratura.pdf")).catch(() => setError("Exportul PDF nu a putut fi generat."))}><FilePdf /> Export PDF</Button>
+                  <Button
+                    variant="outlined"
+                    severity="secondary"
+                    aria-label={filtersOpen ? "Închide căutarea" : "Deschide căutarea"}
+                    aria-expanded={filtersOpen}
+                    aria-controls="registratura-search-panel"
+                    title={filtersOpen ? "Închide căutarea" : "Deschide căutarea"}
+                    onClick={() => setFiltersOpen((value) => !value)}
+                  >
+                    <Search />
+                  </Button>
                 </div>
                 <div className="w-full lg:w-80">
                   <Select.Root
@@ -414,6 +426,7 @@ export function RegistraturaWorkspace({
                   </Select.Root>
                 </div>
               </div>
+              {filtersOpen && <div id="registratura-search-panel" aria-label="Căutare documente" className="flex flex-col gap-3">
               <div className="grid gap-3 md:grid-cols-3">
                 <InputText
                   aria-label="Caută documente"
@@ -452,6 +465,7 @@ export function RegistraturaWorkspace({
                 <Button variant="outlined" severity="secondary" onClick={() => { setPage(1); setSortDirection((value) => value === "asc" ? "desc" : "asc"); }}>{sortDirection === "asc" ? "Crescător" : "Descrescător"}</Button>
                 <Button variant="text" severity="secondary" onClick={() => { setFilters({}); setPage(1); }}>Resetează filtrele</Button>
               </div>
+              </div>}
             </div>
           </Card.Content>
         </Card.Body>

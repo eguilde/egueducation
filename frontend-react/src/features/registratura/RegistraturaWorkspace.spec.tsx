@@ -46,6 +46,21 @@ describe("Registratura administration deletion", () => {
   });
 });
 
+describe("Registratura search panel", () => {
+  it("starts closed and is toggled by the magnifier button", async () => {
+    const transport = apiForConfirmation();
+    render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="search-panel" /></PrimeReactProvider>);
+
+    const openSearch = await screen.findByRole("button", { name: "Deschide căutarea" });
+    expect(openSearch).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Căutare documente")).not.toBeInTheDocument();
+
+    fireEvent.click(openSearch);
+    expect(screen.getByLabelText("Căutare documente")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Închide căutarea" })).toHaveAttribute("aria-expanded", "true");
+  });
+});
+
 describe("Registratura request ordering", () => {
   it("keeps the newest document list when request A resolves after B", async () => {
     const first = deferred<{ items: ReturnType<typeof documentItem>[]; total: number; page: number; pageSize: number }>();
@@ -53,6 +68,7 @@ describe("Registratura request ordering", () => {
     const transport = apiForRace({ documents: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="race-list" canManage /></PrimeReactProvider>);
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole("button", { name: "Deschide căutarea" }));
     fireEvent.click(screen.getByRole("button", { name: /Aplică filtre/ }));
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(2));
     second.resolve({ items: [documentItem("new", "Rezultatul B")], total: 1, page: 1, pageSize: 50 });
