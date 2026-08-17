@@ -39,7 +39,12 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	service := NewService(appdb.NewSessionPool(it.readerPool))
 
 	ctxA, releaseA := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
-	defer releaseA()
+	releasedA := false
+	defer func() {
+		if !releasedA {
+			releaseA()
+		}
+	}()
 	requestA := requestWithContext(ctxA)
 	actorID, err := service.currentActorUserID(requestA, fixture.memberSubject)
 	if err != nil {
@@ -74,6 +79,10 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	if err != nil || allowed {
 		t.Fatalf("wired governance authorizer for legacy name-only chair = %t, %v; want false, nil", allowed, err)
 	}
+	// The restricted pool deliberately has one connection so the next tenant
+	// must reuse the same physical connection after session cleanup.
+	releaseA()
+	releasedA = true
 
 	ctxB, releaseB := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	defer releaseB()
