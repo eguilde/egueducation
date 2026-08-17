@@ -1,0 +1,17 @@
+{
+  "schema_version": "archive-import-v1",
+  "batch_id": "synthetic-documentation-fixture",
+  "expected_api_host": "school.example.test",
+  "files": [
+    {
+      "sequence": 1,
+      "source_relative_path": "synthetic-document-01.pdf",
+      "original_filename": "synthetic-document-01.pdf",
+      "canonical_filename": "archive-0001.pdf",
+      "bytes": 1024,
+      "pages": 1,
+      "mime_type": "application/pdf",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}

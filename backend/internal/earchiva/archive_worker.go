@@ -3,11 +3,14 @@ package earchiva
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,18 +29,21 @@ import (
 var errNoArchiveJob = errors.New("no archive job available")
 
 type IngestionWorker struct {
-	pool         *appdb.SessionPool
-	storage      *ArchiveStorage
-	extract      *ArchiveTextract
-	logger       *zap.Logger
-	pollInterval time.Duration
-	workerID     string
-	mu           sync.Mutex
-	started      bool
+	pool           *appdb.SessionPool
+	storage        *ArchiveStorage
+	extract        ArchiveOCR
+	classification *ClassificationReviewService
+	logger         *zap.Logger
+	pollInterval   time.Duration
+	maxAttempts    int
+	workerID       string
+	mu             sync.Mutex
+	started        bool
 }
 
 type archiveIngestionJob struct {
 	ID            string
+	TenantID      string
 	InstitutionID string
 	DocumentID    string
 	VersionID     string
@@ -119,22 +125,31 @@ type archiveRelationRecord struct {
 	Metadata      map[string]any `json:"metadata,omitempty"`
 }
 
-func NewIngestionWorker(pool *appdb.SessionPool, storage *ArchiveStorage, extract *ArchiveTextract, logger *zap.Logger, pollInterval time.Duration) *IngestionWorker {
+func NewIngestionWorker(pool *appdb.SessionPool, storage *ArchiveStorage, extract ArchiveOCR, logger *zap.Logger, pollInterval time.Duration) *IngestionWorker {
+	return NewIngestionWorkerWithMaxAttempts(pool, storage, extract, logger, pollInterval, 5)
+}
+
+func NewIngestionWorkerWithMaxAttempts(pool *appdb.SessionPool, storage *ArchiveStorage, extract ArchiveOCR, logger *zap.Logger, pollInterval time.Duration, maxAttempts int) *IngestionWorker {
 	if pollInterval <= 0 {
 		pollInterval = 5 * time.Second
 	}
+	if maxAttempts < 1 || maxAttempts > 20 {
+		maxAttempts = 5
+	}
 	return &IngestionWorker{
-		pool:         pool,
-		storage:      storage,
-		extract:      extract,
-		logger:       logger,
-		pollInterval: pollInterval,
-		workerID:     uuid.NewString(),
+		pool:           pool,
+		storage:        storage,
+		extract:        extract,
+		classification: NewClassificationReviewService(pool),
+		logger:         logger,
+		pollInterval:   pollInterval,
+		maxAttempts:    maxAttempts,
+		workerID:       uuid.NewString(),
 	}
 }
 
 func (w *IngestionWorker) Enabled() bool {
-	return w != nil && w.storage != nil && w.storage.Enabled()
+	return w != nil && w.storage != nil && w.storage.Enabled() && w.extract != nil && w.extract.Enabled()
 }
 
 func (w *IngestionWorker) Start(ctx context.Context) {
@@ -179,28 +194,66 @@ func (w *IngestionWorker) drainQueue(ctx context.Context) error {
 			return errNoArchiveJob
 		}
 
-		if err := w.processJob(ctx, job); err != nil {
+		jobCtx, release, err := w.acquireTenantJobContext(ctx, job.TenantID, job.InstitutionID)
+		if err != nil {
+			return fmt.Errorf("bind archive job tenant context: %w", err)
+		}
+		err = w.processJob(jobCtx, job)
+		release()
+		if err != nil {
 			w.logError("archive ingestion job failed", zap.String("job_id", job.ID), zap.String("document_id", job.DocumentID), zap.Error(err))
 		}
 	}
 }
 
 func (w *IngestionWorker) claimJob(ctx context.Context) (*archiveIngestionJob, error) {
-	tx, err := w.pool.Begin(ctx)
+	// The queue is the sole cross-tenant operation. Use a fresh, short-lived
+	// privileged session only to atomically claim one job; it is cleared before
+	// any document, object, OCR, or search operation begins.
+	claimCtx, release, err := appdb.AcquireRequestConn(ctx, w.pool.Raw(), appdb.SessionConfig{
+		ActorSubject: "archive-ingestion-worker", IsSuperAdmin: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("acquire archive job claim session: %w", err)
+	}
+	defer release()
+	tx, err := w.pool.Begin(claimCtx)
 	if err != nil {
 		return nil, fmt.Errorf("begin archive job claim: %w", err)
 	}
-	defer tx.Rollback(ctx) //nolint:errcheck
+	defer tx.Rollback(claimCtx) //nolint:errcheck
+
+	// Reclaim expired leases as a separate statement inside the same transaction.
+	// PostgreSQL data-modifying CTEs share one snapshot, so a row changed from
+	// running to pending in a CTE is not reliably selectable as pending by a
+	// sibling CTE in that same statement.
+	if _, err := tx.Exec(claimCtx, `
+		update archive_ingestion_jobs
+		set status = 'pending', locked_at = null, locked_by = '',
+			available_at = now(), updated_at = now(),
+			last_error = case when last_error = '' then 'worker lease expired; job reclaimed' else last_error end
+		where status = 'running'
+			and (locked_at is null or locked_at < now() - interval '90 minutes')
+	`); err != nil {
+		return nil, fmt.Errorf("reclaim expired archive job leases: %w", err)
+	}
 
 	var job archiveIngestionJob
-	err = tx.QueryRow(ctx, `
-		with next_job as (
-			select id
-			from archive_ingestion_jobs
-			where status = 'pending'
-				and available_at <= now()
-			order by available_at asc, created_at asc
-			for update skip locked
+	err = tx.QueryRow(claimCtx, `
+		with active_tenants as (
+			select institution_id, min(code) as tenant_id
+			from app_tenants
+			where active = true
+			group by institution_id
+			having count(*) = 1
+		), next_job as (
+			select j.id, t.tenant_id
+			from archive_ingestion_jobs j
+			join active_tenants t on t.institution_id = j.institution_id
+			where j.status = 'pending'
+				and j.available_at <= now()
+			order by j.available_at asc, j.created_at asc
+			for update of j skip locked
 			limit 1
 		)
 		update archive_ingestion_jobs j
@@ -213,6 +266,7 @@ func (w *IngestionWorker) claimJob(ctx context.Context) (*archiveIngestionJob, e
 		where j.id = next_job.id
 		returning
 			j.id::text,
+			next_job.tenant_id,
 			j.institution_id,
 			j.document_id::text,
 			j.version_id::text,
@@ -221,6 +275,7 @@ func (w *IngestionWorker) claimJob(ctx context.Context) (*archiveIngestionJob, e
 			to_char(j.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 	`, w.workerID).Scan(
 		&job.ID,
+		&job.TenantID,
 		&job.InstitutionID,
 		&job.DocumentID,
 		&job.VersionID,
@@ -235,10 +290,24 @@ func (w *IngestionWorker) claimJob(ctx context.Context) (*archiveIngestionJob, e
 		return nil, fmt.Errorf("claim archive job: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
+	if err := tx.Commit(claimCtx); err != nil {
 		return nil, fmt.Errorf("commit archive job claim: %w", err)
 	}
 	return &job, nil
+}
+
+func (w *IngestionWorker) acquireTenantJobContext(ctx context.Context, tenantID, institutionID string) (context.Context, func(), error) {
+	tenantID = strings.TrimSpace(tenantID)
+	institutionID = strings.TrimSpace(institutionID)
+	if tenantID == "" || institutionID == "" {
+		return nil, nil, fmt.Errorf("archive job is missing active tenant or institution binding")
+	}
+	return appdb.AcquireRequestConn(ctx, w.pool.Raw(), appdb.SessionConfig{
+		TenantID:      tenantID,
+		InstitutionID: institutionID,
+		ActorSubject:  "archive-ingestion-worker",
+		IsSuperAdmin:  false,
+	})
 }
 
 func (w *IngestionWorker) processJob(ctx context.Context, job *archiveIngestionJob) error {
@@ -246,16 +315,25 @@ func (w *IngestionWorker) processJob(ctx context.Context, job *archiveIngestionJ
 	if err != nil {
 		return w.failJob(ctx, job, err)
 	}
+	if err := w.markJobProcessing(ctx, job, ctxInfo); err != nil {
+		return w.failJob(ctx, job, err)
+	}
 
-	tmpPath, err := w.downloadToTempFile(ctx, ctxInfo.SourceObjectKey)
+	tmpPath, err := w.downloadToTempFile(ctx, ctxInfo.SourceObjectKey, ctxInfo.SourceSizeBytes)
 	if err != nil {
 		return w.failJob(ctx, job, err)
 	}
 	defer os.Remove(tmpPath)
+	if err := verifyArchiveSourceFile(tmpPath, ctxInfo.SourceSHA256, ctxInfo.SourceSizeBytes); err != nil {
+		return w.failJob(ctx, job, err)
+	}
 
 	text, pageCount, metadata, err := extractArchiveText(ctx, tmpPath, ctxInfo, w.extract)
 	if err != nil {
 		return w.failJob(ctx, job, err)
+	}
+	if strings.TrimSpace(text) == "" {
+		return w.failJob(ctx, job, fmt.Errorf("archive OCR produced no searchable text"))
 	}
 
 	chunks := splitArchiveText(text, 1400)
@@ -295,12 +373,28 @@ func (w *IngestionWorker) processJob(ctx context.Context, job *archiveIngestionJ
 }
 
 func (w *IngestionWorker) failJob(ctx context.Context, job *archiveIngestionJob, cause error) error {
+	if isRetryableArchiveError(cause) && job.Attempts < w.maxAttempts {
+		delay := archiveRetryDelay(job.Attempts)
+		_, err := w.pool.Exec(ctx, `
+			update archive_ingestion_jobs
+			set status = 'pending', last_error = $1, available_at = now() + $2::interval,
+				locked_at = null, locked_by = '', started_at = null, finished_at = null, updated_at = now()
+			where id::text = $3
+		`, truncateWorkerError(cause.Error()), intervalLiteral(delay), job.ID)
+		if err != nil {
+			return fmt.Errorf("reschedule archive job: %w", err)
+		}
+		_, _ = w.pool.Exec(ctx, `update archive_documents set status = 'queued', updated_at = now() where id::text = $1`, job.DocumentID)
+		_, _ = w.pool.Exec(ctx, `update archive_document_versions set text_status = 'pending', updated_at = now() where id::text = $1`, job.VersionID)
+		return cause
+	}
 	_, err := w.pool.Exec(ctx, `
 		update archive_ingestion_jobs
 		set status = 'failed',
 			last_error = $1,
 			locked_at = null,
 			locked_by = '',
+			finished_at = now(),
 			updated_at = now()
 		where id::text = $2
 	`, truncateWorkerError(cause.Error()), job.ID)
@@ -312,7 +406,41 @@ func (w *IngestionWorker) failJob(ctx context.Context, job *archiveIngestionJob,
 		set status = 'failed', updated_at = now()
 		where id::text = $1
 	`, job.DocumentID)
+	_, _ = w.pool.Exec(ctx, `
+		update archive_document_versions
+		set text_status = 'failed', updated_at = now()
+		where id::text = $1
+	`, job.VersionID)
 	return cause
+}
+
+func isRetryableArchiveError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var networkErr net.Error
+	if errors.As(err, &networkErr) {
+		return true
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "http 408") || strings.Contains(message, "http 429") ||
+		strings.Contains(message, "http 500") || strings.Contains(message, "http 502") ||
+		strings.Contains(message, "http 503") || strings.Contains(message, "http 504")
+}
+
+func archiveRetryDelay(attempt int) time.Duration {
+	if attempt < 1 {
+		attempt = 1
+	}
+	delay := 15 * time.Second * time.Duration(1<<(attempt-1))
+	if delay > 15*time.Minute {
+		return 15 * time.Minute
+	}
+	return delay
+}
+
+func intervalLiteral(delay time.Duration) string {
+	return fmt.Sprintf("%d seconds", int(delay.Round(time.Second).Seconds()))
 }
 
 func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIngestionJob, info archiveIngestionContext, text string, pageCount int, chunks []archiveChunkRecord, entities []archiveEntityRecord, relations []archiveRelationRecord, extractedMetadata map[string]any, searchEmbedding []float64, artifactBytes []byte) error {
@@ -352,6 +480,7 @@ func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIng
 		if _, err := tx.Exec(ctx, `
 			insert into archive_document_entities (
 				institution_id,
+				document_id,
 				version_id,
 				entity_type,
 				entity_value,
@@ -359,8 +488,8 @@ func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIng
 				confidence,
 				chunk_no,
 				page_no
-			) values ($1, $2::uuid, $3, $4, $5, $6, $7, $8)
-		`, info.InstitutionID, info.VersionID, entity.EntityType, entity.EntityValue, entity.NormalizedValue, entity.Confidence, entity.ChunkNo, entity.PageNo); err != nil {
+			) values ($1, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, $9)
+		`, info.InstitutionID, info.DocumentID, info.VersionID, entity.EntityType, entity.EntityValue, entity.NormalizedValue, entity.Confidence, entity.ChunkNo, entity.PageNo); err != nil {
 			return fmt.Errorf("insert archive entity: %w", err)
 		}
 	}
@@ -382,6 +511,13 @@ func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIng
 		`, info.InstitutionID, info.DocumentID, relation.RelationType, relation.RelationValue, relation.Confidence, metadataJSON); err != nil {
 			return fmt.Errorf("insert archive relation: %w", err)
 		}
+	}
+
+	if w.classification == nil {
+		return fmt.Errorf("archive classification service is unavailable")
+	}
+	if _, err := w.classification.UpsertSuggestionTx(ctx, tx, ClassificationInput{InstitutionID: info.InstitutionID, DocumentID: info.DocumentID, VersionID: info.VersionID, OCRText: text}); err != nil {
+		return fmt.Errorf("persist archive classification suggestion: %w", err)
 	}
 
 	if _, err := tx.Exec(ctx, `
@@ -417,6 +553,7 @@ func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIng
 			last_error = '',
 			locked_at = null,
 			locked_by = '',
+			finished_at = now(),
 			updated_at = now()
 		where id::text = $1
 	`, job.ID); err != nil {
@@ -424,7 +561,79 @@ func (w *IngestionWorker) persistExtraction(ctx context.Context, job *archiveIng
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		// A transport error can lose the COMMIT acknowledgement after PostgreSQL
+		// has durably committed. Reconcile through a fresh pooled query before the
+		// caller retries or downgrades a successfully processed document.
+		if w.extractionCommitVisible(job, info) {
+			return nil
+		}
 		return fmt.Errorf("commit archive extraction: %w", err)
+	}
+	return nil
+}
+
+func (w *IngestionWorker) extractionCommitVisible(job *archiveIngestionJob, info archiveIngestionContext) bool {
+	checkCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	scopedCtx, release, err := appdb.AcquireRequestConn(checkCtx, w.pool.Raw(), appdb.SessionConfig{
+		TenantID:      job.TenantID,
+		InstitutionID: info.InstitutionID,
+		ActorSubject:  "archive-worker-commit-reconcile",
+		IsSuperAdmin:  false,
+	})
+	if err != nil {
+		return false
+	}
+	defer release()
+	var jobStatus, documentStatus, textStatus string
+	err = w.pool.QueryRow(scopedCtx, `
+		select j.status, d.status, v.text_status
+		from archive_ingestion_jobs j
+		join archive_documents d on d.id = j.document_id and d.institution_id = j.institution_id
+		join archive_document_versions v on v.id = j.version_id and v.institution_id = j.institution_id
+		where j.id::text = $1 and j.institution_id = $2
+	`, job.ID, info.InstitutionID).Scan(&jobStatus, &documentStatus, &textStatus)
+	return err == nil && jobStatus == "succeeded" && documentStatus == "ready" && textStatus == "processed"
+}
+
+func (w *IngestionWorker) markJobProcessing(ctx context.Context, job *archiveIngestionJob, info archiveIngestionContext) error {
+	tx, err := w.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin archive processing state: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if _, err := tx.Exec(ctx, `update archive_documents set status = 'processing', updated_at = now() where id::text = $1 and institution_id = $2`, info.DocumentID, info.InstitutionID); err != nil {
+		return fmt.Errorf("mark archive document processing: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `update archive_document_versions set text_status = 'processing', updated_at = now() where id::text = $1 and institution_id = $2`, info.VersionID, info.InstitutionID); err != nil {
+		return fmt.Errorf("mark archive version processing: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `update archive_ingestion_jobs set started_at = now(), finished_at = null, updated_at = now() where id::text = $1 and institution_id = $2`, job.ID, info.InstitutionID); err != nil {
+		return fmt.Errorf("mark archive job processing: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit archive processing state: %w", err)
+	}
+	return nil
+}
+
+func verifyArchiveSourceFile(filePath, expectedSHA256 string, expectedSize int64) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("open archive source for fixity verification: %w", err)
+	}
+	defer file.Close() //nolint:errcheck
+	hash := sha256.New()
+	actualSize, err := io.Copy(hash, file)
+	if err != nil {
+		return fmt.Errorf("hash archive source: %w", err)
+	}
+	if expectedSize > 0 && actualSize != expectedSize {
+		return fmt.Errorf("archive source fixity size mismatch")
+	}
+	actualSHA256 := hex.EncodeToString(hash.Sum(nil))
+	if expected := strings.ToLower(strings.TrimSpace(expectedSHA256)); expected == "" || actualSHA256 != expected {
+		return fmt.Errorf("archive source fixity checksum mismatch")
 	}
 	return nil
 }
@@ -528,7 +737,10 @@ func (w *IngestionWorker) loadIngestionContext(ctx context.Context, documentID, 
 	return info, nil
 }
 
-func (w *IngestionWorker) downloadToTempFile(ctx context.Context, objectKey string) (string, error) {
+func (w *IngestionWorker) downloadToTempFile(ctx context.Context, objectKey string, expectedSize int64) (string, error) {
+	if expectedSize <= 0 || expectedSize > archiveUploadMaxBytes {
+		return "", fmt.Errorf("archive source has an invalid expected size")
+	}
 	reader, err := w.storage.OpenObject(ctx, objectKey)
 	if err != nil {
 		return "", err
@@ -541,9 +753,14 @@ func (w *IngestionWorker) downloadToTempFile(ctx context.Context, objectKey stri
 	}
 	defer tempFile.Close() //nolint:errcheck
 
-	if _, err := io.Copy(tempFile, reader); err != nil {
+	written, err := io.Copy(tempFile, io.LimitReader(reader, expectedSize+1))
+	if err != nil {
 		os.Remove(tempFile.Name())
 		return "", fmt.Errorf("copy archive object to temp file: %w", err)
+	}
+	if written != expectedSize {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("archive source size changed before processing")
 	}
 	if err := tempFile.Close(); err != nil {
 		os.Remove(tempFile.Name())
@@ -552,37 +769,24 @@ func (w *IngestionWorker) downloadToTempFile(ctx context.Context, objectKey stri
 	return tempFile.Name(), nil
 }
 
-func extractArchiveText(ctx context.Context, filePath string, info archiveIngestionContext, textractProcessor *ArchiveTextract) (string, int, map[string]any, error) {
+func extractArchiveText(ctx context.Context, filePath string, info archiveIngestionContext, textractProcessor ArchiveOCR) (string, int, map[string]any, error) {
 	mimeType := strings.TrimSpace(info.MimeType)
 	name := strings.TrimSpace(info.OriginalFileName)
 	if textractProcessor != nil && textractProcessor.Enabled() && archiveTextractSupported(mimeType, name) {
 		text, pageCount, metadata, err := textractProcessor.AnalyzeDocument(ctx, info.InstitutionID, info.DocumentID, info.VersionNo, filePath, name, mimeType)
-		if err == nil && strings.TrimSpace(text) != "" {
-			return text, pageCount, metadata, nil
+		if err != nil {
+			return "", 0, metadata, err
 		}
-		if err == nil {
-			metadata = mergeArchiveMetadata(metadata, map[string]any{
-				"textract_empty_text": true,
-			})
-		} else {
-			metadata = mergeArchiveMetadata(metadata, map[string]any{
-				"textract_error": err.Error(),
-			})
+		if strings.TrimSpace(text) == "" {
+			return "", 0, metadata, fmt.Errorf("archive OCR produced no searchable text")
 		}
-		fallbackText, fallbackPages, fallbackErr := extractLocalArchiveText(filePath, mimeType)
-		if fallbackErr == nil && strings.TrimSpace(fallbackText) != "" {
-			metadata = mergeArchiveMetadata(metadata, map[string]any{
-				"text_extraction_source": "local-fallback",
-			})
-			return fallbackText, fallbackPages, metadata, nil
-		}
-		if err == nil {
-			err = fallbackErr
-		}
-		return fallbackText, fallbackPages, metadata, err
+		return text, pageCount, metadata, nil
 	}
 
 	text, pageCount, err := extractLocalArchiveText(filePath, mimeType)
+	if err == nil && strings.TrimSpace(text) == "" {
+		err = fmt.Errorf("archive document has no searchable text and no OCR provider succeeded")
+	}
 	return text, pageCount, map[string]any{"text_extraction_source": "local"}, err
 }
 

@@ -74,9 +74,11 @@ function ArchiveRoute() {
         () => createArchiveApi(apiFetch),
         [apiFetch]
     );
+    // Archivists are granted the dedicated earchiva permission.  Do not
+    // additionally require a role-derived module toggle in the client.
     return secure('earchiva.read', (
-        <ArchiveWorkspace api={api} canManage={has('earchiva.manage')} />
-    ), 'earchiva');
+        <ArchiveWorkspace api={api} canManage={has('earchiva.manage')} canReadContent={has('earchiva.content.read')} canReview={has('earchiva.review')} />
+    ));
 }
 
 function ProfileRoute() {

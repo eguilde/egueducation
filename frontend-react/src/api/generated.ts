@@ -752,6 +752,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/earchiva/admin/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read eArhiva component health
+         * @description Returns tenant-scoped operational health and queue counts without exposing credentials, bucket names or object keys.
+         */
+        get: operations["get_api_earchiva_admin_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List eArhiva ingestion jobs
+         * @description Lists ingestion jobs for the active tenant. Failed-job details are reduced to safe categories and never expose OCR or storage error payloads.
+         */
+        get: operations["get_api_earchiva_admin_jobs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/jobs/{jobID}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry a failed eArhiva ingestion job
+         * @description Requeues a failed ingestion job after verifying that it belongs to the active tenant. Cross-tenant and non-failed job identifiers return not found.
+         */
+        post: operations["post_api_earchiva_admin_jobs_jobid_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read eArhiva statistics
+         * @description Returns document and ingestion-job counts for the active tenant only.
+         */
+        get: operations["get_api_earchiva_admin_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/classification-reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List OCR classification reviews
+         * @description Lists human-review tasks generated from OCR for the active institution only. Suggestions are explainable and never become final metadata without an explicit review decision.
+         */
+        get: operations["get_api_earchiva_classification_reviews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/classification-reviews/{reviewID}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve an OCR classification suggestion
+         * @description Approves the stored suggestion using optimistic revision control. The caller cannot replace classification fields through this operation.
+         */
+        post: operations["post_api_earchiva_classification_reviews_reviewid_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/classification-reviews/{reviewID}/correct": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Correct an OCR classification suggestion
+         * @description Stores a reviewed, closed classification DTO using optimistic revision control; unknown fields and cross-tenant identifiers are rejected.
+         */
+        post: operations["post_api_earchiva_classification_reviews_reviewid_correct"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/earchiva/dashboard": {
         parameters: {
             query?: never;
@@ -786,8 +926,8 @@ export interface paths {
         get: operations["get_api_earchiva_documents"];
         put?: never;
         /**
-         * Upload an archived document
-         * @description Stores a document in the institution context validated from the authenticated token/session and request host. Media type and upload protocol are validated by the service.
+         * Upload an archived PDF
+         * @description Accepts a bounded multipart PDF. The active tenant is derived from the authenticated session; the client cannot select an institution. The server validates the PDF, malware-scans it, stores the original and queues OCR/indexing.
          */
         post: operations["post_api_earchiva_documents"];
         delete?: never;
@@ -808,6 +948,26 @@ export interface paths {
          * @description Tenant-scoped Archive operation. The backend is authoritative for RBAC, resource visibility, transition state and validation.
          */
         get: operations["get_api_earchiva_documents_documentid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/documents/{documentID}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the original archived document
+         * @description Streams the original PDF only after tenant, document and archive-content permission checks. Storage bucket and object keys are never returned as JSON.
+         */
+        get: operations["get_api_earchiva_documents_documentid_content"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8991,13 +9151,35 @@ export interface components {
             name?: string;
             sla_hours?: number;
         };
-        Request_post_api_earchiva_documents: {
-            classificationCode?: string;
-            metadata?: {
-                [key: string]: unknown;
+        Request_post_api_earchiva_classification_reviews_reviewid_approve: {
+            note?: string;
+            revision?: number;
+        };
+        Request_post_api_earchiva_classification_reviews_reviewid_correct: {
+            classification?: {
+                category?: string;
+                document_date?: string;
+                document_number?: string;
+                document_type?: string;
+                fond?: string;
+                series?: string;
             };
-            /** Format: uuid */
-            recordId?: string;
+            note?: string;
+            revision?: number;
+        };
+        Request_post_api_earchiva_documents: {
+            document_date?: string;
+            external_reference?: string;
+            /** Format: binary */
+            file: string;
+            idempotency_key?: string;
+            /** @description JSON object encoded as one multipart text part. */
+            metadata?: string;
+            source_kind?: string;
+            source_system?: string;
+            taxonomy_code?: string;
+            taxonomy_label?: string;
+            taxonomy_parent_code?: string;
             title?: string;
         };
         Request_post_api_education_exports_csv: {
@@ -9640,6 +9822,122 @@ export interface components {
             theme_brand?: string;
             theme_family?: string;
         };
+        get_api_earchiva_admin_health_response: {
+            ocr?: {
+                configured?: boolean;
+                message?: string;
+                provider?: string;
+                status?: string;
+            };
+            queue?: {
+                failed?: number;
+                pending?: number;
+                running?: number;
+                succeeded?: number;
+            };
+            storage?: {
+                message?: string;
+                status?: string;
+            };
+            storage_enabled?: boolean;
+        };
+        get_api_earchiva_admin_jobs_response: {
+            items?: {
+                attempts?: number;
+                available_at?: string;
+                created_at?: string;
+                document_id?: string;
+                error?: string;
+                error_summary?: string;
+                finished_at?: string;
+                has_error?: boolean;
+                id?: string;
+                job_type?: string;
+                stage?: string;
+                started_at?: string;
+                status?: string;
+                updated_at?: string;
+            }[];
+            page?: number;
+            pageSize?: number;
+            total?: number;
+        };
+        get_api_earchiva_admin_stats_response: {
+            completed?: number;
+            documents_by_status?: {
+                [key: string]: number;
+            };
+            failed?: number;
+            jobs_by_status?: {
+                [key: string]: number;
+            };
+            processing?: number;
+            queued?: number;
+            total_bytes?: number;
+            total_documents?: number;
+            total_jobs?: number;
+            total_pages?: number;
+        };
+        get_api_earchiva_classification_reviews_response: {
+            items?: {
+                document_id?: string;
+                final_classification?: {
+                    [key: string]: string;
+                };
+                generated_at?: string;
+                id?: string;
+                requires_human_review?: boolean;
+                review_note?: string;
+                reviewed_at?: string;
+                reviewed_by?: string;
+                revision?: number;
+                state?: string;
+                suggestion?: {
+                    category?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                    document_date?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                    document_number?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                    document_type?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                    fond?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                    series?: {
+                        confidence?: number;
+                        evidence?: string;
+                        source?: string;
+                        value?: string;
+                    };
+                };
+                suggestion_confidence?: number;
+                suggestion_source?: string;
+                version_id?: string;
+            }[];
+            page?: number;
+            page_size?: number;
+            total?: number;
+        };
         get_api_earchiva_dashboard_response: {
             stats: {
                 draft_records?: number;
@@ -9649,8 +9947,6 @@ export interface components {
             };
         };
         get_api_earchiva_documents_documentid_response: {
-            artifact_bucket?: string;
-            artifact_object_key?: string;
             created_at?: string;
             current_version_no?: number;
             document_date?: string | null;
@@ -9658,15 +9954,10 @@ export interface components {
             id?: string;
             institution_id?: string;
             latest_version?: {
-                artifact_bucket?: string;
-                artifact_object_key?: string;
                 created_at?: string;
-                created_by?: string;
                 document_id?: string;
                 id?: string;
                 page_count?: number;
-                source_bucket?: string;
-                source_object_key?: string;
                 source_sha256?: string;
                 source_size_bytes?: number;
                 text_status?: string;
@@ -9676,9 +9967,7 @@ export interface components {
                 [key: string]: string;
             };
             mime_type?: string;
-            original_bucket?: string;
             original_file_name?: string;
-            original_object_key?: string;
             received_at?: string;
             source_kind?: string;
             source_system?: string;
@@ -9690,16 +9979,11 @@ export interface components {
             updated_at?: string;
         };
         get_api_earchiva_documents_documentid_versions_item: {
-            artifact_bucket?: string;
-            artifact_object_key?: string;
             chunk_count?: number;
             created_at?: string;
-            created_by?: string;
             document_id?: string;
             id?: string;
             page_count?: number;
-            source_bucket?: string;
-            source_object_key?: string;
             source_sha256?: string;
             source_size_bytes?: number;
             text_status?: string;
@@ -9707,8 +9991,6 @@ export interface components {
         };
         get_api_earchiva_documents_documentid_versions_response: components["schemas"]["get_api_earchiva_documents_documentid_versions_item"][];
         get_api_earchiva_documents_item: {
-            artifact_bucket?: string;
-            artifact_object_key?: string;
             created_at?: string;
             current_version_no?: number;
             document_date?: string | null;
@@ -9719,9 +10001,7 @@ export interface components {
                 [key: string]: string;
             };
             mime_type?: string;
-            original_bucket?: string;
             original_file_name?: string;
-            original_object_key?: string;
             received_at?: string;
             score?: number;
             snippet?: string;
@@ -10777,6 +11057,132 @@ export interface components {
             page?: number;
             pageSize?: number;
             total?: number;
+        };
+        post_api_earchiva_admin_jobs_jobid_retry_response: {
+            attempts?: number;
+            available_at?: string;
+            created_at?: string;
+            document_id?: string;
+            error?: string;
+            error_summary?: string;
+            finished_at?: string;
+            has_error?: boolean;
+            id?: string;
+            job_type?: string;
+            stage?: string;
+            started_at?: string;
+            status?: string;
+            updated_at?: string;
+        };
+        post_api_earchiva_classification_reviews_reviewid_approve_response: {
+            document_id?: string;
+            final_classification?: {
+                [key: string]: string;
+            };
+            generated_at?: string;
+            id?: string;
+            requires_human_review?: boolean;
+            review_note?: string;
+            reviewed_at?: string;
+            reviewed_by?: string;
+            revision?: number;
+            state?: string;
+            suggestion?: {
+                category?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_date?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_number?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_type?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                fond?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                series?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+            };
+            suggestion_confidence?: number;
+            suggestion_source?: string;
+            version_id?: string;
+        };
+        post_api_earchiva_classification_reviews_reviewid_correct_response: {
+            document_id?: string;
+            final_classification?: {
+                [key: string]: string;
+            };
+            generated_at?: string;
+            id?: string;
+            requires_human_review?: boolean;
+            review_note?: string;
+            reviewed_at?: string;
+            reviewed_by?: string;
+            revision?: number;
+            state?: string;
+            suggestion?: {
+                category?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_date?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_number?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                document_type?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                fond?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+                series?: {
+                    confidence?: number;
+                    evidence?: string;
+                    source?: string;
+                    value?: string;
+                };
+            };
+            suggestion_confidence?: number;
+            suggestion_source?: string;
+            version_id?: string;
         };
         post_api_eudi_wallet_activate_response: {
             /** @enum {string} */
@@ -12769,6 +13175,210 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_earchiva_admin_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_admin_health_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_admin_jobs: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_admin_jobs_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_admin_jobs_jobid_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_admin_jobs_jobid_retry_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_admin_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_admin_stats_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_classification_reviews: {
+        parameters: {
+            query?: {
+                state?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_classification_reviews_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_classification_reviews_reviewid_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reviewID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_earchiva_classification_reviews_reviewid_approve"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_classification_reviews_reviewid_approve_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_classification_reviews_reviewid_correct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reviewID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_earchiva_classification_reviews_reviewid_correct"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_classification_reviews_reviewid_correct_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_earchiva_dashboard: {
         parameters: {
             query?: never;
@@ -12830,12 +13440,12 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Request_post_api_earchiva_documents"];
+                "multipart/form-data": components["schemas"]["Request_post_api_earchiva_documents"];
             };
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12869,6 +13479,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["get_api_earchiva_documents_documentid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_documents_documentid_content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["BinaryFile"];
                 };
             };
             400: components["responses"]["BadRequest"];

@@ -21,51 +21,58 @@ type OIDCClientConfig struct {
 }
 
 type Config struct {
-	Port                       string
-	FrontendOrigin             string
-	FrontendOrigins            []string
-	Environment                string
-	DatabaseURL                string
-	MigrationDatabaseURL       string
-	BackendURL                 string
-	CustomerName               string
-	CustomerDomain             string
-	TenantHostBaseDomain       string
-	OIDCIssuer                 string
-	OIDCClientID               string
-	OIDCDesktopClient          string
-	OIDCAudience               string
-	OIDCDevMode                bool
-	AdditionalOIDCClients      []OIDCClientConfig
-	SMSAPIToken                string
-	SMSSenderName              string
-	EnablePasskeys             bool
-	EnableWallet               bool
-	EnableSMSOTP               bool
-	EnableTestOTPFixture       bool
-	TestOTPFixtureCode         string
-	TestOTPFixtureIdentifier   string
-	TestOTPFixtureSubject      string
-	TestOTPFixtureTenantCode   string
-	EnableGDPRFeatures         bool
-	ForceSecureCookies         bool
-	JWTKeyRotationDays         int
-	JWTKeyOverlapHours         int
-	Origin                     string
-	RPID                       string
-	WalletVerifierURL          string
-	WalletRPClientID           string
-	ArchiveStorageEndpoint     string
-	ArchiveStorageRegion       string
-	ArchiveStorageBucket       string
-	ArchiveStorageAccessKey    string
-	ArchiveStorageSecretKey    string
-	ArchiveStorageUsePathStyle bool
-	ArchiveTextractBucket      string
-	ArchiveTextractRegion      string
-	ArchiveWorkerEnabled       bool
-	ArchiveWorkerPollInterval  int
-	ClamdAddress               string
+	Port                                    string
+	FrontendOrigin                          string
+	FrontendOrigins                         []string
+	Environment                             string
+	DatabaseURL                             string
+	MigrationDatabaseURL                    string
+	BackendURL                              string
+	CustomerName                            string
+	CustomerDomain                          string
+	TenantHostBaseDomain                    string
+	OIDCIssuer                              string
+	OIDCClientID                            string
+	OIDCDesktopClient                       string
+	OIDCAudience                            string
+	OIDCDevMode                             bool
+	AdditionalOIDCClients                   []OIDCClientConfig
+	SMSAPIToken                             string
+	SMSSenderName                           string
+	EnablePasskeys                          bool
+	EnableWallet                            bool
+	EnableSMSOTP                            bool
+	EnableTestOTPFixture                    bool
+	TestOTPFixtureCode                      string
+	TestOTPFixtureIdentifier                string
+	TestOTPFixtureSubject                   string
+	TestOTPFixtureTenantCode                string
+	EnableGDPRFeatures                      bool
+	ForceSecureCookies                      bool
+	JWTKeyRotationDays                      int
+	JWTKeyOverlapHours                      int
+	Origin                                  string
+	RPID                                    string
+	WalletVerifierURL                       string
+	WalletRPClientID                        string
+	ArchiveStorageEndpoint                  string
+	ArchiveStorageRegion                    string
+	ArchiveStorageBucket                    string
+	ArchiveStorageAccessKey                 string
+	ArchiveStorageSecretKey                 string
+	ArchiveStorageUsePathStyle              bool
+	ArchiveStorageCreateBucket              bool
+	ArchiveTextractBucket                   string
+	ArchiveTextractRegion                   string
+	AzureDocumentIntelligenceEndpoint       string
+	AzureDocumentIntelligenceKey            string
+	AzureDocumentIntelligenceModel          string
+	AzureDocumentIntelligenceAPIVersion     string
+	AzureDocumentIntelligenceTimeoutMinutes int
+	ArchiveWorkerEnabled                    bool
+	ArchiveWorkerPollInterval               int
+	ArchiveWorkerMaxAttempts                int
+	ClamdAddress                            string
 }
 
 func Load() Config {
@@ -77,51 +84,89 @@ func Load() Config {
 	desktopClientID := env("OIDC_DESKTOP_CLIENT_ID", env("DESKTOP_CLIENT_ID", "egueducation-desktop"))
 
 	return Config{
-		Port:                       env("PORT", "8080"),
-		FrontendOrigin:             frontendOrigin,
-		FrontendOrigins:            parseCSV(os.Getenv("FRONTEND_ORIGINS")),
-		Environment:                env("APP_ENV", env("NODE_ENV", "development")),
-		DatabaseURL:                databaseURL(),
-		MigrationDatabaseURL:       env("MIGRATION_DATABASE_URL", ""),
-		BackendURL:                 env("BACKEND_URL", "http://localhost:8080"),
-		CustomerName:               env("CUSTOMER_NAME", "EguEducation"),
-		CustomerDomain:             env("CUSTOMER_DOMAIN", ""),
-		TenantHostBaseDomain:       env("TENANT_HOST_BASE_DOMAIN", "eguilde.cloud"),
-		OIDCIssuer:                 env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
-		OIDCClientID:               env("OIDC_CLIENT_ID", "egueducation-spa"),
-		OIDCDesktopClient:          desktopClientID,
-		OIDCAudience:               env("OIDC_AUDIENCE", "egueducation-api"),
-		OIDCDevMode:                envBool("OIDC_DEV_MODE", false),
-		SMSAPIToken:                os.Getenv("SMSAPI_TOKEN"),
-		SMSSenderName:              env("SMS_SENDER_NAME", env("SMSAPI_SENDER", "EguEducation")),
-		EnablePasskeys:             envBool("ENABLE_PASSKEYS", true),
-		EnableWallet:               envBool("ENABLE_EUDI_WALLET", true),
-		EnableSMSOTP:               envBool("ENABLE_SMS_OTP", true),
-		EnableTestOTPFixture:       envBool("ENABLE_TEST_OTP_FIXTURE", false),
-		TestOTPFixtureCode:         strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_CODE")),
-		TestOTPFixtureIdentifier:   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_IDENTIFIER")),
-		TestOTPFixtureSubject:      strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_SUBJECT")),
-		TestOTPFixtureTenantCode:   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_TENANT_CODE")),
-		EnableGDPRFeatures:         envBool("ENABLE_GDPR_FEATURES", true),
-		ForceSecureCookies:         envBool("FORCE_SECURE_COOKIES", false),
-		JWTKeyRotationDays:         envInt("JWT_KEY_ROTATION_DAYS", 90),
-		JWTKeyOverlapHours:         envInt("JWT_KEY_OVERLAP_HOURS", 24),
-		Origin:                     env("ORIGIN", env("BACKEND_URL", "http://localhost:8080")),
-		RPID:                       env("RP_ID", defaultRPID(frontendOrigin)),
-		WalletVerifierURL:          env("WALLET_VERIFIER_URL", ""),
-		WalletRPClientID:           env("WALLET_RP_CLIENT_ID", "egueducation"),
-		ArchiveStorageEndpoint:     env("ARCHIVE_STORAGE_ENDPOINT", ""),
-		ArchiveStorageRegion:       env("ARCHIVE_STORAGE_REGION", "us-east-1"),
-		ArchiveStorageBucket:       env("ARCHIVE_STORAGE_BUCKET", "archive-documents"),
-		ArchiveStorageAccessKey:    env("ARCHIVE_STORAGE_ACCESS_KEY", ""),
-		ArchiveStorageSecretKey:    env("ARCHIVE_STORAGE_SECRET_KEY", ""),
-		ArchiveStorageUsePathStyle: envBool("ARCHIVE_STORAGE_USE_PATH_STYLE", false),
-		ArchiveTextractBucket:      env("ARCHIVE_TEXTRACT_BUCKET", ""),
-		ArchiveTextractRegion:      env("ARCHIVE_TEXTRACT_REGION", "us-east-1"),
-		ArchiveWorkerEnabled:       envBool("ARCHIVE_WORKER_ENABLED", true),
-		ArchiveWorkerPollInterval:  envInt("ARCHIVE_WORKER_POLL_INTERVAL_SECONDS", 5),
-		ClamdAddress:               env("CLAMD_ADDRESS", ""),
+		Port:                                    env("PORT", "8080"),
+		FrontendOrigin:                          frontendOrigin,
+		FrontendOrigins:                         parseCSV(os.Getenv("FRONTEND_ORIGINS")),
+		Environment:                             env("APP_ENV", env("NODE_ENV", "development")),
+		DatabaseURL:                             databaseURL(),
+		MigrationDatabaseURL:                    env("MIGRATION_DATABASE_URL", ""),
+		BackendURL:                              env("BACKEND_URL", "http://localhost:8080"),
+		CustomerName:                            env("CUSTOMER_NAME", "EguEducation"),
+		CustomerDomain:                          env("CUSTOMER_DOMAIN", ""),
+		TenantHostBaseDomain:                    env("TENANT_HOST_BASE_DOMAIN", "eguilde.cloud"),
+		OIDCIssuer:                              env("OIDC_ISSUER", "http://localhost:8080/api/oidc"),
+		OIDCClientID:                            env("OIDC_CLIENT_ID", "egueducation-spa"),
+		OIDCDesktopClient:                       desktopClientID,
+		OIDCAudience:                            env("OIDC_AUDIENCE", "egueducation-api"),
+		OIDCDevMode:                             envBool("OIDC_DEV_MODE", false),
+		SMSAPIToken:                             os.Getenv("SMSAPI_TOKEN"),
+		SMSSenderName:                           env("SMS_SENDER_NAME", env("SMSAPI_SENDER", "EguEducation")),
+		EnablePasskeys:                          envBool("ENABLE_PASSKEYS", true),
+		EnableWallet:                            envBool("ENABLE_EUDI_WALLET", true),
+		EnableSMSOTP:                            envBool("ENABLE_SMS_OTP", true),
+		EnableTestOTPFixture:                    envBool("ENABLE_TEST_OTP_FIXTURE", false),
+		TestOTPFixtureCode:                      strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_CODE")),
+		TestOTPFixtureIdentifier:                strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_IDENTIFIER")),
+		TestOTPFixtureSubject:                   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_SUBJECT")),
+		TestOTPFixtureTenantCode:                strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_TENANT_CODE")),
+		EnableGDPRFeatures:                      envBool("ENABLE_GDPR_FEATURES", true),
+		ForceSecureCookies:                      envBool("FORCE_SECURE_COOKIES", false),
+		JWTKeyRotationDays:                      envInt("JWT_KEY_ROTATION_DAYS", 90),
+		JWTKeyOverlapHours:                      envInt("JWT_KEY_OVERLAP_HOURS", 24),
+		Origin:                                  env("ORIGIN", env("BACKEND_URL", "http://localhost:8080")),
+		RPID:                                    env("RP_ID", defaultRPID(frontendOrigin)),
+		WalletVerifierURL:                       env("WALLET_VERIFIER_URL", ""),
+		WalletRPClientID:                        env("WALLET_RP_CLIENT_ID", "egueducation"),
+		ArchiveStorageEndpoint:                  env("ARCHIVE_STORAGE_ENDPOINT", ""),
+		ArchiveStorageRegion:                    env("ARCHIVE_STORAGE_REGION", "us-east-1"),
+		ArchiveStorageBucket:                    env("ARCHIVE_STORAGE_BUCKET", "archive-documents"),
+		ArchiveStorageAccessKey:                 env("ARCHIVE_STORAGE_ACCESS_KEY", ""),
+		ArchiveStorageSecretKey:                 env("ARCHIVE_STORAGE_SECRET_KEY", ""),
+		ArchiveStorageUsePathStyle:              envBool("ARCHIVE_STORAGE_USE_PATH_STYLE", false),
+		ArchiveStorageCreateBucket:              envBool("ARCHIVE_STORAGE_CREATE_BUCKET", false),
+		ArchiveTextractBucket:                   env("ARCHIVE_TEXTRACT_BUCKET", ""),
+		ArchiveTextractRegion:                   env("ARCHIVE_TEXTRACT_REGION", "us-east-1"),
+		AzureDocumentIntelligenceEndpoint:       strings.TrimSpace(os.Getenv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT")),
+		AzureDocumentIntelligenceKey:            strings.TrimSpace(os.Getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY")),
+		AzureDocumentIntelligenceModel:          strings.TrimSpace(os.Getenv("AZURE_DOCUMENT_INTELLIGENCE_MODEL")),
+		AzureDocumentIntelligenceAPIVersion:     strings.TrimSpace(os.Getenv("AZURE_DOCUMENT_INTELLIGENCE_API_VERSION")),
+		AzureDocumentIntelligenceTimeoutMinutes: boundedEnvInt("AZURE_DOCUMENT_INTELLIGENCE_TIMEOUT_MINUTES", 60, 1, 180),
+		ArchiveWorkerEnabled:                    envBool("ARCHIVE_WORKER_ENABLED", true),
+		ArchiveWorkerPollInterval:               envInt("ARCHIVE_WORKER_POLL_INTERVAL_SECONDS", 5),
+		ArchiveWorkerMaxAttempts:                boundedEnvInt("ARCHIVE_WORKER_MAX_ATTEMPTS", 5, 1, 20),
+		ClamdAddress:                            env("CLAMD_ADDRESS", ""),
 	}
+}
+
+// AzureDocumentIntelligenceEnabled reports whether the complete, explicit Azure
+// OCR configuration is present. Values are intentionally never logged.
+func (c Config) AzureDocumentIntelligenceEnabled() bool {
+	return strings.TrimSpace(c.AzureDocumentIntelligenceEndpoint) != "" &&
+		strings.TrimSpace(c.AzureDocumentIntelligenceKey) != "" &&
+		strings.TrimSpace(c.AzureDocumentIntelligenceModel) != "" &&
+		strings.TrimSpace(c.AzureDocumentIntelligenceAPIVersion) != ""
+}
+
+// ValidateArchiveOCR fails closed whenever any Azure OCR setting is supplied
+// without the complete set. This prevents an accidental fallback to another
+// OCR provider in a deployment that intended to use Azure.
+func (c Config) ValidateArchiveOCR() error {
+	values := []string{
+		strings.TrimSpace(c.AzureDocumentIntelligenceEndpoint),
+		strings.TrimSpace(c.AzureDocumentIntelligenceKey),
+		strings.TrimSpace(c.AzureDocumentIntelligenceModel),
+		strings.TrimSpace(c.AzureDocumentIntelligenceAPIVersion),
+	}
+	configured := 0
+	for _, value := range values {
+		if value != "" {
+			configured++
+		}
+	}
+	if configured != 0 && configured != len(values) {
+		return fmt.Errorf("incomplete Azure Document Intelligence configuration: set AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT, AZURE_DOCUMENT_INTELLIGENCE_KEY, AZURE_DOCUMENT_INTELLIGENCE_MODEL, and AZURE_DOCUMENT_INTELLIGENCE_API_VERSION together")
+	}
+	return nil
 }
 
 func (c Config) DesktopClientID() string {
@@ -225,6 +270,14 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	return out
+}
+
+func boundedEnvInt(key string, fallback, minimum, maximum int) int {
+	value := envInt(key, fallback)
+	if value < minimum || value > maximum {
+		return fallback
+	}
+	return value
 }
 
 func parseCSV(value string) []string {
