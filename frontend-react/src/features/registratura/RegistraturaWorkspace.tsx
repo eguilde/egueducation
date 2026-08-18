@@ -18,7 +18,6 @@ import { Message } from "@primereact/ui/message";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
 import { Tabs } from "@primereact/ui/tabs";
-import { Tag } from "@primereact/ui/tag";
 import { Search, Send, Inbox, Copy, Times, FilePdf, Upload, Pencil, Ban, Users, Cog, History, ShareAlt, ChevronRight, ChevronDown, SortAlt } from "@primeicons/react";
 import { createRegistraturaApi, type RegistraturaApi } from "./api";
 import type {
@@ -41,10 +40,11 @@ import type {
   LinkedDocument,
 } from "./types";
 import {
-  canonicalStatus,
+  calendarDateLabel,
   directionLabel,
   isTerminalStatus,
   permittedActions,
+  statusLabel,
 } from "./workflow";
 
 type CreateMode = "intrare" | "iesire" | "multiplu" | null;
@@ -519,19 +519,19 @@ export function RegistraturaWorkspace({
                 dataKey="id"
                 scrollable
               >
-                <DataTable.Table>
+                <DataTable.Table className="min-w-[80rem] table-fixed">
                   <DataTable.THead>
                     <DataTable.THeadRow>
-                      <DataTable.THeadCell><span className="sr-only">Extindere</span></DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Nr. Doc", "registry_number")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Tip", "document_type")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Conținut", "subject")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Emitent", "correspondent")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Destinatar", "assigned_to")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Data intrare", "entry_at")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Data ieșire", "exit_at")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>{sortableHeader("Status", "status")}</DataTable.THeadCell>
-                      <DataTable.THeadCell>Acțiuni</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-10"><span className="sr-only">Extindere</span></DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-28">{sortableHeader("Nr. Doc", "registry_number")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-24">{sortableHeader("Tip", "document_type")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-56">{sortableHeader("Conținut", "subject")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-36">{sortableHeader("Emitent", "correspondent")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-36">{sortableHeader("Destinatar", "assigned_to")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-28">{sortableHeader("Data intrare", "entry_at")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-28">{sortableHeader("Data ieșire", "exit_at")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-32">{sortableHeader("Status", "status")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-40">Acțiuni</DataTable.THeadCell>
                     </DataTable.THeadRow>
                     <DataTable.THeadRow>
                       <DataTable.THeadCell />
@@ -542,7 +542,7 @@ export function RegistraturaWorkspace({
                       <DataTable.THeadCell><InputText aria-label="Filtru coloană Destinatar" value={filters.assigned_to ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, assigned_to: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyFilters()} /></DataTable.THeadCell>
                       <DataTable.THeadCell><InputText aria-label="Filtru coloană Data intrare" type="date" value={filters.entry_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, entry_at_from: event.target.value })); }} /></DataTable.THeadCell>
                       <DataTable.THeadCell><InputText aria-label="Filtru coloană Data ieșire" type="date" value={filters.exit_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, exit_at_from: event.target.value })); }} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><Select.Root value={filters.status ?? ""} options={(filterOptions?.statuses ?? []).map((value) => ({ label: canonicalStatus(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setFilters((value) => ({ ...value, status: String(event.value ?? "") })); }}><Select.Trigger aria-label="Filtru coloană Status"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
+                      <DataTable.THeadCell><Select.Root value={filters.status ?? ""} options={(filterOptions?.statuses ?? []).map((value) => ({ label: statusLabel(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setFilters((value) => ({ ...value, status: String(event.value ?? "") })); }}><Select.Trigger aria-label="Filtru coloană Status"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
                       <DataTable.THeadCell><Button variant="text" severity="secondary" aria-label="Aplică filtrele din antet" onClick={applyFilters}><Search /></Button></DataTable.THeadCell>
                     </DataTable.THeadRow>
                   </DataTable.THead>
@@ -553,40 +553,30 @@ export function RegistraturaWorkspace({
                       const expanded = expandedDocuments[document.id];
                       return (<>
                         <DataTable.Row key={document.id} index={index}>
-                          <DataTable.Cell><Button variant="text" severity="secondary" aria-label={`${expanded ? "Restrânge" : "Extinde"} ${document.registry_number}`} aria-expanded={Boolean(expanded)} onClick={() => void toggleExpanded(document)}>{expanded ? <ChevronDown /> : <ChevronRight />}</Button></DataTable.Cell>
-                          <DataTable.Cell>
+                          <DataTable.Cell className="w-10"><Button variant="text" severity="secondary" aria-label={`${expanded ? "Restrânge" : "Extinde"} ${document.registry_number}`} aria-expanded={Boolean(expanded)} onClick={() => void toggleExpanded(document)}>{expanded ? <ChevronDown /> : <ChevronRight />}</Button></DataTable.Cell>
+                          <DataTable.Cell className="w-28 whitespace-nowrap font-medium">
                             {document.registry_number}
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            <Tag
-                              value={directionLabel(document)}
-                              severity={
-                                document.document_type.toUpperCase() ===
-                                "MULTIPLU"
-                                  ? "secondary"
-                                  : document.direction === "iesire"
-                                    ? "success"
-                                    : "info"
-                              }
-                            />
+                          <DataTable.Cell className="w-24 whitespace-nowrap font-medium">
+                            {directionLabel(document)}
                           </DataTable.Cell>
-                          <DataTable.Cell>{document.subject}</DataTable.Cell>
-                          <DataTable.Cell>
-                            {document.correspondent}
+                          <DataTable.Cell className="w-56"><span className="block truncate" title={document.subject}>{document.subject}</span></DataTable.Cell>
+                          <DataTable.Cell className="w-36">
+                            <span className="block truncate" title={document.correspondent}>{document.correspondent}</span>
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            {document.assigned_to || "—"}
+                          <DataTable.Cell className="w-36">
+                            <span className="block truncate" title={document.assigned_to || undefined}>{document.assigned_to || "—"}</span>
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            {document.entry_at ?? (document.direction === "intrare" ? document.registered_at : "—")}
+                          <DataTable.Cell className="w-28 whitespace-nowrap">
+                            {calendarDateLabel(document.entry_at ?? (document.direction === "intrare" ? document.registered_at : null))}
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            {document.exit_at ?? (document.direction === "iesire" ? document.registered_at : "—")}
+                          <DataTable.Cell className="w-28 whitespace-nowrap">
+                            {calendarDateLabel(document.exit_at ?? (document.direction === "iesire" ? document.registered_at : null))}
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            <Tag value={canonicalStatus(document.status)} />
+                          <DataTable.Cell className="w-32 whitespace-nowrap font-medium">
+                            {statusLabel(document.status)}
                           </DataTable.Cell>
-                          <DataTable.Cell><div className="flex flex-nowrap gap-1">
+                          <DataTable.Cell className="w-40"><div className="flex flex-nowrap gap-1">
                             <Button variant="text" severity="info" aria-label={`Istoric ${document.registry_number}`} title="Istoric" onClick={() => void openDetail(document, "history")}><History /></Button>
                             <Button variant="text" aria-label={`Editează ${document.registry_number}`} title="Editare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "edit")}><Pencil /></Button>
                             <Button variant="text" severity="danger" aria-label={`Anulează ${document.registry_number}`} title="Anulare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "cancel")}><Ban /></Button>
@@ -594,7 +584,7 @@ export function RegistraturaWorkspace({
                             <Button variant="text" severity="warn" aria-label={`Flux ${document.registry_number}`} title={actionHint[document.id]} disabled={!canManageWorkflow} onClick={() => void openDetail(document, "workflow")}><ShareAlt /></Button>
                           </div></DataTable.Cell>
                         </DataTable.Row>
-                        {expanded && <DataTable.Row key={`${document.id}-details`} index={index}><DataTable.Cell colSpan={10}><div className="grid gap-3 p-3 md:grid-cols-4"><span><strong>Compartimente:</strong> {expanded.department_names?.join(", ") || "Niciunul"}</span><span><strong>Nr. extern:</strong> {expanded.external_number || "—"}</span><span><strong>Data nr. extern:</strong> {expanded.external_number_date || "—"}</span><span><strong>Activitate:</strong> {expanded.activity || "—"}</span></div></DataTable.Cell></DataTable.Row>}
+                        {expanded && <DataTable.Row key={`${document.id}-details`} index={index}><DataTable.Cell colSpan={10}><div className="grid gap-3 p-3 md:grid-cols-4"><span><strong>Compartimente:</strong> {expanded.department_names?.join(", ") || "Niciunul"}</span><span><strong>Nr. extern:</strong> {expanded.external_number || "—"}</span><span><strong>Data nr. extern:</strong> {calendarDateLabel(expanded.external_number_date)}</span><span><strong>Activitate:</strong> {expanded.activity || "—"}</span></div></DataTable.Cell></DataTable.Row>}
                       </>);
                     }}
                   </DataTable.TBody>
@@ -720,13 +710,13 @@ export function RegistraturaWorkspace({
           <Dialog.Content>
             {detailLoading ? <div className="flex justify-center p-8"><Spinner /></div> : selected && <div className="flex flex-col gap-4">
               {detailError && <Message.Root severity="error"><Message.Content><Message.Text>{detailError}</Message.Text></Message.Content></Message.Root>}
-              <div className="grid gap-2 md:grid-cols-2"><span><strong>Subiect:</strong> {selected.subject}</span><span><strong>Status:</strong> {canonicalStatus(selected.status)}</span><span><strong>Corespondent:</strong> {selected.correspondent || "—"}</span><span><strong>Destinatar:</strong> {selected.assigned_to || "—"}</span><span><strong>Confidențialitate:</strong> {selected.confidentiality ?? "normal"}</span><span><strong>Înregistrat:</strong> {selected.registered_at}</span></div>
+              <div className="grid gap-2 md:grid-cols-2"><span><strong>Subiect:</strong> {selected.subject}</span><span><strong>Status:</strong> {statusLabel(selected.status)}</span><span><strong>Corespondent:</strong> {selected.correspondent || "—"}</span><span><strong>Destinatar:</strong> {selected.assigned_to || "—"}</span><span><strong>Confidențialitate:</strong> {selected.confidentiality ?? "normal"}</span><span><strong>Înregistrat:</strong> {selected.registered_at}</span></div>
               {documentView === "edit" && editing && editForm && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Editare document</strong><InputText aria-label="Subiect document" value={editForm.subject} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, subject: event.target.value }))} /><InputText aria-label="Corespondent document" value={editForm.correspondent} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, correspondent: event.target.value }))} />{selected.document_type.toUpperCase() === "MULTIPLU" && <Select.Root value={editForm.direction} options={[{ label: "Intrare", value: "intrare" }, { label: "Ieșire", value: "iesire" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, direction: String(event.value) as "intrare" | "iesire", document_type: "DOCUMENT" }))}><Select.Trigger><Select.Value placeholder="Convertește MULTIPLU" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}<div className="grid gap-2 md:grid-cols-2"><InputText aria-label="Număr extern document" value={editForm.external_number ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number: event.target.value }))} /><InputText aria-label="Data număr extern document" type="date" value={editForm.external_number_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number_date: event.target.value || null }))} /><InputText aria-label="Activitate document" value={editForm.activity ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, activity: event.target.value }))} /><Select.Root value={editForm.record_kind ?? "document"} options={[{ label: "Document", value: "document" }, { label: "Dosar", value: "dosar" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, record_kind: String(event.value) === "dosar" ? "dosar" : "document" }))}><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div><Textarea aria-label="Rezumat document" value={editForm.summary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, summary: event.target.value }))} /><Textarea aria-label="Notă modificare" value={editForm.change_notes ?? ""} placeholder="Notă modificare obligatorie" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, change_notes: event.target.value }))} /><div className="flex flex-wrap gap-2"><Button disabled={saving || !editForm.change_notes?.trim()} onClick={() => void saveEdit()}>{selected.document_type.toUpperCase() === "MULTIPLU" ? "Convertește și salvează" : "Salvează documentul"}</Button><Button variant="outlined" disabled={saving || !editForm.change_notes?.trim()} onClick={() => void createVersion()}>Creează versiune</Button></div></div></Card.Content></Card.Body></Card.Root>}
               {documentView === "cancel" && canManage && !isTerminalStatus(selected.status) && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><Message.Root severity="warn"><Message.Content><Message.Text>Anularea este ireversibilă. Documentul rămâne în istoric cu motivul introdus.</Message.Text></Message.Content></Message.Root><Textarea aria-label="Motiv anulare" value={cancelReason} placeholder="Motiv anulare obligatoriu (minim 10 caractere)" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setCancelReason(event.target.value)} /><Button severity="danger" disabled={saving || cancelReason.trim().length < 10} onClick={() => void cancelDocument()}><Ban /> Anulează documentul</Button></div></Card.Content></Card.Body></Card.Root>}
               {documentView === "workflow" && canManageWorkflow && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Acțiuni flux</strong>{permittedActions(selected.status).length === 0 ? <span>Nu există tranziții disponibile în această stare.</span> : <div className="flex flex-wrap gap-2">{permittedActions(selected.status).map((action) => <Button key={action} variant="outlined" onClick={() => setWorkflowAction(action)}>{action}</Button>)}</div>}{workflowAction && <div className="flex flex-col gap-2"><span>Acțiune: {workflowAction}</span>{workflowAction === "assign_department" && <Select.Root value={workflowDepartment} options={assignees?.departments ?? []} optionLabel="name" optionValue="id" onValueChange={(event: { value: unknown }) => setWorkflowDepartment(String(event.value))}><Select.Trigger><Select.Value placeholder="Compartiment" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}{workflowAction === "assign_user" && <Select.Root value={workflowUser} options={(assignees?.users ?? []).filter((user) => !workflowDepartment || user.department_ids?.includes(workflowDepartment))} optionLabel="name" optionValue="id" onValueChange={(event: { value: unknown }) => setWorkflowUser(String(event.value))}><Select.Trigger><Select.Value placeholder="Utilizator" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}<Textarea aria-label="Notă flux" value={workflowNote} placeholder="Notă (opțional)" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setWorkflowNote(event.target.value)} /><div className="flex gap-2"><Button disabled={saving} onClick={() => void runWorkflow()}><Users /> Aplică acțiunea</Button><Button variant="outlined" severity="secondary" onClick={() => setWorkflowAction(undefined)}>Renunță</Button></div></div>}</div></Card.Content></Card.Body></Card.Root>}
               {canReadLinks && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Legături documente</strong><span>Contextul sursă este obligatoriu și este verificat de backend pe tenant și vizibilitatea registrului.</span><div className="grid gap-2 md:grid-cols-3"><InputText aria-label="Modul sursă legătură" value={linkSourceModule} placeholder="Modul sursă (ex. education)" onChange={(event: ChangeEvent<HTMLInputElement>) => setLinkSourceModule(event.target.value)} /><InputText aria-label="ID înregistrare sursă legătură" value={linkSourceRecordId} placeholder="ID înregistrare sursă" onChange={(event: ChangeEvent<HTMLInputElement>) => setLinkSourceRecordId(event.target.value)} /><Select.Root value={linkRelationType} options={[{ label: "Principal", value: "primary" }, { label: "Suport", value: "supporting" }, { label: "Decizie", value: "decision" }, { label: "Bază arhivă", value: "archive_basis" }, { label: "Bază GDPR", value: "gdpr_basis" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setLinkRelationType(String(event.value))}><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div><div className="flex flex-wrap gap-2"><Button variant="outlined" severity="secondary" disabled={!linkSourceModule.trim() || !linkSourceRecordId.trim()} onClick={() => void loadLinks()}>Încarcă legături</Button>{canManageLinks && <Button disabled={saving || !linkSourceModule.trim() || !linkSourceRecordId.trim()} onClick={() => void createLink()}>Adaugă legătură</Button>}</div>{linkedDocuments.map((link) => <div className="flex flex-wrap items-center justify-between gap-2" key={link.link_id}><span>{link.registry_number} · {link.subject} · {link.relation_type}</span>{canManageLinks && <Button severity="danger" variant="text" aria-label={`Șterge legătura ${link.registry_number}`} disabled={saving} onClick={() => void deleteLink(link.link_id)}>Șterge</Button>}</div>)}</div></Card.Content></Card.Body></Card.Root>}
               {(documentView === "details" || documentView === "edit") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Atașamente</strong>{attachments.map((attachment) => <div className="flex flex-wrap items-center justify-between gap-2" key={attachment.id}><span>{attachment.file_name} · {attachment.category} · {attachment.status}</span><Button variant="text" onClick={() => api.download(selected.id, attachment.id).then((blob) => saveBlob(blob, attachment.file_name)).catch(() => setDetailError("Descărcarea nu a reușit."))}>Descarcă</Button></div>)}{canManage && <FileUpload.Root name="file" multiple maxFileSize={104857600} customUpload uploadHandler={(event: { files: File[] }) => { void upload(event.files); }}><FileUpload.Trigger><Upload /> Alege fișiere</FileUpload.Trigger><FileUpload.Upload>Încarcă</FileUpload.Upload><FileUpload.Content /></FileUpload.Root>}</div></Card.Content></Card.Body></Card.Root>}
-              {(documentView === "history" || documentView === "workflow" || documentView === "details") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Istoric și versiuni</strong>{history.length === 0 && versions.length === 0 ? <span>Nu există istoric disponibil.</span> : <>{history.map((entry) => <span key={entry.id}>{entry.created_at}: {entry.action} → {canonicalStatus(entry.to_status)} {entry.actor_name ? `(${entry.actor_name})` : ""}</span>)}{versions.map((version) => <span key={version.id}>Versiunea {version.version_no}: {version.change_notes || "fără notă"}</span>)}</>}</div></Card.Content></Card.Body></Card.Root>}
+              {(documentView === "history" || documentView === "workflow" || documentView === "details") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Istoric și versiuni</strong>{history.length === 0 && versions.length === 0 ? <span>Nu există istoric disponibil.</span> : <>{history.map((entry) => <span key={entry.id}>{entry.created_at}: {entry.action} → {statusLabel(entry.to_status)} {entry.actor_name ? `(${entry.actor_name})` : ""}</span>)}{versions.map((version) => <span key={version.id}>Versiunea {version.version_no}: {version.change_notes || "fără notă"}</span>)}</>}</div></Card.Content></Card.Body></Card.Root>}
             </div>}
           </Dialog.Content>
         </Dialog.Popup></Dialog.Positioner></Dialog.Portal>

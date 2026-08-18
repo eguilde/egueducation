@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { primeTheme } from "../../components/ThemeMenu";
@@ -84,6 +84,11 @@ describe("Registratura Costești table parity", () => {
     });
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="costesti-table" canManage canManageWorkflow /></PrimeReactProvider>);
     await screen.findByText("Document test");
+    const documentRow = screen.getByRole("row", { name: /REG-20/ });
+    expect(within(documentRow).getByText("Intrare")).toBeInTheDocument();
+    expect(within(documentRow).getByText("Înregistrat")).toBeInTheDocument();
+    expect(within(documentRow).getByText("16.08.2026")).toBeInTheDocument();
+    expect(screen.queryByText("2026-08-16")).not.toBeInTheDocument();
     expect(transport.documents).toHaveBeenCalledWith(expect.objectContaining({ page: 1, pageSize: 20 }));
     for (const name of ["Istoric REG-20", "Editează REG-20", "Anulează REG-20", "PDF REG-20", "Flux REG-20"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
 
