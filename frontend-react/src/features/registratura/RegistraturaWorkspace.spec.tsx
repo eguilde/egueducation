@@ -9,7 +9,7 @@ function apiForConfirmation(): RegistraturaApi {
   return {
     registries: vi.fn().mockResolvedValue([{ id: 1, nume: "Registru general", isDefault: true }]),
     filters: vi.fn().mockResolvedValue({}),
-    documents: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 50 }),
+    documents: vi.fn().mockResolvedValue({ items: [documentItem("reg-1", "Document test")], total: 1, page: 1, pageSize: 50 }),
     parties: vi.fn().mockResolvedValue({ items: [{ id: "party-1", party_type: "physical", display_name: "Ana Pop" }], total: 1, page: 1, pageSize: 50 }),
     admin: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 50 }),
     deleteParty: vi.fn().mockResolvedValue(undefined),
@@ -29,20 +29,14 @@ function apiForRace(overrides: Partial<RegistraturaApi>): RegistraturaApi {
   } as unknown as RegistraturaApi;
 }
 
-describe("Registratura administration deletion", () => {
-  it("does not send a deletion until the accessible PrimeReact confirmation dialog is accepted", async () => {
+describe("Registratura workspace actions", () => {
+  it("keeps administration in the dedicated dashboard instead of the document toolbar", async () => {
     const transport = apiForConfirmation();
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="test" canManage /></PrimeReactProvider>);
 
-    await waitFor(() => expect(screen.getByRole("button", { name: /Administrare/ })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: /Administrare/ }));
-    await screen.findByText("Ana Pop");
-    fireEvent.click(screen.getByRole("button", { name: "Șterge" }));
-
-    expect(screen.getByRole("dialog", { name: "Confirmați ștergerea" })).toBeInTheDocument();
-    expect(transport.deleteParty).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Șterge definitiv" }));
-    await waitFor(() => expect(transport.deleteParty).toHaveBeenCalledWith("party-1"));
+    await screen.findByText("Document test");
+    expect(screen.queryByRole("button", { name: "Administrare" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportă registrul în PDF" })).toBeInTheDocument();
   });
 });
 
@@ -107,12 +101,16 @@ describe("Registratura request ordering", () => {
   it("keeps the newest document list when request A resolves after B", async () => {
     const first = deferred<{ items: ReturnType<typeof documentItem>[]; total: number; page: number; pageSize: number }>();
     const second = deferred<{ items: ReturnType<typeof documentItem>[]; total: number; page: number; pageSize: number }>();
-    const transport = apiForRace({ documents: vi.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
+    const transport = apiForRace({ documents: vi.fn().mockResolvedValueOnce({ items: [documentItem("initial", "Rezultatul inițial")], total: 1, page: 1, pageSize: 50 }).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="race-list" canManage /></PrimeReactProvider>);
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole("button", { name: "Deschide căutarea" }));
+    fireEvent.change(screen.getByLabelText("Conținut"), { target: { value: "A" } });
     fireEvent.click(screen.getByRole("button", { name: "Caută documente" }));
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(2));
+    fireEvent.change(screen.getByLabelText("Conținut"), { target: { value: "B" } });
+    fireEvent.click(screen.getByRole("button", { name: "Caută documente" }));
+    await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(3));
     second.resolve({ items: [documentItem("new", "Rezultatul B")], total: 1, page: 1, pageSize: 50 });
     await screen.findByText("Rezultatul B");
     first.resolve({ items: [documentItem("old", "Rezultatul A")], total: 1, page: 1, pageSize: 50 });

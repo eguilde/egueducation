@@ -75,12 +75,17 @@ test('registratura mirrors the Costești table controls with server-side request
   await expect(page.getByLabel('Data ieșire până la')).toBeVisible();
 });
 
-test('registratura stays usable in the narrow responsive layout and exposes administration', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test('registratura stays usable in the narrow responsive layout without duplicating administration', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
   await authenticatedRegistratura(page);
-  await expect(page.getByRole('button', { name: 'Intrare', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Administrare' })).toBeVisible();
-  await page.getByRole('button', { name: 'Administrare' }).click();
-  await expect(page.getByRole('dialog', { name: 'Administrare Registratură' })).toBeVisible();
-  await expect(page.getByLabel('Nume element')).toBeVisible();
+  for (const viewport of [{ width: 320, height: 700 }, { width: 390, height: 844 }, { width: 768, height: 900 }, { width: 1280, height: 800 }]) {
+    await page.setViewportSize(viewport);
+    await expect(page.getByRole('button', { name: 'Intrare', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Exportă registrul în PDF' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'PDF REG-1' })).toBeVisible();
+    const pageWidth = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+    expect(pageWidth.scroll).toBeLessThanOrEqual(pageWidth.client + 1);
+  }
+  await expect(page.getByRole('button', { name: 'Administrare' })).toHaveCount(0);
+  await expect(page.getByLabel('Paginare registratură')).toHaveCSS('position', 'sticky');
 });

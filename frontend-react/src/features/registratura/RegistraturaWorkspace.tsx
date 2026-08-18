@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Button } from "@primereact/ui/button";
+import { ButtonGroup } from "@primereact/ui/buttongroup";
 import { Card } from "@primereact/ui/card";
 import { Dialog } from "@primereact/ui/dialog";
 import { DataTable } from "@primereact/ui/datatable";
@@ -17,8 +18,7 @@ import { FileUpload } from "@primereact/ui/fileupload";
 import { Message } from "@primereact/ui/message";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
-import { Tabs } from "@primereact/ui/tabs";
-import { Search, Send, Inbox, Copy, Times, FilePdf, Upload, Pencil, Ban, Users, Cog, History, ShareAlt, ChevronRight, ChevronDown, SortAlt } from "@primeicons/react";
+import { Search, Send, Inbox, Copy, Times, FilePdf, Upload, Pencil, Ban, Users, History, ShareAlt, ChevronRight, ChevronDown, SortAlt } from "@primeicons/react";
 import { createRegistraturaApi, type RegistraturaApi } from "./api";
 import type {
   BatchCreateInput,
@@ -386,64 +386,13 @@ export function RegistraturaWorkspace({
   };
   const saveAssignments = async () => { if (!canManage || !assignmentUser || !assignment) return; setSaving(true); try { setAssignment(await api.saveUserAssignments(assignmentUser.id, { department_ids: assignment.department_ids, primary_department_id: assignment.primary_department_id ?? null, organization_id: assignment.organization_id ?? null })); } catch { setDetailError("Atribuirile utilizatorului nu au putut fi salvate."); } finally { setSaving(false); } };
   return (
-    <section aria-label="Registratură" className="flex flex-col gap-4">
-      <Tabs.Root value="registratura">
-        <Tabs.List>
-          <Tabs.Tab value="registratura">Registratură</Tabs.Tab>
-          <Tabs.Tab value="flux" disabled>
-            Flux documente
-          </Tabs.Tab>
-          <Tabs.Tab value="arhiva" disabled>
-            eArhivă
-          </Tabs.Tab>
-          <Tabs.Indicator />
-        </Tabs.List>
-      </Tabs.Root>
+    <section aria-label="Registratură" className="flex min-h-0 min-w-0 max-w-full flex-col gap-2 overflow-hidden">
       <Card.Root>
-        <Card.Body>
-          <Card.Content>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => openCreate("intrare")}
-                    disabled={!canManage || !registryId}
-                  >
-                    <Inbox />
-                    Intrare
-                  </Button>
-                  <Button
-                    severity="success"
-                    onClick={() => openCreate("iesire")}
-                    disabled={!canManage || !registryId}
-                  >
-                    <Send />
-                    Ieșire
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    severity="secondary"
-                    onClick={() => openCreate("multiplu")}
-                    disabled={!canManage || !registryId}
-                  >
-                    <Copy />
-                    MULTIPLU
-                  </Button>
-                  {canManage && <Button variant="outlined" severity="secondary" onClick={openAdmin}><Cog /> Administrare</Button>}
-                  <Button variant="outlined" severity="secondary" disabled={!registryId} onClick={() => setExportOpen(true)}><FilePdf /> Export PDF</Button>
-                  <Button
-                    variant="outlined"
-                    severity="secondary"
-                    aria-label={filtersOpen ? "Închide căutarea" : "Deschide căutarea"}
-                    aria-expanded={filtersOpen}
-                    aria-controls="registratura-search-panel"
-                    title={filtersOpen ? "Închide căutarea" : "Deschide căutarea"}
-                    onClick={() => setFiltersOpen((value) => !value)}
-                  >
-                    <Search />
-                  </Button>
-                </div>
-                <div className="w-full lg:w-80">
+        <Card.Body className="p-2">
+          <Card.Content className="p-0">
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-[minmax(0,12rem)_2.5rem] items-center justify-between gap-2 md:grid-cols-[12rem_minmax(0,1fr)_2.5rem]">
+                <div className="w-full max-w-48">
                   <Select.Root
                     value={registryId}
                     options={registries}
@@ -454,7 +403,7 @@ export function RegistraturaWorkspace({
                       setRegistryId(Number(event.value))
                     }
                   >
-                    <Select.Trigger>
+                    <Select.Trigger aria-label="Registru activ">
                       <Select.Value placeholder="Alege registrul" />
                       <Select.Indicator />
                     </Select.Trigger>
@@ -467,10 +416,46 @@ export function RegistraturaWorkspace({
                     </Select.Portal>
                   </Select.Root>
                 </div>
+                <ButtonGroup className="col-span-2 row-start-2 w-full justify-self-center md:col-span-1 md:col-start-2 md:row-start-1 md:w-auto">
+                  <Button
+                    className="min-w-0 flex-1 px-2 md:flex-none"
+                    aria-label="Intrare"
+                    title="Înregistrare intrare"
+                    onClick={() => openCreate("intrare")}
+                    disabled={!canManage || !registryId}
+                  >
+                    <Inbox />
+                    <span className="hidden min-[360px]:inline">Intrare</span>
+                  </Button>
+                  <Button
+                    className="min-w-0 flex-1 px-2 md:flex-none"
+                    aria-label="Ieșire"
+                    title="Înregistrare ieșire"
+                    severity="success"
+                    onClick={() => openCreate("iesire")}
+                    disabled={!canManage || !registryId}
+                  >
+                    <Send />
+                    <span className="hidden min-[360px]:inline">Ieșire</span>
+                  </Button>
+                  <Button
+                    className="min-w-0 flex-1 px-2 md:flex-none"
+                    aria-label="MULTIPLU"
+                    title="Înregistrare multiplă"
+                    variant="outlined"
+                    severity="secondary"
+                    onClick={() => openCreate("multiplu")}
+                    disabled={!canManage || !registryId}
+                  >
+                    <Copy />
+                    <span className="hidden min-[360px]:inline">MULTIPLU</span>
+                  </Button>
+                </ButtonGroup>
+                <Button className="col-start-2 row-start-1 justify-self-end md:col-start-3" variant="text" severity="secondary" aria-label="Exportă registrul în PDF" title="Exportă registrul în PDF" disabled={!registryId} onClick={() => setExportOpen(true)}><FilePdf /></Button>
               </div>
-              {filtersOpen && <div id="registratura-search-panel" aria-label="Căutare documente"><Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-3">
+              {filtersOpen && <div id="registratura-search-panel" aria-label="Căutare documente"><Card.Root><Card.Body className="p-2"><Card.Content className="p-0"><div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2"><strong>Filtrare documente</strong><Button variant="text" severity="secondary" aria-label="Închide filtrarea" onClick={() => setFiltersOpen(false)}><Times /></Button></div>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-2 md:grid-cols-3">
                   <InputText aria-label="Nr. Document" value={filters.registry_number ?? ""} placeholder="Nr. Document (ex: 123)" onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, registry_number: event.target.value }))} />
                   <Select.Root value={filters.document_type ?? ""} options={(filterOptions?.document_types ?? []).map((value) => ({ label: value, value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setFilters((current) => ({ ...current, document_type: String(event.value ?? "") }))}><Select.Trigger><Select.Value placeholder="Tip document: Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
                   <InputText aria-label="Nr. Extern" value={filters.external_number ?? ""} placeholder="Nr. Extern (ex: ABC-123)" onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, external_number: event.target.value }))} />
@@ -478,7 +463,7 @@ export function RegistraturaWorkspace({
                   <InputText aria-label="Destinatar" value={filters.assigned_to ?? ""} placeholder="Caută destinatar" onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, assigned_to: event.target.value }))} />
                   <InputText aria-label="Conținut" value={filters.subject ?? ""} placeholder="Caută în conținut" onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, subject: event.target.value }))} />
                 </div>
-                <div className="grid gap-3 md:grid-cols-4">
+                <div className="grid gap-2 md:grid-cols-4">
                   <InputText aria-label="Data intrare de la" type="date" value={filters.entry_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, entry_at_from: event.target.value }))} />
                   <InputText aria-label="Data intrare până la" type="date" value={filters.entry_at_to ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, entry_at_to: event.target.value }))} />
                   <InputText aria-label="Data ieșire de la" type="date" value={filters.exit_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, exit_at_from: event.target.value }))} />
@@ -490,9 +475,9 @@ export function RegistraturaWorkspace({
           </Card.Content>
         </Card.Body>
       </Card.Root>
-      <Card.Root>
-        <Card.Body>
-          <Card.Content>
+      <Card.Root className="min-h-0 min-w-0 max-w-full overflow-hidden">
+        <Card.Body className="min-h-0 min-w-0 max-w-full p-0">
+          <Card.Content className="flex min-h-0 min-w-0 max-w-full flex-col p-0">
             {error && (
               <Message.Root severity="error">
                 <Message.Content>
@@ -504,20 +489,22 @@ export function RegistraturaWorkspace({
               <div className="flex justify-center p-8">
                 <Spinner />
               </div>
-            ) : documents.length === 0 ? (
-              <Message.Root severity="info">
-                <Message.Content>
-                  <Message.Text>
-                    Niciun document nu corespunde registrului și filtrelor
-                    alese.
-                  </Message.Text>
-                </Message.Content>
-              </Message.Root>
             ) : (
-              <DataTable.Root
+              <>
+                {documents.length === 0 && <Message.Root severity="info">
+                  <Message.Content>
+                    <Message.Text>
+                      Niciun document nu corespunde registrului și filtrelor
+                      alese.
+                    </Message.Text>
+                  </Message.Content>
+                </Message.Root>}
+                <DataTable.Root
                 data={documents as unknown as Record<string, unknown>[]}
                 dataKey="id"
                 scrollable
+                scrollHeight="max(20rem, calc(100dvh - 18rem))"
+                className="min-w-0 max-w-full overflow-hidden"
               >
                 <DataTable.Table className="min-w-[80rem] table-fixed">
                   <DataTable.THead>
@@ -531,7 +518,7 @@ export function RegistraturaWorkspace({
                       <DataTable.THeadCell className="w-28">{sortableHeader("Data intrare", "entry_at")}</DataTable.THeadCell>
                       <DataTable.THeadCell className="w-28">{sortableHeader("Data ieșire", "exit_at")}</DataTable.THeadCell>
                       <DataTable.THeadCell className="w-32">{sortableHeader("Status", "status")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-40">Acțiuni</DataTable.THeadCell>
+                      <DataTable.THeadCell className="sticky right-0 z-20 w-40" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }}>Acțiuni</DataTable.THeadCell>
                     </DataTable.THeadRow>
                     <DataTable.THeadRow>
                       <DataTable.THeadCell />
@@ -543,7 +530,7 @@ export function RegistraturaWorkspace({
                       <DataTable.THeadCell><InputText aria-label="Filtru coloană Data intrare" type="date" value={filters.entry_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, entry_at_from: event.target.value })); }} /></DataTable.THeadCell>
                       <DataTable.THeadCell><InputText aria-label="Filtru coloană Data ieșire" type="date" value={filters.exit_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, exit_at_from: event.target.value })); }} /></DataTable.THeadCell>
                       <DataTable.THeadCell><Select.Root value={filters.status ?? ""} options={(filterOptions?.statuses ?? []).map((value) => ({ label: statusLabel(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setFilters((value) => ({ ...value, status: String(event.value ?? "") })); }}><Select.Trigger aria-label="Filtru coloană Status"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
-                      <DataTable.THeadCell><Button variant="text" severity="secondary" aria-label="Aplică filtrele din antet" onClick={applyFilters}><Search /></Button></DataTable.THeadCell>
+                      <DataTable.THeadCell className="sticky right-0 z-20" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }}><Button variant="text" severity="secondary" aria-label={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} aria-expanded={filtersOpen} aria-controls="registratura-search-panel" title={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} onClick={() => setFiltersOpen((value) => !value)}><Search /></Button></DataTable.THeadCell>
                     </DataTable.THeadRow>
                   </DataTable.THead>
                   <DataTable.TBody>
@@ -576,7 +563,7 @@ export function RegistraturaWorkspace({
                           <DataTable.Cell className="w-32 whitespace-nowrap font-medium">
                             {statusLabel(document.status)}
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-40"><div className="flex flex-nowrap gap-1">
+                          <DataTable.Cell className="sticky right-0 z-10 w-40" style={{ backgroundColor: "var(--p-datatable-row-background)" }}><div className="flex flex-nowrap gap-1">
                             <Button variant="text" severity="info" aria-label={`Istoric ${document.registry_number}`} title="Istoric" onClick={() => void openDetail(document, "history")}><History /></Button>
                             <Button variant="text" aria-label={`Editează ${document.registry_number}`} title="Editare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "edit")}><Pencil /></Button>
                             <Button variant="text" severity="danger" aria-label={`Anulează ${document.registry_number}`} title="Anulare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "cancel")}><Ban /></Button>
@@ -589,9 +576,10 @@ export function RegistraturaWorkspace({
                     }}
                   </DataTable.TBody>
                 </DataTable.Table>
-              </DataTable.Root>
+                </DataTable.Root>
+              </>
             )}
-            {!loading && total > 0 && <div className="mt-3 flex flex-col items-center justify-between gap-3 md:flex-row"><span>Se afișează {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)} din {total} documente</span><div className="flex flex-wrap items-center gap-1"><Button variant="outlined" severity="secondary" aria-label="Prima pagină" disabled={page <= 1} onClick={() => setPage(1)}>«</Button><Button variant="outlined" severity="secondary" aria-label="Pagina anterioară" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>‹</Button>{Array.from({ length: Math.min(5, Math.max(1, Math.ceil(total / pageSize))) }, (_, offset) => { const pages = Math.max(1, Math.ceil(total / pageSize)); const start = Math.min(Math.max(1, page - 2), Math.max(1, pages - 4)); const number = start + offset; return number <= pages ? <Button key={number} variant={number === page ? undefined : "outlined"} severity="secondary" aria-label={`Pagina ${number}`} aria-current={number === page ? "page" : undefined} onClick={() => setPage(number)}>{number}</Button> : null; })}<Button variant="outlined" severity="secondary" aria-label="Pagina următoare" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage((value) => value + 1)}>›</Button><Button variant="outlined" severity="secondary" aria-label="Ultima pagină" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage(Math.max(1, Math.ceil(total / pageSize)))}>»</Button><Select.Root value={pageSize} options={[10, 20, 50, 100].map((value) => ({ label: String(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setPageSize(Number(event.value)); }}><Select.Trigger aria-label="Rânduri pe pagină"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div></div>}
+            {!loading && total > 0 && <div aria-label="Paginare registratură" className="sticky bottom-0 z-10 flex flex-col items-center justify-between gap-2 border-t p-2 md:flex-row"><span>Se afișează {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, total)} din {total} documente</span><div className="flex flex-wrap items-center gap-1"><Button variant="outlined" severity="secondary" aria-label="Prima pagină" disabled={page <= 1} onClick={() => setPage(1)}>«</Button><Button variant="outlined" severity="secondary" aria-label="Pagina anterioară" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>‹</Button>{Array.from({ length: Math.min(5, Math.max(1, Math.ceil(total / pageSize))) }, (_, offset) => { const pages = Math.max(1, Math.ceil(total / pageSize)); const start = Math.min(Math.max(1, page - 2), Math.max(1, pages - 4)); const number = start + offset; return number <= pages ? <Button key={number} variant={number === page ? undefined : "outlined"} severity="secondary" aria-label={`Pagina ${number}`} aria-current={number === page ? "page" : undefined} onClick={() => setPage(number)}>{number}</Button> : null; })}<Button variant="outlined" severity="secondary" aria-label="Pagina următoare" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage((value) => value + 1)}>›</Button><Button variant="outlined" severity="secondary" aria-label="Ultima pagină" disabled={page >= Math.ceil(total / pageSize)} onClick={() => setPage(Math.max(1, Math.ceil(total / pageSize)))}>»</Button><Select.Root value={pageSize} options={[10, 20, 50, 100].map((value) => ({ label: String(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setPageSize(Number(event.value)); }}><Select.Trigger aria-label="Rânduri pe pagină"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div></div>}
           </Card.Content>
         </Card.Body>
       </Card.Root>
