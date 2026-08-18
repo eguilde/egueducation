@@ -24,7 +24,7 @@ async function authenticatedRegistratura(page: Page) {
   }
   await expect(page.getByText('Ana')).toBeVisible();
   await page.goto('/registratura');
-  await expect(page.getByLabel('Registratură')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Registratură', exact: true })).toBeVisible();
 }
 
 test('registratura creates an incoming document with operational fields', async ({ page }) => {
