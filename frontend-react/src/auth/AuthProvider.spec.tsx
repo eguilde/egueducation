@@ -47,6 +47,18 @@ function LogoutProbe() {
     return <button type="button" disabled={!auth.user} onClick={() => void auth.logout()}>Logout test</button>;
 }
 
+function ApiFetchProbe() {
+    const auth = useAuth();
+    return <button type="button" disabled={!auth.user} onClick={() => void auth.apiFetch(new Request('http://localhost:3000/api/earchiva/documents', {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'multipart/form-data; boundary=----contract-boundary'
+        },
+        body: new Blob(['multipart-body'])
+    }))}>Upload test</button>;
+}
+
 describe('AuthProvider', () => {
     afterEach(() => vi.restoreAllMocks());
 
@@ -94,5 +106,23 @@ describe('AuthProvider', () => {
 
         await waitFor(() => expect(beginLogout).toHaveBeenCalledWith(expect.anything(), 'id-token'));
         expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/oidc\/session\/logout$/), expect.objectContaining({ method: 'POST' }));
+    });
+
+    it('preserves OpenAPI request headers while adding authorization', async () => {
+        const fetchMock = vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(new Response(JSON.stringify(session), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+            .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'archive-1' }), { status: 201, headers: { 'Content-Type': 'application/json' } }));
+
+        render(<AuthProvider><ApiFetchProbe /></AuthProvider>);
+        const button = await screen.findByRole('button', { name: 'Upload test' });
+        await waitFor(() => expect(button).toBeEnabled());
+        fireEvent.click(button);
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+        const [, init] = fetchMock.mock.calls[1];
+        const headers = new Headers(init?.headers);
+        expect(headers.get('content-type')).toBe('multipart/form-data; boundary=----contract-boundary');
+        expect(headers.get('accept')).toBe('application/json');
+        expect(headers.get('authorization')).toBe('Bearer access');
     });
 });

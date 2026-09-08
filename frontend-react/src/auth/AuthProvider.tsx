@@ -112,6 +112,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         } : current);
     }, []);
     const apiFetch = useCallback<typeof fetch>(async (input, init) => {
+        // openapi-fetch supplies a fully constructed Request. Preserve its
+        // contract headers (notably multipart boundaries and Accept) when
+        // adding the bearer token. Keep an unused template clone so a 401
+        // retry never attempts to reuse an already-consumed request body.
+        const requestTemplate = input instanceof Request ? input.clone() : input;
         let activeTokens = tokensRef.current;
         if (!activeTokens || activeTokens.expiresAt <= Math.floor(Date.now() / 1000) + 30) {
             activeTokens = await refreshWithCookie(config);
@@ -132,9 +137,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
 
         const execute = (token: string) => {
-            const headers = new Headers(init?.headers);
+            const requestInput = requestTemplate instanceof Request ? requestTemplate.clone() : requestTemplate;
+            const headers = new Headers(requestInput instanceof Request ? requestInput.headers : undefined);
+            new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
             headers.set('Authorization', `Bearer ${token}`);
-            return fetch(input, { ...init, credentials: 'include', headers });
+            return fetch(requestInput, { ...init, credentials: 'include', headers });
         };
 
         let response = await execute(activeTokens.accessToken);

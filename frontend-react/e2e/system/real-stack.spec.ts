@@ -359,7 +359,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.7\n1 0 obj<</Type/Catalog>>endobj\n%%EOF\n'),
   });
-  await createdDetailDialog.getByRole('button', { name: 'Încarcă' }).click();
+  await createdDetailDialog.getByRole('button', { name: 'Încarcă', exact: true }).click();
   expect((await attachmentUpload).status()).toBe(201);
   expect(databaseScalar(`select status || '|' || scan_status || '|' || storage_state from registratura_document_attachments where document_id='${created.body.id}'`)).toBe('ready|clean|ready');
   await page.getByRole('button', { name: 'Închide' }).last().click();
