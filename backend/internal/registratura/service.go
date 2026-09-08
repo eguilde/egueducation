@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -430,6 +431,7 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
+		slog.ErrorContext(ctx, "registratura document transaction begin failed", "institution_id", s.institutionID(r), "error", err)
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_create_failed"})
 		return
 	}
@@ -441,11 +443,13 @@ func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "registry_not_found"})
 			return
 		}
+		slog.ErrorContext(ctx, "registratura document creation failed", "institution_id", s.institutionID(r), "error", err)
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_create_failed"})
 		return
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		slog.ErrorContext(ctx, "registratura document transaction commit failed", "institution_id", s.institutionID(r), "error", err)
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "document_create_failed"})
 		return
 	}
