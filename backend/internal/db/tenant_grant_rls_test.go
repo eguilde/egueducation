@@ -65,11 +65,14 @@ func TestTenantGrantRLSIntegration(t *testing.T) {
 		t.Fatalf("apply migrations: %v", err)
 	}
 
-	var userID uuid.UUID
-	if err := adminPool.QueryRow(ctx, `select id from app_users where sub = 'usr-001'`).Scan(&userID); err != nil {
-		t.Fatalf("read shared global fixture user: %v", err)
-	}
 	fixtureSuffix := strings.ReplaceAll(uuid.NewString(), "-", "")
+	userID := uuid.New()
+	if _, err := adminPool.Exec(ctx, `
+		insert into app_users (id, sub, name, email, phone_number, status, email_verified, phone_number_verified)
+		values ($1, $2, 'Tenant grant RLS integration user', $3, '', 'active', false, false)
+	`, userID, "tenant-grant-rls-user-"+fixtureSuffix, "tenant-grant-rls-"+fixtureSuffix+"@example.test"); err != nil {
+		t.Fatalf("seed isolated global fixture user: %v", err)
+	}
 	grantCodes := tenantGrantCodes{
 		role:       "tenant_rls_role_" + fixtureSuffix,
 		permission: "tenant.rls.permission." + fixtureSuffix,

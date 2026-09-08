@@ -253,10 +253,11 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if phoneChanged {
 		// Revoke every legacy and session-bound login proof before replacing the
 		// phone so a code sent to the old number can never verify the new identity.
-		if _, err := tx.Exec(r.Context(), `
-			delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login';
-			delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'
-		`, session.User.ID); err != nil {
+		if _, err := tx.Exec(r.Context(), `delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login'`, session.User.ID); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+			return
+		}
+		if _, err := tx.Exec(r.Context(), `delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'`, session.User.ID); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
 			return
 		}

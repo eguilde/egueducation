@@ -99,13 +99,16 @@ test('PrimeReact upload reaches PostgreSQL, MinIO, Azure OCR, classification, FT
 
   await page.getByRole('button', { name: 'Încarcă PDF-uri' }).click();
   const dialog = page.getByRole('dialog', { name: 'Import PDF în eArhivă' });
+  await expect(dialog.getByLabel('Tip sursă')).toBeVisible();
+  await expect(dialog.getByRole('textbox', { name: 'Tip sursă' })).toHaveCount(0);
   await dialog.locator('input[type="file"]').setInputFiles({ name: 'dosar-elev.pdf', mimeType: 'application/pdf', buffer: pdf });
   await dialog.getByLabel('Titlu pentru dosar-elev.pdf').fill(marker);
   const upload = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/earchiva/documents' && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Transmite lotul' }).click();
   const uploadResponse = await upload;
-  expect(uploadResponse.status()).toBe(201);
-  const created = await uploadResponse.json() as { id: string };
+  const uploadBody = await uploadResponse.text();
+  expect(uploadResponse.status(), `archive upload response: ${uploadBody}`).toBe(201);
+  const created = JSON.parse(uploadBody) as { id: string };
   expect(created.id).toMatch(/^[0-9a-f-]{36}$/i);
 
   // This uses the actual worker's committed records, not a fabricated API

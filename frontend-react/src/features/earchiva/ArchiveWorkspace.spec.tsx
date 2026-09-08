@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { PrimeReactProvider } from '@primereact/core/config';
 import { describe, expect, it, vi } from 'vitest';
 import { primeTheme } from '../../components/ThemeMenu';
@@ -33,6 +33,23 @@ describe('ArchiveWorkspace authorization', () => {
     const calls = (transport.documents as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls[0][0]).not.toHaveProperty('institution_id');
     expect(calls[0][0]).not.toHaveProperty('tenant_id');
+  });
+
+  it('submits the default browser-upload source kind accepted by the archive contract', async () => {
+    const transport = api();
+    (transport.upload as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'archive-upload-1', status: 'queued' });
+    render(<PrimeReactProvider {...primeTheme}><ArchiveWorkspace api={transport} canManage /></PrimeReactProvider>);
+    await screen.findByText('Catalog');
+    fireEvent.click(screen.getByRole('button', { name: 'Încarcă PDF-uri' }));
+    const dialog = screen.getByRole('dialog', { name: 'Import PDF în eArhivă' });
+    expect(within(dialog).getByLabelText('Tip sursă')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('textbox', { name: 'Tip sursă' })).not.toBeInTheDocument();
+    const fileInput = dialog.querySelector('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+    fireEvent.change(fileInput!, { target: { files: [new File(['%PDF-1.4'], 'dosar.pdf', { type: 'application/pdf' })] } });
+    await screen.findByLabelText('Titlu pentru dosar.pdf');
+    fireEvent.click(screen.getByRole('button', { name: 'Transmite lotul' }));
+    await waitFor(() => expect(transport.upload).toHaveBeenCalledWith(expect.objectContaining({ source_kind: 'upload' })));
   });
 
   it('approves an OCR suggestion with its current server revision', async () => {

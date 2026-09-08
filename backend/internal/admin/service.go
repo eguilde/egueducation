@@ -455,10 +455,11 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 		// Invalidate both legacy and session-bound login proofs before replacing
 		// the phone identity so a code delivered to the previous number cannot
 		// promote a newly assigned number.
-		if _, err := tx.Exec(r.Context(), `
-			delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login';
-			delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'
-		`, item.ID); err != nil {
+		if _, err := tx.Exec(r.Context(), `delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login'`, item.ID); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+			return
+		}
+		if _, err := tx.Exec(r.Context(), `delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'`, item.ID); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 			return
 		}
