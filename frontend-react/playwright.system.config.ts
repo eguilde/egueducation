@@ -5,7 +5,6 @@ const sharedFrontendOrigins = 'http://127.0.0.1:4173,http://127.0.0.1:4174,http:
 const backendEnvironment = (overrides: Record<string, string>) => ({
   ...process.env,
   FRONTEND_ORIGINS: sharedFrontendOrigins,
-  ARCHIVE_WORKER_ENABLED: 'false',
   ENABLE_EUDI_WALLET: 'false',
   FORCE_SECURE_COOKIES: 'false',
   ...overrides,
@@ -41,7 +40,9 @@ export default defineConfig({
       url: 'http://127.0.0.1:8080/health',
       reuseExistingServer: false,
       timeout: 120_000,
-      env: backendEnvironment({}),
+      // The primary instance owns asynchronous outbox delivery. Secondary
+      // OIDC issuers share the database but do not need duplicate workers.
+      env: backendEnvironment({ ARCHIVE_WORKER_ENABLED: 'true' }),
     },
     {
       command: 'go run ./cmd/server',
@@ -51,6 +52,7 @@ export default defineConfig({
       timeout: 120_000,
       env: backendEnvironment({
         PORT: '8081',
+        ARCHIVE_WORKER_ENABLED: 'false',
         FRONTEND_ORIGIN: 'http://127.0.0.1:4174',
         BACKEND_URL: 'http://127.0.0.1:8081',
         OIDC_ISSUER: 'http://127.0.0.1:4174/api/oidc',
@@ -69,6 +71,7 @@ export default defineConfig({
       timeout: 120_000,
       env: backendEnvironment({
         PORT: '8082',
+        ARCHIVE_WORKER_ENABLED: 'false',
         FRONTEND_ORIGIN: 'http://127.0.0.1:4175',
         BACKEND_URL: 'http://127.0.0.1:8082',
         OIDC_ISSUER: 'http://127.0.0.1:4175/api/oidc',
