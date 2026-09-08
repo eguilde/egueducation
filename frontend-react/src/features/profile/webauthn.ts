@@ -32,7 +32,8 @@ export const browserPasskeyCeremony: PasskeyCeremony = {
             },
             pubKeyCredParams: options.pubKeyCredParams,
             timeout: options.timeout,
-            attestation: options.attestation
+            attestation: options.attestation,
+            authenticatorSelection: options.authenticatorSelection
         };
         const credential = await navigator.credentials.create({ publicKey });
         if (!(credential instanceof PublicKeyCredential) || !(credential.response instanceof AuthenticatorAttestationResponse)) {

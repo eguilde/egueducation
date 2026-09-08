@@ -104,9 +104,14 @@ type PasskeyRegistrationOptions struct {
 		Name        string `json:"name"`
 		DisplayName string `json:"displayName"`
 	} `json:"user"`
-	PubKeyCredParams []map[string]any `json:"pubKeyCredParams"`
-	Timeout          int              `json:"timeout"`
-	Attestation      string           `json:"attestation"`
+	PubKeyCredParams       []map[string]any `json:"pubKeyCredParams"`
+	Timeout                int              `json:"timeout"`
+	Attestation            string           `json:"attestation"`
+	AuthenticatorSelection struct {
+		ResidentKey        string `json:"residentKey"`
+		RequireResidentKey bool   `json:"requireResidentKey"`
+		UserVerification   string `json:"userVerification"`
+	} `json:"authenticatorSelection"`
 }
 
 type FinishPasskeyRegistrationRequest struct {
@@ -117,11 +122,8 @@ type FinishPasskeyRegistrationRequest struct {
 }
 
 type PasskeyAuthenticationOptions struct {
-	Challenge string `json:"challenge"`
-	RP        struct {
-		Name string `json:"name"`
-		ID   string `json:"id"`
-	} `json:"rp"`
+	Challenge        string           `json:"challenge"`
+	RPID             string           `json:"rpId"`
 	AllowCredentials []map[string]any `json:"allowCredentials,omitempty"`
 	Timeout          int              `json:"timeout"`
 	UserVerification string           `json:"userVerification"`

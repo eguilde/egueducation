@@ -23,9 +23,10 @@ describe('browser passkey ceremony', () => {
         }
         vi.stubGlobal('PublicKeyCredential', FakeCredential);
         vi.stubGlobal('AuthenticatorAttestationResponse', FakeAttestationResponse);
+        const create = vi.fn(async () => new FakeCredential());
         Object.defineProperty(navigator, 'credentials', {
             configurable: true,
-            value: { create: vi.fn(async () => new FakeCredential()) }
+            value: { create }
         });
 
         const result = await browserPasskeyCeremony.register({
@@ -34,7 +35,12 @@ describe('browser passkey ceremony', () => {
             user: { id: 'AwQ', name: 'ana@example.test', displayName: 'Ana' },
             pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
             timeout: 60_000,
-            attestation: 'none'
+            attestation: 'none',
+            authenticatorSelection: {
+                residentKey: 'required',
+                requireResidentKey: true,
+                userVerification: 'required'
+            }
         });
 
         expect(result).toMatchObject({
@@ -46,6 +52,15 @@ describe('browser passkey ceremony', () => {
                 attestationObject: 'AwQ',
                 transports: ['internal']
             }
+        });
+        expect(create).toHaveBeenCalledWith({
+            publicKey: expect.objectContaining({
+                authenticatorSelection: {
+                    residentKey: 'required',
+                    requireResidentKey: true,
+                    userVerification: 'required'
+                }
+            })
         });
     });
 });

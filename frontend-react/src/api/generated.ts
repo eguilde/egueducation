@@ -11638,10 +11638,7 @@ export interface components {
                     type?: string;
                 }[];
                 challenge?: string;
-                rp?: {
-                    id?: string;
-                    name?: string;
-                };
+                rpId?: string;
                 timeout?: number;
                 userVerification?: string;
             };
@@ -11656,6 +11653,11 @@ export interface components {
         };
         post_api_passkeys_register_options_response: {
             attestation?: string;
+            authenticatorSelection?: {
+                requireResidentKey?: boolean;
+                residentKey?: string;
+                userVerification?: string;
+            };
             challenge?: string;
             pubKeyCredParams?: {
                 alg?: number;

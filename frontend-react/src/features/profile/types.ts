@@ -23,6 +23,7 @@ export interface PasskeyRegistrationOptions {
   pubKeyCredParams: Array<{ type: 'public-key'; alg: number }>;
   timeout: number;
   attestation: AttestationConveyancePreference;
+  authenticatorSelection: AuthenticatorSelectionCriteria;
 }
 
 export interface PasskeyRegistrationResult {

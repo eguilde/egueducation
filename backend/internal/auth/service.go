@@ -395,6 +395,12 @@ func (s *Service) BeginPasskeyRegistration(w http.ResponseWriter, r *http.Reques
 	}
 	opts.Timeout = 60000
 	opts.Attestation = "none"
+	// Identifier-less passkey login depends on a discoverable credential.  A
+	// non-resident credential would require an allowCredentials list and an
+	// identifier step, defeating the passkey-first OIDC interaction.
+	opts.AuthenticatorSelection.ResidentKey = "required"
+	opts.AuthenticatorSelection.RequireResidentKey = true
+	opts.AuthenticatorSelection.UserVerification = "required"
 
 	httpx.JSON(w, http.StatusOK, opts)
 }
@@ -542,8 +548,7 @@ func (s *Service) BeginPasskeyAuthentication(w http.ResponseWriter, r *http.Requ
 
 	var opts PasskeyAuthenticationOptions
 	opts.Challenge = challenge
-	opts.RP.Name = "EguEducation"
-	opts.RP.ID = passkeyRPID(s.cfg.FrontendOrigin)
+	opts.RPID = passkeyRPID(s.cfg.FrontendOrigin)
 	opts.Timeout = 60000
 	opts.UserVerification = "required"
 
