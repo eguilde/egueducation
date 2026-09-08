@@ -21,7 +21,8 @@ var approvedOperatorMigrationContacts = map[string]struct{}{
 // TestMigrationFixturesAreSynthetic is a source-level CI gate. Historical
 // migration files are immutable deployment records, so the only permissible
 // fixture contact values are the documented example.test addresses and the
-// deliberately non-routable +401xxxxxxxx range.
+// deliberately non-routable +401xxxxxxxx range. The two explicitly named
+// operator migrations may contain only the tenant-owner-approved contacts.
 func TestMigrationFixturesAreSynthetic(t *testing.T) {
 	entries, err := migrationFiles.ReadDir("migrations")
 	if err != nil {
@@ -53,7 +54,8 @@ func TestMigrationFixturesAreSynthetic(t *testing.T) {
 }
 
 func isApprovedOperatorContact(migrationName, value string) bool {
-	if migrationName != "0083_identity_contract_foundation.sql" {
+	if migrationName != "0083_identity_contract_foundation.sql" &&
+		migrationName != "0095_identity_contract_published_0083_reconciliation.sql" {
 		return false
 	}
 	_, ok := approvedOperatorMigrationContacts[strings.ToLower(value)]

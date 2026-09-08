@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const canaryIdentifier = requiredSecret('PRODUCTION_E2E_CANARY_IDENTIFIER');
 const canaryOTP = requiredSecret('PRODUCTION_E2E_CANARY_OTP');
+const canaryActivationKey = requiredSecret('PRODUCTION_E2E_CANARY_ACTIVATION_KEY');
 const productionOrigin = requiredOrigin();
 
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
@@ -24,13 +25,21 @@ function requiredOrigin(): string {
 }
 
 async function startOTPLogin(page: Page): Promise<void> {
+  const activation = await page.context().request.post(productionOrigin + '/api/oidc/e2e-canary/session', {
+    headers: {
+      Authorization: `Bearer ${canaryActivationKey}`,
+      Origin: productionOrigin,
+    },
+  });
+  expect(activation.status()).toBe(204);
+
   await page.goto('/');
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);
 
   await page.getByRole('button', { name: /SMS/ }).click();
   await page.getByLabel('Utilizator, email sau numar de telefon').fill(canaryIdentifier);
-  await page.getByRole('button', { name: 'Trimite codul prin SMS' }).click();
+  await page.getByRole('button', { name: 'Trimite codul', exact: true }).click();
   await expect(page.locator('.otp-box')).toHaveCount(6);
   await expect(page.locator('html[data-oidc-ui-ready="true"]')).toHaveCount(1);
 }

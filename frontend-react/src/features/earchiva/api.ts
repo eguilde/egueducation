@@ -1,4 +1,5 @@
 import type { Fetcher, Page } from '../workflow/api';
+import { createOpenApiTransport } from '../../api/client';
 
 export interface ArchiveDocument { id: string; title: string; original_file_name: string; mime_type: string; source_kind: string; source_system: string; external_reference: string; taxonomy_code?: string | null; taxonomy_label?: string | null; status: string; document_date?: string | null; metadata?: Record<string, unknown>; current_version_no: number; received_at: string; created_at: string; updated_at: string; score?: number; snippet?: string }
 export interface ArchiveDocumentDetail extends ArchiveDocument { latest_version?: ArchiveDocumentVersion }
@@ -22,12 +23,17 @@ export interface ArchiveApi { documents(query?: ArchiveSearch): Promise<Page<Arc
 const page = <T,>(value: T[] | (Partial<Page<T>> & { page_size?: number })): Page<T> => Array.isArray(value) ? { items: value, total: value.length, page: 1, pageSize: value.length } : { items: value.items ?? [], total: Number(value.total ?? 0), page: Number(value.page ?? 1), pageSize: Number(value.pageSize ?? value.page_size ?? 25) };
 
 export function createArchiveApi(fetcher: Fetcher = fetch, apiBase = '/api'): ArchiveApi {
-  const request = async <T,>(path: string, init?: RequestInit) => { const response = await fetcher(`${apiBase}${path}`, { credentials: 'include', ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } }); if (!response.ok) throw new Error(`earchiva_request_${response.status}`); return response.json() as Promise<T>; };
+  const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
+  const request = async <T,>(path: string, init?: RequestInit) => {
+    const result = await transport.request<T>((init?.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | undefined) ?? 'GET', `${apiBase}${path}`, { ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } });
+    if (!result.response.ok) throw new Error(`earchiva_request_${result.response.status}`);
+    return result.data as T;
+  };
   const query = (path: string, input: Record<string, string | undefined>) => { const params = new URLSearchParams(); Object.entries(input).forEach(([key, value]) => { if (value?.trim()) params.set(key, value); }); const encoded = params.toString(); return encoded ? `${path}?${encoded}` : path; };
   return {
     documents: async (input = {}) => page(await request<ArchiveDocument[] | Partial<Page<ArchiveDocument>>>(query('/earchiva/documents', { page: '1', pageSize: '25', ...input }))),
     document: (id) => request(`/earchiva/documents/${encodeURIComponent(id)}`), versions: (id) => request(`/earchiva/documents/${encodeURIComponent(id)}/versions`),
-    async download(id) { const response = await fetcher(`${apiBase}/earchiva/documents/${encodeURIComponent(id)}/content`, { credentials: 'include', headers: { Accept: 'application/pdf' } }); if (!response.ok) throw new Error(`earchiva_request_${response.status}`); return response.blob(); },
+    async download(id) { const result = await transport.request<Blob>('GET', `${apiBase}/earchiva/documents/${encodeURIComponent(id)}/content`, { headers: { Accept: 'application/pdf' } }); if (!result.response.ok) throw new Error(`earchiva_request_${result.response.status}`); return result.data as Blob; },
     taxonomy: (input = {}) => request(query('/earchiva/taxonomy', input)),
     async upload(input) { const data = new FormData(); data.set('file', input.file); data.set('title', input.title); data.set('source_kind', input.source_kind); if (input.source_system) data.set('source_system', input.source_system); if (input.external_reference) data.set('external_reference', input.external_reference); if (input.taxonomy_code) data.set('taxonomy_code', input.taxonomy_code); if (input.taxonomy_label) data.set('taxonomy_label', input.taxonomy_label); if (input.taxonomy_parent) data.set('taxonomy_parent_code', input.taxonomy_parent); if (input.document_date) data.set('document_date', input.document_date); if (input.metadata) data.set('metadata', JSON.stringify(input.metadata)); return request('/earchiva/documents', { method: 'POST', body: data }); },
     adminHealth: () => request('/earchiva/admin/health'), adminStats: () => request('/earchiva/admin/stats'), adminJobs: async (input = {}) => page(await request<ArchiveJob[] | Partial<Page<ArchiveJob>>>(query('/earchiva/admin/jobs', input))), retryJob: (jobId) => request(`/earchiva/admin/jobs/${encodeURIComponent(jobId)}/retry`, { method: 'POST' }),

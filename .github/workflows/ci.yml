@@ -100,7 +100,21 @@ jobs:
         run: go test ./internal/tenant -run '^TestDatabaseResolverIntegration$' -count=1 -timeout 60s
       - name: Identity contract migration and Balotesti authorization bootstrap
         working-directory: backend
-        run: go test ./internal/db -run '^Test(IdentityContractFoundation|OIDCTenantBindingUpgrade)Integration$' -count=1 -timeout 90s
+        run: go test ./internal/db -run '^Test(IdentityContractFoundation|OIDCTenantBindingUpgrade|Published0083Reconciliation)Integration$' -count=1 -timeout 120s
+      - name: Phone proof, global identity uniqueness, OTP audit and replay contract
+        working-directory: backend
+        run: go test ./internal/auth -run '^TestPhoneOTPPostgresIntegration$' -count=1 -timeout 90s
+      - name: Tenant grant RLS enforcement with a non-bypass PostgreSQL role
+        working-directory: backend
+        run: go test ./internal/db -run '^TestTenantGrantRLSIntegration$' -count=1 -timeout 120s
+      - name: Tenant administrator cannot mutate a cross-tenant global identity
+        working-directory: backend
+        run: go test ./internal/admin -run '^TestTenantAdminCannotMutateSharedGlobalIdentityRegression$' -count=1 -timeout 120s
+      - name: Phone identity reverse projection and SMS queue redaction
+        working-directory: backend
+        run: |
+          go test ./internal/db -run '^TestPhoneIdentityReverseProjectionPostgres$' -count=1 -timeout 120s
+          go test ./internal/notification -run '^TestSMSQueuePostgresPersistsOnlyRedactedBoundedMetadata$' -count=1 -timeout 120s
 
   oidc-browser-integration:
     name: OIDC browser login with deterministic test fixture
@@ -166,6 +180,152 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  react-real-stack-system-e2e:
+    name: React to OIDC to PostgreSQL system proof
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: egueducation_system_e2e
+          POSTGRES_USER: egueducation
+          POSTGRES_PASSWORD: egueducation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U egueducation -d egueducation_system_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      APP_ENV: test
+      PORT: 8080
+      DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
+      MIGRATION_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
+      TEST_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
+      FRONTEND_ORIGIN: http://127.0.0.1:4173
+      BACKEND_URL: http://127.0.0.1:8080
+      OIDC_ISSUER: http://127.0.0.1:4173/api/oidc
+      OIDC_CLIENT_ID: egueducation-spa
+      OIDC_AUDIENCE: egueducation-api
+      CUSTOMER_NAME: EguEducation Test Fixture
+      ENABLE_TEST_OTP_FIXTURE: true
+      TEST_OTP_FIXTURE_CODE: "173829"
+      TEST_OTP_FIXTURE_IDENTIFIER: oidc.browser.fixture@example.test
+      TEST_OTP_FIXTURE_SUBJECT: oidc-browser-fixture-subject
+      TEST_OTP_FIXTURE_TENANT_CODE: tenant-egueducation
+      ARCHIVE_WORKER_ENABLED: true
+      ARCHIVE_WORKER_POLL_INTERVAL_SECONDS: 1
+      ARCHIVE_STORAGE_ENDPOINT: http://127.0.0.1:9000
+      ARCHIVE_STORAGE_REGION: us-east-1
+      ARCHIVE_STORAGE_BUCKET: registratura-system-e2e
+      ARCHIVE_STORAGE_ACCESS_KEY: minioadmin
+      ARCHIVE_STORAGE_SECRET_KEY: minioadmin123
+      ARCHIVE_STORAGE_USE_PATH_STYLE: true
+      ARCHIVE_STORAGE_CREATE_BUCKET: true
+      CLAMD_ADDRESS: 127.0.0.1:3310
+      ENABLE_EUDI_WALLET: false
+      FORCE_SECURE_COOKIES: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+      - name: Install PostgreSQL client, React dependencies and Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+          cd frontend-react
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start the pinned MinIO store for Registratura attachments and outbox delivery
+        run: |
+          docker run --detach --rm --name egueducation-registratura-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:9000/minio/health/live; then exit 0; fi
+            sleep 1
+          done
+          docker logs egueducation-registratura-system-minio
+          exit 1
+      - name: Exercise real browser, OIDC, RBAC, API and PostgreSQL persistence
+        working-directory: frontend-react
+        run: npx playwright test --config=playwright.system.config.ts --workers=1
+      - name: Upload failed system proof trace
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-real-stack-system-e2e-trace
+          path: frontend-react/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  react-earchiva-real-pipeline-e2e:
+    name: React eArhiva to PostgreSQL MinIO OCR and search proof
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: egueducation_earchiva_system
+          POSTGRES_USER: egueducation
+          POSTGRES_PASSWORD: egueducation
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U egueducation -d egueducation_earchiva_system"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_earchiva_system?sslmode=disable
+      MIGRATION_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_earchiva_system?sslmode=disable
+      TEST_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_earchiva_system?sslmode=disable
+      ARCHIVE_STORAGE_ENDPOINT: http://127.0.0.1:9000
+      ARCHIVE_STORAGE_ACCESS_KEY: minioadmin
+      ARCHIVE_STORAGE_SECRET_KEY: minioadmin123
+      ARCHIVE_PDF_VALIDATOR_PATH: /tmp/egueducation-pdf-validator
+      ENABLE_TEST_OTP_FIXTURE: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.6
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.15.0
+          cache: npm
+          cache-dependency-path: frontend-react/package-lock.json
+      - name: Install system dependencies, React dependencies and Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client awscli
+          cd frontend-react
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Build the isolated archive PDF validator used by the live server
+        working-directory: backend
+        run: go build -o /tmp/egueducation-pdf-validator ./cmd/archive-pdf-validator
+      - name: Start the pinned MinIO archive store and wait for readiness
+        run: |
+          docker run --detach --rm --name egueducation-earchiva-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:9000/minio/health/live; then exit 0; fi
+            sleep 1
+          done
+          docker logs egueducation-earchiva-system-minio
+          exit 1
+      - name: Exercise PrimeReact upload through MinIO Azure OCR worker and tenant-isolated search
+        working-directory: frontend-react
+        run: npx playwright test --config=playwright.earchiva-system.config.ts --workers=1
+
   archive-postgres-integration:
     name: eArhiva PostgreSQL integration
     runs-on: ubuntu-24.04
@@ -199,6 +359,16 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
         run: go test -tags=integration ./internal/education -run '^TestGovernanceImmutableActorIdentityIntegration$' -count=1
+      - name: Deliver finalized Registratura documents to eArhiva idempotently
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
+        run: go test -tags=integration ./internal/earchiva -run '^TestRegistraturaArchiveOutbox' -count=1 -timeout 180s
+      - name: Exercise Workflow handlers, transitions, readiness, audit and tenant RLS
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable
+        run: go test -tags=integration ./internal/workflow -run '^TestWorkflowPostgresHandlersAndTenantContractsIntegration$' -count=1 -timeout 180s
 
   frontend:
     name: Frontend tests, build, and audit

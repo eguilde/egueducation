@@ -33,12 +33,9 @@ func TestResolveAdminUserAuthenticationRequiresVerifiedLoginIdentity(t *testing.
 			wantChannel: "email",
 		},
 		{
-			name: "unverified identifiers are rejected",
-			request: UpsertUserRequest{
-				Email: "operator@example.test",
-				Phone: "0712345678",
-			},
-			wantErr: errVerifiedLoginIdentifierMissing,
+			name:        "assigned unverified phone defaults to sms proof",
+			request:     UpsertUserRequest{Phone: "0712345678"},
+			wantChannel: "sms",
 		},
 		{
 			name: "email channel cannot use unverified email",
@@ -57,9 +54,9 @@ func TestResolveAdminUserAuthenticationRequiresVerifiedLoginIdentity(t *testing.
 			wantChannel: "sms",
 		},
 		{
-			name:    "explicit verification revocation is enforced",
-			request: UpsertUserRequest{Phone: "0712345678"},
-			wantErr: errVerifiedLoginIdentifierMissing,
+			name:        "revoked phone remains eligible for sms proof",
+			request:     UpsertUserRequest{Phone: "0712345678"},
+			wantChannel: "sms",
 		},
 	}
 
@@ -108,7 +105,16 @@ func TestResolveRequestedVerificationDoesNotTransferTrustToChangedIdentifier(t *
 	if !resolveRequestedVerification(true, false, nil) {
 		t.Fatal("an unchanged identifier must preserve verified status when verification is omitted")
 	}
-	if !resolveRequestedVerification(false, true, boolPointer(true)) {
-		t.Fatal("an explicit verification result must be honored")
+	if resolveAdminPhoneVerification(false, true, boolPointer(true)) {
+		t.Fatal("an administrator must not self-assert phone verification")
+	}
+	if resolveAdminPhoneVerification(false, false, boolPointer(true)) {
+		t.Fatal("an administrator must not promote an existing unverified phone")
+	}
+	if resolveAdminPhoneVerification(true, false, boolPointer(false)) {
+		t.Fatal("an explicit false must revoke phone verification")
+	}
+	if resolveAdminEmailVerification(false, false, boolPointer(true)) {
+		t.Fatal("an administrator must not self-assert email verification")
 	}
 }

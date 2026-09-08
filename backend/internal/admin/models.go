@@ -45,8 +45,9 @@ type UpsertUserRequest struct {
 	Phone  string `json:"phone"`
 	Locale string `json:"locale"`
 	Status string `json:"status"`
-	// Omitted verification fields preserve state on update; an explicit false
-	// revokes it. New users must explicitly verify at least one identifier.
+	// email_verified follows the email-verification flow. phone_verified is
+	// deliberately revocation-only: a phone becomes verified only after a
+	// successful SMS OTP possession proof.
 	EmailVerified       *bool  `json:"email_verified,omitempty"`
 	PhoneVerified       *bool  `json:"phone_verified,omitempty"`
 	PreferredOTPChannel string `json:"preferred_otp_channel"`

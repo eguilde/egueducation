@@ -72,7 +72,10 @@ func newOIDCProviderHandler(
 	clientStore := &oidcClientStore{db: db}
 	authnStore := &oidcAuthnSessionStore{db: db}
 	grantStore := &oidcGrantSessionStore{db: db}
-	otp := newOTPService(db)
+	otp, err := newOTPService(db, cfg.OTPHMACKeyValue())
+	if err != nil {
+		return nil, nil, fmt.Errorf("initialize OTP service: %w", err)
+	}
 
 	op, err := provider.New(
 		goidc.ProfileOpenID,
@@ -808,6 +811,7 @@ func renderMethodStep(
 		FormAction:     formAction,
 		FrontendOrigin: cfg.FrontendOrigin,
 		WalletEnabled:  cfg.EnableWallet,
+		OTPEnabled:     cfg.EnableSMSOTP,
 		Theme:          resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
@@ -816,6 +820,10 @@ func renderMethodStep(
 
 	switch r.FormValue("method") {
 	case "otp":
+		if !cfg.EnableSMSOTP {
+			data.Error = "Autentificarea cu SMS OTP este dezactivată."
+			return renderOIDCStep(w, tmpl, data)
+		}
 		sess.StoreParameter("step", "otp_identifier")
 		return renderOIDCStep(w, tmpl, oidcLoginData{
 			Step:           "otp_identifier",
@@ -824,6 +832,7 @@ func renderMethodStep(
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			WalletEnabled:  cfg.EnableWallet,
+			OTPEnabled:     cfg.EnableSMSOTP,
 			Theme:          resolveOIDCThemeSettings(r, sess),
 		})
 	case "eudi_wallet":
@@ -860,6 +869,16 @@ func renderOTPIdentifierStep(
 	otp *otpService,
 ) (goidc.Status, error) {
 	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
+	if !cfg.EnableSMSOTP {
+		sess.StoreParameter("step", "")
+		return renderOIDCStep(w, tmpl, oidcLoginData{
+			Step: "methods", StepLabel: "Pasul 1", CustomerName: customerName,
+			FormAction: formAction, FrontendOrigin: cfg.FrontendOrigin,
+			WalletEnabled: cfg.EnableWallet, OTPEnabled: false,
+			Error: "Autentificarea cu SMS OTP este dezactivată.",
+			Theme: resolveOIDCThemeSettings(r, sess),
+		})
+	}
 	identifier, _ := sess.StoredParameter("identifier").(string)
 	deliveryChannel := normalizeOTPDeliveryChannel(r.FormValue("delivery_channel"))
 	if storedChannel, ok := sess.StoredParameter("otp_delivery_channel").(string); ok && r.Method == http.MethodGet {
@@ -888,6 +907,7 @@ func renderOTPIdentifierStep(
 			FormAction:     formAction,
 			FrontendOrigin: cfg.FrontendOrigin,
 			WalletEnabled:  cfg.EnableWallet,
+			OTPEnabled:     cfg.EnableSMSOTP,
 			Theme:          resolveOIDCThemeSettings(r, sess),
 		})
 	}
@@ -952,9 +972,9 @@ func renderOTPIdentifierStep(
 	}
 	var code string
 	if fixtureEnabled {
-		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
+		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, loginBranding.TenantCode, sess.CallbackID, cfg.TestOTPFixtureCode)
 	} else {
-		code, err = otp.Generate(r.Context(), user.ID, otpPurposeLogin)
+		code, err = otp.Generate(r.Context(), user.ID, otpPurposeLogin, loginBranding.TenantCode, sess.CallbackID)
 	}
 	if err != nil {
 		data.Error = "Nu am putut genera codul OTP."
@@ -1013,7 +1033,7 @@ func testOTPFixtureAllowed(_ *http.Request, cfg *config.Config, user oidcLoginUs
 	if !identityMatches {
 		return false
 	}
-	return !cfg.IsProduction() || (cfg.ProductionE2ECanaryEnabled() && user.ID == oidcTestFixtureUserID)
+	return !cfg.IsProduction() || (cfg.ProductionE2ECanaryEnabled() && user.ID == testOTPFixtureUserID(*cfg))
 }
 
 func isProductionE2ECanaryIdentity(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
@@ -1023,12 +1043,12 @@ func isProductionE2ECanaryIdentity(cfg *config.Config, user oidcLoginUser, tenan
 }
 
 func isProductionE2ECanaryUser(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
-	return cfg != nil && cfg.ProductionE2ECanaryEnabled() && user.ID == oidcTestFixtureUserID &&
+	return cfg != nil && cfg.ProductionE2ECanaryEnabled() && user.ID == testOTPFixtureUserID(*cfg) &&
 		strings.TrimSpace(tenantCode) == cfg.TestOTPFixtureTenantCode
 }
 
 func isReservedProductionE2ECanaryUser(cfg *config.Config, userID uuid.UUID) bool {
-	return cfg != nil && cfg.IsProduction() && userID == oidcTestFixtureUserID
+	return cfg != nil && cfg.IsProduction() && userID == testOTPFixtureUserID(*cfg)
 }
 
 func developmentOTPDisplayAllowed(cfg *config.Config) bool {
@@ -1053,6 +1073,16 @@ func renderOTPStep(
 	otp *otpService,
 ) (goidc.Status, error) {
 	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
+	if !cfg.EnableSMSOTP {
+		sess.StoreParameter("step", "")
+		return renderOIDCStep(w, tmpl, oidcLoginData{
+			Step: "methods", StepLabel: "Pasul 1", CustomerName: customerName,
+			FormAction: formAction, FrontendOrigin: cfg.FrontendOrigin,
+			WalletEnabled: cfg.EnableWallet, OTPEnabled: false,
+			Error: "Autentificarea cu SMS OTP este dezactivată.",
+			Theme: resolveOIDCThemeSettings(r, sess),
+		})
+	}
 	identifier, _ := sess.StoredParameter("identifier").(string)
 	deliveryChannel, _ := sess.StoredParameter("otp_delivery_channel").(string)
 	channel := normalizeOTPDeliveryChannel(deliveryChannel)
@@ -1093,7 +1123,12 @@ func renderOTPStep(
 		data.Error = "Introduceți codul primit."
 		return renderOIDCStep(w, tmpl, data)
 	}
-	if err := otp.Verify(r.Context(), userID, otpPurposeLogin, code); err != nil {
+	tenantCode, err := oidcTenantCodeFromContext(r.Context())
+	if err != nil {
+		return goidc.StatusFailure, err
+	}
+	if err := otp.VerifyPhoneLogin(r.Context(), userID, tenantCode, sess.CallbackID, code); err != nil {
+		otp.RecordPhoneLoginOTPFailure(r.Context(), userID, tenantCode, err)
 		data.Error = "Cod invalid sau expirat."
 		return renderOIDCStep(w, tmpl, data)
 	}
@@ -1183,10 +1218,10 @@ func otpDeliveryLabel(channel otpDeliveryChannel) string {
 	return "numărul de telefon asociat contului"
 }
 
-// resolveOTPDelivery is deliberately strict. SMS remains the default; email
-// is permitted only after the selected identity is verified and a trusted mail
-// sender is configured. The current runtime has no mail transport/configuration
-// surface, so email requests fail clearly before an OTP is generated.
+// resolveOTPDelivery is deliberately strict. SMS remains the default and an
+// assigned phone may receive its first possession challenge before it is
+// verified; successful verification promotes that exact bound identity.
+// Email stays verification-gated and has no configured transport yet.
 func resolveOTPDelivery(user oidcLoginUser, requested otpDeliveryChannel, smsService *notification.SMSService, fixtureEnabled bool) (otpDeliveryChannel, error) {
 	switch requested {
 	case otpDeliveryEmail:
@@ -1195,8 +1230,8 @@ func resolveOTPDelivery(user oidcLoginUser, requested otpDeliveryChannel, smsSer
 		}
 		return "", errors.New("serviciul OTP prin email nu este configurat pentru acest mediu")
 	case otpDeliverySMS:
-		if !user.PhoneNumberVerified || strings.TrimSpace(user.PhoneNumber) == "" {
-			return "", errors.New("numărul de telefon nu este verificat pentru acest cont")
+		if strings.TrimSpace(user.PhoneNumber) == "" {
+			return "", errors.New("contul nu are un număr de telefon atribuit")
 		}
 		if !fixtureEnabled && (smsService == nil || !smsService.Configured()) {
 			return "", errors.New("serviciul SMS nu este configurat pe acest mediu")
@@ -1231,7 +1266,7 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 		where status = 'active'
 			and (
 				lower(sub) = lower($1)
-				or lower(email) = lower($1)
+				or (lower(email) = lower($1) and email_verified)
 				or exists (
 					select 1
 					from app_user_login_aliases aliases
@@ -1242,10 +1277,9 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 					select 1
 					from app_user_identities identity
 					where identity.user_id = app_users.id
-						and identity.verified_at is not null
-						and (
-							(identity.identity_type = 'email' and identity.normalized_value = lower($1))
-							or (identity.identity_type = 'phone' and regexp_replace(identity.normalized_value, '[^0-9]+', '', 'g') = any($2::text[]))
+					and (
+						(identity.identity_type = 'email' and identity.verified_at is not null and identity.normalized_value = lower($1))
+						or (identity.identity_type = 'phone' and regexp_replace(identity.normalized_value, '[^0-9]+', '', 'g') = any($2::text[]))
 						)
 				)
 			)
@@ -1480,6 +1514,7 @@ type oidcLoginData struct {
 	Message         string
 	Error           string
 	WalletEnabled   bool
+	OTPEnabled      bool
 	Scopes          []scopeItem
 	Theme           oidcThemeSettings
 }
@@ -1789,13 +1824,13 @@ const oidcLoginHTML = `<!DOCTYPE html>
         {{if eq .Step "methods"}}
         <form action="{{.FormAction}}" method="POST">
           <div class="method-grid">
-            <button type="submit" name="method" value="otp" class="method-card">
+            {{if .OTPEnabled}}<button type="submit" name="method" value="otp" class="method-card">
               <div class="method-icon">✉</div>
               <div>
                 <div class="method-title">SMS</div>
                 <div class="method-subtitle">Cod OTP</div>
               </div>
-            </button>
+            </button>{{end}}
             <button type="button" id="biometricBtn" class="method-card">
               <div class="method-icon">◈</div>
               <div>

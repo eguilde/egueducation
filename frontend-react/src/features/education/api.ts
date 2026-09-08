@@ -9,6 +9,7 @@ import type {
   EducationRecordInput,
   EducationRecordsDomain,
 } from "./types";
+import { createOpenApiTransport } from "../../api/client";
 
 export type AuthenticatedFetcher = (
   input: RequestInfo | URL,
@@ -37,20 +38,21 @@ export function createEducationApi(
   fetcher: AuthenticatedFetcher,
   apiBase = "/api",
 ): EducationApi {
+  const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
   const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
-    const response = await fetcher(`${apiBase}${path}`, {
+    const result = await transport.request<T>((init?.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined) ?? "GET", `${apiBase}${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
         ...(init?.headers ?? {}),
       },
     });
-    if (!response.ok) {
-      const body = await response.json().catch(() => undefined) as { code?: string } | undefined;
-      throw new Error(body?.code ?? `education_request_${response.status}`);
+    if (!result.response.ok) {
+      const body = result.data as { code?: string } | undefined;
+      throw new Error(body?.code ?? `education_request_${result.response.status}`);
     }
-    if (response.status === 204) return undefined as T;
-    return response.json() as Promise<T>;
+    if (result.response.status === 204) return undefined as T;
+    return result.data as T;
   };
   const recordsPaths: Record<EducationRecordsDomain, string> = {
     decisions: "/education/decisions/records",
@@ -103,23 +105,23 @@ export function createEducationApi(
     }),
     deleteRecord: (domain, id) => request<void>(`${recordsPaths[domain]}/${encodeURIComponent(id)}`, { method: "DELETE" }),
     async recordPdf(domain, id) {
-      const response = await fetcher(`${apiBase}${pdfPaths[domain]}/${encodeURIComponent(id)}/pdf`, { headers: { Accept: "application/pdf" } });
-      if (!response.ok) throw new Error(`education_pdf_${response.status}`);
-      return response.blob();
+      const result = await transport.request<Blob>("GET", `${apiBase}${pdfPaths[domain]}/${encodeURIComponent(id)}/pdf`, { headers: { Accept: "application/pdf" } });
+      if (!result.response.ok) throw new Error(`education_pdf_${result.response.status}`);
+      return result.data as Blob;
     },
     relatedRecords: async (path, input = {}) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`${path}?${listQuery(input)}`)),
     relatedDetail: (path, id) => request<EducationRecord>(`${path}/${encodeURIComponent(id)}`),
     saveRelated: (path, input, id?) => request<EducationRecord>(id ? `${path}/${encodeURIComponent(id)}` : path, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     deleteRelated: (path, id) => request<void>(`${path}/${encodeURIComponent(id)}`, { method: "DELETE" }),
     async relatedPdf(path, id) {
-      const response = await fetcher(`${apiBase}${path}/${encodeURIComponent(id)}/pdf`, { headers: { Accept: "application/pdf" } });
-      if (!response.ok) throw new Error(`education_related_pdf_${response.status}`);
-      return response.blob();
+      const result = await transport.request<Blob>("GET", `${apiBase}${path}/${encodeURIComponent(id)}/pdf`, { headers: { Accept: "application/pdf" } });
+      if (!result.response.ok) throw new Error(`education_related_pdf_${result.response.status}`);
+      return result.data as Blob;
     },
     async exportFile(format) {
-      const response = await fetcher(`${apiBase}/education/exports/${format}`, { headers: { Accept: format === "pdf" ? "application/pdf" : "text/csv" } });
-      if (!response.ok) throw new Error(`education_export_${response.status}`);
-      return response.blob();
+      const result = await transport.request<Blob>("GET", `${apiBase}/education/exports/${format}`, { headers: { Accept: format === "pdf" ? "application/pdf" : "text/csv" } });
+      if (!result.response.ok) throw new Error(`education_export_${result.response.status}`);
+      return result.data as Blob;
     },
     metadata: (path) => request<Record<string, unknown>>(path),
     command: (path) => request<void>(path, { method: "POST" }),

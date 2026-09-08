@@ -18,6 +18,7 @@ import { FileUpload } from "@primereact/ui/fileupload";
 import { Message } from "@primereact/ui/message";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
+import { Tag } from "@primereact/ui/tag";
 import { Search, Send, Inbox, Copy, Times, FilePdf, Upload, Pencil, Ban, Users, History, ShareAlt, ChevronRight, ChevronDown, SortAlt } from "@primeicons/react";
 import { createRegistraturaApi, type RegistraturaApi } from "./api";
 import type {
@@ -41,6 +42,7 @@ import type {
 } from "./types";
 import {
   calendarDateLabel,
+  canonicalStatus,
   directionLabel,
   isTerminalStatus,
   permittedActions,
@@ -65,10 +67,17 @@ const blank = (
 });
 const storageKey = (tenantKey: string) =>
   `egueducation.registratura.registry.${tenantKey}`;
+const MAX_REGISTRATURA_ATTACHMENT_BYTES = 52_428_800;
+const REGISTRATURA_ATTACHMENT_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.txt,.csv,.xml,.zip";
 const validExportRange = (start: string, end: string) => {
   if (!start || !end || start > end) return false;
   return (Date.parse(end) - Date.parse(start)) / 86400000 <= 30;
 };
+const isoCalendarDate = (value: Date) => {
+  const offset = value.getTimezoneOffset() * 60_000;
+  return new Date(value.getTime() - offset).toISOString().slice(0, 10);
+};
+const formatFileSize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 const Spinner = () => (
   <ProgressSpinner.Root>
     <ProgressSpinner.Range>
@@ -229,8 +238,10 @@ export function RegistraturaWorkspace({
       ]);
       setPartyOptions(partyResult.items);
       setDepartmentOptions(departmentResult.items);
+      return { parties: partyResult.items, departments: departmentResult.items };
     } catch {
       setError("Listele de persoane și compartimente nu au putut fi încărcate.");
+      return undefined;
     }
   };
   const openCreate = (nextMode: CreateMode) => {
@@ -240,7 +251,19 @@ export function RegistraturaWorkspace({
     setCreateAttachments([]);
     setPartySearch("");
     setMode(nextMode);
-    void loadCreateLookups();
+    void loadCreateLookups().then((lookups) => {
+      const defaultOrganization = lookups?.parties.find((party) => party.active !== false && party.is_default_organization);
+      if (!defaultOrganization) return;
+      setForm((current) => {
+        if (!current) return current;
+        // Costești locks the school/default institution as recipient for an
+        // incoming record and as sender for an outgoing record. Preserve an
+        // operator value if it was entered before the lookup resolved.
+        return nextMode === "intrare"
+          ? current.assigned_to.trim() ? current : { ...current, assigned_to: defaultOrganization.display_name, assigned_party_id: defaultOrganization.id }
+          : current.correspondent.trim() ? current : { ...current, correspondent: defaultOrganization.display_name, correspondent_party_id: defaultOrganization.id };
+      });
+    });
   };
   const submit = async () => {
     if (!form || !registryId) return;
@@ -273,7 +296,14 @@ export function RegistraturaWorkspace({
         })];
       }
       if (createAttachments.length > 0) {
-        await Promise.all(created.flatMap((document) => createAttachments.map((file) => api.upload(document.id, file, "primary"))));
+        try {
+          await Promise.all(created.flatMap((document) => createAttachments.map((file) => api.upload(document.id, file, "primary"))));
+        } catch {
+          // The registry record is already durable. Do not present that as a
+          // failed registration; leave it open so the operator can retry from
+          // the attachment section after the scanner/storage recovers.
+          setError("Documentul a fost înregistrat, dar unul sau mai multe atașamente nu au fost încărcate. Reîncercați din detaliile documentului.");
+        }
       }
       setMode(null);
       await load(registryId);
@@ -330,10 +360,43 @@ export function RegistraturaWorkspace({
     setPage(1);
     setAppliedFilters({ ...filters });
   };
+  // Header-row filters are intentionally applied independently of the expanded
+  // search form. This mirrors the lazy PrimeNG table in Costești: changing a
+  // select/date field immediately performs a server request, while text fields
+  // submit on Enter (or blur) to avoid a request for every keystroke.
+  const applyHeaderFilter = (field: keyof DocumentFilters, value: string) => {
+    setPage(1);
+    setFilters((current) => {
+      const next = { ...current, [field]: value };
+      setAppliedFilters(next);
+      return next;
+    });
+  };
+  const statusSeverity = (status: string): "success" | "info" | "warn" | "danger" | "secondary" => {
+    switch (canonicalStatus(status)) {
+      case "FINALIZAT": return "success";
+      case "ANULAT": return "danger";
+      case "FLUX_APROBARE": return "warn";
+      case "ALOCAT_COMPARTIMENT":
+      case "IN_LUCRU": return "info";
+      default: return "secondary";
+    }
+  };
+  const isCancelled = (status: string) => canonicalStatus(status) === "ANULAT";
   const resetFilters = () => {
     setPage(1);
     setFilters({});
     setAppliedFilters({});
+  };
+  const openExport = () => {
+    if (!exportStart || !exportEnd) {
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 30);
+      setExportStart(isoCalendarDate(start));
+      setExportEnd(isoCalendarDate(end));
+    }
+    setExportOpen(true);
   };
   const sortableHeader = (label: string, field: string) => <Button variant="text" severity="secondary" aria-label={`Sortează după ${label}`} onClick={() => changeSort(field)}>{label}<SortAlt />{sort === field ? <span>{sortDirection === "asc" ? "↑" : "↓"}</span> : null}</Button>;
   const refreshDetail = async () => { if (selected) await openDetail(selected); };
@@ -451,7 +514,7 @@ export function RegistraturaWorkspace({
                     <span className="hidden min-[360px]:inline">MULTIPLU</span>
                   </Button>
                 </ButtonGroup>
-                <Button className="col-start-2 row-start-1 justify-self-end md:col-start-3" variant="text" severity="secondary" aria-label="Exportă registrul în PDF" title="Exportă registrul în PDF" disabled={!registryId} onClick={() => setExportOpen(true)}><FilePdf /></Button>
+                <Button className="col-start-2 row-start-1 justify-self-end md:col-start-3" variant="text" severity="secondary" aria-label="Exportă registrul în PDF" title="Exportă registrul în PDF" disabled={!registryId} onClick={openExport}><FilePdf /></Button>
               </div>
               {filtersOpen && <div id="registratura-search-panel" aria-label="Căutare documente"><Card.Root><Card.Body className="p-2"><Card.Content className="p-0"><div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2"><strong>Filtrare documente</strong><Button variant="text" severity="secondary" aria-label="Închide filtrarea" onClick={() => setFiltersOpen(false)}><Times /></Button></div>
@@ -506,31 +569,31 @@ export function RegistraturaWorkspace({
                 scrollHeight="max(20rem, calc(100dvh - 18rem))"
                 className="min-w-0 max-w-full overflow-hidden"
               >
-                <DataTable.Table className="min-w-[80rem] table-fixed">
-                  <DataTable.THead>
+                <DataTable.Table className="min-w-[66rem] table-fixed">
+                  <DataTable.THead className="sticky top-0 z-20">
                     <DataTable.THeadRow>
                       <DataTable.THeadCell className="w-10"><span className="sr-only">Extindere</span></DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-28">{sortableHeader("Nr. Doc", "registry_number")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-24">{sortableHeader("Tip", "document_type")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-56">{sortableHeader("Conținut", "subject")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-36">{sortableHeader("Emitent", "correspondent")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-36">{sortableHeader("Destinatar", "assigned_to")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-28">{sortableHeader("Data intrare", "entry_at")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="w-28">{sortableHeader("Data ieșire", "exit_at")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-24">{sortableHeader("Nr. Doc", "registry_number")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-[5.5rem]">{sortableHeader("Tip", "document_type")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-52">{sortableHeader("Conținut", "subject")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-32">{sortableHeader("Emitent", "correspondent")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-32">{sortableHeader("Destinatar", "assigned_to")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-[6.75rem]">{sortableHeader("Data intrare", "entry_at")}</DataTable.THeadCell>
+                      <DataTable.THeadCell className="w-[6.75rem]">{sortableHeader("Data ieșire", "exit_at")}</DataTable.THeadCell>
                       <DataTable.THeadCell className="w-32">{sortableHeader("Status", "status")}</DataTable.THeadCell>
-                      <DataTable.THeadCell className="sticky right-0 z-20 w-40" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }}>Acțiuni</DataTable.THeadCell>
+                      <DataTable.THeadCell className="sticky right-0 z-30 w-44" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }}><div className="flex items-center justify-between gap-1"><span>Acțiuni</span><Button variant="text" severity="secondary" aria-label={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} aria-expanded={filtersOpen} aria-controls="registratura-search-panel" title={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} onClick={() => setFiltersOpen((value) => !value)}><Search /></Button></div></DataTable.THeadCell>
                     </DataTable.THeadRow>
                     <DataTable.THeadRow>
                       <DataTable.THeadCell />
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Nr. Doc" value={filters.registry_number ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, registry_number: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyFilters()} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><Select.Root value={filters.document_type ?? ""} options={(filterOptions?.document_types ?? []).map((value) => ({ label: value, value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setFilters((value) => ({ ...value, document_type: String(event.value ?? "") })); }}><Select.Trigger aria-label="Filtru coloană Tip"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Conținut" value={filters.subject ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, subject: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyFilters()} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Emitent" value={filters.correspondent ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, correspondent: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyFilters()} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Destinatar" value={filters.assigned_to ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, assigned_to: event.target.value }))} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyFilters()} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Data intrare" type="date" value={filters.entry_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, entry_at_from: event.target.value })); }} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Data ieșire" type="date" value={filters.exit_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((value) => ({ ...value, exit_at_from: event.target.value })); }} /></DataTable.THeadCell>
-                      <DataTable.THeadCell><Select.Root value={filters.status ?? ""} options={(filterOptions?.statuses ?? []).map((value) => ({ label: statusLabel(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => { setPage(1); setFilters((value) => ({ ...value, status: String(event.value ?? "") })); }}><Select.Trigger aria-label="Filtru coloană Status"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
-                      <DataTable.THeadCell className="sticky right-0 z-20" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }}><Button variant="text" severity="secondary" aria-label={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} aria-expanded={filtersOpen} aria-controls="registratura-search-panel" title={filtersOpen ? "Închide căutarea" : "Deschide căutarea"} onClick={() => setFiltersOpen((value) => !value)}><Search /></Button></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Nr. Doc" value={filters.registry_number ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, registry_number: event.target.value }))} onBlur={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("registry_number", event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyHeaderFilter("registry_number", event.currentTarget.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><Select.Root value={filters.document_type ?? ""} options={(filterOptions?.document_types ?? []).map((value) => ({ label: value, value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => applyHeaderFilter("document_type", String(event.value ?? ""))}><Select.Trigger aria-label="Filtru coloană Tip"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Conținut" value={filters.subject ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, subject: event.target.value }))} onBlur={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("subject", event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyHeaderFilter("subject", event.currentTarget.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Emitent" value={filters.correspondent ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, correspondent: event.target.value }))} onBlur={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("correspondent", event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyHeaderFilter("correspondent", event.currentTarget.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Destinatar" value={filters.assigned_to ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setFilters((value) => ({ ...value, assigned_to: event.target.value }))} onBlur={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("assigned_to", event.target.value)} onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => event.key === "Enter" && applyHeaderFilter("assigned_to", event.currentTarget.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Data intrare" type="date" value={filters.entry_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("entry_at_from", event.target.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><InputText aria-label="Filtru coloană Data ieșire" type="date" value={filters.exit_at_from ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => applyHeaderFilter("exit_at_from", event.target.value)} /></DataTable.THeadCell>
+                      <DataTable.THeadCell><Select.Root value={filters.status ?? ""} options={(filterOptions?.statuses ?? []).map((value) => ({ label: statusLabel(value), value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => applyHeaderFilter("status", String(event.value ?? ""))}><Select.Trigger aria-label="Filtru coloană Status"><Select.Value placeholder="Toate" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></DataTable.THeadCell>
+                      <DataTable.THeadCell className="sticky right-0 z-30" style={{ backgroundColor: "var(--p-datatable-header-cell-background)" }} />
                     </DataTable.THeadRow>
                   </DataTable.THead>
                   <DataTable.TBody>
@@ -539,39 +602,39 @@ export function RegistraturaWorkspace({
               const document = item;
                       const expanded = expandedDocuments[document.id];
                       return (<>
-                        <DataTable.Row key={document.id} index={index}>
+                        <DataTable.Row key={document.id} index={index} className={isCancelled(document.status) ? "opacity-60 line-through" : undefined}>
                           <DataTable.Cell className="w-10"><Button variant="text" severity="secondary" aria-label={`${expanded ? "Restrânge" : "Extinde"} ${document.registry_number}`} aria-expanded={Boolean(expanded)} onClick={() => void toggleExpanded(document)}>{expanded ? <ChevronDown /> : <ChevronRight />}</Button></DataTable.Cell>
-                          <DataTable.Cell className="w-28 whitespace-nowrap font-medium">
+                          <DataTable.Cell className="w-24 whitespace-nowrap font-medium">
                             {document.registry_number}
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-24 whitespace-nowrap font-medium">
+                          <DataTable.Cell className="w-[5.5rem] whitespace-nowrap font-medium">
                             {directionLabel(document)}
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-56"><span className="block truncate" title={document.subject}>{document.subject}</span></DataTable.Cell>
-                          <DataTable.Cell className="w-36">
+                          <DataTable.Cell className="w-52"><span className="block truncate" title={document.subject}>{document.subject}</span></DataTable.Cell>
+                          <DataTable.Cell className="w-32">
                             <span className="block truncate" title={document.correspondent}>{document.correspondent}</span>
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-36">
+                          <DataTable.Cell className="w-32">
                             <span className="block truncate" title={document.assigned_to || undefined}>{document.assigned_to || "—"}</span>
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-28 whitespace-nowrap">
+                          <DataTable.Cell className="w-[6.75rem] whitespace-nowrap">
                             {calendarDateLabel(document.entry_at ?? (document.direction === "intrare" ? document.registered_at : null))}
                           </DataTable.Cell>
-                          <DataTable.Cell className="w-28 whitespace-nowrap">
+                          <DataTable.Cell className="w-[6.75rem] whitespace-nowrap">
                             {calendarDateLabel(document.exit_at ?? (document.direction === "iesire" ? document.registered_at : null))}
                           </DataTable.Cell>
                           <DataTable.Cell className="w-32 whitespace-nowrap font-medium">
-                            {statusLabel(document.status)}
+                            <Tag value={statusLabel(document.status)} severity={statusSeverity(document.status)}>{statusLabel(document.status)}</Tag>
                           </DataTable.Cell>
-                          <DataTable.Cell className="sticky right-0 z-10 w-40" style={{ backgroundColor: "var(--p-datatable-row-background)" }}><div className="flex flex-nowrap gap-1">
+                          <DataTable.Cell className="sticky right-0 z-10 w-44" style={{ backgroundColor: "var(--p-datatable-row-background)" }}><div className="flex flex-nowrap justify-center gap-1">
                             <Button variant="text" severity="info" aria-label={`Istoric ${document.registry_number}`} title="Istoric" onClick={() => void openDetail(document, "history")}><History /></Button>
-                            <Button variant="text" aria-label={`Editează ${document.registry_number}`} title="Editare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "edit")}><Pencil /></Button>
-                            <Button variant="text" severity="danger" aria-label={`Anulează ${document.registry_number}`} title="Anulare" disabled={!canManage || isTerminalStatus(document.status)} onClick={() => void openDetail(document, "cancel")}><Ban /></Button>
+                            {canManage && !isCancelled(document.status) && <Button variant="text" aria-label={`Editează ${document.registry_number}`} title="Editare" onClick={() => void openDetail(document, "edit")}><Pencil /></Button>}
+                            {canManage && !isCancelled(document.status) && <Button variant="text" severity="danger" aria-label={`Anulează ${document.registry_number}`} title="Anulare" onClick={() => void openDetail(document, "cancel")}><Ban /></Button>}
                             <Button variant="text" severity="secondary" aria-label={`PDF ${document.registry_number}`} title="Tipărire PDF" onClick={() => api.print(document.id).then((blob) => saveBlob(blob, `${document.registry_number}.pdf`)).catch(() => setError("PDF-ul nu a putut fi generat."))}><FilePdf /></Button>
-                            <Button variant="text" severity="warn" aria-label={`Flux ${document.registry_number}`} title={actionHint[document.id]} disabled={!canManageWorkflow} onClick={() => void openDetail(document, "workflow")}><ShareAlt /></Button>
+                            {!isTerminalStatus(document.status) && <Button variant="text" severity="warn" aria-label={`Flux ${document.registry_number}`} title={actionHint[document.id]} disabled={!canManageWorkflow} onClick={() => void openDetail(document, "workflow")}><ShareAlt /></Button>}
                           </div></DataTable.Cell>
                         </DataTable.Row>
-                        {expanded && <DataTable.Row key={`${document.id}-details`} index={index}><DataTable.Cell colSpan={10}><div className="grid gap-3 p-3 md:grid-cols-4"><span><strong>Compartimente:</strong> {expanded.department_names?.join(", ") || "Niciunul"}</span><span><strong>Nr. extern:</strong> {expanded.external_number || "—"}</span><span><strong>Data nr. extern:</strong> {calendarDateLabel(expanded.external_number_date)}</span><span><strong>Activitate:</strong> {expanded.activity || "—"}</span></div></DataTable.Cell></DataTable.Row>}
+                        {expanded && <DataTable.Row key={`${document.id}-details`} index={index}><DataTable.Cell colSpan={10}><div className="grid gap-3 p-3 md:grid-cols-2 lg:grid-cols-4"><div><strong className="mb-1 block">Compartimente:</strong>{expanded.department_names?.join(", ") || "—"}</div><div><strong className="mb-1 block">Nr. extern:</strong>{expanded.external_number || "—"}</div><div><strong className="mb-1 block">Data nr. extern:</strong>{calendarDateLabel(expanded.external_number_date)}</div><div><strong className="mb-1 block">Activitate:</strong>{expanded.activity || "—"}</div>{expanded.cancellation_reason && <div className="md:col-span-2 lg:col-span-4"><strong className="mb-1 block">Motiv anulare:</strong>{expanded.cancellation_reason}</div>}</div></DataTable.Cell></DataTable.Row>}
                       </>);
                     }}
                   </DataTable.TBody>
@@ -612,8 +675,7 @@ export function RegistraturaWorkspace({
                     <span><strong>Registru:</strong> {registries.find((item) => item.id === registryId)?.nume ?? "—"}</span>
                     <InputText aria-label="Număr documente" type="number" min="1" max="20" value={count} onChange={(event: ChangeEvent<HTMLInputElement>) => setCount(event.target.value)} />
                     <Textarea aria-label="Conținut opțional" value={form?.subject ?? ""} placeholder='Dacă nu completați, se generează automat „Document multiplu 1/n”.' onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setForm((value) => value ? { ...value, subject: event.target.value } : value)} />
-                    <InputText aria-label="Data intrare documente multiple" type="datetime-local" value={form?.entry_at ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, entry_at: event.target.value || null } : value)} />
-                    <Message.Root severity="info"><Message.Content><Message.Text>Documentele sunt create cu tip MULTIPLU și pot fi transformate ulterior în Intrare sau Ieșire.</Message.Text></Message.Content></Message.Root>
+                    <Message.Root severity="info"><Message.Content><Message.Text>Documentele sunt create cu tip MULTIPLU, data înregistrării stabilită de server și pot fi transformate ulterior în Intrare sau Ieșire.</Message.Text></Message.Content></Message.Root>
                   </>}
                   {mode !== "multiplu" && <>
                   <Select.Root value={form?.record_kind ?? "document"} options={[{ label: "Document", value: "document" }, { label: "Dosar", value: "dosar" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setForm((value) => value ? { ...value, record_kind: String(event.value) === "dosar" ? "dosar" : "document" } : value)}><Select.Trigger aria-label="Document sau Dosar"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
@@ -663,11 +725,13 @@ export function RegistraturaWorkspace({
                     <InputText aria-label="Data numărului extern" type="date" value={form?.external_number_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, external_number_date: event.target.value || null } : value)} />
                     {mode === "intrare" && <InputText aria-label="Data intrării" type="datetime-local" value={form?.entry_at ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, entry_at: event.target.value || null } : value)} />}
                     {mode === "iesire" && <InputText aria-label="Data ieșirii" type="datetime-local" value={form?.exit_at ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, exit_at: event.target.value || null } : value)} />}
+                    <InputText aria-label="Termen document" type="date" value={form?.due_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, due_date: event.target.value || null } : value)} />
+                    <Select.Root value={form?.confidentiality ?? "normal"} options={(filterOptions?.confidentialities ?? ["normal"]).map((value) => ({ label: value, value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setForm((value) => value ? { ...value, confidentiality: String(event.value || "normal") } : value)}><Select.Trigger aria-label="Confidențialitate"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
                   </div>
                   <InputText aria-label="Activitate" value={form?.activity ?? ""} placeholder="Activitate" onChange={(event: ChangeEvent<HTMLInputElement>) => setForm((value) => value ? { ...value, activity: event.target.value || null } : value)} />
                   <div className="flex flex-col gap-2"><span>Compartimente responsabile</span><div className="flex flex-wrap gap-2">{departmentOptions.map((department) => { const id = String(department.id); const selectedDepartment = form?.department_ids?.includes(id) ?? false; return <Button key={id} type="button" variant={selectedDepartment ? undefined : "outlined"} severity="secondary" onClick={() => setForm((value) => value ? { ...value, department_ids: selectedDepartment ? (value.department_ids ?? []).filter((entry) => entry !== id) : [...(value.department_ids ?? []), id] } : value)}>{String(department.name ?? department.nume ?? department.code ?? id)}</Button>; })}</div></div>
                   <Textarea aria-label="Rezumat" value={form?.summary ?? ""} placeholder="Rezumat" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setForm((value) => value ? { ...value, summary: event.target.value } : value)} />
-                  <div className="flex flex-col gap-2"><span>Atașamente scanate (se încarcă după crearea documentului)</span><FileUpload.Root name="create-files" multiple maxFileSize={104857600} customUpload uploadHandler={(event: { files: File[] }) => setCreateAttachments(event.files)}><FileUpload.Trigger><Upload /> Alege fișiere</FileUpload.Trigger><FileUpload.Upload>Pregătește fișiere</FileUpload.Upload><FileUpload.Content /></FileUpload.Root></div>
+                  <div className="flex flex-col gap-2"><span>Atașamente scanate (se încarcă după crearea documentului)</span><FileUpload.Root name="create-files" multiple={form?.record_kind === "dosar"} accept={REGISTRATURA_ATTACHMENT_ACCEPT} maxFileSize={MAX_REGISTRATURA_ATTACHMENT_BYTES} customUpload onSelect={(event: { files: File[] }) => setCreateAttachments(form?.record_kind === "dosar" ? event.files : event.files.slice(0, 1))} uploadHandler={(event: { files: File[] }) => setCreateAttachments(form?.record_kind === "dosar" ? event.files : event.files.slice(0, 1))}><FileUpload.Trigger disabled={saving}><Upload /> Alege {form?.record_kind === "dosar" ? "fișiere" : "fișier"}</FileUpload.Trigger><FileUpload.Content /></FileUpload.Root>{createAttachments.length > 0 && <div aria-label="Fișiere pregătite" className="flex flex-col gap-1">{createAttachments.map((file, index) => <div className="flex items-center justify-between gap-2" key={`${file.name}-${file.lastModified}`}><span className="truncate">{file.name} · {formatFileSize(file.size)}</span><Button type="button" variant="text" severity="danger" aria-label={`Elimină ${file.name}`} disabled={saving} onClick={() => setCreateAttachments((items) => items.filter((_, itemIndex) => itemIndex !== index))}><Times /></Button></div>)}</div>}</div>
                   </>}
                 </div>
               </Dialog.Content>
@@ -699,11 +763,11 @@ export function RegistraturaWorkspace({
             {detailLoading ? <div className="flex justify-center p-8"><Spinner /></div> : selected && <div className="flex flex-col gap-4">
               {detailError && <Message.Root severity="error"><Message.Content><Message.Text>{detailError}</Message.Text></Message.Content></Message.Root>}
               <div className="grid gap-2 md:grid-cols-2"><span><strong>Subiect:</strong> {selected.subject}</span><span><strong>Status:</strong> {statusLabel(selected.status)}</span><span><strong>Corespondent:</strong> {selected.correspondent || "—"}</span><span><strong>Destinatar:</strong> {selected.assigned_to || "—"}</span><span><strong>Confidențialitate:</strong> {selected.confidentiality ?? "normal"}</span><span><strong>Înregistrat:</strong> {selected.registered_at}</span></div>
-              {documentView === "edit" && editing && editForm && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Editare document</strong><InputText aria-label="Subiect document" value={editForm.subject} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, subject: event.target.value }))} /><InputText aria-label="Corespondent document" value={editForm.correspondent} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, correspondent: event.target.value }))} />{selected.document_type.toUpperCase() === "MULTIPLU" && <Select.Root value={editForm.direction} options={[{ label: "Intrare", value: "intrare" }, { label: "Ieșire", value: "iesire" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, direction: String(event.value) as "intrare" | "iesire", document_type: "DOCUMENT" }))}><Select.Trigger><Select.Value placeholder="Convertește MULTIPLU" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}<div className="grid gap-2 md:grid-cols-2"><InputText aria-label="Număr extern document" value={editForm.external_number ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number: event.target.value }))} /><InputText aria-label="Data număr extern document" type="date" value={editForm.external_number_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number_date: event.target.value || null }))} /><InputText aria-label="Activitate document" value={editForm.activity ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, activity: event.target.value }))} /><Select.Root value={editForm.record_kind ?? "document"} options={[{ label: "Document", value: "document" }, { label: "Dosar", value: "dosar" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, record_kind: String(event.value) === "dosar" ? "dosar" : "document" }))}><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div><Textarea aria-label="Rezumat document" value={editForm.summary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, summary: event.target.value }))} /><Textarea aria-label="Notă modificare" value={editForm.change_notes ?? ""} placeholder="Notă modificare obligatorie" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, change_notes: event.target.value }))} /><div className="flex flex-wrap gap-2"><Button disabled={saving || !editForm.change_notes?.trim()} onClick={() => void saveEdit()}>{selected.document_type.toUpperCase() === "MULTIPLU" ? "Convertește și salvează" : "Salvează documentul"}</Button><Button variant="outlined" disabled={saving || !editForm.change_notes?.trim()} onClick={() => void createVersion()}>Creează versiune</Button></div></div></Card.Content></Card.Body></Card.Root>}
+              {documentView === "edit" && editing && editForm && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-3"><strong>Editare document</strong><div className="grid gap-2 md:grid-cols-2"><InputText aria-label="Subiect document" value={editForm.subject} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, subject: event.target.value }))} /><InputText aria-label="Corespondent document" value={editForm.correspondent} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, correspondent: event.target.value }))} /><InputText aria-label="Destinatar document" value={editForm.assigned_to} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, assigned_to: event.target.value }))} />{selected.document_type.toUpperCase() === "MULTIPLU" && <Select.Root value={editForm.direction} options={[{ label: "Intrare", value: "intrare" }, { label: "Ieșire", value: "iesire" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, direction: String(event.value) as "intrare" | "iesire", document_type: "DOCUMENT" }))}><Select.Trigger aria-label="Convertește MULTIPLU"><Select.Value placeholder="Convertește MULTIPLU" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}</div><div className="grid gap-2 md:grid-cols-2"><InputText aria-label="Număr extern document" value={editForm.external_number ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number: event.target.value }))} /><InputText aria-label="Data număr extern document" type="date" value={editForm.external_number_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, external_number_date: event.target.value || null }))} /><InputText aria-label="Data intrării document" type="datetime-local" value={editForm.entry_at ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, entry_at: event.target.value || null }))} /><InputText aria-label="Data ieșirii document" type="datetime-local" value={editForm.exit_at ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, exit_at: event.target.value || null }))} /><InputText aria-label="Termen document" type="date" value={editForm.due_date ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, due_date: event.target.value || null }))} /><Select.Root value={editForm.confidentiality ?? "normal"} options={(filterOptions?.confidentialities ?? ["normal"]).map((value) => ({ label: value, value }))} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, confidentiality: String(event.value || "normal") }))}><Select.Trigger aria-label="Confidențialitate document"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root><InputText aria-label="Activitate document" value={editForm.activity ?? ""} onChange={(event: ChangeEvent<HTMLInputElement>) => setEditForm((value) => value && ({ ...value, activity: event.target.value }))} /><Select.Root value={editForm.record_kind ?? "document"} options={[{ label: "Document", value: "document" }, { label: "Dosar", value: "dosar" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setEditForm((value) => value && ({ ...value, record_kind: String(event.value) === "dosar" ? "dosar" : "document" }))}><Select.Trigger aria-label="Tip înregistrare"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div><div className="flex flex-col gap-2"><span>Compartimente responsabile</span><div className="flex flex-wrap gap-2">{departmentOptions.map((department) => { const id = String(department.id); const selectedDepartment = editForm.department_ids?.includes(id) ?? false; return <Button key={id} type="button" variant={selectedDepartment ? undefined : "outlined"} severity="secondary" onClick={() => setEditForm((value) => value && ({ ...value, department_ids: selectedDepartment ? (value.department_ids ?? []).filter((entry) => entry !== id) : [...(value.department_ids ?? []), id] }))}>{String(department.name ?? department.nume ?? department.code ?? id)}</Button>; })}</div></div><Textarea aria-label="Rezumat document" value={editForm.summary} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, summary: event.target.value }))} /><Textarea aria-label="Notă modificare" value={editForm.change_notes ?? ""} placeholder="Notă modificare obligatorie" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setEditForm((value) => value && ({ ...value, change_notes: event.target.value }))} /><div className="flex flex-wrap gap-2"><Button disabled={saving || !editForm.change_notes?.trim()} onClick={() => void saveEdit()}>{selected.document_type.toUpperCase() === "MULTIPLU" ? "Convertește și salvează" : "Salvează documentul"}</Button><Button variant="outlined" disabled={saving || !editForm.change_notes?.trim()} onClick={() => void createVersion()}>Creează versiune</Button></div></div></Card.Content></Card.Body></Card.Root>}
               {documentView === "cancel" && canManage && !isTerminalStatus(selected.status) && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><Message.Root severity="warn"><Message.Content><Message.Text>Anularea este ireversibilă. Documentul rămâne în istoric cu motivul introdus.</Message.Text></Message.Content></Message.Root><Textarea aria-label="Motiv anulare" value={cancelReason} placeholder="Motiv anulare obligatoriu (minim 10 caractere)" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setCancelReason(event.target.value)} /><Button severity="danger" disabled={saving || cancelReason.trim().length < 10} onClick={() => void cancelDocument()}><Ban /> Anulează documentul</Button></div></Card.Content></Card.Body></Card.Root>}
               {documentView === "workflow" && canManageWorkflow && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Acțiuni flux</strong>{permittedActions(selected.status).length === 0 ? <span>Nu există tranziții disponibile în această stare.</span> : <div className="flex flex-wrap gap-2">{permittedActions(selected.status).map((action) => <Button key={action} variant="outlined" onClick={() => setWorkflowAction(action)}>{action}</Button>)}</div>}{workflowAction && <div className="flex flex-col gap-2"><span>Acțiune: {workflowAction}</span>{workflowAction === "assign_department" && <Select.Root value={workflowDepartment} options={assignees?.departments ?? []} optionLabel="name" optionValue="id" onValueChange={(event: { value: unknown }) => setWorkflowDepartment(String(event.value))}><Select.Trigger><Select.Value placeholder="Compartiment" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}{workflowAction === "assign_user" && <Select.Root value={workflowUser} options={(assignees?.users ?? []).filter((user) => !workflowDepartment || user.department_ids?.includes(workflowDepartment))} optionLabel="name" optionValue="id" onValueChange={(event: { value: unknown }) => setWorkflowUser(String(event.value))}><Select.Trigger><Select.Value placeholder="Utilizator" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>}<Textarea aria-label="Notă flux" value={workflowNote} placeholder="Notă (opțional)" onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setWorkflowNote(event.target.value)} /><div className="flex gap-2"><Button disabled={saving} onClick={() => void runWorkflow()}><Users /> Aplică acțiunea</Button><Button variant="outlined" severity="secondary" onClick={() => setWorkflowAction(undefined)}>Renunță</Button></div></div>}</div></Card.Content></Card.Body></Card.Root>}
               {canReadLinks && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Legături documente</strong><span>Contextul sursă este obligatoriu și este verificat de backend pe tenant și vizibilitatea registrului.</span><div className="grid gap-2 md:grid-cols-3"><InputText aria-label="Modul sursă legătură" value={linkSourceModule} placeholder="Modul sursă (ex. education)" onChange={(event: ChangeEvent<HTMLInputElement>) => setLinkSourceModule(event.target.value)} /><InputText aria-label="ID înregistrare sursă legătură" value={linkSourceRecordId} placeholder="ID înregistrare sursă" onChange={(event: ChangeEvent<HTMLInputElement>) => setLinkSourceRecordId(event.target.value)} /><Select.Root value={linkRelationType} options={[{ label: "Principal", value: "primary" }, { label: "Suport", value: "supporting" }, { label: "Decizie", value: "decision" }, { label: "Bază arhivă", value: "archive_basis" }, { label: "Bază GDPR", value: "gdpr_basis" }]} optionLabel="label" optionValue="value" onValueChange={(event: { value: unknown }) => setLinkRelationType(String(event.value))}><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div><div className="flex flex-wrap gap-2"><Button variant="outlined" severity="secondary" disabled={!linkSourceModule.trim() || !linkSourceRecordId.trim()} onClick={() => void loadLinks()}>Încarcă legături</Button>{canManageLinks && <Button disabled={saving || !linkSourceModule.trim() || !linkSourceRecordId.trim()} onClick={() => void createLink()}>Adaugă legătură</Button>}</div>{linkedDocuments.map((link) => <div className="flex flex-wrap items-center justify-between gap-2" key={link.link_id}><span>{link.registry_number} · {link.subject} · {link.relation_type}</span>{canManageLinks && <Button severity="danger" variant="text" aria-label={`Șterge legătura ${link.registry_number}`} disabled={saving} onClick={() => void deleteLink(link.link_id)}>Șterge</Button>}</div>)}</div></Card.Content></Card.Body></Card.Root>}
-              {(documentView === "details" || documentView === "edit") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Atașamente</strong>{attachments.map((attachment) => <div className="flex flex-wrap items-center justify-between gap-2" key={attachment.id}><span>{attachment.file_name} · {attachment.category} · {attachment.status}</span><Button variant="text" onClick={() => api.download(selected.id, attachment.id).then((blob) => saveBlob(blob, attachment.file_name)).catch(() => setDetailError("Descărcarea nu a reușit."))}>Descarcă</Button></div>)}{canManage && <FileUpload.Root name="file" multiple maxFileSize={104857600} customUpload uploadHandler={(event: { files: File[] }) => { void upload(event.files); }}><FileUpload.Trigger><Upload /> Alege fișiere</FileUpload.Trigger><FileUpload.Upload>Încarcă</FileUpload.Upload><FileUpload.Content /></FileUpload.Root>}</div></Card.Content></Card.Body></Card.Root>}
+              {(documentView === "details" || documentView === "edit") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Atașamente</strong>{attachments.length === 0 && <span>Niciun fișier atașat.</span>}{attachments.map((attachment) => <div className="flex flex-wrap items-center justify-between gap-2" key={attachment.id}><span className="truncate">{attachment.file_name} · {formatFileSize(attachment.size_bytes)} · {attachment.category} · {attachment.status}</span><Button variant="text" disabled={saving} onClick={() => api.download(selected.id, attachment.id).then((blob) => saveBlob(blob, attachment.file_name)).catch(() => setDetailError("Descărcarea nu a reușit."))}>Descarcă</Button></div>)}{canManage && <FileUpload.Root name="file" multiple accept={REGISTRATURA_ATTACHMENT_ACCEPT} maxFileSize={MAX_REGISTRATURA_ATTACHMENT_BYTES} customUpload uploadHandler={(event: { files: File[] }) => { void upload(event.files); }}><FileUpload.Trigger disabled={saving}><Upload /> Alege fișiere</FileUpload.Trigger><FileUpload.Upload disabled={saving}>Încarcă</FileUpload.Upload><FileUpload.Content /></FileUpload.Root>}</div></Card.Content></Card.Body></Card.Root>}
               {(documentView === "history" || documentView === "workflow" || documentView === "details") && <Card.Root><Card.Body><Card.Content><div className="flex flex-col gap-2"><strong>Istoric și versiuni</strong>{history.length === 0 && versions.length === 0 ? <span>Nu există istoric disponibil.</span> : <>{history.map((entry) => <span key={entry.id}>{entry.created_at}: {entry.action} → {statusLabel(entry.to_status)} {entry.actor_name ? `(${entry.actor_name})` : ""}</span>)}{versions.map((version) => <span key={version.id}>Versiunea {version.version_no}: {version.change_notes || "fără notă"}</span>)}</>}</div></Card.Content></Card.Body></Card.Root>}
             </div>}
           </Dialog.Content>

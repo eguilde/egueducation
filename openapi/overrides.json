@@ -104,8 +104,47 @@
     "summary": "Apply a document workflow action",
     "description": "Applies an allowed workflow transition to a document. The server validates state, allowed assignees and permissions before recording history.",
     "tags": ["Registratura", "Workflow"],
-    "requestSchema": "WorkflowTransition",
+    "requestSchema": "DocumentWorkflowActionRequest",
     "responseSchema": "RegistraturaDocument",
+    "requiredPermission": "registratura.manage or workflow.manage",
+    "status": "detailed"
+  },
+  "GET /api/registratura/flux/queue": {
+    "summary": "List the caller's document queue",
+    "description": "Costesti-compatible tenant-scoped queue: documents assigned to the caller and unclaimed documents in the caller's departments. Supports server pagination, filtering and sorting.",
+    "tags": ["Registratura", "Workflow"],
+    "responseSchema": "Page",
+    "queryParameters": ["page", "pageSize", "sort", "direction", "nr_doc", "continut", "emitent", "compartiment", "tip", "status"],
+    "requiredPermission": "registratura.read or workflow.read",
+    "tenantScope": true,
+    "status": "detailed"
+  },
+  "GET /api/registratura/flux/mapa": {
+    "summary": "List document workflow map",
+    "description": "Costesti-compatible Mapa projection for the active tenant. The server applies all filters, sorting and pagination.",
+    "tags": ["Registratura", "Workflow"],
+    "responseSchema": "Page",
+    "queryParameters": ["page", "pageSize", "sort", "direction", "nr_doc", "continut", "emitent", "compartiment", "tip", "status", "mapa_filter"],
+    "requiredPermission": "workflow.manage",
+    "tenantScope": true,
+    "status": "detailed"
+  },
+  "GET /api/registratura/flux/pipeline": {
+    "summary": "List the tenant document workflow pipeline",
+    "description": "Server-paginated, filterable and sortable Costesti pipeline read model.",
+    "tags": ["Registratura", "Workflow"],
+    "responseSchema": "Page",
+    "queryParameters": ["page", "pageSize", "sort", "direction", "nr_doc", "continut", "emitent", "compartiment", "tip", "status"],
+    "requiredPermission": "workflow.manage",
+    "tenantScope": true,
+    "status": "detailed"
+  },
+  "GET /api/registratura/flux/pipeline/stats": {
+    "summary": "Get tenant document pipeline counts",
+    "tags": ["Registratura", "Workflow"],
+    "responseSchema": "FluxPipelineStat",
+    "requiredPermission": "workflow.manage",
+    "tenantScope": true,
     "status": "detailed"
   },
   "GET /api/workflow/tasks": {

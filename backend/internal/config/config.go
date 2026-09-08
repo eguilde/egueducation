@@ -42,6 +42,7 @@ type Config struct {
 	EnablePasskeys                          bool
 	EnableWallet                            bool
 	EnableSMSOTP                            bool
+	OTPHMACKey                              string
 	EnableTestOTPFixture                    bool
 	EnableProductionE2ECanary               bool
 	ProductionE2ECanaryActivationKey        string
@@ -107,6 +108,7 @@ func Load() Config {
 		EnablePasskeys:                          envBool("ENABLE_PASSKEYS", true),
 		EnableWallet:                            envBool("ENABLE_EUDI_WALLET", true),
 		EnableSMSOTP:                            envBool("ENABLE_SMS_OTP", true),
+		OTPHMACKey:                              strings.TrimSpace(os.Getenv("OTP_HMAC_KEY")),
 		EnableTestOTPFixture:                    envBool("ENABLE_TEST_OTP_FIXTURE", false),
 		EnableProductionE2ECanary:               envBool("ENABLE_PRODUCTION_E2E_CANARY", false),
 		ProductionE2ECanaryActivationKey:        strings.TrimSpace(os.Getenv("PRODUCTION_E2E_CANARY_ACTIVATION_KEY")),
@@ -142,6 +144,35 @@ func Load() Config {
 		ArchiveWorkerMaxAttempts:                boundedEnvInt("ARCHIVE_WORKER_MAX_ATTEMPTS", 5, 1, 20),
 		ClamdAddress:                            env("CLAMD_ADDRESS", ""),
 	}
+}
+
+const testOTPHMACKey = "egueducation-test-otp-hmac-key-32-bytes-minimum"
+
+// OTPHMACKeyValue returns the configured OTP hashing key.  Tests have a
+// deterministic synthetic key so in-memory and integration fixtures never
+// depend on a developer secret.  Deployments must always supply their own
+// key; in particular production never falls back to this test value.
+func (c Config) OTPHMACKeyValue() string {
+	if key := strings.TrimSpace(c.OTPHMACKey); key != "" {
+		return key
+	}
+	if strings.EqualFold(strings.TrimSpace(c.Environment), "test") {
+		return testOTPHMACKey
+	}
+	return ""
+}
+
+// ValidateOTPStorage makes keyed OTP hashing a startup invariant.  The
+// material is deliberately not included in an error, audit record, or log.
+func (c Config) ValidateOTPStorage() error {
+	key := c.OTPHMACKeyValue()
+	if strings.TrimSpace(key) == "" {
+		return fmt.Errorf("OTP_HMAC_KEY is required")
+	}
+	if len([]byte(key)) < 32 {
+		return fmt.Errorf("OTP_HMAC_KEY must contain at least 32 bytes")
+	}
+	return nil
 }
 
 // AzureDocumentIntelligenceEnabled reports whether the complete, explicit Azure

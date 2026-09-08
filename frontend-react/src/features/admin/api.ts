@@ -1,4 +1,5 @@
 import type { AdminApi, AdminResource, AdminResourcePath, AdminUser, Dashboard, ModuleSetting, Page, Role, UpsertUserInput, AdminWritableResourcePath } from "./types";
+import { createOpenApiTransport } from "../../api/client";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -9,17 +10,17 @@ const asPage = <T,>(value: unknown): Page<T> => {
 };
 
 export function createAdminApi(fetcher: Fetcher = fetch, apiBase = "/api"): AdminApi {
+  const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
   const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
-    const response = await fetcher(`${apiBase}${path}`, {
-      credentials: "include",
+    const result = await transport.request<T>((init?.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined) ?? "GET", `${apiBase}${path}`, {
       ...init,
       headers: { Accept: "application/json", ...(init?.headers ?? {}) },
     });
-    if (!response.ok) {
-      const detail = await response.json().catch(() => undefined) as { code?: string } | undefined;
-      throw new Error(detail?.code ?? `admin_request_${response.status}`);
+    if (!result.response.ok) {
+      const detail = (result.error ?? result.data) as { code?: string } | undefined;
+      throw new Error(detail?.code ?? `admin_request_${result.response.status}`);
     }
-    return response.json() as Promise<T>;
+    return result.data as T;
   };
 	const resourceURL = (path: AdminResourcePath) => path.startsWith("gdpr/") ? `/${path}` : `/admin/${path}`;
   return {

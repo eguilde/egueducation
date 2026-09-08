@@ -352,6 +352,7 @@ func documentListPageQuery(values url.Values) httpx.PageQuery {
 	return httpx.ParsePageQuery(
 		values,
 		map[string]struct{}{
+			"q":                  {},
 			"registru_id":        {},
 			"registry_number":    {},
 			"external_number":    {},

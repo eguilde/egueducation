@@ -1,15 +1,17 @@
 import type { PasskeyCredential, PasskeyRegistrationOptions, PasskeyRegistrationResult, ProfileApi, ProfileUser } from "./types";
+import { createOpenApiTransport } from "../../api/client";
 
 type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
-const requestError = async (response: Response) => {
-  const body = await response.json().catch(() => undefined) as { code?: string } | undefined;
-  throw new Error(body?.code ?? `profile_request_${response.status}`);
+const requestError = (body: unknown, response: Response) => {
+  const detail = body as { code?: string } | undefined;
+  throw new Error(detail?.code ?? `profile_request_${response.status}`);
 };
 export function createProfileApi(fetcher: Fetcher = fetch, apiBase = "/api"): ProfileApi {
+  const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
   const request = async <T,>(path: string, init?: RequestInit): Promise<T> => {
-    const response = await fetcher(`${apiBase}${path}`, { credentials: "include", ...init, headers: { Accept: "application/json", ...(init?.headers ?? {}) } });
-    if (!response.ok) await requestError(response);
-    return response.json() as Promise<T>;
+    const result = await transport.request<T>((init?.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | undefined) ?? "GET", `${apiBase}${path}`, { ...init, headers: { Accept: "application/json", ...(init?.headers ?? {}) } });
+    if (!result.response.ok) requestError(result.data, result.response);
+    return result.data as T;
   };
   return {
     update: (input) => request<ProfileUser | { user: ProfileUser }>("/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) })

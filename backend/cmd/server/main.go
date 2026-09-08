@@ -39,6 +39,9 @@ func main() {
 		panic(err)
 	}
 	defer logger.Sync() //nolint:errcheck
+	if err := cfg.ValidateOTPStorage(); err != nil {
+		logger.Fatal("OTP storage configuration invalid", zap.Error(err))
+	}
 
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -97,6 +100,7 @@ func main() {
 	archiveAdminService := earchiva.NewArchiveAdminService(sessionDB, archiveStorage, archiveOCR, cfg.ArchiveWorkerMaxAttempts)
 	archiveClassificationService := earchiva.NewClassificationReviewService(sessionDB)
 	archiveWorker := earchiva.NewIngestionWorkerWithMaxAttempts(sessionDB, archiveStorage, archiveOCR, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
+	registraturaArchiveOutboxWorker := earchiva.NewRegistraturaArchiveOutboxWorker(sessionDB, archiveStorage, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
 	gdprService := gdpr.NewService(sessionDB)
 	registraturaService := registratura.NewService(sessionDB, archiveStorage)
 	registraturaService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
@@ -221,6 +225,10 @@ func main() {
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/print-pdf", registraturaService.PrintDocumentPDF)
 			r.With(authService.RequireAnyPermissions("registratura.manage", "workflow.manage")).Get("/registratura/workflow-assignees", registraturaService.WorkflowAssignees)
 			r.With(authService.RequireAnyPermissions("registratura.manage", "workflow.manage")).Post("/registratura/documents/{documentID}/workflow-actions", registraturaService.ApplyDocumentWorkflowAction)
+			r.With(authService.RequireAnyPermissions("registratura.read", "workflow.read")).Get("/registratura/flux/queue", registraturaService.FluxMyQueue)
+			r.With(authService.RequirePermissions("workflow.manage")).Get("/registratura/flux/mapa", registraturaService.FluxMapa)
+			r.With(authService.RequirePermissions("workflow.manage")).Get("/registratura/flux/pipeline", registraturaService.FluxPipeline)
+			r.With(authService.RequirePermissions("workflow.manage")).Get("/registratura/flux/pipeline/stats", registraturaService.FluxPipelineStats)
 			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/versions", registraturaService.CreateDocumentVersion)
 			r.With(authService.RequirePermissions("registratura.read")).Get("/registratura/documents/{documentID}/attachments", registraturaService.ListDocumentAttachments)
 			r.With(authService.RequirePermissions("registratura.manage")).Post("/registratura/documents/{documentID}/attachments", registraturaService.CreateDocumentAttachment)
@@ -661,6 +669,7 @@ func main() {
 
 	if cfg.ArchiveWorkerEnabled {
 		archiveWorker.Start(ctx)
+		registraturaArchiveOutboxWorker.Start(ctx)
 	}
 
 	server := &http.Server{

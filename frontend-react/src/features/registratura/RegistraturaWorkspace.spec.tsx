@@ -38,6 +38,15 @@ describe("Registratura workspace actions", () => {
     expect(screen.queryByRole("button", { name: "Administrare" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Exportă registrul în PDF" })).toBeInTheDocument();
   });
+
+  it("opens the Costești PDF interval with the default last-30-days range", async () => {
+    const transport = apiForConfirmation();
+    render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="export-range" canManage /></PrimeReactProvider>);
+    await screen.findByText("Document test");
+    fireEvent.click(screen.getByRole("button", { name: "Exportă registrul în PDF" }));
+    expect((screen.getByLabelText("Data început") as HTMLInputElement).value).not.toBe("");
+    expect((screen.getByLabelText("Data sfârșit") as HTMLInputElement).value).not.toBe("");
+  });
 });
 
 describe("Registratura search panel", () => {
@@ -97,6 +106,31 @@ describe("Registratura Costești table parity", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pagina 2" }));
     await waitFor(() => expect(transport.documents).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, pageSize: 20 })));
   });
+
+  it("applies header-row filters on the server and keeps terminal-document actions aligned with Costești", async () => {
+    const cancelled = { ...documentItem("reg-cancelled", "Document anulat"), status: "ANULAT", cancellation_reason: "Document introdus dublu" };
+    const transport = apiForRace({
+      documents: vi.fn().mockResolvedValue({ items: [cancelled], total: 1, page: 1, pageSize: 20 }),
+      document: vi.fn().mockResolvedValue(cancelled),
+    });
+    render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="header-filters" canManage canManageWorkflow /></PrimeReactProvider>);
+
+    await screen.findByText("Document anulat");
+    expect(screen.getByText("Anulat")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Istoric REG-CANCELLED" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PDF REG-CANCELLED" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Editează REG-CANCELLED" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Anulează REG-CANCELLED" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Flux REG-CANCELLED" })).not.toBeInTheDocument();
+
+    const numberFilter = screen.getByLabelText("Filtru coloană Nr. Doc");
+    fireEvent.change(numberFilter, { target: { value: "REG-CANCELLED" } });
+    fireEvent.keyDown(numberFilter, { key: "Enter" });
+    await waitFor(() => expect(transport.documents).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, filters: expect.objectContaining({ registry_number: "REG-CANCELLED" }) })));
+
+    fireEvent.click(screen.getByRole("button", { name: "Extinde REG-CANCELLED" }));
+    await screen.findByText("Document introdus dublu");
+  });
 });
 
 describe("Registratura request ordering", () => {
@@ -106,6 +140,9 @@ describe("Registratura request ordering", () => {
     const transport = apiForRace({ documents: vi.fn().mockResolvedValueOnce({ items: [documentItem("initial", "Rezultatul inițial")], total: 1, page: 1, pageSize: 50 }).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise) });
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="race-list" canManage /></PrimeReactProvider>);
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(1));
+    // Search belongs to the action-column header (Costești parity), so wait
+    // for the table to commit rather than racing the initial loading state.
+    await screen.findByText("Rezultatul inițial");
     fireEvent.click(screen.getByRole("button", { name: "Deschide căutarea" }));
     fireEvent.change(screen.getByLabelText("Conținut"), { target: { value: "A" } });
     fireEvent.click(screen.getByRole("button", { name: "Caută documente" }));
@@ -131,6 +168,58 @@ describe("Registratura request ordering", () => {
     await screen.findByText("Detaliu B");
     first.resolve(documentItem("a", "Detaliu A"));
     await waitFor(() => expect(screen.queryByText("Detaliu A")).not.toBeInTheDocument());
+  });
+});
+
+describe("Registratura dialog parity", () => {
+  it("keeps the Costești Intrare fields, validation and contract payload together", async () => {
+    const created = documentItem("reg-created", "Document nou");
+    const transport = apiForRace({
+      documents: vi.fn().mockResolvedValue({ items: [created], total: 1, page: 1, pageSize: 20 }),
+      parties: vi.fn().mockResolvedValue({ items: [{ id: "party-school", party_type: "institution", display_name: "Școala Balotești", is_default_organization: true }], total: 1, page: 1, pageSize: 50 }),
+      admin: vi.fn().mockImplementation((resource: string) => Promise.resolve(resource === "departments" ? { items: [{ id: "dept-secretariat", name: "Secretariat" }], total: 1, page: 1, pageSize: 50 } : { items: [], total: 0, page: 1, pageSize: 50 })),
+      create: vi.fn().mockResolvedValue(created),
+      document: vi.fn().mockResolvedValue(created),
+      versions: vi.fn().mockResolvedValue([]),
+      attachments: vi.fn().mockResolvedValue([]),
+      workflowHistory: vi.fn().mockResolvedValue([]),
+      assignees: vi.fn().mockResolvedValue({ departments: [], users: [] }),
+    });
+    render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="dialog-create" canManage /></PrimeReactProvider>);
+
+    await screen.findByText("Document nou");
+    fireEvent.click(screen.getByRole("button", { name: "Intrare" }));
+    await screen.findByRole("dialog", { name: /Înregistrare intrare/ });
+    for (const label of ["Document sau Dosar", "Conținut", "Emitent", "Destinatar", "Număr extern", "Data numărului extern", "Data intrării", "Termen document", "Confidențialitate", "Activitate"]) expect(screen.getByLabelText(label)).toBeInTheDocument();
+    await waitFor(() => expect((screen.getByLabelText("Destinatar") as HTMLInputElement).value).toBe("Școala Balotești"));
+    fireEvent.change(screen.getByLabelText("Conținut"), { target: { value: "Document nou" } });
+    fireEvent.change(screen.getByLabelText("Emitent"), { target: { value: "Inspectorat" } });
+    fireEvent.change(screen.getByLabelText("Destinatar"), { target: { value: "Școala" } });
+    fireEvent.change(screen.getByLabelText("Număr extern"), { target: { value: "EXT-42" } });
+    fireEvent.change(screen.getByLabelText("Termen document"), { target: { value: "2026-09-30" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Secretariat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvează" }));
+    await waitFor(() => expect(transport.create).toHaveBeenCalledWith(expect.objectContaining({ subject: "Document nou", correspondent: "Inspectorat", assigned_to: "Școala", external_number: "EXT-42", due_date: "2026-09-30", department_ids: ["dept-secretariat"] })));
+  });
+
+  it("requires the Costești cancellation reason and sends it only when valid", async () => {
+    const item = documentItem("reg-cancel", "Document pentru anulare");
+    const transport = apiForRace({
+      documents: vi.fn().mockResolvedValue({ items: [item], total: 1, page: 1, pageSize: 20 }),
+      document: vi.fn().mockResolvedValue(item),
+      cancel: vi.fn().mockResolvedValue({ ...item, status: "ANULAT", cancellation_reason: "Înregistrare duplicată" }),
+    });
+    render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="dialog-cancel" canManage /></PrimeReactProvider>);
+
+    await screen.findByText("Document pentru anulare");
+    fireEvent.click(screen.getByRole("button", { name: "Anulează REG-CANCEL" }));
+    const reason = await screen.findByLabelText("Motiv anulare");
+    const confirm = screen.getByRole("button", { name: "Anulează documentul" });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(reason, { target: { value: "Înregistrare duplicată" } });
+    expect(confirm).not.toBeDisabled();
+    fireEvent.click(confirm);
+    await waitFor(() => expect(transport.cancel).toHaveBeenCalledWith("reg-cancel", "Înregistrare duplicată"));
   });
 });
 

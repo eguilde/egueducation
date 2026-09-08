@@ -92,6 +92,8 @@ Niciun strat nu expune direct structura internă a stratului precedent.
 | IAM-008 | UI OTP suportă auto-advance, paste, Backspace și mobil. | Testele browser trec. |
 | IAM-009 | UI OIDC folosește tema și brandingul tenantului. | Light/dark, paleta și numele rămân identice prin redirect. |
 | IAM-010 | Refresh tokenul nu este accesibil JavaScriptului. | Cookie HttpOnly/Secure/SameSite, rotație și reuse detection. |
+| IAM-011 | Un telefon normalizat aparține unei singure identități globale. | Constrângerea DB și serviciile resping orice al doilea proprietar; migrarea se oprește înainte de acordarea drepturilor dacă găsește un duplicat. |
+| IAM-012 | Telefonul devine verificat numai după dovada posesiei prin OTP, iar verificarea este documentată. | Evenimentul append-only păstrează identitatea, metoda, momentul, tenantul și rezultatul fără OTP sau secret; schimbarea telefonului revocă verificarea și cere o verificare nouă. |
 
 ## 7. Bootstrap utilizatori Școala Balotești
 
@@ -102,7 +104,7 @@ Niciun strat nu expune direct structura internă a stratului precedent.
 | USR-003 | Diana Ilhan, `+40735091230` | Membership activ `tenant-balotesti`, rol `admin`, SMS primar; e-mail/passkey ulterior din profil. |
 | USR-004 | `test@eguilde.cloud` | Identitate E2E izolată la `tenant-balotesti`, toate permisiunile tenantului, OTP fix numai din secret de deployment. |
 
-Bootstrapul este idempotent, nu dublează identități după telefon/e-mail/subiect și nu introduce OTP-uri sau secrete în Git. Nu se inventează adrese de e-mail pentru Stelian sau Diana.
+Bootstrapul este idempotent, nu dublează identități după telefon/e-mail/subiect și nu introduce OTP-uri sau secrete în Git. Nu se inventează adrese de e-mail pentru Stelian sau Diana. Orice adopție a unui telefon verificat existent păstrează o înregistrare auditabilă a provenienței; valorile noi sau modificate nu sunt declarate verificate administrativ, ci numai după OTP reușit.
 
 ## 8. RBAC unitar
 
@@ -202,6 +204,10 @@ Bootstrapul este idempotent, nu dublează identități după telefon/e-mail/subi
 ### Gate D — release
 
 - unit, integration, contract, React și Playwright trec;
+- fiecare cerință funcțională are un test automat care demonstrează comportamentul, nu doar prezența codului;
+- integrarea PostgreSQL/API folosește date realiste pentru minimum doi tenanți și verifică atât răspunsul HTTP, cât și starea persistentă și RLS;
+- Playwright parcurge frontendul React și OIDC real, iar efectele sunt validate prin API/DB pentru Registratură, Flux, eArhivă, Admin, profil și RBAC;
+- fluxurile obligatorii nu pot fi declarate prin teste `skip`, backend mock-uit în E2E sau rezultate tolerate;
 - buildurile sunt reproductibile și scanarea secretelor este curată;
 - commitul este publicat direct pe `main`;
 - revision-ul din cluster coincide cu commitul și smoke testul public trece.

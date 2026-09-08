@@ -1,5 +1,5 @@
 import type { AdminUser, BatchCreateInput, CreateDocumentInput, DocumentAttachment, DocumentFilterOptions, DocumentFilters, DocumentLookup, DocumentVersion, LinkedDocument, OrganizationChartNode, Page, Party, Registry, RegistryAdminRecord, RegistryDocument, UserAssignment, WorkflowAction, WorkflowAssignees, WorkflowHistoryEntry } from './types';
-import { createContractClient } from '../../api/client';
+import { createContractClient, createOpenApiTransport } from '../../api/client';
 import type { paths } from '../../api/generated';
 import { validateGetApiRegistraturaDocumentsResponse, validatePostApiRegistraturaDocumentsResponse } from '../../api/runtime-validators';
 
@@ -18,8 +18,13 @@ const page = <T,>(value: T[] | Partial<Page<T>>): Page<T> => Array.isArray(value
 
 export function createRegistraturaApi(fetcher: Fetcher = fetch, apiBase = '/api'): RegistraturaApi {
 	const contractClient = createContractClient((request) => fetcher(request), apiBase);
-  const response = async (path: string, init?: RequestInit) => { const result = await fetcher(`${apiBase}${path}`, { credentials: 'include', ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } }); if (!result.ok) throw new Error(`Registratură: ${result.status}`); return result; };
-  const request = async <T,>(path: string, init?: RequestInit): Promise<T> => (await response(path, init)).json() as Promise<T>;
+  const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
+  const response = async <T,>(path: string, init?: RequestInit) => {
+    const result = await transport.request<T>((init?.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | undefined) ?? 'GET', `${apiBase}${path}`, { ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } });
+    if (!result.response.ok) throw new Error(`Registratură: ${result.response.status}`);
+    return result;
+  };
+  const request = async <T,>(path: string, init?: RequestInit): Promise<T> => (await response<T>(path, init)).data as T;
   const json = (value: unknown): RequestInit => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
   const encode = encodeURIComponent;
   return {
@@ -53,7 +58,7 @@ export function createRegistraturaApi(fetcher: Fetcher = fetch, apiBase = '/api'
       return result.data as RegistryDocument;
     }, update: (id, input) => request(`/registratura/documents/${encode(id)}`, { ...json(input), method: 'PATCH' }), createVersion: (id, input) => request(`/registratura/documents/${encode(id)}/versions`, json(input)), cancel: (id, reason) => request(`/registratura/documents/${encode(id)}/cancel`, json({ reason })), createBatch: (input) => request('/registratura/documents/batch', json(input)), workflow: (id, input) => request(`/registratura/documents/${encode(id)}/workflow-actions`, json(input)),
     async upload(id, file, category) { const body = new FormData(); body.set('file', file, file.name); body.set('category', category); return request(`/registratura/documents/${encode(id)}/attachments/upload`, { method: 'POST', body }); },
-    async download(id, attachmentId) { return (await response(`/registratura/documents/${encode(id)}/attachments/${encode(attachmentId)}/download`)).blob(); }, async print(id) { return (await response(`/registratura/documents/${encode(id)}/print-pdf`)).blob(); }, async exportPdf(input) { return (await response('/registratura/documents/export-pdf', json(input))).blob(); },
+    async download(id, attachmentId) { return (await response<Blob>(`/registratura/documents/${encode(id)}/attachments/${encode(attachmentId)}/download`, { headers: { Accept: 'application/octet-stream' } })).data as Blob; }, async print(id) { return (await response<Blob>(`/registratura/documents/${encode(id)}/print-pdf`, { headers: { Accept: 'application/pdf' } })).data as Blob; }, async exportPdf(input) { return (await response<Blob>('/registratura/documents/export-pdf', { ...json(input), headers: { 'Content-Type': 'application/json', Accept: 'application/pdf' } })).data as Blob; },
     async parties(query) { const params = new URLSearchParams({ page: '1', pageSize: '50' }); if (query?.trim()) params.set('filter.query', query.trim()); return page(await request<Party[] | Page<Party>>(`/registratura/parties?${params}`)); }, createParty: (input) => request('/registratura/parties', json(input)), updateParty: (id, input) => request(`/registratura/parties/${encode(id)}`, { ...json(input), method: 'PATCH' }), async deleteParty(id) { await response(`/registratura/parties/${encode(id)}`, { method: 'DELETE' }); },
     async admin(resource) { return page(await request<RegistryAdminRecord[] | Page<RegistryAdminRecord>>(`/registratura/admin/${resource}?page=1&pageSize=50`)); }, createAdmin: (resource, input) => request(`/registratura/admin/${resource}`, json(input)), updateAdmin: (resource, id, input) => request(`/registratura/admin/${resource}/${encode(String(id))}`, { ...json(input), method: 'PATCH' }), async deleteAdmin(resource, id) { await response(`/registratura/admin/${resource}/${encode(String(id))}`, { method: 'DELETE' }); },
     chart: () => request('/registratura/admin/organization-chart'), async adminUsers() { return page(await request<AdminUser[] | Page<AdminUser>>('/admin/users?page=1&pageSize=100&sort=name&direction=asc')); }, userAssignments: (id) => request(`/registratura/admin/users/${encode(id)}/assignments`), saveUserAssignments: (id, input) => request(`/registratura/admin/users/${encode(id)}/assignments`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }), lookupDocuments: (query) => request(`/registratura/documents/lookup?query=${encode(query)}`), links: (sourceModule, sourceRecordId) => request(`/registratura/document-links?source_module=${encode(sourceModule)}&source_record_id=${encode(sourceRecordId)}`), createLink: (input) => request('/registratura/document-links', json(input)), async deleteLink(linkId) { await response(`/registratura/document-links/${encode(linkId)}`, { method: 'DELETE' }); }

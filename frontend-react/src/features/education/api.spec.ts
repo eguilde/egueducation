@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { createEducationApi } from "./api";
 
+const requestAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => fetcher.mock.calls[index][0] as Request;
+const urlAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => requestAt(fetcher, index).url;
+
 describe("Education API", () => {
   it("serializes server page, exact sort field and field filters", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 3, pageSize: 10 }), { headers: { "content-type": "application/json" } }));
     const result = await createEducationApi(fetcher).records("personnel", { page: 3, pageSize: 10, sort: "full_name", direction: "asc", filters: { status: "active", school_year: "2025-2026" } });
     expect(result).toMatchObject({ page: 3, pageSize: 10 });
-    const url = String(fetcher.mock.calls[0][0]);
+    const url = urlAt(fetcher);
     expect(url).toContain("page=3");
     expect(url).toContain("pageSize=10");
     expect(url).toContain("sort=full_name");
@@ -18,12 +21,13 @@ describe("Education API", () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 50 }), { headers: { "content-type": "application/json" } }));
     const api = createEducationApi(fetcher, "/api");
     await api.governanceMeetings({ q: "consiliu", filters: { status: "scheduled" }, sort: "meeting_date", direction: "desc" });
-    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    const request = requestAt(fetcher);
+    const url = request.url;
     expect(url).toContain("/api/education/governance/meetings?");
     expect(url).toContain("q=consiliu");
     expect(url).toContain("filter.status=scheduled");
-    expect(init.headers).toMatchObject({ Accept: "application/json" });
-    expect(init.headers).not.toHaveProperty("X-Institution-ID");
+    expect(request.headers.get("accept")).toBe("application/json");
+    expect(request.headers.get("X-Institution-ID")).toBeNull();
   });
 
   it("normalizes a legacy array response without losing typed items", async () => {
@@ -47,9 +51,9 @@ describe("Education API", () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify([]))));
     const api = createEducationApi(fetcher);
     await api.records("portfolios", { q: "opis" });
-    expect(fetcher.mock.calls[0][0]).toContain("/api/education/portfolios/records?");
-    expect(fetcher.mock.calls[0][0]).toContain("q=opis");
-    expect(fetcher.mock.calls[0][1].headers).not.toHaveProperty("X-Institution-ID");
+    expect(urlAt(fetcher)).toContain("/api/education/portfolios/records?");
+    expect(urlAt(fetcher)).toContain("q=opis");
+    expect(requestAt(fetcher).headers.get("X-Institution-ID")).toBeNull();
   });
 
   it("has a concrete list route for every non-placeholder School domain", async () => {
@@ -58,7 +62,7 @@ describe("Education API", () => {
     const domains = ["decisions", "managerial", "regulations", "committees", "personnel", "evaluations", "declarations", "mobility", "merit", "portfolios", "compliance"] as const;
     await Promise.all(domains.map((domain) => api.records(domain)));
     expect(fetcher).toHaveBeenCalledTimes(domains.length);
-    expect(fetcher.mock.calls.map(([url]) => String(url))).toEqual(expect.arrayContaining([
+    expect(fetcher.mock.calls.map(([,], index) => urlAt(fetcher, index))).toEqual(expect.arrayContaining([
       expect.stringContaining("/education/decisions/records?"),
       expect.stringContaining("/education/compliance/publications?"),
       expect.stringContaining("/education/gradatii/records?"),
@@ -71,38 +75,39 @@ describe("Education API", () => {
     await api.saveRecord("personnel", { full_name: "Ana", status: "active" });
     await api.saveRecord("personnel", { full_name: "Ana" }, "p1");
     await api.deleteRecord("personnel", "p1");
-    expect(fetcher.mock.calls[0][0]).toBe("/api/education/personnel/records");
-    expect(fetcher.mock.calls[0][1]).toMatchObject({ method: "POST", headers: { "Content-Type": "application/json" } });
-    expect(fetcher.mock.calls[1][0]).toBe("/api/education/personnel/records/p1");
-    expect(fetcher.mock.calls[1][1]).toMatchObject({ method: "PUT" });
-    expect(fetcher.mock.calls[2][1]).toMatchObject({ method: "DELETE" });
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/personnel/records");
+    expect(requestAt(fetcher).method).toBe("POST");
+    expect(requestAt(fetcher).headers.get("content-type")).toBe("application/json");
+    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/personnel/records/p1");
+    expect(requestAt(fetcher, 1).method).toBe("PUT");
+    expect(requestAt(fetcher, 2).method).toBe("DELETE");
   });
 
   it("retrieves protected dossier PDFs through the authenticated fetcher", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(new Blob(["pdf"], { type: "application/pdf" }), { status: 200 }));
     await expect(createEducationApi(fetcher).recordPdf("portfolios", "p 1")).resolves.toBeInstanceOf(Blob);
-    expect(fetcher.mock.calls[0][0]).toBe("/api/education/portfolios/records/p%201/pdf");
-    expect(fetcher.mock.calls[0][1].headers).toMatchObject({ Accept: "application/pdf" });
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/p%201/pdf");
+    expect(requestAt(fetcher).headers.get("accept")).toBe("application/pdf");
   });
 
   it("uses protected backend endpoints for the PDF and CSV exports", async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(new Blob(["data"]), { status: 200 })));
     const api = createEducationApi(fetcher);
     await api.exportFile("pdf"); await api.exportFile("csv");
-    expect(fetcher.mock.calls[0][0]).toBe("/api/education/exports/pdf");
-    expect(fetcher.mock.calls[1][0]).toBe("/api/education/exports/csv");
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/exports/pdf");
+    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/exports/csv");
   });
 
   it("loads documented dashboard and filter metadata through the same authenticated client", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ statuses: ["draft"] }), { status: 200 }));
     await expect(createEducationApi(fetcher).metadata("/education/mobility/records/filters")).resolves.toEqual({ statuses: ["draft"] });
-    expect(fetcher.mock.calls[0][0]).toBe("/api/education/mobility/records/filters");
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/mobility/records/filters");
   });
 
   it("executes documented portfolio commands with an authenticated POST", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
     await createEducationApi(fetcher).command("/education/portfolios/records/p1/opis/regenerate");
-    expect(fetcher.mock.calls[0][0]).toBe("/api/education/portfolios/records/p1/opis/regenerate");
-    expect(fetcher.mock.calls[0][1]).toMatchObject({ method: "POST" });
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/p1/opis/regenerate");
+    expect(requestAt(fetcher).method).toBe("POST");
   });
 });

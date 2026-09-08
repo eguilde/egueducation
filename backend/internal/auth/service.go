@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/eguilde/egueducation/internal/tenant"
 )
 
+var profileE164PhonePattern = regexp.MustCompile(`^\+[1-9][0-9]{7,14}$`)
+
 type Service struct {
 	cfg         config.Config
 	smsService  *notification.SMSService
@@ -28,6 +31,9 @@ type Service struct {
 }
 
 func NewService(cfg config.Config, smsService *notification.SMSService, db *appdb.SessionPool) (*Service, error) {
+	if err := cfg.ValidateOTPStorage(); err != nil {
+		return nil, fmt.Errorf("validate OTP storage: %w", err)
+	}
 	if err := cfg.ValidateTestOTPFixture(); err != nil {
 		return nil, fmt.Errorf("validate test OTP fixture: %w", err)
 	}
@@ -196,6 +202,13 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	req.Name = strings.TrimSpace(req.Name)
 	req.PhoneNumber = strings.TrimSpace(req.PhoneNumber)
+	if req.PhoneNumber != "" {
+		req.PhoneNumber = notification.NormalizePhone(req.PhoneNumber)
+		if !profileE164PhonePattern.MatchString(req.PhoneNumber) {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "profile_phone_invalid"})
+			return
+		}
+	}
 	req.Locale = strings.TrimSpace(req.Locale)
 	if req.Name == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "profile_name_required"})
@@ -206,16 +219,75 @@ func (s *Service) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := s.db.Exec(r.Context(), `
-		update app_users
-		set name = $2,
-			phone_number = $3,
-			phone_number_verified = case when phone_number is distinct from $3 then false else phone_number_verified end,
-			locale = $4,
-			updated_at = now()
-		where id = $1::uuid
-	`, session.User.ID, req.Name, req.PhoneNumber, req.Locale)
+	tx, err := s.db.Begin(r.Context())
 	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context()) //nolint:errcheck
+	var currentPhone string
+	if err := tx.QueryRow(r.Context(), `select phone_number from app_users where id = $1::uuid for update`, session.User.ID).Scan(&currentPhone); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+		return
+	}
+	phoneChanged := currentPhone != req.PhoneNumber
+	if phoneChanged && req.PhoneNumber != "" {
+		var collision bool
+		if err := tx.QueryRow(r.Context(), `select exists(select 1 from app_user_identities where identity_type='phone' and normalized_value=$1 and user_id <> $2::uuid)`, req.PhoneNumber, session.User.ID).Scan(&collision); err != nil || collision {
+			code := "profile_update_failed"
+			if collision {
+				code = "profile_phone_conflict"
+			}
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": code})
+			return
+		}
+	}
+	if _, err := tx.Exec(r.Context(), `
+		update app_users set name=$2, phone_number=$3,
+			phone_number_verified=case when phone_number is distinct from $3 then false else phone_number_verified end,
+			locale=$4, updated_at=now() where id=$1::uuid
+	`, session.User.ID, req.Name, req.PhoneNumber, req.Locale); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+		return
+	}
+	if phoneChanged {
+		// Revoke every legacy and session-bound login proof before replacing the
+		// phone so a code sent to the old number can never verify the new identity.
+		if _, err := tx.Exec(r.Context(), `
+			delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login';
+			delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'
+		`, session.User.ID); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+			return
+		}
+		if _, err := tx.Exec(r.Context(), `delete from app_user_identities where user_id=$1::uuid and identity_type='phone' and is_primary`, session.User.ID); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+			return
+		}
+		if req.PhoneNumber != "" {
+			if _, err := tx.Exec(r.Context(), `insert into app_user_identities (user_id, identity_type, normalized_value, display_value, is_primary) values ($1::uuid, 'phone', $2, $2, true)`, session.User.ID, req.PhoneNumber); err != nil {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "profile_phone_conflict"})
+				return
+			}
+		}
+		action := "identity.phone.assigned_unverified"
+		summary := "Assigned a phone identity that requires SMS OTP possession proof."
+		outcome := "assigned_unverified"
+		if currentPhone != "" {
+			action = "identity.phone.revoked"
+			summary = "Changed phone identity; prior SMS login credential and pending OTP were revoked."
+			outcome = "revoked"
+		}
+		if _, err := tx.Exec(r.Context(), `
+			insert into app_audit_log (institution_id, actor_subject, action, target_type, target_id, status, summary, details)
+			values (public.current_institution_id(), $1, $3, 'app_user', $2, 'success', $4,
+				jsonb_build_object('user_id', $2, 'method', 'profile_update', 'purpose', 'phone_change', 'outcome', $5))
+		`, session.User.Sub, session.User.ID, action, summary, outcome); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
+			return
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "profile_update_failed"})
 		return
 	}

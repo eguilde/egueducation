@@ -47,6 +47,43 @@ func TestIdentityContractMigrationHasRequiredFoundations(t *testing.T) {
 		}
 	}
 
+	for _, required := range []string{
+		"synthetic_subject constant text := 'audit.profesor.1782256488896' || '@example.com'",
+		"Audit Profesor 1782256488896",
+		"where u.sub = 'thomasgalambos'",
+		"canonical thomasgalambos does not own the approved phone",
+		"identity.phone.quarantined",
+		"identity.phone.legacy_adopted",
+		"approved_synthetic_duplicate_quarantine",
+		"phone_number_verified = false",
+		"legacy_profile_verified",
+		"create temporary table _0083_balotesti_operator_bindings",
+		"Historical OIDC subjects are immutable",
+		"duplicate normalized phone in app_users requires explicit repair",
+		"array_agg(distinct identity_row.user_id) filter (where identity_row.verified_at is not null)",
+		"has an unverified reserved login identity",
+		"identities map to multiple existing users",
+		"reserved subject for % belongs to a different user",
+		"shares an existing user with another named operator",
+		"from _0083_balotesti_operator_bindings binding",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("identity migration is missing safe adoption guard %q", required)
+		}
+	}
+	if strings.Contains(text, "on conflict (sub) do update") {
+		t.Error("identity migration must not overwrite an existing immutable OIDC subject")
+	}
+	if strings.Contains(text, "on conflict (identity_type, normalized_value) do nothing") {
+		t.Error("identity migration must not silently choose the owner of a duplicate login identity")
+	}
+	if !strings.Contains(text, "is_primary = true") {
+		t.Error("identity upsert must promote the supplied canonical identity to primary")
+	}
+	if strings.Contains(text, "'ro', 'active', operator_row.email <> '', true, 'sms'") {
+		t.Error("new operator phones must not be auto-verified by the migration")
+	}
+
 	if strings.Contains(text, "tenant_code = public.current_tenant_code())\n\twith check (public.can_bypass_tenant_rls") {
 		t.Error("authorization-version RLS must not grant an interactive super-admin bypass")
 	}

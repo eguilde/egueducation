@@ -1,36 +1,59 @@
+import type { components } from '../../api/generated';
+import { createContractClient } from '../../api/client';
+
 export type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+export type FluxDocument = NonNullable<components['schemas']['get_api_registratura_flux_queue_item']>;
+export type FluxPage = { items: FluxDocument[]; total: number; page: number; pageSize: number };
+/** @deprecated Feature consumers should use FluxPage. Kept while archive contracts migrate. */
+export type Page<T> = { items: T[]; total: number; page: number; pageSize: number };
+export type FluxStats = Array<NonNullable<components['schemas']['get_api_registratura_flux_pipeline_stats_item']>>;
+export type FluxQuery = {
+  page: number; pageSize: number; sort?: string; direction?: 'asc' | 'desc';
+  nr_doc?: string; continut?: string; emitent?: string; compartiment?: string; tip?: string;
+  mapa_filter?: 'mine' | 'peers'; status?: string;
+};
+export type WorkflowTransition = components['schemas']['DocumentWorkflowActionRequest'];
+export type WorkflowAssignees = { departments: Array<{ id?: string; name?: string }>; users: Array<{ id?: string; name?: string; department_ids?: string[] }> };
 
-export interface Page<T> { items: T[]; total: number; page: number; pageSize: number }
-export interface WorkflowTask {
-  id: string; definition_code: string; definition_name: string; title: string; document_number: string;
-  source_module: string; source_record_id?: string | null; status: string; priority: string; assigned_to: string;
-  current_step: string; due_at?: string | null; started_at: string; updated_at: string; summary: string;
-  linked_documents_count: number; dossier_ready: boolean; missing_relations: string[]; available_actions: string[];
-}
-export interface WorkflowDefinition { code: string; name: string; category: string; initial_step: string; sla_hours: number; active: boolean }
-export interface WorkflowFilters { statuses: string[]; priorities: string[]; assignees: string[] }
-export interface WorkflowDashboard { stats: { active_tasks: number; overdue_tasks: number; waiting_approval: number; active_definitions: number; ready_dossiers: number; blocked_dossiers: number } }
-export interface CreateTaskInput { definition_code: string; title: string; document_number: string; source_module: string; source_record_id: string; priority: string; assigned_to: string; due_date?: string | null; summary: string }
 export interface WorkflowApi {
-  dashboard(): Promise<WorkflowDashboard>; definitions(): Promise<WorkflowDefinition[]>; filters(): Promise<WorkflowFilters>;
-  tasks(query?: Record<string, string>): Promise<Page<WorkflowTask>>; create(input: CreateTaskInput): Promise<WorkflowTask>;
-  transition(id: string, input: { action: string }): Promise<WorkflowTask>;
+  queue(query: FluxQuery): Promise<FluxPage>;
+  mapa(query: FluxQuery): Promise<FluxPage>;
+  pipeline(query: FluxQuery): Promise<FluxPage>;
+  pipelineStats(): Promise<FluxStats>;
+  assignees(): Promise<WorkflowAssignees>;
+  transition(id: string, input: WorkflowTransition): Promise<void>;
 }
 
-const toPage = <T,>(value: T[] | Partial<Page<T>>): Page<T> => Array.isArray(value)
-  ? { items: value, total: value.length, page: 1, pageSize: value.length }
-  : { items: value.items ?? [], total: value.total ?? 0, page: value.page ?? 1, pageSize: value.pageSize ?? 25 };
+const asPage = (value: { items?: FluxDocument[]; total?: number; page?: number; pageSize?: number }): FluxPage => ({
+  items: value.items ?? [], total: value.total ?? 0, page: value.page ?? 1, pageSize: value.pageSize ?? 20,
+});
 
+/** Contract-first adapter. Flux projections are server-filtered and server-paged;
+ * no client-side narrowing is permitted here. */
 export function createWorkflowApi(fetcher: Fetcher = fetch, apiBase = '/api'): WorkflowApi {
-  const request = async <T,>(path: string, init?: RequestInit) => {
-    const response = await fetcher(`${apiBase}${path}`, { credentials: 'include', ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } });
-    if (!response.ok) throw new Error(`Flux documente: ${response.status}`);
-    return response.json() as Promise<T>;
+  const contractClient = createContractClient((request) => fetcher(request), apiBase);
+  const getPage = async (path: '/api/registratura/flux/queue' | '/api/registratura/flux/mapa' | '/api/registratura/flux/pipeline', query: FluxQuery) => {
+    const result = await contractClient.GET(path, { params: { query } });
+    if (!result.response.ok || !result.data) throw new Error(`Flux documente: ${result.response.status}`);
+    return asPage(result.data as { items?: FluxDocument[]; total?: number; page?: number; pageSize?: number });
   };
   return {
-    dashboard: () => request('/workflow/dashboard'), definitions: () => request('/workflow/definitions'), filters: () => request('/workflow/tasks/filters'),
-    async tasks(query = {}) { const params = new URLSearchParams({ page: '1', pageSize: '25', ...query }); return toPage(await request<WorkflowTask[] | Partial<Page<WorkflowTask>>>(`/workflow/tasks?${params}`)); },
-    create: (input) => request('/workflow/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
-    transition: (id, input) => request(`/workflow/tasks/${encodeURIComponent(id)}/transition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) })
+    queue: (query) => getPage('/api/registratura/flux/queue', query),
+    mapa: (query) => getPage('/api/registratura/flux/mapa', query),
+    pipeline: (query) => getPage('/api/registratura/flux/pipeline', query),
+    async pipelineStats() {
+      const result = await contractClient.GET('/api/registratura/flux/pipeline/stats');
+      if (!result.response.ok || !result.data) throw new Error(`Flux documente: ${result.response.status}`);
+      return result.data as FluxStats;
+    },
+    async assignees() {
+      const result = await contractClient.GET('/api/registratura/workflow-assignees');
+      if (!result.response.ok || !result.data) throw new Error(`Flux documente: ${result.response.status}`);
+      return result.data as WorkflowAssignees;
+    },
+    async transition(id, input) {
+      const result = await contractClient.POST('/api/registratura/documents/{documentID}/workflow-actions', { params: { path: { documentID: id } }, body: input });
+      if (!result.response.ok) throw new Error(`Flux documente: ${result.response.status}`);
+    },
   };
 }

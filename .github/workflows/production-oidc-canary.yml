@@ -37,6 +37,7 @@ jobs:
       PRODUCTION_ORIGIN: https://scoalabalotesti.eguilde.cloud
       PRODUCTION_E2E_CANARY_IDENTIFIER: ${{ secrets.PRODUCTION_E2E_CANARY_IDENTIFIER }}
       PRODUCTION_E2E_CANARY_OTP: ${{ secrets.PRODUCTION_E2E_CANARY_OTP }}
+      PRODUCTION_E2E_CANARY_ACTIVATION_KEY: ${{ secrets.PRODUCTION_E2E_CANARY_ACTIVATION_KEY }}
     steps:
       - name: Check out the deployed source revision
         uses: actions/checkout@v4

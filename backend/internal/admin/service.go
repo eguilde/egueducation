@@ -347,10 +347,7 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	if req.ID != "" && !authruntime.IsPlatformSuperAdminFromRequest(r) {
 		var sharedIdentity bool
 		if err := s.pool.QueryRow(r.Context(), `
-			select exists(
-				select 1 from app_memberships
-				where user_id = $1::uuid and active = true and tenant_code <> $2
-			)
+			select public.user_has_other_active_tenant_membership($1::uuid, $2)
 		`, req.ID, tenantCode).Scan(&sharedIdentity); err != nil || sharedIdentity {
 			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "shared_identity_platform_admin_required"})
 			return
@@ -390,8 +387,12 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	emailVerified = resolveRequestedVerification(emailVerified, req.ID != "" && req.Email != currentEmail, req.EmailVerified)
-	phoneVerified = resolveRequestedVerification(phoneVerified, req.ID != "" && req.Phone != currentPhone, req.PhoneVerified)
+	phoneChanged := (req.ID == "" && req.Phone != "") || (req.ID != "" && req.Phone != currentPhone)
+	emailVerified = resolveAdminEmailVerification(emailVerified, req.ID != "" && req.Email != currentEmail, req.EmailVerified)
+	// A phone is a possession credential, not an administrative assertion.  An
+	// administrator may revoke an existing verification, but may never promote
+	// an unverified (new or existing) phone through this CRUD endpoint.
+	phoneVerified = resolveAdminPhoneVerification(phoneVerified, req.ID != "" && req.Phone != currentPhone, req.PhoneVerified)
 	preferredChannel, err := resolveAdminUserAuthentication(req, emailVerified, phoneVerified)
 	if err != nil {
 		writeAdminUserAuthenticationError(w, err)
@@ -450,9 +451,39 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 		writeAdminIdentityError(w, err)
 		return
 	}
+	if phoneChanged {
+		// Invalidate both legacy and session-bound login proofs before replacing
+		// the phone identity so a code delivered to the previous number cannot
+		// promote a newly assigned number.
+		if _, err := tx.Exec(r.Context(), `
+			delete from oidc_otp_challenges where user_id=$1::uuid and purpose='login';
+			delete from oidc_otp_codes where user_id=$1::uuid and purpose='login'
+		`, item.ID); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+			return
+		}
+	}
 	if err := syncAdminUserIdentity(r.Context(), tx, item.ID, "phone", item.Phone, item.PhoneVerified); err != nil {
 		writeAdminIdentityError(w, err)
 		return
+	}
+	if phoneChanged {
+		action := "identity.phone.assigned_unverified"
+		summary := "Administrator assigned a phone identity that requires SMS OTP possession proof."
+		outcome := "assigned_unverified"
+		if currentPhone != "" {
+			action = "identity.phone.revoked"
+			summary = "Administrator changed the phone identity; prior verification and pending OTP were revoked."
+			outcome = "revoked"
+		}
+		if _, err := tx.Exec(r.Context(), `
+			insert into app_audit_log (institution_id, actor_subject, action, target_type, target_id, status, summary, details)
+			values ($1, $2, $3, 'app_user', $4, 'success', $5,
+				jsonb_build_object('user_id', $4, 'method', 'admin_user_update', 'purpose', 'phone_change', 'outcome', $6))
+		`, institutionID, authruntime.CurrentSubjectFromRequest(r), action, item.ID, summary, outcome); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+			return
+		}
 	}
 
 	if _, err := tx.Exec(r.Context(), `
@@ -542,13 +573,40 @@ func resolveRequestedVerification(current, identifierChanged bool, requested *bo
 	return current
 }
 
+// Neither administrator CRUD nor profile data may promote an identifier. An
+// explicit false is a revocation; a successful channel-specific proof is the
+// only promotion path. Email delivery is not enabled yet, so new email values
+// remain unverified until that explicit flow exists.
+func resolveAdminEmailVerification(current, identifierChanged bool, requested *bool) bool {
+	if identifierChanged {
+		return false
+	}
+	if requested != nil && !*requested {
+		return false
+	}
+	return current
+}
+
+func resolveAdminPhoneVerification(current, identifierChanged bool, requested *bool) bool {
+	if identifierChanged {
+		return false
+	}
+	if requested != nil && !*requested {
+		return false
+	}
+	return current
+}
+
 func resolveAdminUserAuthentication(req UpsertUserRequest, currentEmailVerified, currentPhoneVerified bool) (string, error) {
-	if (req.Email == "" || !currentEmailVerified) && (req.Phone == "" || !currentPhoneVerified) {
+	// A newly assigned phone is intentionally allowed to use SMS before it is
+	// verified: successful OTP possession proof is what promotes it. Email
+	// remains strictly verification-gated.
+	if (req.Email == "" || !currentEmailVerified) && req.Phone == "" {
 		return "", errVerifiedLoginIdentifierMissing
 	}
 	channel := strings.TrimSpace(req.PreferredOTPChannel)
 	if channel == "" {
-		if req.Phone != "" && currentPhoneVerified {
+		if req.Phone != "" {
 			channel = "sms"
 		} else {
 			channel = "email"
@@ -556,7 +614,7 @@ func resolveAdminUserAuthentication(req UpsertUserRequest, currentEmailVerified,
 	}
 	switch channel {
 	case "sms":
-		if req.Phone == "" || !currentPhoneVerified {
+		if req.Phone == "" {
 			return "", errVerifiedPhoneMissing
 		}
 	case "email":

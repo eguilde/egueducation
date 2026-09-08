@@ -154,6 +154,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          backend_manifest='namespaces/education/egueducation/backend/kustomization.yaml'
+          frontend_manifest='namespaces/education/egueducation/frontend/kustomization.yaml'
+          git ls-files --error-unmatch "${backend_manifest}" "${frontend_manifest}" >/dev/null
+          test -s "${backend_manifest}"
+          test -s "${frontend_manifest}"
+          kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+          kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+
           promote_image() {
             IMAGE="$1" IMAGE_DIGEST="$2" SOURCE_IMAGE="$3" FILE="$4" ruby <<'RUBY'
               require 'yaml'
@@ -195,6 +203,11 @@ jobs:
             'egueducation-frontend' \
             'namespaces/education/egueducation/frontend/kustomization.yaml'
 
+          # Validate the exact rendered objects that are about to become the
+          # GitOps source of truth, after both immutable digests were written.
+          kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+          kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add namespaces/education/egueducation/backend/kustomization.yaml \
@@ -205,12 +218,27 @@ jobs:
             exit 0
           fi
           git commit -m "chore(egueducation): promote ${SOURCE_SHA} by digest"
-          promotion_commit="$(git rev-parse HEAD)"
-          echo "commit=${promotion_commit}" >> "$GITHUB_OUTPUT"
-          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+          validate_promotion_commit() {
+            local expected_changes actual_changes
+            expected_changes="$(printf 'M\t%s\nM\t%s' "${backend_manifest}" "${frontend_manifest}")"
+            actual_changes="$(git diff --name-status HEAD^ HEAD | sort)"
+            test "${actual_changes}" = "${expected_changes}"
+            kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+            kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+          }
 
           for attempt in 1 2 3 4 5; do
+            # A failed push can rebase this commit onto concurrent GitOps
+            # changes. Validate the exact rebased commit and rendered trees
+            # immediately before every push attempt.
+            validate_promotion_commit
             if git push origin HEAD:main; then
+              # A rebase in a previous retry changes the promotion commit ID.
+              # Publish only the commit that was actually accepted by main so
+              # rollback can verify and revert that exact two-file change.
+              echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+              echo "changed=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             git pull --rebase origin main
@@ -265,6 +293,10 @@ jobs:
           repository: eguilde/gitops
           ref: main
           token: ${{ secrets.GITOPS_TOKEN }}
+          # A rollback reverts the promotion commit and therefore requires its
+          # parent tree. A depth-1 checkout treats HEAD as a shallow root and
+          # can turn the revert into deletion of the entire repository.
+          fetch-depth: 0
       - name: Revert the failed immutable promotion
         shell: bash
         env:
@@ -274,5 +306,66 @@ jobs:
           [[ "${PROMOTION_COMMIT}" =~ ^[a-f0-9]{40}$ ]]
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git cat-file -e "${PROMOTION_COMMIT}^{commit}"
+          git cat-file -e "${PROMOTION_COMMIT}^1^{commit}"
+          git merge-base --is-ancestor "${PROMOTION_COMMIT}" HEAD
+
+          backend_manifest='namespaces/education/egueducation/backend/kustomization.yaml'
+          frontend_manifest='namespaces/education/egueducation/frontend/kustomization.yaml'
+          expected_changes="$(printf 'M\t%s\nM\t%s' "${backend_manifest}" "${frontend_manifest}")"
+          actual_changes="$(git diff --name-status "${PROMOTION_COMMIT}^1" "${PROMOTION_COMMIT}" | sort)"
+          test "${actual_changes}" = "${expected_changes}"
+
+          # Unrelated GitOps commits may land while public verification runs.
+          # Revert only while both EGU manifests still equal this promotion;
+          # never overwrite a newer EGU deployment.
+          git diff --exit-code "${PROMOTION_COMMIT}" HEAD -- \
+            "${backend_manifest}" "${frontend_manifest}"
+
           git revert --no-edit "${PROMOTION_COMMIT}"
-          git push origin HEAD:main
+          git diff --exit-code "${PROMOTION_COMMIT}^1" HEAD -- \
+            "${backend_manifest}" "${frontend_manifest}"
+          test -s "${backend_manifest}"
+          test -s "${frontend_manifest}"
+          kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+          kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+
+          validate_rollback_commit() {
+            local expected_changes actual_changes
+            expected_changes="$(printf 'M\t%s\nM\t%s' "${backend_manifest}" "${frontend_manifest}")"
+            actual_changes="$(git diff --name-status HEAD^ HEAD | sort)"
+            test "${actual_changes}" = "${expected_changes}"
+            git diff --exit-code "${PROMOTION_COMMIT}^1" HEAD -- \
+              "${backend_manifest}" "${frontend_manifest}"
+            kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+            kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+          }
+
+          for attempt in 1 2 3 4 5; do
+            validate_rollback_commit
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git fetch origin main
+            git diff --exit-code "${PROMOTION_COMMIT}" origin/main -- \
+              "${backend_manifest}" "${frontend_manifest}"
+            git rebase origin/main
+            sleep $((attempt * 2))
+          done
+          echo 'GitOps rollback failed after retries' >&2
+          exit 1
+      - name: Verify rollback convergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            health="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/health")" || true
+            revision="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/revision.json")" || true
+            if jq -e '.status == "ok" and .database == "ok"' >/dev/null <<<"${health}" \
+              && jq -e --arg failed_revision "${SOURCE_SHA}" '.revision != $failed_revision' >/dev/null <<<"${revision}"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Rollback GitOps commit was pushed, but the cluster did not converge to a healthy previous revision.' >&2
+          exit 1

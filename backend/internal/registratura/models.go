@@ -234,8 +234,9 @@ type CancelDocumentRequest struct {
 }
 
 type WorkflowAssignment struct {
-	DepartmentID *string `json:"department_id,omitempty"`
-	UserID       *string `json:"user_id,omitempty"`
+	DepartmentID     *string `json:"department_id,omitempty"`
+	UserID           *string `json:"user_id,omitempty"`
+	TargetApproverID *string `json:"target_approver_id,omitempty"`
 }
 
 type DocumentWorkflowActionRequest struct {
@@ -244,6 +245,34 @@ type DocumentWorkflowActionRequest struct {
 	UserID          *string `json:"user_id"`
 	Note            string  `json:"note"`
 	ExpectedVersion int     `json:"expected_version"`
+}
+
+// FluxDocument is the Costesti-compatible document projection used by Queue,
+// Mapa and Pipeline. It is intentionally a read model; mutations always use
+// the aggregate transition endpoint and an expected workflow version.
+type FluxDocument struct {
+	ID                 string  `json:"id"`
+	RegistryNumber     string  `json:"registry_number"`
+	Subject            string  `json:"subject"`
+	DocumentType       string  `json:"document_type"`
+	Status             string  `json:"status"`
+	Direction          string  `json:"direction"`
+	Correspondent      string  `json:"correspondent"`
+	EntryAt            *string `json:"entry_at,omitempty"`
+	RegisteredAt       string  `json:"registered_at"`
+	DepartmentID       *string `json:"department_id,omitempty"`
+	DepartmentName     *string `json:"department_name,omitempty"`
+	AssignedUserID     *string `json:"assigned_user_id,omitempty"`
+	AssignedUserName   *string `json:"assigned_user_name,omitempty"`
+	TargetApproverID   *string `json:"target_approver_id,omitempty"`
+	TargetApproverName *string `json:"target_approver_name,omitempty"`
+	RejectionCount     int     `json:"rejection_count"`
+	WorkflowVersion    int     `json:"workflow_version"`
+}
+
+type FluxPipelineStat struct {
+	Status string `json:"status"`
+	Count  int    `json:"count"`
 }
 
 type DocumentWorkflowEvent struct {
@@ -292,6 +321,7 @@ type BatchCreateDocumentsRequest struct {
 	Confidentiality      string  `json:"confidentiality"`
 	Summary              string  `json:"summary"`
 	DueDate              *string `json:"due_date"`
+	EntryAt              *string `json:"entry_at"`
 }
 
 type ExportDocumentsRequest struct {

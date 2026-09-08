@@ -5962,6 +5962,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/registratura/flux/mapa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List document workflow map
+         * @description Costesti-compatible Mapa projection for the active tenant. The server applies all filters, sorting and pagination.
+         */
+        get: operations["get_api_registratura_flux_mapa"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/registratura/flux/pipeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the tenant document workflow pipeline
+         * @description Server-paginated, filterable and sortable Costesti pipeline read model.
+         */
+        get: operations["get_api_registratura_flux_pipeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/registratura/flux/pipeline/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get tenant document pipeline counts
+         * @description Tenant-scoped Registratura operation. The backend is authoritative for RBAC, resource visibility, transition state and validation.
+         */
+        get: operations["get_api_registratura_flux_pipeline_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/registratura/flux/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the caller's document queue
+         * @description Costesti-compatible tenant-scoped queue: documents assigned to the caller and unclaimed documents in the caller's departments. Supports server pagination, filtering and sorting.
+         */
+        get: operations["get_api_registratura_flux_queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/registratura/nomenclatures": {
         parameters: {
             query?: never;
@@ -7202,6 +7282,16 @@ export interface components {
             portfolios?: components["schemas"]["DirectorCockpitPortfolios"];
             recommended_links?: components["schemas"]["DirectorCockpitQuickLink"][];
             school_year?: string;
+        };
+        DocumentWorkflowActionRequest: {
+            /** @enum {string} */
+            action: "assign_department" | "assign_user" | "claim" | "send_for_approval" | "approve" | "reject";
+            /** Format: uuid */
+            department_id?: string;
+            expected_version: number;
+            note?: string;
+            /** Format: uuid */
+            user_id?: string;
         };
         EducationCommitteeCompletenessResponse: components["schemas"]["CommitteeCompletenessSummary"];
         EducationGovernanceBodyCompletenessSummaryResponse: components["schemas"]["GovernanceBodyCompletenessSummary"];
@@ -9383,6 +9473,7 @@ export interface components {
             direction?: string;
             document_type?: string;
             due_date?: string | null;
+            entry_at?: string | null;
             /** Format: int64 */
             registru_id?: number;
             status?: string;
@@ -10466,6 +10557,7 @@ export interface components {
             summary?: string;
             workflow_assignment?: {
                 department_id?: string | null;
+                target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
             workflow_version?: number;
@@ -10552,6 +10644,7 @@ export interface components {
             summary?: string;
             workflow_assignment?: {
                 department_id?: string | null;
+                target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
             workflow_version?: number;
@@ -10566,6 +10659,86 @@ export interface components {
         get_api_registratura_documents_lookup_response: components["schemas"]["get_api_registratura_documents_lookup_item"][];
         get_api_registratura_documents_response: {
             items: components["schemas"]["get_api_registratura_documents_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_registratura_flux_mapa_item: {
+            assigned_user_id?: string | null;
+            assigned_user_name?: string | null;
+            correspondent?: string;
+            department_id?: string | null;
+            department_name?: string | null;
+            direction?: string;
+            document_type?: string;
+            entry_at?: string | null;
+            id?: string;
+            registered_at?: string;
+            registry_number?: string;
+            rejection_count?: number;
+            status?: string;
+            subject?: string;
+            target_approver_id?: string | null;
+            target_approver_name?: string | null;
+            workflow_version?: number;
+        };
+        get_api_registratura_flux_mapa_response: {
+            items: components["schemas"]["get_api_registratura_flux_mapa_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_registratura_flux_pipeline_item: {
+            assigned_user_id?: string | null;
+            assigned_user_name?: string | null;
+            correspondent?: string;
+            department_id?: string | null;
+            department_name?: string | null;
+            direction?: string;
+            document_type?: string;
+            entry_at?: string | null;
+            id?: string;
+            registered_at?: string;
+            registry_number?: string;
+            rejection_count?: number;
+            status?: string;
+            subject?: string;
+            target_approver_id?: string | null;
+            target_approver_name?: string | null;
+            workflow_version?: number;
+        };
+        get_api_registratura_flux_pipeline_response: {
+            items: components["schemas"]["get_api_registratura_flux_pipeline_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_registratura_flux_pipeline_stats_item: {
+            count?: number;
+            status?: string;
+        };
+        get_api_registratura_flux_pipeline_stats_response: components["schemas"]["get_api_registratura_flux_pipeline_stats_item"][];
+        get_api_registratura_flux_queue_item: {
+            assigned_user_id?: string | null;
+            assigned_user_name?: string | null;
+            correspondent?: string;
+            department_id?: string | null;
+            department_name?: string | null;
+            direction?: string;
+            document_type?: string;
+            entry_at?: string | null;
+            id?: string;
+            registered_at?: string;
+            registry_number?: string;
+            rejection_count?: number;
+            status?: string;
+            subject?: string;
+            target_approver_id?: string | null;
+            target_approver_name?: string | null;
+            workflow_version?: number;
+        };
+        get_api_registratura_flux_queue_response: {
+            items: components["schemas"]["get_api_registratura_flux_queue_item"][];
             page: number;
             pageSize: number;
             total: number;
@@ -10890,6 +11063,7 @@ export interface components {
             summary?: string;
             workflow_assignment?: {
                 department_id?: string | null;
+                target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
             workflow_version?: number;
@@ -11549,6 +11723,7 @@ export interface components {
             summary?: string;
             workflow_assignment?: {
                 department_id?: string | null;
+                target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
             workflow_version?: number;
@@ -11601,6 +11776,7 @@ export interface components {
             summary?: string;
             workflow_assignment?: {
                 department_id?: string | null;
+                target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
             workflow_version?: number;
@@ -25123,7 +25299,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["WorkflowTransition"];
+                "application/json": components["schemas"]["DocumentWorkflowActionRequest"];
             };
         };
         responses: {
@@ -25162,6 +25338,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["get_api_registratura_documents_documentid_workflow_history_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_registratura_flux_mapa: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                nr_doc?: string;
+                continut?: string;
+                emitent?: string;
+                compartiment?: string;
+                tip?: string;
+                status?: string;
+                mapa_filter?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_registratura_flux_mapa_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_registratura_flux_pipeline: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                nr_doc?: string;
+                continut?: string;
+                emitent?: string;
+                compartiment?: string;
+                tip?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_registratura_flux_pipeline_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_registratura_flux_pipeline_stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_registratura_flux_pipeline_stats_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_registratura_flux_queue: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                nr_doc?: string;
+                continut?: string;
+                emitent?: string;
+                compartiment?: string;
+                tip?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_registratura_flux_queue_response"];
                 };
             };
             400: components["responses"]["BadRequest"];

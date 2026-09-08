@@ -1,16 +1,26 @@
 package registratura
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 )
+
+func requestWithDocumentID(request *http.Request, documentID string) *http.Request {
+	routeContext := chi.NewRouteContext()
+	routeContext.URLParams.Add("documentID", documentID)
+	return request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, routeContext))
+}
 
 func TestCanonicalWorkflowTransitions(t *testing.T) {
 	cases := []struct{ status, action, want string }{
 		{"INCOMING", "assign_department", "ALOCAT_COMPARTIMENT"},
+		{"ALOCAT_COMPARTIMENT", "assign_user", "IN_LUCRU"},
 		{"ALOCAT_COMPARTIMENT", "claim", "IN_LUCRU"},
 		{"IN_LUCRU", "send_for_approval", "FLUX_APROBARE"},
 		{"FLUX_APROBARE", "approve", "FINALIZAT"},
@@ -24,6 +34,79 @@ func TestCanonicalWorkflowTransitions(t *testing.T) {
 	}
 	if _, ok := workflowTransition("FINALIZAT", "claim"); ok {
 		t.Fatal("finalized document must not be claimable")
+	}
+}
+
+func TestWorkflowActionRequiresExactPositiveVersionBeforeDatabaseAccess(t *testing.T) {
+	for _, body := range []string{
+		`{"action":"claim"}`,
+		`{"action":"claim","expected_version":0}`,
+		`{"action":"claim","expected_version":-1}`,
+	} {
+		recorder := httptest.NewRecorder()
+		request := requestWithDocumentID(httptest.NewRequest(http.MethodPost, "/api/registratura/documents/document-id/workflow-actions", strings.NewReader(body)), "document-id")
+		(&Service{}).ApplyDocumentWorkflowAction(recorder, request)
+		if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), `"code":"workflow_expected_version_required"`) {
+			t.Fatalf("payload %s returned %d %s", body, recorder.Code, recorder.Body.String())
+		}
+	}
+}
+
+func TestValidateWorkflowActionFieldsRejectsForgedAssignmentFields(t *testing.T) {
+	departmentID, userID := "department-id", "user-id"
+	cases := []struct {
+		name string
+		req  DocumentWorkflowActionRequest
+		code string
+	}{
+		{"department with user", DocumentWorkflowActionRequest{Action: "assign_department", DepartmentID: &departmentID, UserID: &userID}, "workflow_user_not_allowed"},
+		{"user with department", DocumentWorkflowActionRequest{Action: "assign_user", DepartmentID: &departmentID, UserID: &userID}, "workflow_department_not_allowed"},
+		{"approval with assignment", DocumentWorkflowActionRequest{Action: "approve", UserID: &userID}, "workflow_assignment_not_allowed"},
+		{"rejection with assignment", DocumentWorkflowActionRequest{Action: "reject", DepartmentID: &departmentID}, "workflow_assignment_not_allowed"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateWorkflowActionFields(tc.req)
+			if err == nil || err.Error() != tc.code {
+				t.Fatalf("validateWorkflowActionFields() = %v, want %s", err, tc.code)
+			}
+		})
+	}
+}
+
+func TestWorkflowActionRejectsOverlongNoteBeforeDatabaseAccess(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	body := `{"action":"claim","expected_version":1,"note":"` + strings.Repeat("x", 501) + `"}`
+	request := requestWithDocumentID(httptest.NewRequest(http.MethodPost, "/api/registratura/documents/document-id/workflow-actions", strings.NewReader(body)), "document-id")
+	(&Service{}).ApplyDocumentWorkflowAction(recorder, request)
+	if recorder.Code != http.StatusUnprocessableEntity || !strings.Contains(recorder.Body.String(), `"code":"workflow_note_too_long"`) {
+		t.Fatalf("returned %d %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestFluxQueryIsBoundedAndUsesOnlyWhitelistedSorts(t *testing.T) {
+	q := parseFluxQuery(url.Values{
+		"page":      {"2"},
+		"limit":     {"101"},
+		"sortField": {"status; drop table registratura_documents"},
+		"sortOrder": {"desc"},
+		"continut":  {"transfer"},
+	})
+	if q.page != 2 || q.pageSize != 100 || q.direction != "desc" || q.sort != "" {
+		t.Fatalf("unexpected bounded flux query: %#v", q)
+	}
+	if q.filters["continut"] != "transfer" {
+		t.Fatalf("flux content filter missing: %#v", q.filters)
+	}
+	if got := fluxSortColumn("status; drop table"); got != "d.registered_at" {
+		t.Fatalf("unsafe sort fallback = %q", got)
+	}
+}
+
+func TestDocumentGlobalSearchSurvivesCostestiAliasNormalization(t *testing.T) {
+	q := documentListPageQuery(url.Values{"q": {"Popescu"}})
+	if q.Filters["q"] != "Popescu" {
+		t.Fatalf("q filter must be allowlisted and forwarded, got %#v", q.Filters)
 	}
 }
 

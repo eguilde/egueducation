@@ -22,6 +22,30 @@ type OIDCTestFixtureUser struct {
 
 var oidcTestFixtureUserID = uuid.MustParse("20c36b31-d7e9-4a4b-b6df-42adc5b2913d")
 
+func testOTPFixtureUserID(cfg config.Config) uuid.UUID {
+	// Production keeps one permanently reserved, auditable identity. Isolated
+	// loopback test servers derive a stable identity from their configured
+	// subject and tenant, allowing the real-stack suite to authenticate two
+	// independent users without sharing or overwriting a global account.
+	if cfg.IsProduction() {
+		return oidcTestFixtureUserID
+	}
+	identity := strings.TrimSpace(cfg.TestOTPFixtureTenantCode) + "\x00" + strings.TrimSpace(cfg.TestOTPFixtureSubject)
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte("egueducation-test-otp-fixture\x00"+identity))
+}
+
+func testOTPFixturePhone(cfg config.Config) string {
+	if cfg.IsProduction() {
+		return "+40100000000"
+	}
+	id := testOTPFixtureUserID(cfg)
+	// Romania-formatted synthetic E.164 number: +40 + nine national digits.
+	// Its stable suffix follows the already tenant/subject-derived fixture ID,
+	// so parallel OIDC fixtures cannot collide in the global identity catalog.
+	value := uint32(id[0])<<24 | uint32(id[1])<<16 | uint32(id[2])<<8 | uint32(id[3])
+	return fmt.Sprintf("+401%08d", value%100_000_000)
+}
+
 // EnsureOIDCTestFixtureUser provisions no data unless the config has already
 // passed all fixture safety predicates. It is intentionally a test bootstrap
 // helper, not an HTTP endpoint or migration seed.
@@ -35,7 +59,8 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	if !cfg.TestOTPFixtureEnabled() {
 		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture is not enabled")
 	}
-	user := OIDCTestFixtureUser{ID: oidcTestFixtureUserID, Identifier: cfg.TestOTPFixtureIdentifier, Subject: cfg.TestOTPFixtureSubject}
+	user := OIDCTestFixtureUser{ID: testOTPFixtureUserID(cfg), Identifier: cfg.TestOTPFixtureIdentifier, Subject: cfg.TestOTPFixtureSubject}
+	phone := testOTPFixturePhone(cfg)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("begin test OTP fixture: %w", err)
@@ -100,14 +125,23 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_users (id, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel)
-		values ($1, $2, 'Utilizator Test', $3, '+40100000000', 'ro', 'active', true, true, 'sms')
+		values ($1, $2, 'Utilizator Test', $3, $4, 'ro', 'active', true, false, 'sms')
 		on conflict (id) do update set
 			sub=excluded.sub, name=excluded.name, email=excluded.email,
-			status='active', email_verified=true, phone_number_verified=true,
+			status='active', email_verified=true, phone_number_verified=false,
 			preferred_otp_channel='sms', updated_at=now()
 		where app_users.id=excluded.id
-	`, user.ID, user.Subject, user.Identifier); err != nil {
+	`, user.ID, user.Subject, user.Identifier, phone); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP user: %w", err)
+	}
+	// The deterministic test code follows the ordinary SMS proof path.  It
+	// never pre-marks the synthetic phone as verified.
+	if _, err = tx.Exec(ctx, `
+		delete from app_user_identities where user_id = $1 and identity_type = 'phone';
+		insert into app_user_identities (user_id, identity_type, normalized_value, display_value, is_primary)
+		values ($1, 'phone', $2, $2, true)
+	`, user.ID, phone); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP phone identity: %w", err)
 	}
 	var institutionID, institutionName, rootOrgUnitCode string
 	if err = tx.QueryRow(ctx, `

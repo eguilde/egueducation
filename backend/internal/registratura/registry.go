@@ -213,6 +213,7 @@ func (s *Service) BatchCreateDocuments(w http.ResponseWriter, r *http.Request) {
 			Confidentiality:      req.Confidentiality,
 			Summary:              req.Summary,
 			DueDate:              req.DueDate,
+			EntryAt:              req.EntryAt,
 			RecordKind:           "document",
 		}
 		if generatedSubject {

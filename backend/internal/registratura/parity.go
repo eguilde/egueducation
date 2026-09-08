@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -77,15 +79,18 @@ func (s *Service) EnrichDocumentParity(ctx context.Context, document *Document) 
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	var departmentID, userID sql.NullString
-	err = s.pool.QueryRow(ctx, `select department_id::text, assigned_user_id::text from registratura_document_workflow_events where document_id=$1::uuid and action in ('assign_department','assign_user','claim') order by created_at desc limit 1`, document.ID).Scan(&departmentID, &userID)
-	if err == nil && (departmentID.Valid || userID.Valid) {
+	var departmentID, userID, targetApproverID sql.NullString
+	err = s.pool.QueryRow(ctx, `select workflow_department_id::text, workflow_assigned_user_id::text, workflow_target_approver_id::text from registratura_documents where id=$1::uuid`, document.ID).Scan(&departmentID, &userID, &targetApproverID)
+	if err == nil && (departmentID.Valid || userID.Valid || targetApproverID.Valid) {
 		document.WorkflowAssignment = &WorkflowAssignment{}
 		if departmentID.Valid {
 			document.WorkflowAssignment.DepartmentID = &departmentID.String
 		}
 		if userID.Valid {
 			document.WorkflowAssignment.UserID = &userID.String
+		}
+		if targetApproverID.Valid {
+			document.WorkflowAssignment.TargetApproverID = &targetApproverID.String
 		}
 	}
 	if err != nil && err != pgx.ErrNoRows {
@@ -138,7 +143,7 @@ func workflowTransition(status, action string) (string, bool) {
 	case "assign_department":
 		return "ALOCAT_COMPARTIMENT", status == "INCOMING" || status == "ALOCAT_COMPARTIMENT"
 	case "assign_user":
-		return "ALOCAT_COMPARTIMENT", status == "ALOCAT_COMPARTIMENT"
+		return "IN_LUCRU", status == "ALOCAT_COMPARTIMENT"
 	case "claim":
 		return "IN_LUCRU", status == "ALOCAT_COMPARTIMENT"
 	case "send_for_approval":
@@ -158,10 +163,6 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_document_id"})
 		return
 	}
-	if _, err := s.loadDocument(r.Context(), documentID); err != nil {
-		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
-		return
-	}
 	var req DocumentWorkflowActionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_workflow_action"})
@@ -169,20 +170,38 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 	}
 	req.Action = strings.TrimSpace(req.Action)
 	req.Note = strings.TrimSpace(req.Note)
+	if req.ExpectedVersion <= 0 {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "workflow_expected_version_required"})
+		return
+	}
+	if len([]rune(req.Note)) > 500 {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "workflow_note_too_long", "max": 500})
+		return
+	}
+	actor := authruntime.CurrentSubjectFromRequest(r)
+	if actor == "" {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "workflow_actor_missing"})
+		return
+	}
+	var actorUserID string
+	if err := s.pool.QueryRow(r.Context(), `select id::text from app_users where sub=$1`, actor).Scan(&actorUserID); err != nil {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_actor_identity_missing"})
+		return
+	}
+	var activeMembership bool
+	if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id=$1::uuid and tenant_code=public.current_tenant_code() and active)`, actorUserID).Scan(&activeMembership); err != nil || !activeMembership {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_actor_membership_missing"})
+		return
+	}
 	if req.Action == "claim" {
-		var actorUserID string
-		if err := s.pool.QueryRow(r.Context(), `select id::text from app_users where sub=$1`, authruntime.CurrentSubjectFromRequest(r)).Scan(&actorUserID); err != nil {
-			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_claim_identity_missing"})
-			return
-		}
 		if req.UserID != nil && strings.TrimSpace(*req.UserID) != "" && strings.TrimSpace(*req.UserID) != actorUserID {
 			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_claim_must_be_self"})
 			return
 		}
 		req.UserID = &actorUserID
 	}
-	if req.Action == "reject" && req.Note == "" {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "workflow_note_required"})
+	if req.Action == "reject" && len([]rune(req.Note)) < 10 {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "workflow_rejection_note_length", "min": 10, "max": 500})
 		return
 	}
 	if req.Action == "assign_department" && (req.DepartmentID == nil || strings.TrimSpace(*req.DepartmentID) == "") {
@@ -193,15 +212,20 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "workflow_user_required"})
 		return
 	}
+	if err := validateWorkflowActionFields(req); err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": err.Error()})
+		return
+	}
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
 		return
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
-	var status string
+	var status, assignedUserID, targetApproverID, departmentID sql.NullString
 	var version int
-	if err := tx.QueryRow(r.Context(), `select status, workflow_version from registratura_documents where id=$1::uuid for update`, documentID).Scan(&status, &version); err != nil {
+	var lockedUntil sql.NullTime
+	if err := tx.QueryRow(r.Context(), `select status, workflow_version, workflow_assigned_user_id::text, workflow_target_approver_id::text, workflow_department_id::text, workflow_locked_until from registratura_documents where id=$1::uuid for update`, documentID).Scan(&status, &version, &assignedUserID, &targetApproverID, &departmentID, &lockedUntil); err != nil {
 		if err == pgx.ErrNoRows {
 			httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "document_not_found"})
 		} else {
@@ -209,13 +233,17 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	if req.ExpectedVersion > 0 && req.ExpectedVersion != version {
+	if lockedUntil.Valid && lockedUntil.Time.After(time.Now()) {
+		httpx.JSON(w, http.StatusLocked, map[string]any{"code": "workflow_locked", "locked_until": lockedUntil.Time.UTC().Format(time.RFC3339)})
+		return
+	}
+	if req.ExpectedVersion != version {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "stale_workflow_version", "current_version": version})
 		return
 	}
-	next, ok := workflowTransition(status, req.Action)
+	next, ok := workflowTransition(status.String, req.Action)
 	if !ok {
-		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "invalid_workflow_transition", "status": status})
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "invalid_workflow_transition", "status": status.String})
 		return
 	}
 	if req.DepartmentID != nil {
@@ -228,16 +256,14 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 	}
 	if req.UserID != nil {
 		var exists bool
-		err = tx.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id=$1::uuid and active)`, strings.TrimSpace(*req.UserID)).Scan(&exists)
+		err = tx.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id=$1::uuid and tenant_code=public.current_tenant_code() and active)`, strings.TrimSpace(*req.UserID)).Scan(&exists)
 		if err != nil || !exists {
 			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "workflow_user_not_found"})
 			return
 		}
 	}
 	if req.Action == "assign_user" || req.Action == "claim" {
-		var departmentID string
-		err := tx.QueryRow(r.Context(), `select department_id::text from registratura_document_workflow_events where document_id=$1::uuid and department_id is not null order by created_at desc limit 1`, documentID).Scan(&departmentID)
-		if err != nil {
+		if !departmentID.Valid {
 			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "workflow_department_required"})
 			return
 		}
@@ -248,21 +274,94 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 			userID = *req.UserID
 		}
 		var allowed bool
-		if err := tx.QueryRow(r.Context(), `select exists(select 1 from registratura_user_departments ud join app_memberships m on m.user_id=ud.user_id where ud.user_id=$1::uuid and ud.department_id=$2::uuid and m.active)`, userID, departmentID).Scan(&allowed); err != nil || !allowed {
+		if err := tx.QueryRow(r.Context(), `select exists(select 1 from registratura_user_departments ud join app_memberships m on m.user_id=ud.user_id and m.tenant_code=ud.tenant_code where ud.user_id=$1::uuid and ud.department_id=$2::uuid and ud.tenant_code=public.current_tenant_code() and m.active)`, userID, departmentID.String).Scan(&allowed); err != nil || !allowed {
 			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_department_membership_required"})
 			return
 		}
 	}
-	actor := authruntime.CurrentSubjectFromRequest(r)
-	_, err = tx.Exec(r.Context(), `insert into registratura_document_workflow_events(tenant_code,institution_id,document_id,action,from_status,to_status,department_id,assigned_user_id,note,actor_subject) values (public.current_tenant_code(),public.current_institution_id(),$1::uuid,$2,$3,$4,$5::uuid,$6::uuid,$7,$8)`, documentID, req.Action, status, next, req.DepartmentID, req.UserID, req.Note, actor)
+	if req.Action == "send_for_approval" {
+		if !assignedUserID.Valid || assignedUserID.String != actorUserID {
+			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_sender_must_be_assignee"})
+			return
+		}
+		if req.UserID == nil || strings.TrimSpace(*req.UserID) == "" {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "target_approver_required"})
+			return
+		}
+		if strings.TrimSpace(*req.UserID) == actorUserID {
+			httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "workflow_self_approval_forbidden"})
+			return
+		}
+	}
+	if req.Action == "approve" || req.Action == "reject" {
+		if !targetApproverID.Valid || targetApproverID.String != actorUserID {
+			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "workflow_target_approver_required"})
+			return
+		}
+	}
+	if req.Action == "approve" {
+		var hasArchivablePDF bool
+		if err := tx.QueryRow(r.Context(), `
+			select exists(
+				select 1 from registratura_document_attachments
+				where document_id=$1::uuid and status='ready'
+					and storage_state='ready' and scan_status='clean'
+					and mime_type='application/pdf' and size_bytes>0 and checksum_sha256<>''
+			)
+		`, documentID).Scan(&hasArchivablePDF); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_attachment_check_failed"})
+			return
+		}
+		if !hasArchivablePDF {
+			httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "workflow_clean_pdf_required"})
+			return
+		}
+	}
+	eventDepartmentID := req.DepartmentID
+	eventUserID := req.UserID
+	if req.Action != "assign_department" {
+		eventDepartmentID = nil
+	}
+	if req.Action == "approve" || req.Action == "reject" {
+		eventUserID = &actorUserID
+	}
+	_, err = tx.Exec(r.Context(), `insert into registratura_document_workflow_events(tenant_code,institution_id,document_id,action,from_status,to_status,department_id,assigned_user_id,note,actor_subject) values (public.current_tenant_code(),public.current_institution_id(),$1::uuid,$2,$3,$4,$5::uuid,$6::uuid,$7,$8)`, documentID, req.Action, status.String, next, eventDepartmentID, eventUserID, req.Note, actor)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
 		return
 	}
-	_, err = tx.Exec(r.Context(), `update registratura_documents set status=$2, workflow_version=workflow_version+1, updated_at=now() where id=$1::uuid`, documentID, next)
+	var persistedVersion int
+	err = tx.QueryRow(r.Context(), `
+		update registratura_documents set
+			status=$2,
+			workflow_version=workflow_version+1,
+			workflow_department_id=case when $3='assign_department' then $4::uuid else workflow_department_id end,
+			workflow_assigned_user_id=case when $3 in ('assign_user','claim') then $5::uuid when $3='send_for_approval' then null else workflow_assigned_user_id end,
+			workflow_target_approver_id=case when $3='send_for_approval' then $5::uuid when $3 in ('approve','reject') then null else workflow_target_approver_id end,
+			rejection_count=case when $3='reject' then rejection_count+1 else rejection_count end,
+			workflow_locked_until=case
+				when $3='approve' then now()-interval '1 second'
+				-- Costesti-compatible repeat-rejection guard: the third rejection
+				-- keeps the document in remediation but prevents immediate resend.
+				when $3='reject' and rejection_count+1 >= 3 then now()+interval '24 hours'
+				when $3='reject' then now()-interval '1 second'
+				else workflow_locked_until end,
+			updated_at=now()
+		where id=$1::uuid and workflow_version=$6
+		returning workflow_version`, documentID, next, req.Action, req.DepartmentID, req.UserID, req.ExpectedVersion).Scan(&persistedVersion)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "stale_workflow_version"})
+		return
+	}
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
 		return
+	}
+	if req.Action == "approve" {
+		if _, err := tx.Exec(r.Context(), `insert into registratura_archive_outbox(tenant_code,institution_id,document_id,event_type,payload) values(public.current_tenant_code(),public.current_institution_id(),$1::uuid,'document_finalized',jsonb_build_object('document_id',$1::text,'workflow_version',$2)) on conflict (tenant_code,document_id,event_type) do nothing`, documentID, persistedVersion); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_finalization_outbox_failed"})
+			return
+		}
 	}
 	if err := tx.Commit(r.Context()); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
@@ -274,8 +373,28 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 		return
 	}
 	_ = s.EnrichDocumentParity(r.Context(), &doc)
-	s.logAudit(r, "registratura.documents.workflow."+req.Action, "document", documentID, "Document workflow transitioned.", map[string]any{"from": status, "to": next})
+	s.logAudit(r, "registratura.documents.workflow."+req.Action, "document", documentID, "Document workflow transitioned.", map[string]any{"from": status.String, "to": next})
 	httpx.JSON(w, http.StatusOK, doc)
+}
+
+func validateWorkflowActionFields(req DocumentWorkflowActionRequest) error {
+	hasDepartment := req.DepartmentID != nil && strings.TrimSpace(*req.DepartmentID) != ""
+	hasUser := req.UserID != nil && strings.TrimSpace(*req.UserID) != ""
+	switch req.Action {
+	case "assign_department":
+		if hasUser {
+			return errors.New("workflow_user_not_allowed")
+		}
+	case "assign_user", "claim", "send_for_approval":
+		if hasDepartment {
+			return errors.New("workflow_department_not_allowed")
+		}
+	case "approve", "reject":
+		if hasDepartment || hasUser {
+			return errors.New("workflow_assignment_not_allowed")
+		}
+	}
+	return nil
 }
 
 func (s *Service) PrintDocumentPDF(w http.ResponseWriter, r *http.Request) {

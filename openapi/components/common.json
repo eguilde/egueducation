@@ -95,6 +95,21 @@
           "comment": { "type": "string" }
         }
       },
+      "DocumentWorkflowActionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["action", "expected_version"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["assign_department", "assign_user", "claim", "send_for_approval", "approve", "reject"]
+          },
+          "department_id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "note": { "type": "string", "maxLength": 500 },
+          "expected_version": { "type": "integer", "minimum": 1 }
+        }
+      },
       "ArchiveRecordInput": {
         "type": "object",
         "required": ["title", "classificationCode"],

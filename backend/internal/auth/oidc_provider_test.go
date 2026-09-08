@@ -74,6 +74,32 @@ func TestTestOTPFixtureFailsClosedUnlessExplicitLoopbackConfigurationAndExactIde
 	}
 }
 
+func TestLoopbackOTPFixturesUseStableDistinctGlobalIdentities(t *testing.T) {
+	first := config.Config{Environment: "test", TestOTPFixtureTenantCode: "tenant-egueducation", TestOTPFixtureSubject: "fixture-one"}
+	second := first
+	second.TestOTPFixtureSubject = "fixture-two"
+	if testOTPFixtureUserID(first) != testOTPFixtureUserID(first) {
+		t.Fatal("the same loopback fixture must keep a stable user ID across restarts")
+	}
+	if testOTPFixtureUserID(first) == testOTPFixtureUserID(second) {
+		t.Fatal("independent loopback fixtures must never overwrite the same global user")
+	}
+	if testOTPFixturePhone(first) != testOTPFixturePhone(first) {
+		t.Fatal("the same loopback fixture must keep a stable synthetic phone across restarts")
+	}
+	if testOTPFixturePhone(first) == testOTPFixturePhone(second) {
+		t.Fatal("independent loopback fixtures must never share a global phone identity")
+	}
+	production := first
+	production.Environment = "production"
+	if testOTPFixtureUserID(production) != oidcTestFixtureUserID {
+		t.Fatal("production must retain its single permanently reserved test identity")
+	}
+	if testOTPFixturePhone(production) != "+40100000000" {
+		t.Fatal("production must retain its single auditable reserved test phone")
+	}
+}
+
 func withFixtureEnvironment(cfg config.Config, environment string) config.Config {
 	cfg.Environment = environment
 	return cfg
@@ -237,6 +263,59 @@ func TestOIDCLoginRendersSelectedDarkTheme(t *testing.T) {
 	}
 	if strings.Contains(page, "ZgotmplZ") {
 		t.Fatal("dark OIDC login contains a rejected template CSS value")
+	}
+}
+
+func TestOIDCLoginHidesSMSMethodWhenOTPIsDisabled(t *testing.T) {
+	loginTemplate := template.Must(template.New("login-otp-disabled-test").Parse(oidcLoginHTML))
+	render := func(enabled bool) string {
+		t.Helper()
+		var rendered bytes.Buffer
+		if err := loginTemplate.Execute(&rendered, oidcLoginData{
+			CustomerName: "Școala Test",
+			Step:         "methods",
+			OTPEnabled:   enabled,
+		}); err != nil {
+			t.Fatalf("render OIDC login: %v", err)
+		}
+		return rendered.String()
+	}
+
+	if page := render(false); strings.Contains(page, `name="method" value="otp"`) {
+		t.Fatal("OIDC login exposes the SMS OTP method while ENABLE_SMS_OTP is false")
+	}
+	if page := render(true); !strings.Contains(page, `name="method" value="otp"`) {
+		t.Fatal("OIDC login does not expose the SMS OTP method while ENABLE_SMS_OTP is true")
+	}
+}
+
+func TestOIDCLoginRejectsOTPPostsAndExistingOTPStepsWhenDisabled(t *testing.T) {
+	loginTemplate := template.Must(template.New("login-otp-incident-disable-test").Parse(oidcLoginHTML))
+	cfg := &config.Config{CustomerName: "Școala Test", EnableSMSOTP: false}
+	sess := &goidc.AuthnSession{CallbackID: "authn-session-disabled-otp"}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/oidc/authorize/callback/login", strings.NewReader(url.Values{"method": {"otp"}}.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	if _, err := renderMethodStep(recorder, request, sess, nil, cfg, nil, loginTemplate, "/login", nil, nil); err != nil {
+		t.Fatalf("reject direct OTP selection: %v", err)
+	}
+	if strings.Contains(recorder.Body.String(), `name="method" value="otp"`) || !strings.Contains(recorder.Body.String(), "SMS OTP este dezactivată") {
+		t.Fatal("disabled OTP POST did not fail closed on the method page")
+	}
+
+	sess.StoreParameter("step", "otp")
+	recorder = httptest.NewRecorder()
+	request = httptest.NewRequest(http.MethodPost, "/api/oidc/authorize/callback/login", strings.NewReader(url.Values{"code": {"123456"}}.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if _, err := renderOTPStep(recorder, request, sess, nil, cfg, loginTemplate, "/login", nil); err != nil {
+		t.Fatalf("reject existing OTP step: %v", err)
+	}
+	if step, _ := sess.StoredParameter("step").(string); step != "" {
+		t.Fatalf("disabled OTP interaction retained step %q, want reset", step)
+	}
+	if !strings.Contains(recorder.Body.String(), "SMS OTP este dezactivată") {
+		t.Fatal("existing OTP interaction was not rejected after incident disable")
 	}
 }
 
