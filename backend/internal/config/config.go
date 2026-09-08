@@ -22,6 +22,7 @@ type OIDCClientConfig struct {
 
 type Config struct {
 	Port                                    string
+	HTTPRateLimitPerMinute                  int
 	FrontendOrigin                          string
 	FrontendOrigins                         []string
 	Environment                             string
@@ -89,6 +90,7 @@ func Load() Config {
 
 	return Config{
 		Port:                                    env("PORT", "8080"),
+		HTTPRateLimitPerMinute:                  boundedEnvInt("HTTP_RATE_LIMIT_PER_MINUTE", 120, 1, 100000),
 		FrontendOrigin:                          frontendOrigin,
 		FrontendOrigins:                         parseCSV(os.Getenv("FRONTEND_ORIGINS")),
 		Environment:                             env("APP_ENV", env("NODE_ENV", "development")),
