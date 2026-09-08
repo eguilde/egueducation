@@ -107,9 +107,9 @@ test('PrimeReact upload reaches PostgreSQL, MinIO, Azure OCR, classification, FT
   await dialog.getByRole('button', { name: 'Transmite lotul' }).click();
   const uploadResponse = await upload;
   const uploadBody = await uploadResponse.text();
-  const requestContentType = uploadResponse.request().headers()['content-type'] ?? 'absent';
-  expect(requestContentType).toMatch(/^multipart\/form-data;\s*boundary=/i);
+  const requestContentType = (await uploadResponse.request().allHeaders())['content-type'] ?? 'absent';
   expect(uploadResponse.status(), `archive upload response: ${uploadBody}; request content-type: ${requestContentType}`).toBe(201);
+  expect(requestContentType).toMatch(/^multipart\/form-data;\s*boundary=/i);
   const created = JSON.parse(uploadBody) as { id: string };
   expect(created.id).toMatch(/^[0-9a-f-]{36}$/i);
 

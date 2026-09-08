@@ -263,6 +263,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // A new OIDC transaction is required after an authorization change. The
   // refreshed user B token must expose its newly granted navigation and API.
   await approverPage.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   const grantedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://127.0.0.1:4174');
   const grantedApproverMe = await api<{ authz_version: number; permissions: string[] }>(approverPage, grantedApproverToken, '/api/me');
   expect(grantedApproverMe.status).toBe(200);
@@ -293,6 +294,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(staleGrantedToken.body).toMatchObject({ code: 'token_authorization_stale' });
 
   await approverPage.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   const revokedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://127.0.0.1:4174');
   const revokedApproverMe = await api<{ authz_version: number; permissions: string[] }>(approverPage, revokedApproverToken, '/api/me');
   expect(revokedApproverMe.status).toBe(200);
@@ -592,6 +594,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(databaseScalar(`select count(*)::text from app_passkeys where user_id='${actorID}'`)).toBe('1');
 
   await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   const passkeyToken = await authenticatedWithPasskey(page);
   const passkeyClaims = jwtPayload(passkeyToken);
   expect(passkeyClaims.amr).toEqual(expect.arrayContaining(['passkey']));
