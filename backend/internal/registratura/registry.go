@@ -564,6 +564,20 @@ func (s *Service) createDocumentTx(ctx context.Context, tx pgx.Tx, req CreateDoc
 	if err != nil {
 		return document, err
 	}
+	var sessionTenant, registryTenant, registryInstitution string
+	if err := tx.QueryRow(ctx, `
+		select coalesce(public.current_tenant_code(), ''), tenant_code, institution_id
+		from registre
+		where id = $1
+	`, registruID).Scan(&sessionTenant, &registryTenant, &registryInstitution); err != nil {
+		return document, fmt.Errorf("load registry tenant binding: %w", err)
+	}
+	if sessionTenant != registryTenant || registryInstitution != institutionID {
+		return document, fmt.Errorf(
+			"registry tenant binding mismatch: session_tenant=%q registry_tenant=%q registry_institution=%q request_institution=%q",
+			sessionTenant, registryTenant, registryInstitution, institutionID,
+		)
+	}
 
 	parties, err := s.resolveDocumentParties(ctx, tx, institutionID, req.Direction, req.Correspondent, req.AssignedTo, req.CorrespondentPartyID, req.AssignedPartyID)
 	if err != nil {
