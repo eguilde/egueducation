@@ -36,7 +36,7 @@ function databaseExec(sql: string, scope: TenantScope = egueducationScope): void
   databaseScalar(`${sql}; select 'ok'`, scope);
 }
 
-async function authenticated(page: Page, identifier = fixtureIdentifier, otp = fixtureOTP, expectedOrigin = 'http://127.0.0.1:4173'): Promise<string> {
+async function authenticated(page: Page, identifier = fixtureIdentifier, otp = fixtureOTP, expectedOrigin = 'http://localhost:4173'): Promise<string> {
   let token: string | undefined;
   page.on('response', async (response) => {
     if (!response.url().includes('/api/oidc/token') || response.request().method() !== 'POST') return;
@@ -71,7 +71,7 @@ async function authenticated(page: Page, identifier = fixtureIdentifier, otp = f
   return token!;
 }
 
-async function authenticatedWithPasskey(page: Page, expectedOrigin = 'http://127.0.0.1:4173'): Promise<string> {
+async function authenticatedWithPasskey(page: Page, expectedOrigin = 'http://localhost:4173'): Promise<string> {
   let token: string | undefined;
   page.on('response', async (response) => {
     if (!response.url().includes('/api/oidc/token') || response.request().method() !== 'POST') return;
@@ -135,9 +135,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     where user_id='${approverID}' and tenant_code='tenant-egueducation';
     delete from app_user_roles where user_id='${approverID}' and tenant_code='tenant-egueducation'
   `);
-  const approverContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4174' });
+  const approverContext = await browser.newContext({ baseURL: 'http://localhost:4174' });
   const approverPage = await approverContext.newPage();
-  const approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://127.0.0.1:4174');
+  const approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
   const approverMe = await api<{ tenant_code: string; user: { roles: string[] }; platform_roles: string[]; permissions: string[] }>(approverPage, approverToken, '/api/me');
   expect(approverMe.status).toBe(200);
   expect(approverMe.body.tenant_code).toBe('tenant-egueducation');
@@ -256,7 +256,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // refreshed user B token must expose its newly granted navigation and API.
   await approverPage.getByRole('button', { name: 'Deconectare' }).click();
   await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
-  const grantedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://127.0.0.1:4174');
+  const grantedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
   const grantedApproverMe = await api<{ authz_version: number; permissions: string[] }>(approverPage, grantedApproverToken, '/api/me');
   expect(grantedApproverMe.status).toBe(200);
   expect(String(grantedApproverMe.body.authz_version)).toBe(grantedAuthorizationVersion);
@@ -287,7 +287,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
 
   await approverPage.getByRole('button', { name: 'Deconectare' }).click();
   await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
-  const revokedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://127.0.0.1:4174');
+  const revokedApproverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
   const revokedApproverMe = await api<{ authz_version: number; permissions: string[] }>(approverPage, revokedApproverToken, '/api/me');
   expect(revokedApproverMe.status).toBe(200);
   expect(String(revokedApproverMe.body.authz_version)).toBe(revokedAuthorizationVersion);
@@ -531,9 +531,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // tenant server and creates its own persisted document. Tenant A cannot
   // read that identifier or replay its token against tenant B; the tenant-B
   // token is symmetrically rejected by tenant A.
-  const balotestiContext = await browser.newContext({ baseURL: 'http://127.0.0.1:4175' });
+  const balotestiContext = await browser.newContext({ baseURL: 'http://localhost:4175' });
   const balotestiPage = await balotestiContext.newPage();
-  const balotestiToken = await authenticated(balotestiPage, balotestiIdentifier, balotestiOTP, 'http://127.0.0.1:4175');
+  const balotestiToken = await authenticated(balotestiPage, balotestiIdentifier, balotestiOTP, 'http://localhost:4175');
   const balotestiMe = await api<{ tenant_code: string; institution_id: string; permissions: string[] }>(balotestiPage, balotestiToken, '/api/me');
   expect(balotestiMe.status).toBe(200);
   expect(balotestiMe.body).toMatchObject({ tenant_code: 'tenant-balotesti', institution_id: 'inst-balotesti' });

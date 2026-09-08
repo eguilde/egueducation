@@ -203,9 +203,9 @@ jobs:
       DATABASE_URL: postgres://egueducation_app:egueducation_app@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
       MIGRATION_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
       TEST_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
-      FRONTEND_ORIGIN: http://127.0.0.1:4173
+      FRONTEND_ORIGIN: http://localhost:4173
       BACKEND_URL: http://127.0.0.1:8080
-      OIDC_ISSUER: http://127.0.0.1:4173/api/oidc
+      OIDC_ISSUER: http://localhost:4173/api/oidc
       OIDC_CLIENT_ID: egueducation-spa
       OIDC_AUDIENCE: egueducation-api
       CUSTOMER_NAME: EguEducation Test Fixture

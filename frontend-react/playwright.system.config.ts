@@ -1,7 +1,9 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
 
-const sharedFrontendOrigins = 'http://127.0.0.1:4173,http://127.0.0.1:4174,http://127.0.0.1:4175';
+// WebAuthn requires a domain RP ID. Chromium deliberately rejects the numeric
+// loopback address as an RP ID, while localhost remains a trustworthy origin.
+const sharedFrontendOrigins = 'http://localhost:4173,http://localhost:4174,http://localhost:4175';
 const backendEnvironment = (overrides: Record<string, string>) => ({
   ...process.env,
   FRONTEND_ORIGINS: sharedFrontendOrigins,
@@ -23,7 +25,7 @@ export default defineConfig({
   // delivery. Keep a bounded timeout that reflects the complete contract.
   timeout: 300_000,
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
   },
   webServer: [
@@ -53,9 +55,9 @@ export default defineConfig({
       env: backendEnvironment({
         PORT: '8081',
         ARCHIVE_WORKER_ENABLED: 'false',
-        FRONTEND_ORIGIN: 'http://127.0.0.1:4174',
+        FRONTEND_ORIGIN: 'http://localhost:4174',
         BACKEND_URL: 'http://127.0.0.1:8081',
-        OIDC_ISSUER: 'http://127.0.0.1:4174/api/oidc',
+        OIDC_ISSUER: 'http://localhost:4174/api/oidc',
         CUSTOMER_NAME: 'EguEducation Approver Fixture',
         TEST_OTP_FIXTURE_IDENTIFIER: 'oidc.approver.fixture@example.test',
         TEST_OTP_FIXTURE_SUBJECT: 'oidc-browser-approver-subject',
@@ -72,9 +74,9 @@ export default defineConfig({
       env: backendEnvironment({
         PORT: '8082',
         ARCHIVE_WORKER_ENABLED: 'false',
-        FRONTEND_ORIGIN: 'http://127.0.0.1:4175',
+        FRONTEND_ORIGIN: 'http://localhost:4175',
         BACKEND_URL: 'http://127.0.0.1:8082',
-        OIDC_ISSUER: 'http://127.0.0.1:4175/api/oidc',
+        OIDC_ISSUER: 'http://localhost:4175/api/oidc',
         CUSTOMER_NAME: 'Scoala Balotesti',
         TEST_OTP_FIXTURE_IDENTIFIER: 'oidc.balotesti.fixture@example.test',
         TEST_OTP_FIXTURE_SUBJECT: 'oidc-browser-balotesti-subject',
