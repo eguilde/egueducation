@@ -1378,11 +1378,11 @@ type oidcRowQuerier interface {
 func loadAuthorizationVersionForSubject(ctx context.Context, db oidcRowQuerier, subject, tenantCode string) (int64, error) {
 	var version int64
 	err := db.QueryRow(ctx, `
-		select authorization.version
-		from app_tenant_authorization_versions authorization
-		join app_users u on u.id = authorization.user_id
+		select authz.version
+		from app_tenant_authorization_versions authz
+		join app_users u on u.id = authz.user_id
 		where lower(u.sub) = lower($1)
-			and authorization.tenant_code = $2
+			and authz.tenant_code = $2
 	`, subject, tenantCode).Scan(&version)
 	return version, err
 }

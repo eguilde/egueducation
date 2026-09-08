@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -108,7 +109,11 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed test OTP fixture: %v", err)
 	}
-	defer removeOIDCIntegrationUser(pool, user.ID)
+	t.Cleanup(func() {
+		if err := removeOIDCIntegrationUser(pool, user.ID); err != nil {
+			t.Errorf("remove test OTP fixture: %v", err)
+		}
+	})
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/oidc/", http.StripPrefix("/api/oidc", service.OIDCHandler()))
@@ -497,12 +502,12 @@ const (
 	oidcTestFixtureSubject    = "oidc-browser-fixture-subject"
 )
 
-func removeOIDCIntegrationUser(pool *pgxpool.Pool, userID uuid.UUID) {
+func removeOIDCIntegrationUser(pool *pgxpool.Pool, userID uuid.UUID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return
+		return fmt.Errorf("begin fixture cleanup: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	if _, err := tx.Exec(ctx, `
@@ -510,10 +515,26 @@ func removeOIDCIntegrationUser(pool *pgxpool.Pool, userID uuid.UUID) {
 			set_config('app.tenant_id', 'tenant-egueducation', true),
 			set_config('app.is_super_admin', 'true', true)
 	`); err != nil {
-		return
+		return fmt.Errorf("scope fixture cleanup: %w", err)
 	}
-	_, _ = tx.Exec(ctx, `delete from app_users where id = $1`, userID)
-	_ = tx.Commit(ctx)
+	if _, err := tx.Exec(ctx, `delete from app_users where id = $1`, userID); err != nil {
+		return fmt.Errorf("delete fixture user: %w", err)
+	}
+	var remainingAuthorizationVersions int
+	if err := tx.QueryRow(ctx, `
+		select count(*)
+		from app_tenant_authorization_versions
+		where tenant_code = 'tenant-egueducation' and user_id = $1
+	`, userID).Scan(&remainingAuthorizationVersions); err != nil {
+		return fmt.Errorf("verify fixture authorization cleanup: %w", err)
+	}
+	if remainingAuthorizationVersions != 0 {
+		return fmt.Errorf("fixture cleanup recreated %d authorization version rows", remainingAuthorizationVersions)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit fixture cleanup: %w", err)
+	}
+	return nil
 }
 
 func getHTMLFollowingRedirects(t *testing.T, client *http.Client, rawURL string) string {

@@ -51,3 +51,26 @@ func TestIdentityContractMigrationHasRequiredFoundations(t *testing.T) {
 		t.Error("authorization-version RLS must not grant an interactive super-admin bypass")
 	}
 }
+
+func TestAuthorizationVersionCascadeSafetyMigrationPreservesTenantRLS(t *testing.T) {
+	const migrationName = "migrations/0085_authorization_version_cascade_safety.sql"
+	contents, err := migrationFiles.ReadFile(migrationName)
+	if err != nil {
+		t.Fatalf("read %s: %v", migrationName, err)
+	}
+	text := string(contents)
+
+	for _, required := range []string{
+		"create or replace function public.bump_tenant_authorization_version",
+		"not exists (select 1 from app_users where id = p_user_id)",
+		"on conflict (tenant_code, user_id) do update",
+		"exception when foreign_key_violation",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("authorization cascade migration is missing %q", required)
+		}
+	}
+	if strings.Contains(text, "disable row level security") || strings.Contains(text, "no force row level security") {
+		t.Error("authorization cascade migration must not weaken authorization-version RLS")
+	}
+}
