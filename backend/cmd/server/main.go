@@ -111,7 +111,9 @@ func main() {
 	router.Use(chimw.RealIP)
 	router.Use(chimw.Recoverer)
 	router.Use(chimw.Compress(5))
-	router.Use(httprate.LimitByIP(cfg.HTTPRateLimitPerMinute, time.Minute))
+	if cfg.HTTPRateLimitPerMinute > 0 {
+		router.Use(httprate.LimitByIP(cfg.HTTPRateLimitPerMinute, time.Minute))
+	}
 	router.Use(cors(cfg.FrontendOrigin))
 
 	router.Get("/health", readinessHandler(pool))

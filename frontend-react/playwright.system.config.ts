@@ -8,10 +8,6 @@ const backendEnvironment = (overrides: Record<string, string>) => ({
   ARCHIVE_WORKER_ENABLED: 'false',
   ENABLE_EUDI_WALLET: 'false',
   FORCE_SECURE_COOKIES: 'false',
-  // The real-stack proof deliberately makes substantially more requests than
-  // a human session. Keep production's default limiter intact while giving
-  // this isolated single-worker environment a deterministic ceiling.
-  HTTP_RATE_LIMIT_PER_MINUTE: '10000',
   ...overrides,
 });
 

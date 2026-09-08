@@ -90,7 +90,7 @@ func Load() Config {
 
 	return Config{
 		Port:                                    env("PORT", "8080"),
-		HTTPRateLimitPerMinute:                  boundedEnvInt("HTTP_RATE_LIMIT_PER_MINUTE", 120, 1, 100000),
+		HTTPRateLimitPerMinute:                  boundedEnvInt("HTTP_RATE_LIMIT_PER_MINUTE", 0, 0, 100000),
 		FrontendOrigin:                          frontendOrigin,
 		FrontendOrigins:                         parseCSV(os.Getenv("FRONTEND_ORIGINS")),
 		Environment:                             env("APP_ENV", env("NODE_ENV", "development")),
