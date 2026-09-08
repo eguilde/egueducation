@@ -1807,7 +1807,7 @@ const oidcLoginHTML = `<!DOCTYPE html>
     @media (max-width: 520px){.auth-shell{padding:0}.auth-panel{width:100%}#content{max-width:none;min-height:100vh;border:0;border-radius:0;box-shadow:none;padding:24px 18px}.otp-boxes{gap:6px}}
   </style>
 </head>
-<body>
+<body data-oidc-action="{{.FormAction}}">
   <div class="auth-shell">
     <main class="auth-panel">
       <div id="content">

@@ -27,6 +27,22 @@ func TestOTPLoginUIMessageDoesNotExposeCodeWhenSMSIsConfigured(t *testing.T) {
 	}
 }
 
+func TestOIDCLoginHTMLExposesThePasskeyInteractionAction(t *testing.T) {
+	const action = "/api/oidc/authorize/interaction-id/login"
+	tmpl := template.Must(template.New("login-passkey-action").Parse(oidcLoginHTML))
+	var page bytes.Buffer
+	if err := tmpl.Execute(&page, oidcLoginData{
+		Step:       "methods",
+		FormAction: action,
+		Theme:      resolveOIDCThemeSettings(nil, nil),
+	}); err != nil {
+		t.Fatalf("render login page: %v", err)
+	}
+	if !strings.Contains(page.String(), `data-oidc-action="`+action+`"`) {
+		t.Fatalf("login page does not expose the passkey interaction action")
+	}
+}
+
 func TestTestOTPFixtureFailsClosedUnlessExplicitLoopbackConfigurationAndExactIdentity(t *testing.T) {
 	valid := config.Config{
 		Environment:              "test",
