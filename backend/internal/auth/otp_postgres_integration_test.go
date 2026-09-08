@@ -123,6 +123,23 @@ func TestPhoneOTPPostgresIntegration(t *testing.T) {
 	if err := service.VerifyPhoneLogin(ctx, userID, "tenant-egueducation", "otp-postgres-session-other", "482615"); err == nil {
 		t.Fatal("OTP issued for one OIDC session authenticated another session")
 	}
+	// Even a correctly hashed challenge naming another tenant cannot authorize
+	// a user who has no active membership there. This exercises the narrowly
+	// bypassed global tenant-directory lookup rather than relying on the earlier
+	// challenge tenant mismatch check.
+	const noMembershipSessionID = "otp-postgres-session-no-membership"
+	if _, err := service.GenerateFixture(ctx, userID, otpPurposeLogin, "tenant-balotesti", noMembershipSessionID, "731946"); err != nil {
+		t.Fatalf("generate cross-tenant no-membership OTP: %v", err)
+	}
+	if err := service.VerifyPhoneLogin(ctx, userID, "tenant-balotesti", noMembershipSessionID, "731946"); err == nil || !strings.Contains(err.Error(), "no active tenant membership") {
+		t.Fatalf("cross-tenant OTP without membership error = %v, want no active tenant membership", err)
+	}
+	if err := pool.QueryRow(ctx, `select phone_number_verified from app_users where id=$1`, userID).Scan(&verified); err != nil {
+		t.Fatalf("read phone after rejected cross-tenant OTP: %v", err)
+	}
+	if verified {
+		t.Fatal("cross-tenant OTP without membership promoted phone verification")
+	}
 	if err := service.VerifyPhoneLogin(ctx, userID, "tenant-egueducation", authnSessionID, "482615"); err != nil {
 		t.Fatalf("verify valid OTP: %v", err)
 	}

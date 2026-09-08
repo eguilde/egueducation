@@ -134,24 +134,9 @@ func (s *otpService) VerifyPhoneLogin(ctx context.Context, userID uuid.UUID, ten
 		return errors.New("otp: tenant and authentication session are required")
 	}
 	return s.verify(ctx, userID, otpPurposeLogin, tenantCode, authnSessionID, code, func(tx pgx.Tx, challengedIdentityID uuid.UUID) error {
-		if _, err := tx.Exec(ctx, `select set_config('app.tenant_id', $1, true), set_config('app.is_super_admin', 'false', true)`, tenantCode); err != nil {
-			return fmt.Errorf("otp: scope verification tenant: %w", err)
-		}
-		var institutionID string
-		err := tx.QueryRow(ctx, `
-			select t.institution_id
-			from app_tenants t
-			where t.code = $1 and t.active
-			  and exists (select 1 from app_memberships m where m.user_id = $2 and m.tenant_code = t.code and m.active)
-		`, tenantCode, userID).Scan(&institutionID)
+		institutionID, err := bindPhoneOTPUserTenant(ctx, tx, tenantCode, userID)
 		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return errors.New("otp: no active tenant membership")
-			}
-			return fmt.Errorf("otp: resolve verification tenant: %w", err)
-		}
-		if _, err := tx.Exec(ctx, `select set_config('app.institution_id', $1, true)`, institutionID); err != nil {
-			return fmt.Errorf("otp: scope verification tenant: %w", err)
+			return err
 		}
 
 		var (
@@ -211,20 +196,12 @@ func (s *otpService) RecordPhoneLoginOTPFailure(ctx context.Context, userID uuid
 		return
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
-	if _, err = tx.Exec(ctx, `select set_config('app.tenant_id', $1, true), set_config('app.is_super_admin', 'false', true)`, tenantCode); err != nil {
-		return
-	}
-	var institutionID, subject string
-	err = tx.QueryRow(ctx, `
-		select t.institution_id, u.sub
-		from app_tenants t join app_users u on u.id=$2
-		where t.code=$1 and t.active
-		  and exists (select 1 from app_memberships m where m.user_id=u.id and m.tenant_code=t.code and m.active)
-	`, tenantCode, userID).Scan(&institutionID, &subject)
+	institutionID, err := bindPhoneOTPUserTenant(ctx, tx, tenantCode, userID)
 	if err != nil {
 		return
 	}
-	if _, err = tx.Exec(ctx, `select set_config('app.institution_id', $1, true)`, institutionID); err != nil {
+	var subject string
+	if err = tx.QueryRow(ctx, `select sub from app_users where id=$1`, userID).Scan(&subject); err != nil {
 		return
 	}
 	outcome := otpFailureOutcome(verifyErr)
@@ -255,6 +232,59 @@ func (s *otpService) RecordPhoneLoginOTPFailure(ctx context.Context, userID uuid
 		return
 	}
 	_ = tx.Commit(ctx)
+}
+
+// bindPhoneOTPUserTenant resolves the global tenant directory under a narrowly
+// bounded internal bypass because app_tenants intentionally exposes no
+// tenant-scoped read policy. The query still requires the exact active tenant,
+// user and membership. The bypass is then dropped and verified before any
+// identity, profile or audit mutation is allowed to proceed.
+func bindPhoneOTPUserTenant(ctx context.Context, tx pgx.Tx, tenantCode string, userID uuid.UUID) (string, error) {
+	if _, err := tx.Exec(ctx, `
+		select
+			set_config('app.tenant_id', $1, true),
+			set_config('app.is_super_admin', 'true', true)
+	`, tenantCode); err != nil {
+		return "", fmt.Errorf("otp: scope tenant directory lookup: %w", err)
+	}
+
+	var institutionID string
+	err := tx.QueryRow(ctx, `
+		select tenant.institution_id
+		from app_tenants tenant
+		where tenant.code=$1 and tenant.active
+		  and exists (
+			select 1
+			from app_memberships membership
+			where membership.user_id=$2
+			  and membership.tenant_code=tenant.code
+			  and membership.active
+		  )
+	`, tenantCode, userID).Scan(&institutionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", errors.New("otp: no active tenant membership")
+		}
+		return "", fmt.Errorf("otp: resolve verification tenant: %w", err)
+	}
+
+	// Keep the state transition and its assertion in separate statements:
+	// PostgreSQL does not promise left-to-right evaluation of SELECT targets.
+	if _, err := tx.Exec(ctx, `
+		select
+			set_config('app.institution_id', $1, true),
+			set_config('app.is_super_admin', 'false', true)
+	`, institutionID); err != nil {
+		return "", fmt.Errorf("otp: bind verification tenant: %w", err)
+	}
+	var bypassStillEnabled bool
+	if err := tx.QueryRow(ctx, `select public.can_bypass_tenant_rls()`).Scan(&bypassStillEnabled); err != nil {
+		return "", fmt.Errorf("otp: verify tenant directory bypass state: %w", err)
+	}
+	if bypassStillEnabled {
+		return "", errors.New("otp: tenant directory bypass remained enabled")
+	}
+	return institutionID, nil
 }
 
 func otpFailureOutcome(err error) string {
