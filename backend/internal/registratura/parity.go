@@ -18,6 +18,17 @@ import (
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
+const workflowFinalizationOutboxSQL = `
+	insert into registratura_archive_outbox(tenant_code,institution_id,document_id,event_type,payload)
+	values(
+		public.current_tenant_code(),
+		public.current_institution_id(),
+		$1::uuid,
+		'document_finalized',
+		jsonb_build_object('document_id',$1::text,'workflow_version',$2::integer)
+	)
+	on conflict (tenant_code,document_id,event_type) do nothing`
+
 func (s *Service) StageDocumentAttachment(w http.ResponseWriter, r *http.Request) {
 	// Metadata-only staging cannot be completed: there is no upload token or
 	// follow-up operation that binds bytes to the staged row. Keep the route
@@ -363,7 +374,7 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if req.Action == "approve" {
-		if _, err := tx.Exec(r.Context(), `insert into registratura_archive_outbox(tenant_code,institution_id,document_id,event_type,payload) values(public.current_tenant_code(),public.current_institution_id(),$1::uuid,'document_finalized',jsonb_build_object('document_id',$1::text,'workflow_version',$2)) on conflict (tenant_code,document_id,event_type) do nothing`, documentID, persistedVersion); err != nil {
+		if _, err := tx.Exec(r.Context(), workflowFinalizationOutboxSQL, documentID, persistedVersion); err != nil {
 			slog.ErrorContext(r.Context(), "registratura workflow finalization outbox insert failed", "document_id", documentID, "error", err)
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_finalization_outbox_failed"})
 			return

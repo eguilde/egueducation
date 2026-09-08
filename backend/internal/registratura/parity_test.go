@@ -222,3 +222,12 @@ func TestWorkflowResponseQueryReliesOnTenantRLSNotRegistryReadVisibility(t *test
 		t.Fatalf("standard document query lost registry visibility enforcement: %s", standardQuery)
 	}
 }
+
+func TestWorkflowFinalizationOutboxTypesJSONParameters(t *testing.T) {
+	if !strings.Contains(workflowFinalizationOutboxSQL, "$1::text") {
+		t.Fatal("document ID must be explicitly typed for jsonb_build_object")
+	}
+	if !strings.Contains(workflowFinalizationOutboxSQL, "$2::integer") {
+		t.Fatal("workflow version must be explicitly typed for jsonb_build_object")
+	}
+}
