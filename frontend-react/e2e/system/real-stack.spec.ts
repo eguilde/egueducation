@@ -468,7 +468,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // its server-side filtering/sorting/pagination contract is exercised.
   await page.reload();
   await page.getByRole('button', { name: 'Deschide căutarea' }).click();
-  await page.getByLabel('Conținut').fill(marker);
+  await page.getByLabel('Conținut', { exact: true }).fill(marker);
   await page.getByRole('button', { name: 'Caută documente' }).click();
   await expect(page.getByText(marker)).toBeVisible();
   const filtered = await api<{ items: CreatedDocument[]; total: number }>(page, token, `/api/registratura/documents?filter.subject=${encodeURIComponent(marker)}&sort=registry_number&direction=asc&page=1&pageSize=20`);
