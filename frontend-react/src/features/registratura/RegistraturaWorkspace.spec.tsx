@@ -58,7 +58,9 @@ describe("Registratura search panel", () => {
     const transport = apiForRace({ documents: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }) });
     render(<PrimeReactProvider {...primeTheme}><RegistraturaWorkspace api={transport} tenantKey="search-contract" /></PrimeReactProvider>);
     await waitFor(() => expect(transport.documents).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole("button", { name: "Deschide căutarea" }));
+    // The request spy is called before the component commits the non-loading table.
+    // Wait for the real control rather than racing the spinner's disappearance.
+    fireEvent.click(await screen.findByRole("button", { name: "Deschide căutarea" }));
     fireEvent.change(screen.getByLabelText("Nr. Extern"), { target: { value: "ABC-123" } });
     fireEvent.change(screen.getByLabelText("Emitent"), { target: { value: "Inspectorat" } });
     fireEvent.change(screen.getByLabelText("Destinatar"), { target: { value: "Școala" } });

@@ -46,7 +46,9 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open integration admin database: %v", err)
 	}
-	defer adminPool.Close()
+	// Cleanups execute in LIFO order. Register pool shutdown before any fixture
+	// cleanup so tenant-scoped deletes can always use a live connection.
+	t.Cleanup(adminPool.Close)
 	if err := adminPool.Ping(ctx); err != nil {
 		t.Fatalf("ping integration database: %v", err)
 	}
@@ -71,7 +73,7 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open integration database: %v", err)
 	}
-	defer pool.Close()
+	t.Cleanup(pool.Close)
 	if err := pool.Ping(ctx); err != nil {
 		t.Fatalf("ping integration database: %v", err)
 	}
@@ -293,17 +295,34 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if got := jwtInt64Claim(t, accessToken, "authz_version"); got <= 0 {
 		t.Fatalf("access token authz_version = %d, want positive value", got)
 	}
-	var tenantBoundGrantCount int
+	// Authorization codes live in authn sessions and are consumed by a
+	// successful token exchange. The durable post-exchange state is the
+	// tenant-bound grant session containing the refresh token. Do not assert
+	// that the consumed authn session remains stored.
+	var consumedAuthCodeCount int
+	if err := adminPool.QueryRow(ctx, `
+		select count(*)
+		from oidc_authn_sessions
+		where tenant_code = 'tenant-egueducation'
+			and data->>'auth_code' = $1
+	`, code).Scan(&consumedAuthCodeCount); err != nil {
+		t.Fatalf("query consumed tenant-bound OIDC authorization code: %v", err)
+	}
+	if consumedAuthCodeCount != 0 {
+		t.Fatal("authorization code authn session remained after successful exchange")
+	}
+	var tenantBoundRefreshGrantCount int
 	if err := adminPool.QueryRow(ctx, `
 		select count(*)
 		from oidc_grant_sessions
 		where tenant_code = 'tenant-egueducation'
-			and data->>'subject' = $1
-	`, user.ID.String()).Scan(&tenantBoundGrantCount); err != nil {
-		t.Fatalf("query tenant-bound OIDC grant: %v", err)
+			and data->>'sub' = $1
+			and coalesce(data->>'refresh_token', '') <> ''
+	`, user.ID.String()).Scan(&tenantBoundRefreshGrantCount); err != nil {
+		t.Fatalf("query tenant-bound OIDC refresh grant: %v", err)
 	}
-	if tenantBoundGrantCount == 0 {
-		t.Fatal("authorization code and refresh grant were not persisted under the resolved tenant")
+	if tenantBoundRefreshGrantCount == 0 {
+		t.Fatal("refresh grant was not persisted under the resolved tenant")
 	}
 
 	// The same opaque protocol identifier may safely exist in two tenant
