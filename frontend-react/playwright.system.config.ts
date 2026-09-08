@@ -19,7 +19,10 @@ export default defineConfig({
   testMatch: 'real-stack.spec.ts',
   fullyParallel: false,
   workers: 1,
-  timeout: 90_000,
+  // This proof drives three real OIDC browser sessions, PostgreSQL RLS,
+  // Registratura uploads, a 20-row batch, workflow approval and MinIO outbox
+  // delivery. Keep a bounded timeout that reflects the complete contract.
+  timeout: 180_000,
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',

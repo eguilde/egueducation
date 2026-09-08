@@ -46,3 +46,17 @@ func TestArchiveDTODoesNotExposeStorageCoordinates(t *testing.T) {
 		t.Fatalf("storage coordinates leaked: %s", data)
 	}
 }
+
+func TestEnsureTaxonomyNodeTxEmptyTaxonomyReturnsSQLNull(t *testing.T) {
+	service := &DocumentService{}
+	taxonomyNodeID, taxonomyCode, taxonomyLabel, err := service.ensureTaxonomyNodeTx(context.Background(), nil, "inst-001", "  ", "", "")
+	if err != nil {
+		t.Fatalf("empty taxonomy: %v", err)
+	}
+	if taxonomyNodeID != nil {
+		t.Fatalf("empty taxonomy node id = %q, want nil SQL value", *taxonomyNodeID)
+	}
+	if taxonomyCode != nil || taxonomyLabel != nil {
+		t.Fatalf("empty taxonomy metadata = code:%v label:%v, want nil", taxonomyCode, taxonomyLabel)
+	}
+}

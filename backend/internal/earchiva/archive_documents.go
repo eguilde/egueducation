@@ -1346,10 +1346,14 @@ func (s *DocumentService) loadLatestVersion(ctx context.Context, documentID stri
 	return version, nil
 }
 
-func (s *DocumentService) ensureTaxonomyNodeTx(ctx context.Context, tx pgx.Tx, institutionID, code, label, parentCode string) (string, *string, *string, error) {
+func (s *DocumentService) ensureTaxonomyNodeTx(ctx context.Context, tx pgx.Tx, institutionID, code, label, parentCode string) (*string, *string, *string, error) {
 	code = strings.TrimSpace(code)
 	if code == "" {
-		return "", nil, nil, nil
+		// taxonomy_node_id is nullable. Passing an empty string to the
+		// $9::uuid insert parameter makes PostgreSQL attempt to parse "" as a
+		// UUID, rather than storing NULL. Preserve absence as a nil pointer so
+		// pgx sends SQL NULL.
+		return nil, nil, nil, nil
 	}
 	if label == "" {
 		label = code
@@ -1359,7 +1363,7 @@ func (s *DocumentService) ensureTaxonomyNodeTx(ctx context.Context, tx pgx.Tx, i
 	var parentPath sql.NullString
 	if parentCode = strings.TrimSpace(parentCode); parentCode != "" {
 		if err := tx.QueryRow(ctx, `select id::text, path from archive_taxonomy_nodes where institution_id = $1 and code = $2`, institutionID, parentCode).Scan(&parentID, &parentPath); err != nil {
-			return "", nil, nil, err
+			return nil, nil, nil, err
 		}
 	}
 
@@ -1390,12 +1394,12 @@ func (s *DocumentService) ensureTaxonomyNodeTx(ctx context.Context, tx pgx.Tx, i
 			updated_at = now()
 		returning id::text, code, label, path
 	`, institutionID, nullStringOrNil(parentID), code, label, pathValue).Scan(&nodeID, &nodeCode, &nodeLabel, &pathValue); err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	codeValue := strings.TrimSpace(nodeCode)
 	labelValue := strings.TrimSpace(nodeLabel)
-	return nodeID, &codeValue, &labelValue, nil
+	return &nodeID, &codeValue, &labelValue, nil
 }
 
 func buildArchiveDocumentFilters(institutionID string, filters map[string]string) (string, []any) {

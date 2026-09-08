@@ -104,6 +104,48 @@ func TestArchiveMigrationsAndTenantIsolationIntegration(t *testing.T) {
 	}
 }
 
+func TestArchiveDocumentInsertAllowsEmptyTaxonomyIntegration(t *testing.T) {
+	it := newArchiveIntegrationDatabase(t)
+	ctx := context.Background()
+	pool := openArchiveIntegrationPool(t, ctx, it.databaseConfig)
+	defer pool.Close()
+	if err := appdb.Migrate(ctx, pool); err != nil {
+		t.Fatalf("migrate clean integration database: %v", err)
+	}
+	grantArchiveIntegrationAccess(t, ctx, pool)
+
+	service := NewDocumentService(appdb.NewSessionPool(it.readerPool), nil)
+	tenantCtx, release := archiveTenantContext(t, ctx, it.readerPool, "tenant-egueducation", "inst-001")
+	defer release()
+	tx, err := service.pool.Begin(tenantCtx)
+	if err != nil {
+		t.Fatalf("begin tenant transaction: %v", err)
+	}
+	defer tx.Rollback(tenantCtx) //nolint:errcheck
+
+	taxonomyNodeID, taxonomyCode, taxonomyLabel, err := service.ensureTaxonomyNodeTx(tenantCtx, tx, "inst-001", "", "", "")
+	if err != nil {
+		t.Fatalf("resolve empty taxonomy: %v", err)
+	}
+	if taxonomyNodeID != nil || taxonomyCode != nil || taxonomyLabel != nil {
+		t.Fatalf("empty taxonomy must remain absent: id=%v code=%v label=%v", taxonomyNodeID, taxonomyCode, taxonomyLabel)
+	}
+
+	var persistedTaxonomyNodeID *string
+	err = tx.QueryRow(tenantCtx, `
+		insert into archive_documents (
+			institution_id, title, original_file_name, mime_type, source_kind, status, taxonomy_node_id
+		) values ('inst-001', 'No taxonomy', 'no-taxonomy.pdf', 'application/pdf', 'legacy_pdf', 'queued', $1::uuid)
+		returning taxonomy_node_id::text
+	`, taxonomyNodeID).Scan(&persistedTaxonomyNodeID)
+	if err != nil {
+		t.Fatalf("insert archive document with absent taxonomy: %v", err)
+	}
+	if persistedTaxonomyNodeID != nil {
+		t.Fatalf("persisted taxonomy node id = %q, want NULL", *persistedTaxonomyNodeID)
+	}
+}
+
 func TestArchiveLegacyMigrationIntegration(t *testing.T) {
 	it := newArchiveIntegrationDatabase(t)
 	ctx := context.Background()

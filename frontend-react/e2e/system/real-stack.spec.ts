@@ -395,6 +395,18 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(databaseScalar(`select count(*)::text from registratura_documents where subject='${outgoingSubject}' and direction='iesire'`)).toBe('1');
   expect(databaseScalar(`select count(*)::text from registratura_documents where subject='${batchSubject}' and document_type='MULTIPLU'`)).toBe('20');
 
+  // The 20 newly-created batch rows legitimately move the earlier outgoing
+  // document off page one. Locate it through the actual server-side header
+  // filter before exercising its action column.
+  const registryFilter = page.getByLabel('Filtru coloană Nr. Doc');
+  const outgoingFilterResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/registratura/documents'
+      && url.searchParams.get('filter.registry_number') === outgoingDocument.registry_number;
+  });
+  await registryFilter.fill(outgoingDocument.registry_number);
+  await registryFilter.press('Enter');
+  expect((await outgoingFilterResponse).status()).toBe(200);
   await page.getByRole('button', { name: `Editează ${outgoingDocument.registry_number}` }).click();
   const editDialog = page.getByRole('dialog', { name: new RegExp(`Editare document ${outgoingDocument.registry_number}`) });
   const editedSubject = `${outgoingSubject}-EDITAT`;
@@ -420,6 +432,15 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const printed = await printResponse;
   expect(printed.status()).toBe(200);
   expect(printed.headers()['content-type']).toContain('application/pdf');
+
+  const resetOutgoingFilter = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return url.pathname === '/api/registratura/documents'
+      && !url.searchParams.has('filter.registry_number');
+  });
+  await registryFilter.fill('');
+  await registryFilter.press('Enter');
+  expect((await resetOutgoingFilter).status()).toBe(200);
 
   await page.getByRole('button', { name: 'Exportă registrul în PDF' }).click();
   const exportDialog = page.getByRole('dialog', { name: 'Selectați intervalul de date pentru export PDF' });
