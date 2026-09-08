@@ -111,6 +111,27 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed test OTP fixture: %v", err)
 	}
+	// Provisioning uses pgx's extended protocol in production. Repeating it
+	// proves the phone replacement is both prepared-statement compatible and
+	// transactionally idempotent, without pre-verifying the synthetic phone.
+	reprovisioned, err := EnsureOIDCTestFixtureUser(ctx, pool, cfg)
+	if err != nil {
+		t.Fatalf("reprovision test OTP fixture: %v", err)
+	}
+	if reprovisioned != user {
+		t.Fatalf("reprovisioned fixture = %#v, want %#v", reprovisioned, user)
+	}
+	var fixturePhoneIdentityCount, fixtureVerifiedPhoneCount int
+	if err := pool.QueryRow(ctx, `
+		select count(*), count(*) filter (where verified_at is not null)
+		from app_user_identities
+		where user_id=$1 and identity_type='phone' and normalized_value=$2 and is_primary
+	`, user.ID, testOTPFixturePhone(cfg)).Scan(&fixturePhoneIdentityCount, &fixtureVerifiedPhoneCount); err != nil {
+		t.Fatalf("inspect reprovisioned test OTP phone identity: %v", err)
+	}
+	if fixturePhoneIdentityCount != 1 || fixtureVerifiedPhoneCount != 0 {
+		t.Fatalf("reprovisioned fixture phone identities=%d verified=%d, want one unverified primary identity", fixturePhoneIdentityCount, fixtureVerifiedPhoneCount)
+	}
 	t.Cleanup(func() {
 		if err := removeOIDCIntegrationUser(pool, user.ID); err != nil {
 			t.Errorf("remove test OTP fixture: %v", err)

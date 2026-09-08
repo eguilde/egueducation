@@ -136,8 +136,14 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	}
 	// The deterministic test code follows the ordinary SMS proof path.  It
 	// never pre-marks the synthetic phone as verified.
+	// Keep these as separate extended-protocol statements. pgx deliberately
+	// rejects multiple parameterized commands in one prepared statement; both
+	// still execute under the same transaction, tenant context and advisory
+	// lock, so no observer can see the identity between delete and replacement.
+	if _, err = tx.Exec(ctx, `delete from app_user_identities where user_id = $1 and identity_type = 'phone'`, user.ID); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP phone identity: %w", err)
+	}
 	if _, err = tx.Exec(ctx, `
-		delete from app_user_identities where user_id = $1 and identity_type = 'phone';
 		insert into app_user_identities (user_id, identity_type, normalized_value, display_value, is_primary)
 		values ($1, 'phone', $2, $2, true)
 	`, user.ID, phone); err != nil {

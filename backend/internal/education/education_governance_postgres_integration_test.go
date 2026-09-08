@@ -233,20 +233,37 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	memberID := uuid.NewString()
 	memberSubject := "governance-member-" + uuid.NewString()
 	meetingID := uuid.NewString()
-	if _, err := pool.Exec(ctx, `insert into app_users(id, sub, name, email, phone_number, locale, status) values ($1::uuid, $2, 'Governance Integration Member', $3, '+40000000000', 'ro', 'active')`, memberID, memberSubject, memberSubject+"@example.test"); err != nil {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin governance authorization fixture: %v", err)
+	}
+	defer tx.Rollback(ctx)
+	// The profile-phone constraint is deferred, so create the profile and its
+	// primary global identity in the same transaction. This is the same
+	// identity-first contract used by the real OTP flow, not a fixture bypass.
+	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin','true',true), set_config('app.tenant_id',$1,true), set_config('app.institution_id',$2,true)`, tenantA, institutionA); err != nil {
+		t.Fatalf("bind governance fixture tenant session: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `insert into app_users(id, sub, name, email, phone_number, locale, status) values ($1::uuid, $2, 'Governance Integration Member', $3, '+40000000000', 'ro', 'active')`, memberID, memberSubject, memberSubject+"@example.test"); err != nil {
 		t.Fatalf("seed UUID-bound governance user: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `insert into app_memberships(user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date) values ($1::uuid, $2, 'profesor', 'unit-root', 'Governance Integration School', true, true, current_date)`, memberID, tenantA); err != nil {
+	if _, err := tx.Exec(ctx, `insert into app_user_identities(user_id, identity_type, normalized_value, display_value, is_primary) values ($1::uuid, 'phone', '+40000000000', '+40000000000', true)`, memberID); err != nil {
+		t.Fatalf("seed primary phone identity for governance user: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `insert into app_memberships(user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date) values ($1::uuid, $2, 'profesor', 'unit-root', 'Governance Integration School', true, true, current_date)`, memberID, tenantA); err != nil {
 		t.Fatalf("seed tenant-A membership: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `insert into app_user_permissions(user_id, permission_code, tenant_code) values ($1::uuid, 'education.governance.meeting.vote', $2)`, memberID, tenantA); err != nil {
+	if _, err := tx.Exec(ctx, `insert into app_user_permissions(user_id, permission_code, tenant_code) values ($1::uuid, 'education.governance.meeting.vote', $2)`, memberID, tenantA); err != nil {
 		t.Fatalf("seed tenant-A contextual permission: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `insert into education_meetings (id, school_year, organism, title, meeting_type, status, quorum_required, participants_count, meeting_date, institution_id, chairperson, secretary_name, summary) values ($1::uuid, '2026-2027', 'ca', 'Integration meeting', 'ordinary', 'scheduled', 1, 1, current_date, $2, 'Legacy Chair', 'Legacy Secretary', 'RLS fixture')`, meetingID, institutionA); err != nil {
+	if _, err := tx.Exec(ctx, `insert into education_meetings (id, school_year, organism, title, meeting_type, status, quorum_required, participants_count, meeting_date, institution_id, chairperson, secretary_name, summary) values ($1::uuid, '2026-2027', 'ca', 'Integration meeting', 'ordinary', 'scheduled', 1, 1, current_date, $2, 'Legacy Chair', 'Legacy Secretary', 'RLS fixture')`, meetingID, institutionA); err != nil {
 		t.Fatalf("seed tenant-A governance meeting: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `insert into education_governance_memberships (school_year, organism, full_name, role_name, mandate_from, mandate_to, voting_right, status, institution_id, app_user_id) values ('2026-2027', 'ca', 'Governance Integration Member', 'Membru CA', current_date - 1, current_date + 1, true, 'activ', $1, $2::uuid), ('2026-2027', 'ca', 'Legacy Chair', 'Președinte CA', current_date - 1, current_date + 1, true, 'activ', $1, null)`, institutionA, memberID); err != nil {
+	if _, err := tx.Exec(ctx, `insert into education_governance_memberships (school_year, organism, full_name, role_name, mandate_from, mandate_to, voting_right, status, institution_id, app_user_id) values ('2026-2027', 'ca', 'Governance Integration Member', 'Membru CA', current_date - 1, current_date + 1, true, 'activ', $1, $2::uuid), ('2026-2027', 'ca', 'Legacy Chair', 'Președinte CA', current_date - 1, current_date + 1, true, 'activ', $1, null)`, institutionA, memberID); err != nil {
 		t.Fatalf("seed UUID and legacy governance memberships: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit governance authorization fixture: %v", err)
 	}
 	return governanceAuthorizationFixture{tenantA, institutionA, tenantB, institutionB, memberSubject, memberID, meetingID}
 }
