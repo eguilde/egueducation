@@ -316,7 +316,11 @@ create trigger trg_app_user_platform_roles_authz_version
 create temporary table _0083_balotesti_operator_bindings (
 	operator_key text primary key,
 	desired_sub text not null,
-	user_id uuid not null unique references app_users(id) on delete cascade
+	-- PostgreSQL prohibits a temporary table FK that targets a permanent
+	-- table. The binding is populated only from app_users.id (SELECT or
+	-- INSERT ... RETURNING) below; uniqueness/non-null prevent an ambiguous
+	-- operator-to-user mapping for the migration transaction.
+	user_id uuid not null unique
 ) on commit drop;
 
 do $$

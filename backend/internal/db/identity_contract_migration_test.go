@@ -77,6 +77,12 @@ func TestIdentityContractMigrationHasRequiredFoundations(t *testing.T) {
 	if strings.Contains(text, "on conflict (identity_type, normalized_value) do nothing") {
 		t.Error("identity migration must not silently choose the owner of a duplicate login identity")
 	}
+	if !strings.Contains(text, "user_id uuid not null unique\n) on commit drop;") {
+		t.Error("temporary operator bindings must retain a non-null unique user mapping")
+	}
+	if strings.Contains(text, "user_id uuid not null unique references app_users(id)") {
+		t.Error("temporary operator bindings cannot use an FK to permanent app_users")
+	}
 	if !strings.Contains(text, "is_primary = true") {
 		t.Error("identity upsert must promote the supplied canonical identity to primary")
 	}
