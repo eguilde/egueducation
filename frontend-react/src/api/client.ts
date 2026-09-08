@@ -46,6 +46,44 @@ const requestBody = (body: BodyInit | null | undefined, headers: HeadersInit | u
   return body === '' ? undefined : JSON.parse(body);
 };
 
+const isFormDataBody = (value: unknown): value is FormData =>
+  typeof value === 'object' &&
+  value !== null &&
+  Object.prototype.toString.call(value) === '[object FormData]' &&
+  typeof (value as FormData).entries === 'function';
+
+const multipartToken = () => {
+  const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID().replaceAll('-', '')
+    : Math.random().toString(36).slice(2);
+  return `----egueducation-${random}`;
+};
+
+const multipartQuoted = (value: string) => value.replace(/[\r\n]/g, '').replace(/(["\\])/g, '\\$1');
+
+/**
+ * Encode multipart explicitly at the OpenAPI transport boundary. A Blob keeps
+ * binary File parts intact without converting them to base64, while the exact
+ * boundary is carried in Content-Type. This also works when an optimized
+ * dependency executes in a different WebIDL realm and `instanceof FormData`
+ * would otherwise make openapi-fetch serialize the body as JSON.
+ */
+const encodeMultipart = (form: FormData): { body: Blob; contentType: string } => {
+  const boundary = multipartToken();
+  const parts: BlobPart[] = [];
+  for (const [name, value] of form.entries()) {
+    parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="${multipartQuoted(name)}"`);
+    if (typeof value === 'string') {
+      parts.push(`\r\n\r\n${value}\r\n`);
+      continue;
+    }
+    parts.push(`; filename="${multipartQuoted(value.name)}"\r\nContent-Type: ${value.type || 'application/octet-stream'}\r\n\r\n`);
+    parts.push(value, '\r\n');
+  }
+  parts.push(`--${boundary}--\r\n`);
+  return { body: new Blob(parts), contentType: `multipart/form-data; boundary=${boundary}` };
+};
+
 export function createOpenApiTransport(
   fetcher: (request: Request) => Promise<Response> = (request) => fetch(request),
   apiBaseUrl = '/api',
@@ -69,19 +107,19 @@ export function createOpenApiTransport(
       ) => Promise<OpenApiResult<T>>;
       const accept = new Headers(init.headers).get('accept') ?? '';
       const parseAs = /application\/(?:pdf|octet-stream)|text\/csv/i.test(accept) ? 'blob' : 'json';
-      const body = requestBody(init.body, init.headers);
-      const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
+      const rawBody = requestBody(init.body, init.headers);
+      const multipart = isFormDataBody(rawBody) ? encodeMultipart(rawBody) : undefined;
+      const body = multipart?.body ?? rawBody;
       const headers = multipart
-        ? { ...Object.fromEntries(new Headers(init.headers).entries()), 'Content-Type': null }
+        ? { ...Object.fromEntries(new Headers(init.headers).entries()), 'Content-Type': multipart.contentType }
         : init.headers;
       return operation(path, {
         headers,
         body,
         parseAs,
-        // Preserve the browser-native FormData object. openapi-fetch then
-        // delegates Content-Type and the mandatory boundary to Request rather
-        // than serialising the multipart body as JSON.
-        bodySerializer: multipart ? (value) => value as FormData : undefined,
+        // The multipart Blob is already encoded with the boundary declared in
+        // headers, so it must pass through without JSON serialization.
+        bodySerializer: multipart ? (value) => value as BodyInit : undefined,
       });
     },
   };

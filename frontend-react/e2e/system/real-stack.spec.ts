@@ -347,8 +347,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const createResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/registratura/documents' && response.request().method() === 'POST');
   await createDialog.getByRole('button', { name: 'Salvează' }).click();
   const persistedResponse = await createResponse;
-  expect(persistedResponse.status()).toBe(201);
-  const created = { status: persistedResponse.status(), body: await persistedResponse.json() as CreatedDocument };
+  const persistedBody = await persistedResponse.text();
+  expect(persistedResponse.status(), `create document response: ${persistedBody}`).toBe(201);
+  const created = { status: persistedResponse.status(), body: JSON.parse(persistedBody) as CreatedDocument };
   expect(created.body).toMatchObject({ subject: marker, institution_id: 'inst-001', status: 'INCOMING', workflow_version: 1 });
   const createdDetailDialog = page.getByRole('dialog', { name: new RegExp(`Detalii document ${created.body.registry_number}`) });
   await expect(createdDetailDialog).toBeVisible();
