@@ -169,8 +169,18 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if !strings.Contains(otpIdentifierPage, `name="identifier"`) {
 		t.Fatal("OIDC provider did not advance to the OTP identifier interaction")
 	}
+	if !strings.Contains(otpIdentifierPage, `name="delivery_channel"`) || !strings.Contains(otpIdentifierPage, `value="sms"`) {
+		t.Fatal("OIDC provider did not offer the standards-compliant SMS delivery selection")
+	}
 
-	otpPage := postOIDCForm(t, client, formAction, url.Values{"identifier": {user.Identifier}})
+	// The fixture signs in by its verified email identifier while explicitly
+	// selecting its verified SMS identity. This exercises the same channel
+	// selection and verification rules as a real user; it does not treat an
+	// email identifier as an SMS-capable address.
+	otpPage := postOIDCForm(t, client, formAction, url.Values{
+		"identifier":       {user.Identifier},
+		"delivery_channel": {"sms"},
+	})
 	if strings.Contains(otpPage, cfg.TestOTPFixtureCode) {
 		t.Fatal("test OTP fixture must not be exposed in the browser")
 	}
@@ -495,7 +505,11 @@ func removeOIDCIntegrationUser(pool *pgxpool.Pool, userID uuid.UUID) {
 		return
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin', 'true', true)`); err != nil {
+	if _, err := tx.Exec(ctx, `
+		select
+			set_config('app.tenant_id', 'tenant-egueducation', true),
+			set_config('app.is_super_admin', 'true', true)
+	`); err != nil {
 		return
 	}
 	_, _ = tx.Exec(ctx, `delete from app_users where id = $1`, userID)

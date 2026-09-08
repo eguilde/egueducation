@@ -18,7 +18,8 @@ test('completes real PKCE, OTP, callback, refresh-cookie and /api/me flow', asyn
 
   await page.getByRole('button', { name: /SMS/ }).click();
   await page.getByLabel('Utilizator, email sau numar de telefon').fill(fixtureIdentifier);
-  await page.getByRole('button', { name: 'Trimite codul prin SMS' }).click();
+  await page.getByLabel('Canal OTP').selectOption('sms');
+  await page.getByRole('button', { name: 'Trimite codul' }).click();
 
   const otpBoxes = page.locator('.otp-box');
   await expect(otpBoxes).toHaveCount(6);

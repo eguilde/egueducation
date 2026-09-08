@@ -41,7 +41,16 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 		return OIDCTestFixtureUser{}, fmt.Errorf("begin test OTP fixture: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err = tx.Exec(ctx, `select set_config('app.is_super_admin', 'true', true)`); err != nil {
+	// The authorization-version table is FORCE RLS with no administrative
+	// bypass. Fixture provisioning changes membership/module rows, whose
+	// triggers write that table, so bind this transaction to the configured
+	// fixture tenant before any tenant-scoped write. This mirrors a real
+	// request session rather than weakening the table policy for test setup.
+	if _, err = tx.Exec(ctx, `
+		select
+			set_config('app.tenant_id', $1, true),
+			set_config('app.is_super_admin', 'true', true)
+	`, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("scope test OTP fixture: %w", err)
 	}
 	// Serialize idempotent provisioning across rolling replicas. The lock is
