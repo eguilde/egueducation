@@ -25,6 +25,11 @@ type Service struct {
 	scanner Scanner
 }
 
+type documentQuerier interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
 func NewService(pool *appdb.SessionPool, storage ...*earchiva.ArchiveStorage) *Service {
 	s := &Service{pool: pool}
 	if len(storage) > 0 {
@@ -1585,33 +1590,27 @@ func sortColumn(field string) string {
 }
 
 func (s *Service) loadDocument(ctx context.Context, documentID string) (Document, error) {
+	return loadDocumentWithQuerier(ctx, s.pool, documentID, true)
+}
+
+func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID string) (Document, error) {
+	return loadDocumentWithQuerier(ctx, tx, documentID, true)
+}
+
+// loadWorkflowDocumentTx is used only after ApplyDocumentWorkflowAction has
+// locked the document and authorized the actor for the requested transition.
+// PostgreSQL RLS still enforces the active tenant and institution; the normal
+// registry-visibility predicate is intentionally omitted because a designated
+// workflow approver need not also have registratura.read.
+func (s *Service) loadWorkflowDocumentTx(ctx context.Context, tx pgx.Tx, documentID string) (Document, error) {
+	return loadDocumentWithQuerier(ctx, tx, documentID, false)
+}
+
+func loadDocumentWithQuerier(ctx context.Context, queryer documentQuerier, documentID string, requireRegistryVisibility bool) (Document, error) {
 	var document Document
 	var registruID sql.NullInt64
-	err := s.pool.QueryRow(ctx, `
-		select
-			id::text,
-			registru_id,
-			registry_number,
-			subject,
-			document_type,
-			direction,
-			status,
-			correspondent,
-			assigned_to,
-			correspondent_party_id::text,
-			assigned_party_id::text,
-			institution_id,
-			confidentiality,
-			summary,
-			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
-			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
-		from registratura_documents
-		where id::text = $1 and exists (
-			select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (
-				r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))
-			)
-		)
-	`, documentID).Scan(
+	query := documentByIDQuery(requireRegistryVisibility)
+	err := queryer.QueryRow(ctx, query, documentID).Scan(
 		&document.ID,
 		&registruID,
 		&document.RegistryNumber,
@@ -1636,10 +1635,8 @@ func (s *Service) loadDocument(ctx context.Context, documentID string) (Document
 	return document, err
 }
 
-func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID string) (Document, error) {
-	var document Document
-	var registruID sql.NullInt64
-	err := tx.QueryRow(ctx, `
+func documentByIDQuery(requireRegistryVisibility bool) string {
+	query := `
 		select
 			id::text,
 			registru_id,
@@ -1658,34 +1655,15 @@ func (s *Service) loadDocumentTx(ctx context.Context, tx pgx.Tx, documentID stri
 			to_char(registered_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as registered_at,
 			case when due_date is null then null else to_char(due_date, 'YYYY-MM-DD') end as due_date
 		from registratura_documents
-		where id::text = $1 and exists (
+		where id::text = $1`
+	if requireRegistryVisibility {
+		query += ` and exists (
 			select 1 from registre r where r.id=registratura_documents.registru_id and r.active and (
 				r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))
 			)
-		)
-	`, documentID).Scan(
-		&document.ID,
-		&registruID,
-		&document.RegistryNumber,
-		&document.Subject,
-		&document.DocumentType,
-		&document.Direction,
-		&document.Status,
-		&document.Correspondent,
-		&document.AssignedTo,
-		&document.CorrespondentPartyID,
-		&document.AssignedPartyID,
-		&document.InstitutionID,
-		&document.Confidentiality,
-		&document.Summary,
-		&document.RegisteredAt,
-		&document.DueDate,
-	)
-	if err == nil && registruID.Valid {
-		value := registruID.Int64
-		document.RegistruID = &value
+		)`
 	}
-	return document, err
+	return query
 }
 
 func contains(values []string, candidate string) bool {

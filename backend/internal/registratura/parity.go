@@ -28,11 +28,15 @@ func (s *Service) StageDocumentAttachment(w http.ResponseWriter, r *http.Request
 // EnrichDocumentParity loads the new, tenant-scoped registratura read model.
 // It deliberately keeps legacy list contracts intact while clients migrate.
 func (s *Service) EnrichDocumentParity(ctx context.Context, document *Document) error {
+	return enrichDocumentParity(ctx, s.pool, document)
+}
+
+func enrichDocumentParity(ctx context.Context, queryer documentQuerier, document *Document) error {
 	if document == nil || strings.TrimSpace(document.ID) == "" {
 		return nil
 	}
 	var externalDate, entryAt, exitAt, cancelledAt sql.NullString
-	err := s.pool.QueryRow(ctx, `
+	err := queryer.QueryRow(ctx, `
 		select external_number,
 		 case when external_number_date is null then null else to_char(external_number_date,'YYYY-MM-DD') end,
 		 case when entry_at is null then null else to_char(entry_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"') end,
@@ -60,7 +64,7 @@ func (s *Service) EnrichDocumentParity(ctx context.Context, document *Document) 
 	if cancelledAt.Valid {
 		document.CancelledAt = &cancelledAt.String
 	}
-	rows, err := s.pool.Query(ctx, `
+	rows, err := queryer.Query(ctx, `
 		select d.id::text, d.name
 		from registratura_document_departments dd join registratura_departments d on d.id = dd.department_id
 		where dd.document_id = $1::uuid order by d.name`, document.ID)
@@ -80,7 +84,7 @@ func (s *Service) EnrichDocumentParity(ctx context.Context, document *Document) 
 		return err
 	}
 	var departmentID, userID, targetApproverID sql.NullString
-	err = s.pool.QueryRow(ctx, `select workflow_department_id::text, workflow_assigned_user_id::text, workflow_target_approver_id::text from registratura_documents where id=$1::uuid`, document.ID).Scan(&departmentID, &userID, &targetApproverID)
+	err = queryer.QueryRow(ctx, `select workflow_department_id::text, workflow_assigned_user_id::text, workflow_target_approver_id::text from registratura_documents where id=$1::uuid`, document.ID).Scan(&departmentID, &userID, &targetApproverID)
 	if err == nil && (departmentID.Valid || userID.Valid || targetApproverID.Valid) {
 		document.WorkflowAssignment = &WorkflowAssignment{}
 		if departmentID.Valid {
@@ -363,16 +367,19 @@ func (s *Service) ApplyDocumentWorkflowAction(w http.ResponseWriter, r *http.Req
 			return
 		}
 	}
-	if err := tx.Commit(r.Context()); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
-		return
-	}
-	doc, err := s.loadDocument(r.Context(), documentID)
+	doc, err := s.loadWorkflowDocumentTx(r.Context(), tx, documentID)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
 		return
 	}
-	_ = s.EnrichDocumentParity(r.Context(), &doc)
+	if err := enrichDocumentParity(r.Context(), tx, &doc); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_action_failed"})
+		return
+	}
 	s.logAudit(r, "registratura.documents.workflow."+req.Action, "document", documentID, "Document workflow transitioned.", map[string]any{"from": status.String, "to": next})
 	httpx.JSON(w, http.StatusOK, doc)
 }

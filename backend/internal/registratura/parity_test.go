@@ -207,3 +207,18 @@ func TestDocumentGlobalSearchCoversVisibleTextColumns(t *testing.T) {
 		t.Fatalf("global search arguments = %#v", args)
 	}
 }
+
+func TestWorkflowResponseQueryReliesOnTenantRLSNotRegistryReadVisibility(t *testing.T) {
+	workflowQuery := documentByIDQuery(false)
+	if strings.Contains(workflowQuery, "app.actor_subject") || strings.Contains(workflowQuery, "registratura_registry_departments") {
+		t.Fatalf("authorized workflow response query unexpectedly requires registry visibility: %s", workflowQuery)
+	}
+	if !strings.Contains(workflowQuery, "from registratura_documents") || !strings.Contains(workflowQuery, "where id::text = $1") {
+		t.Fatalf("workflow response query is not document-scoped: %s", workflowQuery)
+	}
+
+	standardQuery := documentByIDQuery(true)
+	if !strings.Contains(standardQuery, "app.actor_subject") || !strings.Contains(standardQuery, "registratura_registry_departments") {
+		t.Fatalf("standard document query lost registry visibility enforcement: %s", standardQuery)
+	}
+}
