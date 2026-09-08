@@ -33,7 +33,9 @@ func (s *Service) ListRegistries(w http.ResponseWriter, r *http.Request) {
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		from registre r
-		where r.active and (r.visibility = 'public' or exists (
+		where r.tenant_code = public.current_tenant_code()
+			and r.institution_id = public.current_institution_id()
+			and r.active and (r.visibility = 'public' or exists (
 			select 1 from registratura_registry_departments rd
 			join registratura_user_departments ud on ud.department_id=rd.department_id
 			join app_users u on u.id=ud.user_id
@@ -288,7 +290,7 @@ func (s *Service) createRegistry(ctx context.Context, req CreateRegistruRequest)
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	if req.IsDefault {
-		if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now()`); err != nil {
+		if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()`); err != nil {
 			return nil, err
 		}
 	}
@@ -297,8 +299,8 @@ func (s *Service) createRegistry(ctx context.Context, req CreateRegistruRequest)
 	var created Registru
 	var dataResetare sql.NullString
 	err = tx.QueryRow(ctx, `
-		insert into registre (nume, prefix_nr, nr_inceput, nr_curent, nr_urmator, data_resetare, tip_registru, is_default, created_at, updated_at)
-		values ($1,$2,$3,$4,$5,$6,$7,$8,now(),now())
+		insert into registre (tenant_code, institution_id, nume, prefix_nr, nr_inceput, nr_curent, nr_urmator, data_resetare, tip_registru, is_default, created_at, updated_at)
+		values (public.current_tenant_code(),public.current_institution_id(),$1,$2,$3,$4,$5,$6,$7,$8,now(),now())
 		returning id,
 			nume,
 			prefix_nr,
@@ -373,7 +375,7 @@ func (s *Service) updateRegistry(ctx context.Context, id int64, req UpdateRegist
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	if current.IsDefault {
-		if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where id <> $1`, id); err != nil {
+		if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where id <> $1 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()`, id); err != nil {
 			return nil, err
 		}
 	}
@@ -389,7 +391,7 @@ func (s *Service) updateRegistry(ctx context.Context, id int64, req UpdateRegist
 			tip_registru = $7,
 			is_default = $8,
 			updated_at = now()
-		where id = $9
+		where id = $9 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()
 	`, current.Nume, current.PrefixNr, current.NrInceput, current.NrCurent, current.NrUrmator, current.DataResetare, current.TipRegistru, current.IsDefault, id); err != nil {
 		return nil, err
 	}
@@ -408,7 +410,7 @@ func (s *Service) deleteRegistry(ctx context.Context, id int64) error {
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	var wasDefault bool
-	if err := tx.QueryRow(ctx, `delete from registre where id = $1 returning is_default`, id).Scan(&wasDefault); err != nil {
+	if err := tx.QueryRow(ctx, `delete from registre where id = $1 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id() returning is_default`, id).Scan(&wasDefault); err != nil {
 		return err
 	}
 	if wasDefault {
@@ -418,6 +420,7 @@ func (s *Service) deleteRegistry(ctx context.Context, id int64) error {
 			where id = (
 				select id
 				from registre
+				where tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()
 				order by is_default desc, id asc
 				limit 1
 			)
@@ -432,11 +435,18 @@ func (s *Service) setDefaultRegistry(ctx context.Context, id int64) (*Registru, 
 		return nil, err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
-
-	if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now()`); err != nil {
+	var targetExists bool
+	if err := tx.QueryRow(ctx, `select exists(select 1 from registre where id=$1 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id() and active)`, id).Scan(&targetExists); err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `update registre set is_default = true, updated_at = now() where id = $1`, id); err != nil {
+	if !targetExists {
+		return nil, pgx.ErrNoRows
+	}
+
+	if _, err := tx.Exec(ctx, `update registre set is_default = false, updated_at = now() where tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()`); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `update registre set is_default = true, updated_at = now() where id = $1 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()`, id); err != nil {
 		return nil, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -460,7 +470,7 @@ func (s *Service) findRegistryByID(ctx context.Context, id int64) (*Registru, er
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		from registre r
-		where id = $1 and r.active and (r.visibility = 'public' or exists (
+		where id = $1 and r.tenant_code=public.current_tenant_code() and r.institution_id=public.current_institution_id() and r.active and (r.visibility = 'public' or exists (
 			select 1 from registratura_registry_departments rd
 			join registratura_user_departments ud on ud.department_id=rd.department_id
 			join app_users u on u.id=ud.user_id
@@ -507,7 +517,7 @@ func (s *Service) findDefaultRegistry(ctx context.Context) (*Registru, error) {
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
 			to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
 		from registre r
-		where is_default = true and r.active and (r.visibility = 'public' or exists (
+		where is_default = true and r.tenant_code=public.current_tenant_code() and r.institution_id=public.current_institution_id() and r.active and (r.visibility = 'public' or exists (
 			select 1 from registratura_registry_departments rd
 			join registratura_user_departments ud on ud.department_id=rd.department_id
 			join app_users u on u.id=ud.user_id
@@ -544,14 +554,14 @@ func (s *Service) findDefaultRegistry(ctx context.Context) (*Registru, error) {
 func (s *Service) resolveRegistryID(ctx context.Context, tx pgx.Tx, registruID *int64) (int64, error) {
 	if registruID != nil && *registruID > 0 {
 		var id int64
-		if err := tx.QueryRow(ctx, `select id from registre r where id = $1 and r.active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)))`, *registruID).Scan(&id); err != nil {
+		if err := tx.QueryRow(ctx, `select id from registre r where id = $1 and r.tenant_code=public.current_tenant_code() and r.institution_id=public.current_institution_id() and r.active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true)))`, *registruID).Scan(&id); err != nil {
 			return 0, err
 		}
 		return id, nil
 	}
 
 	var id int64
-	if err := tx.QueryRow(ctx, `select id from registre r where is_default and active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))) order by id asc limit 1`).Scan(&id); err != nil {
+	if err := tx.QueryRow(ctx, `select id from registre r where is_default and r.tenant_code=public.current_tenant_code() and r.institution_id=public.current_institution_id() and active and (r.visibility='public' or exists(select 1 from registratura_registry_departments rd join registratura_user_departments ud on ud.department_id=rd.department_id join app_users u on u.id=ud.user_id where rd.registry_id=r.id and u.sub=current_setting('app.actor_subject',true))) order by id asc limit 1`).Scan(&id); err != nil {
 		return 0, err
 	}
 	return id, nil
@@ -903,7 +913,7 @@ func nextRegistryNumber(ctx context.Context, tx pgx.Tx, registruID int64) (strin
 	if err := tx.QueryRow(ctx, `
 		select prefix_nr, nr_urmator
 		from registre
-		where id = $1
+		where id = $1 and tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()
 		for update
 	`, registruID).Scan(&prefix, &nextHint); err != nil {
 		return "", err

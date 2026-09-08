@@ -200,7 +200,7 @@ jobs:
     env:
       APP_ENV: test
       PORT: 8080
-      DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
+      DATABASE_URL: postgres://egueducation_app:egueducation_app@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
       MIGRATION_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
       TEST_DATABASE_URL: postgres://egueducation:egueducation@127.0.0.1:5432/egueducation_system_e2e?sslmode=disable
       FRONTEND_ORIGIN: http://127.0.0.1:4173
@@ -244,6 +244,16 @@ jobs:
           cd frontend-react
           npm ci
           npx playwright install --with-deps chromium
+      - name: Provision the non-bypass application database role
+        run: |
+          psql "$MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          create role egueducation_app login password 'egueducation_app' nosuperuser nocreatedb nocreaterole noinherit nobypassrls;
+          grant connect on database egueducation_system_e2e to egueducation_app;
+          grant usage on schema public to egueducation_app;
+          alter default privileges for role egueducation in schema public grant select, insert, update, delete on tables to egueducation_app;
+          alter default privileges for role egueducation in schema public grant usage, select on sequences to egueducation_app;
+          alter default privileges for role egueducation in schema public grant execute on functions to egueducation_app;
+          SQL
       - name: Start the pinned MinIO store for Registratura attachments and outbox delivery
         run: |
           docker run --detach --rm --name egueducation-registratura-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
