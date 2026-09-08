@@ -164,6 +164,7 @@ Assert-SuccessProperties '/api/registratura/registre/{id}' @('id','nume','prefix
 Assert-SuccessProperties '/api/registratura/parties/{id}' @('id','party_type','display_name','email','active','birth_date','legal_representative')
 Assert-SuccessProperties '/api/registratura/admin/users/{id}/assignments' @('user_id','department_ids','primary_department_id','organization_id')
 Assert-SuccessProperties '/api/registratura/documents/{documentID}' @('id','registru_id','registry_number','subject','direction','status','department_ids','workflow_version')
+Assert-SuccessProperties '/api/registratura/documents/{documentID}/workflow-actions' @('id','status','workflow_version','workflow_assignment') 'post'
 Assert-SuccessProperties '/api/workflow/dashboard' @('stats')
 Assert-SuccessProperties '/api/workflow/tasks' @('id','definition_code','title','status','priority','available_actions') 'post'
 Assert-SuccessProperties '/api/earchiva/records/filters' @('fonds','series','statuses','source_modules','archivists')

@@ -310,15 +310,54 @@
       },
       "RegistraturaDocument": {
         "type": "object",
-        "required": ["id", "registry_number", "subject", "direction", "status", "registered_at"],
+        "required": [
+          "id", "registru_id", "registry_number", "subject", "document_type", "direction", "status",
+          "correspondent", "assigned_to", "institution_id", "confidentiality", "summary", "registered_at",
+          "due_date", "external_number", "activity", "record_kind", "workflow_version"
+        ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" }, "registru_id": { "type": ["integer", "null"], "format": "int64" },
-          "registry_number": { "type": "string" }, "subject": { "type": "string" }, "document_type": { "type": "string" },
-          "direction": { "type": "string", "enum": ["intrare", "iesire", "intern"] }, "status": { "type": "string" },
-          "registered_at": { "type": "string", "format": "date-time" }, "institution_id": { "type": "string", "format": "uuid" }
+          "id": { "type": "string", "format": "uuid" },
+          "registru_id": { "type": ["integer", "null"], "format": "int64" },
+          "registry_number": { "type": "string" },
+          "subject": { "type": "string" },
+          "document_type": { "type": "string" },
+          "direction": { "type": "string", "enum": ["intrare", "iesire", "intern"] },
+          "status": { "type": "string" },
+          "correspondent": { "type": "string" },
+          "assigned_to": { "type": "string" },
+          "correspondent_party_id": { "type": ["string", "null"], "format": "uuid" },
+          "assigned_party_id": { "type": ["string", "null"], "format": "uuid" },
+          "institution_id": { "type": "string" },
+          "confidentiality": { "type": "string" },
+          "summary": { "type": "string" },
+          "registered_at": { "type": "string", "format": "date-time" },
+          "due_date": { "type": ["string", "null"], "format": "date" },
+          "external_number": { "type": "string" },
+          "external_number_date": { "type": ["string", "null"], "format": "date" },
+          "entry_at": { "type": ["string", "null"], "format": "date-time" },
+          "exit_at": { "type": ["string", "null"], "format": "date-time" },
+          "activity": { "type": "string" },
+          "record_kind": { "type": "string" },
+          "department_ids": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "department_names": { "type": "array", "items": { "type": "string" } },
+          "cancelled_at": { "type": ["string", "null"], "format": "date-time" },
+          "cancelled_by": { "type": "string" },
+          "cancellation_reason": { "type": "string" },
+          "workflow_version": { "type": "integer", "minimum": 1 },
+          "workflow_assignment": { "anyOf": [{ "$ref": "#/components/schemas/RegistraturaWorkflowAssignment" }, { "type": "null" }] }
         },
         "additionalProperties": false,
         "x-go-model": "registratura.Document"
+      },
+      "RegistraturaWorkflowAssignment": {
+        "type": "object",
+        "properties": {
+          "department_id": { "type": ["string", "null"], "format": "uuid" },
+          "user_id": { "type": ["string", "null"], "format": "uuid" },
+          "target_approver_id": { "type": ["string", "null"], "format": "uuid" }
+        },
+        "additionalProperties": false,
+        "x-go-model": "registratura.WorkflowAssignment"
       },
       "RegistraturaDocumentBatch": {
         "type": "array", "items": { "$ref": "#/components/schemas/RegistraturaDocument" },

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import type { components } from '../../src/api/generated';
 
 const fixtureIdentifier = 'oidc.browser.fixture@example.test';
 const fixtureOTP = '173829';
@@ -10,16 +11,7 @@ const balotestiOTP = '739204';
 const marker = `SYSTEM-E2E-${process.env.GITHUB_RUN_ID ?? 'local'}-${Date.now()}`;
 
 type TokenResponse = { access_token: string };
-type CreatedDocument = {
-  id: string;
-  registry_number: string;
-  subject: string;
-  institution_id: string;
-  status: string;
-  workflow_version: number;
-  workflow_assigned_user_id?: string | null;
-  workflow_target_approver_id?: string | null;
-};
+type CreatedDocument = components['schemas']['RegistraturaDocument'];
 type AdminUser = { id: string; name: string; phone: string; phone_verified: boolean };
 
 type TenantScope = { code: string; institutionID: string };
@@ -498,7 +490,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
 
   const userAssigned = await action({ action: 'assign_user', user_id: actorID, note: '', expected_version: 2 });
   expect(userAssigned.status).toBe(200);
-  expect(userAssigned.body).toMatchObject({ status: 'IN_LUCRU', workflow_version: 3, workflow_assigned_user_id: actorID });
+  expect(userAssigned.body).toMatchObject({ status: 'IN_LUCRU', workflow_version: 3, workflow_assignment: { user_id: actorID } });
 
   // The server denies a self-approval attempt even for the tenant's
   // super-admin: workflow authorization is an action-level RBAC invariant.
@@ -508,7 +500,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
 
   const approvalSent = await action({ action: 'send_for_approval', user_id: approverID, note: 'Independent approver required.', expected_version: 3 });
   expect(approvalSent.status).toBe(200);
-  expect(approvalSent.body).toMatchObject({ status: 'FLUX_APROBARE', workflow_version: 4, workflow_target_approver_id: approverID });
+  expect(approvalSent.body).toMatchObject({ status: 'FLUX_APROBARE', workflow_version: 4, workflow_assignment: { target_approver_id: approverID } });
   const wrongApprover = await action({ action: 'approve', note: '', expected_version: 4 });
   expect(wrongApprover.status).toBe(403);
   expect(wrongApprover.body).toMatchObject({ code: 'workflow_target_approver_required' });

@@ -8932,20 +8932,46 @@ export interface components {
             file: string;
         };
         RegistraturaDocument: {
+            activity: string;
+            /** Format: uuid */
+            assigned_party_id?: string | null;
+            assigned_to: string;
+            cancellation_reason?: string;
+            /** Format: date-time */
+            cancelled_at?: string | null;
+            cancelled_by?: string;
+            confidentiality: string;
+            correspondent: string;
+            /** Format: uuid */
+            correspondent_party_id?: string | null;
+            department_ids?: string[];
+            department_names?: string[];
             /** @enum {string} */
             direction: "intrare" | "iesire" | "intern";
-            document_type?: string;
+            document_type: string;
+            /** Format: date */
+            due_date: string | null;
+            /** Format: date-time */
+            entry_at?: string | null;
+            /** Format: date-time */
+            exit_at?: string | null;
+            external_number: string;
+            /** Format: date */
+            external_number_date?: string | null;
             /** Format: uuid */
             id: string;
-            /** Format: uuid */
-            institution_id?: string;
+            institution_id: string;
+            record_kind: string;
             /** Format: date-time */
             registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
+            registru_id: number | null;
             registry_number: string;
             status: string;
             subject: string;
+            summary: string;
+            workflow_assignment?: components["schemas"]["RegistraturaWorkflowAssignment"] | null;
+            workflow_version: number;
         };
         RegistraturaDocumentBatch: components["schemas"]["RegistraturaDocument"][];
         RegistraturaRegistry: {
@@ -8956,6 +8982,14 @@ export interface components {
             nr_urmator?: string;
             nume: string;
             tip_registru: string;
+        };
+        RegistraturaWorkflowAssignment: {
+            /** Format: uuid */
+            department_id?: string | null;
+            /** Format: uuid */
+            target_approver_id?: string | null;
+            /** Format: uuid */
+            user_id?: string | null;
         };
         RegulationDashboardResponse: {
             stats?: components["schemas"]["RegulationStats"];
