@@ -121,6 +121,16 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // global identity projections are promoted.
   expect(databaseScalar("select phone_number_verified::text from app_users where sub='oidc-browser-fixture-subject'"))
     .toBe('false');
+  // The primary automated actor deliberately has every authority required by
+  // the production E2E suite. Platform authority remains an explicit global
+  // assignment and is loaded into the OIDC token; it is never inferred from a
+  // tenant administrator role.
+  const platformAdminID = databaseScalar("select id::text from app_users where sub='oidc-browser-fixture-subject'");
+  databaseExec(`
+    insert into app_user_platform_roles(user_id, role_code)
+    values ('${platformAdminID}', 'platform_super_admin')
+    on conflict (user_id, role_code) do nothing
+  `);
   const token = await authenticated(page);
 
   // The second server instance has provisioned an independent fixture in the
@@ -140,12 +150,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(approverMe.status).toBe(200);
   expect(approverMe.body.tenant_code).toBe('tenant-egueducation');
   expect(approverMe.body.user.roles).toContain('profesor');
-  expect(approverMe.body.platform_roles).not.toContain('super_admin');
+  expect(approverMe.body.platform_roles).not.toContain('platform_super_admin');
   expect(approverMe.body.permissions).not.toContain('workflow.manage');
 
-  const me = await api<{ tenant_code: string; permissions: string[]; authz_version: number; user: { phone_number_verified: boolean } }>(page, token, '/api/me');
+  const me = await api<{ tenant_code: string; platform_roles: string[]; permissions: string[]; authz_version: number; user: { phone_number_verified: boolean } }>(page, token, '/api/me');
   expect(me.status).toBe(200);
   expect(me.body.tenant_code).toBe('tenant-egueducation');
+  expect(me.body.platform_roles).toContain('platform_super_admin');
+  expect(jwtPayload(token).platform_roles).toContain('platform_super_admin');
   expect(me.body.permissions).toContain('registratura.manage');
   expect(me.body.permissions).toContain('admin.users.manage');
   expect(me.body.authz_version).toBeGreaterThan(0);

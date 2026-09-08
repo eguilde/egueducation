@@ -60,14 +60,28 @@ export function createOpenApiTransport(
       // literal route used by adapters exists in generated.ts.
       const operation = client[method] as unknown as (
         route: string,
-        options?: { body?: unknown; headers?: HeadersInit; parseAs?: 'json' | 'text' | 'blob' | 'arrayBuffer' | 'stream' },
+        options?: {
+          body?: unknown;
+          headers?: HeadersInit | Record<string, string | null>;
+          parseAs?: 'json' | 'text' | 'blob' | 'arrayBuffer' | 'stream';
+          bodySerializer?: (body: unknown) => BodyInit;
+        },
       ) => Promise<OpenApiResult<T>>;
       const accept = new Headers(init.headers).get('accept') ?? '';
       const parseAs = /application\/(?:pdf|octet-stream)|text\/csv/i.test(accept) ? 'blob' : 'json';
+      const body = requestBody(init.body, init.headers);
+      const multipart = typeof FormData !== 'undefined' && body instanceof FormData;
+      const headers = multipart
+        ? { ...Object.fromEntries(new Headers(init.headers).entries()), 'Content-Type': null }
+        : init.headers;
       return operation(path, {
-        headers: init.headers,
-        body: requestBody(init.body, init.headers),
+        headers,
+        body,
         parseAs,
+        // Preserve the browser-native FormData object. openapi-fetch then
+        // delegates Content-Type and the mandatory boundary to Request rather
+        // than serialising the multipart body as JSON.
+        bodySerializer: multipart ? (value) => value as FormData : undefined,
       });
     },
   };

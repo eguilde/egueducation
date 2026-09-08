@@ -15,9 +15,7 @@ describe('eArhivă API adapter', () => {
     expect(new URL(request.url).pathname).toBe('/api/earchiva/documents');
     expect(request.credentials).toBe('include');
     expect(request.headers.get('X-Institution-ID')).toBeNull();
-    // Browser multipart serialization, including its generated boundary, is
-    // exercised by the real Chromium system proof rather than jsdom's mixed
-    // WebIDL realm.
+    expect(request.headers.get('content-type')).toMatch(/^multipart\/form-data;\s*boundary=/i);
   });
 
   it('uses only the eArhivă administration contract paths', async () => {
