@@ -83,7 +83,11 @@ async function authenticatedWithPasskey(page: Page, expectedOrigin = 'http://loc
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);
   await page.getByRole('button', { name: /Passkey/ }).click();
   const consent = page.getByRole('button', { name: 'Accepta si continua' });
-  if (await consent.count()) await consent.click();
+  // The native WebAuthn ceremony completes asynchronously before the provider
+  // renders consent. Waiting for the actual interaction prevents the test from
+  // racing directly into the callback assertion.
+  await expect(consent).toBeVisible();
+  await consent.click();
   await expect(page).toHaveURL(expectedOrigin + '/');
   await expect(page.getByText('Utilizator Test')).toBeVisible();
   await expect.poll(() => token, { message: 'OIDC passkey token response was not observed by the real browser' }).toBeTruthy();
