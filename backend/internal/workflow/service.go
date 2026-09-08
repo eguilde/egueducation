@@ -173,7 +173,11 @@ func (s *Service) ListTasks(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	tasks := make([]Task, 0, query.PageSize)
+	type taskWithCounts struct {
+		task   Task
+		counts dossier.RelationCounts
+	}
+	loadedTasks := make([]taskWithCounts, 0, query.PageSize)
 	for rows.Next() {
 		var task Task
 		var counts dossier.RelationCounts
@@ -204,18 +208,28 @@ func (s *Service) ListTasks(w http.ResponseWriter, r *http.Request) {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_list_failed"})
 			return
 		}
-		task.LinkedDocumentsCount = counts.Total
-		task.DossierReady, task.MissingRelations, err = dossier.Evaluate(r.Context(), s.pool, task.SourceModule, task.SourceRecordID != nil, counts, dossier.PurposeReadiness)
+		loadedTasks = append(loadedTasks, taskWithCounts{task: task, counts: counts})
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_list_failed"})
+		return
+	}
+	rows.Close()
+
+	// A request uses one tenant-pinned pgx connection. Exhaust the task cursor
+	// before loading dossier requirements, otherwise PostgreSQL rejects the
+	// nested query with "conn busy".
+	tasks := make([]Task, 0, len(loadedTasks))
+	for _, loaded := range loadedTasks {
+		task := loaded.task
+		task.LinkedDocumentsCount = loaded.counts.Total
+		task.DossierReady, task.MissingRelations, err = dossier.Evaluate(r.Context(), s.pool, task.SourceModule, task.SourceRecordID != nil, loaded.counts, dossier.PurposeReadiness)
 		if err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_list_failed"})
 			return
 		}
 		task.AvailableActions = availableActions(task.Status)
 		tasks = append(tasks, task)
-	}
-	if err := rows.Err(); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "workflow_list_failed"})
-		return
 	}
 
 	httpx.WritePage(w, http.StatusOK, tasks, total, query.Page, query.PageSize)
@@ -671,9 +685,12 @@ func (s *Service) readinessStats(ctx context.Context, institutionID string) (int
 		return 0, 0, err
 	}
 	defer rows.Close()
-
-	ready := 0
-	blocked := 0
+	type readinessInput struct {
+		sourceModule string
+		hasSource    bool
+		counts       dossier.RelationCounts
+	}
+	inputs := []readinessInput{}
 	for rows.Next() {
 		var sourceModule string
 		var sourceRecordID *string
@@ -690,7 +707,17 @@ func (s *Service) readinessStats(ctx context.Context, institutionID string) (int
 		); err != nil {
 			return 0, 0, err
 		}
-		dossierReady, _, err := dossier.Evaluate(ctx, s.pool, sourceModule, sourceRecordID != nil, counts, dossier.PurposeReadiness)
+		inputs = append(inputs, readinessInput{sourceModule: sourceModule, hasSource: sourceRecordID != nil, counts: counts})
+	}
+	if err := rows.Err(); err != nil {
+		return 0, 0, err
+	}
+	rows.Close()
+
+	ready := 0
+	blocked := 0
+	for _, input := range inputs {
+		dossierReady, _, err := dossier.Evaluate(ctx, s.pool, input.sourceModule, input.hasSource, input.counts, dossier.PurposeReadiness)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -699,9 +726,6 @@ func (s *Service) readinessStats(ctx context.Context, institutionID string) (int
 		} else {
 			blocked++
 		}
-	}
-	if err := rows.Err(); err != nil {
-		return 0, 0, err
 	}
 	return ready, blocked, nil
 }

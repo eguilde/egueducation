@@ -132,6 +132,33 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if fixturePhoneIdentityCount != 1 || fixtureVerifiedPhoneCount != 0 {
 		t.Fatalf("reprovisioned fixture phone identities=%d verified=%d, want one unverified primary identity", fixturePhoneIdentityCount, fixtureVerifiedPhoneCount)
 	}
+	var fixtureProfilePhone string
+	var fixtureProfilePhoneVerified bool
+	if err := pool.QueryRow(ctx, `select phone_number, phone_number_verified from app_users where id=$1`, user.ID).Scan(&fixtureProfilePhone, &fixtureProfilePhoneVerified); err != nil {
+		t.Fatalf("inspect reprovisioned test OTP phone projection: %v", err)
+	}
+	if fixtureProfilePhone != testOTPFixturePhone(cfg) || fixtureProfilePhoneVerified {
+		t.Fatalf("reprovisioned fixture phone projection=(%q,%t), want (%q,false)", fixtureProfilePhone, fixtureProfilePhoneVerified, testOTPFixturePhone(cfg))
+	}
+
+	// Exercise the exact HMAC, tenant, authentication-session and immutable
+	// identity binding used by the provider before involving HTML interactions.
+	// Reprovision once more afterwards so the browser still proves first-time
+	// possession through the same unverified fixture state.
+	fixtureOTPService, err := newOTPService(pool, cfg.OTPHMACKeyValue())
+	if err != nil {
+		t.Fatalf("initialize direct fixture OTP verifier: %v", err)
+	}
+	const directFixtureAuthnSessionID = "oidc-postgres-fixture-direct-session"
+	if _, err := fixtureOTPService.GenerateFixture(ctx, user.ID, otpPurposeLogin, cfg.TestOTPFixtureTenantCode, directFixtureAuthnSessionID, cfg.TestOTPFixtureCode); err != nil {
+		t.Fatalf("generate direct fixture OTP: %v", err)
+	}
+	if err := fixtureOTPService.VerifyPhoneLogin(ctx, user.ID, cfg.TestOTPFixtureTenantCode, directFixtureAuthnSessionID, cfg.TestOTPFixtureCode); err != nil {
+		t.Fatalf("verify direct fixture OTP: %v", err)
+	}
+	if _, err := EnsureOIDCTestFixtureUser(ctx, pool, cfg); err != nil {
+		t.Fatalf("reset fixture after direct OTP verification: %v", err)
+	}
 	t.Cleanup(func() {
 		if err := removeOIDCIntegrationUser(pool, user.ID); err != nil {
 			t.Errorf("remove test OTP fixture: %v", err)

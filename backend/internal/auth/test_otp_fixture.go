@@ -149,6 +149,17 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	`, user.ID, phone); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP phone identity: %w", err)
 	}
+	// Deleting a primary phone intentionally activates the reverse-projection
+	// trigger, which clears app_users.phone_number to prevent a stale login
+	// alias. Restore the projection only after the replacement identity exists;
+	// the deferred profile contract then proves both rows still agree at commit.
+	if _, err = tx.Exec(ctx, `
+		update app_users
+		set phone_number=$2, phone_number_verified=false, updated_at=now()
+		where id=$1
+	`, user.ID, phone); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("project test OTP phone identity: %w", err)
+	}
 	var institutionID, institutionName, rootOrgUnitCode string
 	if err = tx.QueryRow(ctx, `
 		select institution_id, display_name, root_org_unit_code
