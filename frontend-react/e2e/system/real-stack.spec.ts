@@ -516,7 +516,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     where d.id='${created.body.id}'
     group by status, workflow_version
   `)).toBe('FINALIZAT|5|4');
-  await expect.poll(() => databaseScalar(`select status || '|' || payload->>'workflow_version' from registratura_archive_outbox where document_id='${created.body.id}'`), { timeout: 30_000 }).toBe('delivered|5');
+  await expect.poll(() => databaseScalar(`select status || '|' || (payload->>'workflow_version') from registratura_archive_outbox where document_id='${created.body.id}'`), { timeout: 30_000 }).toBe('delivered|5');
   expect(databaseScalar(`select status || '|' || source_system from archive_documents where external_reference='${created.body.id}'`)).toBe('queued|registratura');
   expect(databaseScalar(`select status from archive_ingestion_jobs where document_id=(select id from archive_documents where external_reference='${created.body.id}')`)).toBe('pending');
 
