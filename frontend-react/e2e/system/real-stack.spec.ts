@@ -615,7 +615,10 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   const passkeyToken = await authenticatedWithPasskey(page);
   const passkeyClaims = jwtPayload(passkeyToken);
-  expect(passkeyClaims.amr).toEqual(expect.arrayContaining(['passkey']));
+  // `hwk` is the registered OIDC AMR value emitted by the provider for its
+  // WebAuthn key ceremony; the product-specific assurance detail stays in ACR.
+  expect(passkeyClaims.amr).toEqual(expect.arrayContaining(['hwk']));
+  expect(passkeyClaims.acr).toBe('urn:eguilde:acr:passkey');
   expect(passkeyClaims.tenant_code).toBe('tenant-egueducation');
   expect((await api(page, passkeyToken, '/api/me')).status).toBe(200);
   expect(databaseScalar(`select (last_used_at is not null)::text from app_passkeys where user_id='${actorID}'`)).toBe('true');
