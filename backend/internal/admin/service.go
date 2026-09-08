@@ -415,11 +415,15 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 			insert into app_users (
 				sub, name, email, phone_number, locale, status,
 				email_verified, phone_number_verified, preferred_otp_channel
-			) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			) values ($1, $2, $3, '', $4, $5, $6, $7, $8)
 			returning id::text, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel
-		`, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, emailVerified, phoneVerified, req.PreferredOTPChannel).Scan(
+		`, subject, req.Name, req.Email, req.Locale, req.Status, emailVerified, phoneVerified, req.PreferredOTPChannel).Scan(
 			&item.ID, &item.Sub, &item.Name, &item.Email, &item.Phone, &item.Locale, &item.Status, &item.EmailVerified, &item.PhoneVerified, &item.PreferredOTPChannel,
 		)
+		// The global identity is authoritative for a profile phone. New users
+		// are staged with an empty projection, then the primary phone identity is
+		// inserted below before projecting the requested value in this transaction.
+		item.Phone = req.Phone
 	} else {
 		err = tx.QueryRow(r.Context(), `
 			update app_users
@@ -468,6 +472,12 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 		writeAdminIdentityError(w, err)
 		return
 	}
+	if req.ID == "" && item.Phone != "" {
+		if _, err := tx.Exec(r.Context(), `update app_users set phone_number=$2, updated_at=now() where id=$1::uuid`, item.ID, item.Phone); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+			return
+		}
+	}
 	if phoneChanged {
 		action := "identity.phone.assigned_unverified"
 		summary := "Administrator assigned a phone identity that requires SMS OTP possession proof."
@@ -479,8 +489,8 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 		}
 		if _, err := tx.Exec(r.Context(), `
 			insert into app_audit_log (institution_id, actor_subject, action, target_type, target_id, status, summary, details)
-			values ($1, $2, $3, 'app_user', $4, 'success', $5,
-				jsonb_build_object('user_id', $4, 'method', 'admin_user_update', 'purpose', 'phone_change', 'outcome', $6))
+			values ($1::text, $2::text, $3::text, 'app_user', $4::text, 'success', $5::text,
+				jsonb_build_object('user_id', $4::text, 'method', 'admin_user_update', 'purpose', 'phone_change', 'outcome', $6::text))
 		`, institutionID, authruntime.CurrentSubjectFromRequest(r), action, item.ID, summary, outcome); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 			return

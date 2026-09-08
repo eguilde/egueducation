@@ -50,14 +50,21 @@ func TestTenantAdminCannotMutateSharedGlobalIdentityRegression(t *testing.T) {
 	if _, err := adminPool.Exec(ctx, "create role "+sharedIdentityQuoteIdentifier(roleName)+" login nosuperuser nocreatedb nocreaterole noinherit nobypassrls password "+sharedIdentityQuoteLiteral(rolePassword)); err != nil {
 		t.Fatalf("create non-bypass application role: %v", err)
 	}
+	quotedRole := sharedIdentityQuoteIdentifier(roleName)
 	t.Cleanup(func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cleanupCancel()
-		if _, err := adminPool.Exec(cleanupCtx, "drop role if exists "+sharedIdentityQuoteIdentifier(roleName)); err != nil {
+		// PostgreSQL will not drop a role while privileges granted to it remain.
+		// DROP OWNED is database-local here and revokes exactly the temporary
+		// test role's grants before the cluster-wide role is removed.
+		if _, err := adminPool.Exec(cleanupCtx, "drop owned by "+quotedRole); err != nil {
+			t.Errorf("revoke non-bypass application role privileges: %v", err)
+			return
+		}
+		if _, err := adminPool.Exec(cleanupCtx, "drop role if exists "+quotedRole); err != nil {
 			t.Errorf("remove non-bypass application role: %v", err)
 		}
 	})
-	quotedRole := sharedIdentityQuoteIdentifier(roleName)
 	for _, statement := range []string{
 		"grant usage on schema public to " + quotedRole,
 		"grant select, insert, update, delete on all tables in schema public to " + quotedRole,

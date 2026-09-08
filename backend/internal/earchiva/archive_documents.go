@@ -860,7 +860,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 
 	r.Body = http.MaxBytesReader(w, r.Body, archiveUploadMaxBytes+archiveUploadOverhead)
 	if err := r.ParseMultipartForm(8 << 20); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload"})
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload", "message": truncateWorkerError(err.Error())})
 		return
 	}
 
