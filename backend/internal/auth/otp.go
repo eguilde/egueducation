@@ -176,7 +176,7 @@ func (s *otpService) VerifyPhoneLogin(ctx context.Context, userID uuid.UUID, ten
 			select $1, u.sub, $4, 'app_user_identity', $2::text,
 			       'success', $5,
 			       jsonb_build_object('user_id', $3::text, 'identity_id', $2::text, 'method', 'sms_otp', 'purpose', 'login', 'outcome', 'success')
-			from app_users u where u.id = $3
+			from app_users u where u.id = $3::uuid
 		`, institutionID, challengedIdentityID, userID, action, summary); err != nil {
 			return fmt.Errorf("otp: append phone verification audit: %w", err)
 		}
@@ -218,14 +218,14 @@ func (s *otpService) RecordPhoneLoginOTPFailure(ctx context.Context, userID uuid
 	if _, err = tx.Exec(ctx, `
 		insert into app_audit_log (institution_id, actor_subject, action, target_type, target_id, status, summary, details)
 		select $1, $2, 'identity.phone.otp_verification', 'app_user', $3::text, 'failed',
-			'Phone OTP verification did not complete.', jsonb_build_object('user_id', $3::text, 'method', 'sms_otp', 'purpose', 'login', 'outcome', $4)
+			'Phone OTP verification did not complete.', jsonb_build_object('user_id', $3::text, 'method', 'sms_otp', 'purpose', 'login', 'outcome', $4::text)
 		where (
 			select count(*) from app_audit_log existing
 			where existing.institution_id=$1
 				and existing.action='identity.phone.otp_verification'
 				and existing.target_type='app_user'
 				and existing.target_id=$3::text
-				and existing.details->>'outcome'=$4
+				and existing.details->>'outcome'=$4::text
 				and existing.created_at >= now() - make_interval(secs => $6)
 		) < $5
 	`, institutionID, subject, userID, outcome, limit, int(otpTTL.Seconds())); err != nil {
