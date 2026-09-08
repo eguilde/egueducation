@@ -25,10 +25,18 @@ type AccessTokenClaims struct {
 	Email         string            `json:"email,omitempty"`
 	UserUUID      string            `json:"user_id,omitempty"`
 	TenantID      string            `json:"tenant_id,omitempty"`
+	TenantCode    string            `json:"tenant_code,omitempty"`
 	InstitutionID string            `json:"institution_id,omitempty"`
 	SessionID     string            `json:"session_id,omitempty"`
+	SID           string            `json:"sid,omitempty"`
+	JWTID         string            `json:"jti,omitempty"`
+	ACR           string            `json:"acr,omitempty"`
+	AMR           []string          `json:"amr,omitempty"`
 	ActorType     string            `json:"actor_type,omitempty"`
 	Roles         []string          `json:"roles,omitempty"`
+	PlatformRoles []string          `json:"platform_roles,omitempty"`
+	Permissions   []string          `json:"permissions,omitempty"`
+	AuthzVersion  int64             `json:"authz_version,omitempty"`
 	Cnf           ConfirmationClaim `json:"cnf,omitempty"`
 }
 

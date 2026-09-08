@@ -16,7 +16,7 @@ import type { AdminApi, AdminPermissions, AdminResource, AdminResourcePath, Admi
 
 const emptyUser = (): UpsertUserInput => ({
   name: "", email: "", phone: "", locale: "ro", status: "active",
-  email_verified: false, phone_verified: false, preferred_otp_channel: "sms",
+  email_verified: false, phone_verified: true, preferred_otp_channel: "sms",
 });
 const defaultPermissions: AdminPermissions = {
   dashboard: false, usersRead: false, usersManage: false,
@@ -60,9 +60,11 @@ export function AdministrationWorkspace({ api = createAdminApi(), permissions, c
 
   const stats = useMemo(() => Object.entries(dashboard?.stats ?? {}), [dashboard]);
   const saveUser = async () => {
-    if (!userForm || !userForm.name.trim() || !userForm.email.trim()) return;
+    const validationError = validateUserForm(userForm);
+    if (!userForm || validationError) return;
+    const input = normalizeUserForm(userForm);
     setSaving(true); setError(undefined);
-    try { await api.saveUser({ ...userForm, name: userForm.name.trim(), email: userForm.email.trim() }); setUserForm(undefined); await load(); }
+    try { await api.saveUser(input); setUserForm(undefined); await load(); }
     catch (reason) { setError(readError(reason)); }
     finally { setSaving(false); }
   };
@@ -213,6 +215,38 @@ function ResourceEditor({ open, resource, values, saving, onChange, onClose, onS
 function UserTable({ users }: { users: AdminUser[] }) { return <Card.Root><Card.Body><Card.Content>{users.length === 0 ? <Message.Root severity="info"><Message.Content><Message.Text>Niciun utilizator nu este disponibil pentru instituția activă.</Message.Text></Message.Content></Message.Root> : <DataTable.Root data={users as unknown as Record<string, unknown>[]} dataKey="id"><DataTable.Table><DataTable.THead><DataTable.THeadRow><DataTable.THeadCell>Nume</DataTable.THeadCell><DataTable.THeadCell>E-mail</DataTable.THeadCell><DataTable.THeadCell>Funcție</DataTable.THeadCell><DataTable.THeadCell>Stare</DataTable.THeadCell><DataTable.THeadCell>Verificare</DataTable.THeadCell></DataTable.THeadRow></DataTable.THead><DataTable.TBody>{({ item, index }) => { const user = item as unknown as AdminUser; return <DataTable.Row key={user.id} index={index}><DataTable.Cell>{user.name}</DataTable.Cell><DataTable.Cell>{user.email}</DataTable.Cell><DataTable.Cell>{user.position || "—"}</DataTable.Cell><DataTable.Cell><Tag value={user.status} severity={user.status === "active" ? "success" : "secondary"} /></DataTable.Cell><DataTable.Cell>{user.email_verified ? "E-mail verificat" : "E-mail neverificat"}</DataTable.Cell></DataTable.Row>; }}</DataTable.TBody></DataTable.Table></DataTable.Root>}</Card.Content></Card.Body></Card.Root>; }
 function RoleTable({ roles, canManage }: { roles: Role[]; canManage: boolean }) { return <Card.Root><Card.Body><Card.Content><div className="flex items-center justify-between"><h2>Roluri</h2>{canManage && <Message.Root severity="info"><Message.Content><Message.Text>Crearea și actualizarea rolurilor sunt disponibile în secțiunea „Roluri configurabile”, prin formularul validat după DTO-ul serverului.</Message.Text></Message.Content></Message.Root>}</div>{roles.length === 0 ? <p>Nu există roluri accesibile.</p> : <div className="flex flex-wrap gap-2">{roles.map((role) => <Tag key={role.code} value={`${role.label} (${role.code})`} severity="secondary" />)}</div>}</Card.Content></Card.Body></Card.Root>; }
 function ModuleTable({ modules, canManage, saving, onToggle }: { modules: ModuleSetting[]; canManage: boolean; saving: boolean; onToggle: (value: ModuleSetting) => void }) { return <Card.Root><Card.Body><Card.Content>{modules.length === 0 ? <Message.Root severity="info"><Message.Content><Message.Text>Nu există module configurabile pentru instituția activă.</Message.Text></Message.Content></Message.Root> : <div className="flex flex-col gap-3">{modules.map((module) => <div className="flex flex-wrap items-center justify-between gap-2" key={module.code}><span>{label(module.code)}</span><div className="flex items-center gap-2"><Tag value={module.active ? "Activ" : "Inactiv"} severity={module.active ? "success" : "secondary"} />{canManage && <Button size="small" variant="outlined" severity="secondary" disabled={saving} onClick={() => void onToggle(module)}>{module.active ? "Dezactivează" : "Activează"}</Button>}</div></div>)}</div>}</Card.Content></Card.Body></Card.Root>; }
-function UserDialog({ open, form, saving, onClose, onChange, onSave }: { open: boolean; form?: UpsertUserInput; saving: boolean; onClose: () => void; onChange: (value: UpsertUserInput) => void; onSave: () => void }) { const set = <K extends keyof UpsertUserInput>(key: K, value: UpsertUserInput[K]) => form && onChange({ ...form, [key]: value }); return <Dialog.Root open={open} onOpenChange={(event: { value?: boolean }) => !event.value && onClose()}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>Utilizator nou</Dialog.Title><Dialog.Close aria-label="Închide" /></Dialog.Header><Dialog.Content><div className="flex flex-col gap-3"><InputText aria-label="Nume" value={form?.name ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("name", e.target.value)} /><InputText aria-label="E-mail" type="email" value={form?.email ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("email", e.target.value)} /><InputText aria-label="Telefon" value={form?.phone ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("phone", e.target.value)} /><Select.Root value={form?.locale} options={[{ label: "Română", value: "ro" }, { label: "English", value: "en" }]} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => set("locale", event.value as "ro" | "en")}><Select.Trigger><Select.Value /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root></div></Dialog.Content><Dialog.Footer><div className="flex justify-end gap-2"><Button variant="outlined" severity="secondary" onClick={onClose}>Renunță</Button><Button disabled={saving || !form?.name.trim() || !form?.email.trim()} onClick={onSave}>{saving ? "Se salvează…" : "Salvează"}</Button></div></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>; }
+function UserDialog({ open, form, saving, onClose, onChange, onSave }: { open: boolean; form?: UpsertUserInput; saving: boolean; onClose: () => void; onChange: (value: UpsertUserInput) => void; onSave: () => void }) {
+  const set = <K extends keyof UpsertUserInput>(key: K, value: UpsertUserInput[K]) => form && onChange({ ...form, [key]: value });
+  const validationError = validateUserForm(form);
+  const showValidation = Boolean(form && (form.name.trim() || form.email.trim() || form.phone.trim()));
+  return <Dialog.Root open={open} onOpenChange={(event: { value?: boolean }) => !event.value && onClose()}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>{form?.id ? "Actualizează utilizator" : "Utilizator nou"}</Dialog.Title><Dialog.Close aria-label="Închide" /></Dialog.Header><Dialog.Content><div className="flex flex-col gap-3">
+    <p>Introduceți cel puțin un identificator de autentificare. Telefonul este folosit implicit pentru codurile SMS; e-mailul este opțional.</p>
+    {form?.id && <Message.Root severity="info"><Message.Content><Message.Text>Identitatea utilizatorului este stabilită la creare și nu poate fi înlocuită din acest formular.</Message.Text></Message.Content></Message.Root>}
+    {showValidation && validationError && <Message.Root severity="warn"><Message.Content><Message.Text>{validationError}</Message.Text></Message.Content></Message.Root>}
+    <InputText aria-label="Nume" value={form?.name ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("name", e.target.value)} />
+    <InputText aria-label="E-mail (opțional)" type="email" value={form?.email ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("email", e.target.value)} />
+    <Select.Root value={form?.email_verified} options={[{ label: "E-mail neverificat", value: false }, { label: "E-mail verificat", value: true }]} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => set("email_verified", Boolean(event.value))}><Select.Trigger aria-label="Verificare e-mail"><Select.Value /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
+    <InputText aria-label="Telefon (SMS)" inputMode="tel" value={form?.phone ?? ""} onChange={(e: ChangeEvent<HTMLInputElement>) => set("phone", e.target.value)} />
+    <Select.Root value={form?.phone_verified} options={[{ label: "Telefon neverificat", value: false }, { label: "Telefon verificat", value: true }]} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => set("phone_verified", Boolean(event.value))}><Select.Trigger aria-label="Verificare telefon"><Select.Value /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
+    <Select.Root value={form?.preferred_otp_channel} options={[{ label: "SMS (telefon)", value: "sms" }, { label: "E-mail", value: "email" }]} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => set("preferred_otp_channel", event.value as "sms" | "email")}><Select.Trigger aria-label="Canal OTP"><Select.Value /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
+    <Select.Root value={form?.locale} options={[{ label: "Română", value: "ro" }, { label: "English", value: "en" }]} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => set("locale", event.value as "ro" | "en")}><Select.Trigger aria-label="Limbă"><Select.Value /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>
+  </div></Dialog.Content><Dialog.Footer><div className="flex justify-end gap-2"><Button variant="outlined" severity="secondary" onClick={onClose}>Renunță</Button><Button disabled={saving || Boolean(validationError)} onClick={onSave}>{saving ? "Se salvează…" : "Salvează"}</Button></div></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>;
+}
+
+export function normalizeUserForm(form: UpsertUserInput): UpsertUserInput {
+  return { ...form, name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() };
+}
+
+export function validateUserForm(form?: UpsertUserInput): string | undefined {
+  if (!form?.name.trim()) return "Numele utilizatorului este obligatoriu.";
+  const hasEmail = Boolean(form.email.trim());
+  const hasPhone = Boolean(form.phone.trim());
+  if (!hasEmail && !hasPhone) return "Introduceți e-mailul sau numărul de telefon al utilizatorului.";
+  if (form.preferred_otp_channel === "sms" && !hasPhone) return "Pentru autentificare prin SMS este necesar un număr de telefon.";
+  if (form.preferred_otp_channel === "sms" && !form.phone_verified) return "Numărul de telefon trebuie marcat ca verificat pentru autentificare prin SMS.";
+  if (form.preferred_otp_channel === "email" && !hasEmail) return "Pentru autentificare prin e-mail este necesară o adresă de e-mail.";
+  if (form.preferred_otp_channel === "email" && !form.email_verified) return "Adresa de e-mail trebuie marcată ca verificată pentru autentificare prin e-mail.";
+  return undefined;
+}
 function label(value: string) { return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 function readError(reason: unknown) { if (!(reason instanceof Error)) return "Operația de administrare nu a reușit."; if (reason.message === "shared_identity_platform_admin_required") return "Identitatea este folosită și în alt tenant; este necesar un administrator de platformă."; return "Operația de administrare nu a reușit. Încercați din nou."; }

@@ -143,7 +143,13 @@
           "id": { "type": "string", "format": "uuid" },
           "sub": { "type": "string" },
           "name": { "type": "string" },
-          "email": { "type": "string", "format": "email" },
+          "email": {
+            "description": "Verified email address when configured; an empty string denotes a phone-only account.",
+            "anyOf": [
+              { "type": "string", "format": "email" },
+              { "type": "string", "maxLength": 0 }
+            ]
+          },
           "email_verified": { "type": "boolean" },
           "phone_number": { "type": "string" },
           "phone_number_verified": { "type": "boolean" },
@@ -164,11 +170,14 @@
       },
       "SessionContext": {
         "type": "object",
-        "required": ["user", "institution_id", "institution_name", "permissions", "modules", "authentication", "gdpr_capabilities"],
+        "required": ["user", "tenant_code", "institution_id", "institution_name", "platform_roles", "authz_version", "permissions", "modules", "authentication", "gdpr_capabilities"],
         "properties": {
           "user": { "$ref": "#/components/schemas/SessionUser" },
-          "institution_id": { "type": "string", "format": "uuid" },
+          "tenant_code": { "type": "string", "minLength": 1 },
+          "institution_id": { "type": "string", "minLength": 1 },
           "institution_name": { "type": "string" },
+          "platform_roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "authz_version": { "type": "integer", "format": "int64", "minimum": 1 },
           "permissions": { "type": "array", "items": { "type": "string" } },
           "modules": { "type": "array", "items": { "$ref": "#/components/schemas/SessionModule" } },
           "authentication": { "type": "array", "items": { "type": "string" } },
@@ -221,6 +230,7 @@
       "OidcTokenResponse": {
         "type": "object",
         "required": ["access_token", "token_type", "expires_in"],
+        "x-access-token-claims": { "$ref": "#/components/schemas/AccessTokenAuthorizationClaims" },
         "properties": {
           "access_token": { "type": "string", "description": "Bearer access token; do not persist it in browser storage." },
           "token_type": { "type": "string", "const": "Bearer" },
@@ -230,6 +240,39 @@
           "scope": { "type": "string" }
         },
         "additionalProperties": false
+      },
+      "AccessTokenAuthorizationClaims": {
+        "type": "object",
+        "description": "Versioned authorization claims embedded in first-party JWT access tokens. The API resolves the active host tenant and rejects tokens whose tenant, roles or permissions no longer match the current database authorization.",
+        "required": ["sub", "iss", "aud", "exp", "iat", "jti", "sid", "amr", "acr", "token_use", "tenant_id", "tenant_code", "institution_id", "roles", "platform_roles", "permissions", "authz_version"],
+        "properties": {
+          "sub": { "type": "string", "description": "Immutable user subject." },
+          "iss": { "type": "string", "format": "uri" },
+          "aud": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "exp": { "type": "integer", "format": "int64" },
+          "iat": { "type": "integer", "format": "int64" },
+          "nbf": { "type": "integer", "format": "int64" },
+          "jti": { "type": "string", "minLength": 1 },
+          "sid": { "type": "string", "minLength": 1 },
+          "amr": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "acr": { "type": "string", "minLength": 1 },
+          "token_use": { "type": "string", "const": "access" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "tenant_id": { "type": "string", "description": "Canonical tenant identifier; currently equal to tenant_code." },
+          "tenant_code": { "type": "string", "minLength": 1 },
+          "institution_id": { "type": "string", "minLength": 1 },
+          "roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "platform_roles": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "permissions": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "authz_version": { "type": "integer", "format": "int64", "minimum": 1 },
+          "cnf": {
+            "type": "object",
+            "properties": { "jkt": { "type": "string" } },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": true,
+        "x-free-form-property": "OIDC and OAuth libraries may add other registered protocol claims such as client_id and scope."
       },
       "JsonWebKey": {
         "type": "object",

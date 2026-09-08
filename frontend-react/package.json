@@ -12,15 +12,17 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "quality:ui": "node scripts/audit-ui.mjs",
-    "api:generate": "openapi-typescript ../openapi/openapi.json -o src/api/generated.ts"
+    "quality:contracts": "node scripts/audit-api-contract.mjs",
+    "api:generate": "openapi-typescript ../openapi/openapi.json -o src/api/generated.ts && node scripts/generate-runtime-validators.mjs"
   },
   "dependencies": {
-    "@primeuix/themes": "^3.0.0",
     "@primeicons/react": "^8.0.0",
     "@primereact/core": "^11.1.0",
     "@primereact/ui": "^11.1.0",
+    "@primeuix/themes": "^3.0.0",
     "@vitejs/plugin-react": "^6.0.0",
     "oauth4webapi": "^3.8.7",
+    "openapi-fetch": "^0.17.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0"
@@ -33,6 +35,8 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "jsdom": "^30.0.0",
     "openapi-typescript": "^7.10.1",
     "tailwindcss": "^4.3.3",

@@ -78,11 +78,12 @@ test('authenticated navigation requires both effective permission and an active 
         contentType: 'application/json',
         body: JSON.stringify({
             user: {
-                id: 'user-1', sub: 'subject-1', name: 'Ana', email: 'ana@example.test',
+                id: '11111111-1111-4111-8111-111111111111', sub: 'subject-1', name: 'Ana', email: 'ana@example.test',
                 email_verified: true, phone_number: '', phone_number_verified: false,
                 preferred_otp_channel: 'sms', locale: 'ro', roles: ['super_admin']
             },
-            institution_id: 'inst-1', institution_name: 'Școala Test',
+            tenant_code: 'tenant-test', institution_id: 'inst-1', institution_name: 'Școala Test',
+            platform_roles: [], authz_version: 1,
             permissions: ['registratura.read', 'workflow.read'],
             modules: [{ code: 'registratura', active: false }, { code: 'workflow', active: true }],
             authentication: ['sms'], gdpr_capabilities: []

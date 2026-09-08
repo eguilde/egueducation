@@ -5,7 +5,8 @@ describe('Registratura API adapter', () => {
   it('scopes document requests to the selected registry and sends typed filters', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 50 }), { headers: { 'content-type': 'application/json' } }));
     await createRegistraturaApi(fetcher, '/api').documents({ registryId: 7, page: 1, pageSize: 50, filters: { q: 'cerere', direction: 'intrare' } });
-    expect(String(fetcher.mock.calls[0][0])).toContain('filter.registru_id=7'); expect(String(fetcher.mock.calls[0][0])).toContain('filter.direction=intrare'); expect(String(fetcher.mock.calls[0][0])).toContain('q=cerere');
+    const request = fetcher.mock.calls[0][0] as Request;
+    expect(request.url).toContain('filter.registru_id=7'); expect(request.url).toContain('filter.direction=intrare'); expect(request.url).toContain('q=cerere');
   });
   it('uploads the scanned file as multipart without a client-controlled tenant header', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'a1' }), { status: 201, headers: { 'content-type': 'application/json' } }));
@@ -24,8 +25,8 @@ describe('Registratura API adapter', () => {
   it('uses server pagination, safe sort and advanced date filters rather than filtering client-side', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 92, page: 2, pageSize: 50 }), { headers: { 'content-type': 'application/json' } }));
     await createRegistraturaApi(fetcher, '/api').documents({ registryId: 7, page: 2, pageSize: 50, sort: 'registered_at', direction: 'desc', filters: { registered_at_from: '2026-01-01', confidentiality: 'restricted' } });
-    const request = String(fetcher.mock.calls[0][0]);
-    expect(request).toContain('page=2'); expect(request).toContain('sort=registered_at'); expect(request).toContain('direction=desc'); expect(request).toContain('filter.registered_at_from=2026-01-01'); expect(request).toContain('filter.confidentiality=restricted');
+    const request = fetcher.mock.calls[0][0] as Request;
+    expect(request.url).toContain('page=2'); expect(request.url).toContain('sort=registered_at'); expect(request.url).toContain('direction=desc'); expect(request.url).toContain('filter.registered_at_from=2026-01-01'); expect(request.url).toContain('filter.confidentiality=restricted');
   });
   it('uses the version endpoint for an auditable document revision', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'v2' }), { headers: { 'content-type': 'application/json' } }));

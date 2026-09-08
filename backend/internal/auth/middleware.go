@@ -73,6 +73,10 @@ func (s *Service) RequireAuthenticated(next http.Handler) http.Handler {
 			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "unknown_tenant_host"})
 			return
 		}
+		if !tokenAuthorizationMatchesSession(claims, session, tenantCode) {
+			httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "token_authorization_stale"})
+			return
+		}
 		sessionCtx, release, err := appdb.AcquireRequestConn(r.Context(), s.db.Raw(), appdb.SessionConfig{
 			TenantID:        tenantCode,
 			InstitutionID:   session.InstitutionID,
@@ -174,4 +178,41 @@ func sessionFromContext(ctx context.Context) (SessionContext, bool) {
 func accessTokenClaimsFromContext(ctx context.Context) *AccessTokenClaims {
 	claims, _ := ctx.Value(requestClaimsContextKey).(*AccessTokenClaims)
 	return claims
+}
+
+func tokenAuthorizationMatchesSession(claims *AccessTokenClaims, session SessionContext, tenantCode string) bool {
+	if claims == nil || tenantCode == "" {
+		return false
+	}
+	if claims.TenantID != tenantCode || claims.TenantCode != tenantCode || session.TenantCode != tenantCode || claims.InstitutionID != session.InstitutionID {
+		return false
+	}
+	if claims.AuthzVersion <= 0 || claims.AuthzVersion != session.AuthzVersion || claims.JWTID == "" || claims.SID == "" || claims.ACR == "" || len(claims.AMR) == 0 {
+		return false
+	}
+	return sameStringSet(claims.Roles, session.User.Roles) &&
+		sameStringSet(claims.PlatformRoles, session.PlatformRoles) &&
+		sameStringSet(claims.Permissions, session.Permissions)
+}
+
+func sameStringSet(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	items := make(map[string]struct{}, len(left))
+	for _, item := range left {
+		if item == "" {
+			return false
+		}
+		if _, duplicate := items[item]; duplicate {
+			return false
+		}
+		items[item] = struct{}{}
+	}
+	for _, item := range right {
+		if _, ok := items[item]; !ok {
+			return false
+		}
+	}
+	return true
 }

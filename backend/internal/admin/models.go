@@ -39,14 +39,16 @@ type AdminUser struct {
 }
 
 type UpsertUserRequest struct {
-	ID                  string `json:"id"`
-	Name                string `json:"name"`
-	Email               string `json:"email"`
-	Phone               string `json:"phone"`
-	Locale              string `json:"locale"`
-	Status              string `json:"status"`
-	EmailVerified       bool   `json:"email_verified"`
-	PhoneVerified       bool   `json:"phone_verified"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Phone  string `json:"phone"`
+	Locale string `json:"locale"`
+	Status string `json:"status"`
+	// Omitted verification fields preserve state on update; an explicit false
+	// revokes it. New users must explicitly verify at least one identifier.
+	EmailVerified       *bool  `json:"email_verified,omitempty"`
+	PhoneVerified       *bool  `json:"phone_verified,omitempty"`
 	PreferredOTPChannel string `json:"preferred_otp_channel"`
 }
 
@@ -145,7 +147,7 @@ type UpsertRolePermissionAssignmentRequest struct {
 }
 
 type PositionRoleAssignmentFilters struct {
-	Positions []CodeNameOption   `json:"positions"`
+	Positions []CodeNameOption  `json:"positions"`
 	Roles     []CodeLabelOption `json:"roles"`
 }
 

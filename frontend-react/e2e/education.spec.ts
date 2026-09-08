@@ -47,14 +47,22 @@ async function authenticatedSchool(page: Page) {
       contentType: "application/json",
       body: JSON.stringify({
         user: {
-          id: "user-chair",
+          id: "11111111-1111-4111-8111-111111111111",
           sub: "school-subject",
           name: "Director Test",
           email: "director@example.test",
+          email_verified: true,
+          phone_number: "",
+          phone_number_verified: false,
+          preferred_otp_channel: "sms",
+          locale: "ro",
           roles: [],
         },
+        tenant_code: "tenant-test",
         institution_id: "inst-test",
         institution_name: "Școala Test",
+        platform_roles: [],
+        authz_version: 1,
         permissions: [
           "education.read",
           "education.governance.read",

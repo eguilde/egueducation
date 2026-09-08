@@ -5655,7 +5655,7 @@ export interface paths {
         };
         /**
          * List registry documents
-         * @description Searches documents visible in the active tenant and registry context. Supports the filter fields returned by `/api/registratura/documents/filters`; use page and pageSize for server-side pagination.
+         * @description Searches documents visible in the active tenant and registry context. `pageSize`, `sort` and `direction` take precedence when supplied with the Costesti-compatible aliases `limit`, `sortBy` and `sortDir`. All filters use the `filter.<field>` form.
          */
         get: operations["get_api_registratura_documents"];
         put?: never;
@@ -6354,6 +6354,42 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Versioned authorization claims embedded in first-party JWT access tokens. The API resolves the active host tenant and rejects tokens whose tenant, roles or permissions no longer match the current database authorization. */
+        AccessTokenAuthorizationClaims: {
+            acr: string;
+            amr: string[];
+            aud: string[];
+            /** Format: int64 */
+            authz_version: number;
+            cnf?: {
+                jkt?: string;
+            };
+            /** Format: int64 */
+            exp: number;
+            /** Format: int64 */
+            iat: number;
+            institution_id: string;
+            /** Format: uri */
+            iss: string;
+            jti: string;
+            /** Format: int64 */
+            nbf?: number;
+            permissions: string[];
+            platform_roles: string[];
+            roles: string[];
+            sid: string;
+            /** @description Immutable user subject. */
+            sub: string;
+            tenant_code: string;
+            /** @description Canonical tenant identifier; currently equal to tenant_code. */
+            tenant_id: string;
+            /** @constant */
+            token_use: "access";
+            /** Format: uuid */
+            user_id?: string;
+        } & {
+            [key: string]: unknown;
+        };
         AdvancePortfolioTransferRequest: {
             action?: string;
         };
@@ -7166,22 +7202,6 @@ export interface components {
             portfolios?: components["schemas"]["DirectorCockpitPortfolios"];
             recommended_links?: components["schemas"]["DirectorCockpitQuickLink"][];
             school_year?: string;
-        };
-        DocumentInput: {
-            classificationCode?: string;
-            /** Format: uuid */
-            departmentId?: string;
-            /** @enum {string} */
-            direction: "intrare" | "iesire" | "intern";
-            /** Format: date-time */
-            receivedAt?: string;
-            /** Format: uuid */
-            recipientPartyId?: string;
-            /** Format: uuid */
-            registryId: string;
-            /** Format: uuid */
-            senderPartyId?: string;
-            subject: string;
         };
         EducationCommitteeCompletenessResponse: components["schemas"]["CommitteeCompletenessSummary"];
         EducationGovernanceBodyCompletenessSummaryResponse: components["schemas"]["GovernanceBodyCompletenessSummary"];
@@ -9029,6 +9049,7 @@ export interface components {
             external_number?: string;
             external_number_date?: string | null;
             record_kind?: string;
+            /** Format: int64 */
             registru_id?: number | null;
             status?: string;
             subject?: string;
@@ -9058,6 +9079,7 @@ export interface components {
             notes?: string | null;
             party_type?: string | null;
             phone_number?: string | null;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string | null;
             tax_id?: string | null;
@@ -9174,12 +9196,12 @@ export interface components {
         };
         Request_post_api_admin_users: {
             email?: string;
-            email_verified?: boolean;
+            email_verified?: boolean | null;
             id?: string;
             locale?: string;
             name?: string;
             phone?: string;
-            phone_verified?: boolean;
+            phone_verified?: boolean | null;
             preferred_otp_channel?: string;
             status?: string;
         };
@@ -9329,6 +9351,28 @@ export interface components {
             source_module?: string;
             source_record_id?: string;
         };
+        Request_post_api_registratura_documents: {
+            activity?: string;
+            assigned_party_id?: string | null;
+            assigned_to?: string;
+            confidentiality?: string;
+            correspondent?: string;
+            correspondent_party_id?: string | null;
+            department_ids?: string[];
+            direction?: string;
+            document_type?: string;
+            due_date?: string | null;
+            entry_at?: string | null;
+            exit_at?: string | null;
+            external_number?: string;
+            external_number_date?: string | null;
+            record_kind?: string;
+            /** Format: int64 */
+            registru_id?: number | null;
+            status?: string;
+            subject?: string;
+            summary?: string;
+        };
         Request_post_api_registratura_documents_batch: {
             assigned_party_id?: string | null;
             assigned_to?: string;
@@ -9339,6 +9383,7 @@ export interface components {
             direction?: string;
             document_type?: string;
             due_date?: string | null;
+            /** Format: int64 */
             registru_id?: number;
             status?: string;
             subject?: string;
@@ -9348,6 +9393,7 @@ export interface components {
             category?: string;
             file_name?: string;
             mime_type?: string;
+            /** Format: int64 */
             size_bytes?: number;
             status?: string;
             storage_key?: string;
@@ -9365,6 +9411,7 @@ export interface components {
         };
         Request_post_api_registratura_documents_export_pdf: {
             end_date?: string | null;
+            /** Format: int64 */
             registru_id?: number | null;
             start_date?: string | null;
         };
@@ -9393,6 +9440,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -9421,12 +9469,15 @@ export interface components {
         };
         SessionContext: {
             authentication: string[];
+            /** Format: int64 */
+            authz_version: number;
             gdpr_capabilities: string[];
-            /** Format: uuid */
             institution_id: string;
             institution_name: string;
             modules: components["schemas"]["SessionModule"][];
             permissions: string[];
+            platform_roles: string[];
+            tenant_code: string;
             user: components["schemas"]["SessionUser"];
         };
         SessionModule: {
@@ -9434,7 +9485,7 @@ export interface components {
             code: string;
         };
         SessionUser: {
-            /** Format: email */
+            /** @description Verified email address when configured; an empty string denotes a phone-only account. */
             email: string;
             email_verified: boolean;
             /** Format: uuid */
@@ -9870,9 +9921,13 @@ export interface components {
                 status?: string;
             };
             queue?: {
+                /** Format: int64 */
                 failed?: number;
+                /** Format: int64 */
                 pending?: number;
+                /** Format: int64 */
                 running?: number;
+                /** Format: int64 */
                 succeeded?: number;
             };
             storage?: {
@@ -9900,22 +9955,31 @@ export interface components {
             }[];
             page?: number;
             pageSize?: number;
+            /** Format: int64 */
             total?: number;
         };
         get_api_earchiva_admin_stats_response: {
+            /** Format: int64 */
             completed?: number;
             documents_by_status?: {
                 [key: string]: number;
             };
+            /** Format: int64 */
             failed?: number;
             jobs_by_status?: {
                 [key: string]: number;
             };
+            /** Format: int64 */
             processing?: number;
+            /** Format: int64 */
             queued?: number;
+            /** Format: int64 */
             total_bytes?: number;
+            /** Format: int64 */
             total_documents?: number;
+            /** Format: int64 */
             total_jobs?: number;
+            /** Format: int64 */
             total_pages?: number;
         };
         get_api_earchiva_classification_reviews_response: {
@@ -9934,48 +9998,56 @@ export interface components {
                 state?: string;
                 suggestion?: {
                     category?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                     document_date?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                     document_number?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                     document_type?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                     fond?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                     series?: {
+                        /** Format: double */
                         confidence?: number;
                         evidence?: string;
                         source?: string;
                         value?: string;
                     };
                 };
+                /** Format: double */
                 suggestion_confidence?: number;
                 suggestion_source?: string;
                 version_id?: string;
             }[];
             page?: number;
             page_size?: number;
+            /** Format: int64 */
             total?: number;
         };
         get_api_earchiva_dashboard_response: {
@@ -9999,6 +10071,7 @@ export interface components {
                 id?: string;
                 page_count?: number;
                 source_sha256?: string;
+                /** Format: int64 */
                 source_size_bytes?: number;
                 text_status?: string;
                 version_no?: number;
@@ -10025,6 +10098,7 @@ export interface components {
             id?: string;
             page_count?: number;
             source_sha256?: string;
+            /** Format: int64 */
             source_size_bytes?: number;
             text_status?: string;
             version_no?: number;
@@ -10043,6 +10117,7 @@ export interface components {
             mime_type?: string;
             original_file_name?: string;
             received_at?: string;
+            /** Format: double */
             score?: number;
             snippet?: string;
             source_kind?: string;
@@ -10312,6 +10387,7 @@ export interface components {
         get_api_registratura_admin_registries_item: {
             current_number?: string;
             department_ids?: string[];
+            /** Format: int64 */
             id?: number;
             is_default?: boolean;
             name?: string;
@@ -10350,6 +10426,7 @@ export interface components {
             file_name?: string;
             id?: string;
             mime_type?: string;
+            /** Format: int64 */
             size_bytes?: number;
             status?: string;
             storage_key?: string;
@@ -10381,6 +10458,7 @@ export interface components {
             institution_id?: string;
             record_kind?: string;
             registered_at?: string;
+            /** Format: int64 */
             registru_id?: number | null;
             registry_number?: string;
             status?: string;
@@ -10430,6 +10508,7 @@ export interface components {
             registries?: {
                 created_at?: string;
                 data_resetare?: string | null;
+                /** Format: int64 */
                 id?: number;
                 isDefault?: boolean;
                 nr_curent?: string;
@@ -10465,6 +10544,7 @@ export interface components {
             institution_id?: string;
             record_kind?: string;
             registered_at?: string;
+            /** Format: int64 */
             registru_id?: number | null;
             registry_number?: string;
             status?: string;
@@ -10497,6 +10577,7 @@ export interface components {
             registries?: {
                 created_at?: string;
                 data_resetare?: string | null;
+                /** Format: int64 */
                 id?: number;
                 isDefault?: boolean;
                 nr_curent?: string;
@@ -10535,6 +10616,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -10568,6 +10650,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -10601,6 +10684,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -10634,6 +10718,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -10651,6 +10736,7 @@ export interface components {
         get_api_registratura_registre_id_response: {
             created_at?: string;
             data_resetare?: string | null;
+            /** Format: int64 */
             id?: number;
             isDefault?: boolean;
             nr_curent?: string;
@@ -10664,6 +10750,7 @@ export interface components {
         get_api_registratura_registre_item: {
             created_at?: string;
             data_resetare?: string | null;
+            /** Format: int64 */
             id?: number;
             isDefault?: boolean;
             nr_curent?: string;
@@ -10763,6 +10850,7 @@ export interface components {
         patch_api_registratura_admin_registries_id_response: {
             current_number?: string;
             department_ids?: string[];
+            /** Format: int64 */
             id?: number;
             is_default?: boolean;
             name?: string;
@@ -10794,6 +10882,7 @@ export interface components {
             institution_id?: string;
             record_kind?: string;
             registered_at?: string;
+            /** Format: int64 */
             registru_id?: number | null;
             registry_number?: string;
             status?: string;
@@ -10831,6 +10920,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -10841,6 +10931,7 @@ export interface components {
         patch_api_registratura_registre_id_response: {
             created_at?: string;
             data_resetare?: string | null;
+            /** Format: int64 */
             id?: number;
             isDefault?: boolean;
             nr_curent?: string;
@@ -10854,6 +10945,7 @@ export interface components {
         patch_api_registratura_registre_id_set_default_response: {
             created_at?: string;
             data_resetare?: string | null;
+            /** Format: int64 */
             id?: number;
             isDefault?: boolean;
             nr_curent?: string;
@@ -11135,42 +11227,49 @@ export interface components {
             state?: string;
             suggestion?: {
                 category?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_date?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_number?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_type?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 fond?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 series?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
             };
+            /** Format: double */
             suggestion_confidence?: number;
             suggestion_source?: string;
             version_id?: string;
@@ -11190,42 +11289,49 @@ export interface components {
             state?: string;
             suggestion?: {
                 category?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_date?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_number?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 document_type?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 fond?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
                 series?: {
+                    /** Format: double */
                     confidence?: number;
                     evidence?: string;
                     source?: string;
                     value?: string;
                 };
             };
+            /** Format: double */
             suggestion_confidence?: number;
             suggestion_source?: string;
             version_id?: string;
@@ -11378,6 +11484,7 @@ export interface components {
         post_api_registratura_admin_registries_response: {
             current_number?: string;
             department_ids?: string[];
+            /** Format: int64 */
             id?: number;
             is_default?: boolean;
             name?: string;
@@ -11403,6 +11510,7 @@ export interface components {
             file_name?: string;
             id?: string;
             mime_type?: string;
+            /** Format: int64 */
             size_bytes?: number;
             status?: string;
             storage_key?: string;
@@ -11433,6 +11541,7 @@ export interface components {
             institution_id?: string;
             record_kind?: string;
             registered_at?: string;
+            /** Format: int64 */
             registru_id?: number | null;
             registry_number?: string;
             status?: string;
@@ -11461,6 +11570,41 @@ export interface components {
             summary?: string;
             version_no?: number;
         };
+        post_api_registratura_documents_response: {
+            activity?: string;
+            assigned_party_id?: string | null;
+            assigned_to?: string;
+            cancellation_reason?: string;
+            cancelled_at?: string | null;
+            cancelled_by?: string;
+            confidentiality?: string;
+            correspondent?: string;
+            correspondent_party_id?: string | null;
+            department_ids?: string[];
+            department_names?: string[];
+            direction?: string;
+            document_type?: string;
+            due_date?: string | null;
+            entry_at?: string | null;
+            exit_at?: string | null;
+            external_number?: string;
+            external_number_date?: string | null;
+            id?: string;
+            institution_id?: string;
+            record_kind?: string;
+            registered_at?: string;
+            /** Format: int64 */
+            registru_id?: number | null;
+            registry_number?: string;
+            status?: string;
+            subject?: string;
+            summary?: string;
+            workflow_assignment?: {
+                department_id?: string | null;
+                user_id?: string | null;
+            } | null;
+            workflow_version?: number;
+        };
         post_api_registratura_parties_response: {
             active?: boolean;
             address_line1?: string;
@@ -11487,6 +11631,7 @@ export interface components {
             notes?: string;
             party_type?: string;
             phone_number?: string;
+            /** Format: double */
             share_capital?: number | null;
             short_name?: string;
             tax_id?: string;
@@ -11497,6 +11642,7 @@ export interface components {
         post_api_registratura_registre_response: {
             created_at?: string;
             data_resetare?: string | null;
+            /** Format: int64 */
             id?: number;
             isDefault?: boolean;
             nr_curent?: string;
@@ -24456,7 +24602,36 @@ export interface operations {
     };
     get_api_registratura_documents: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+                pageSize?: number;
+                limit?: number;
+                sort?: "registry_number" | "external_number" | "subject" | "document_type" | "direction" | "status" | "correspondent" | "assigned_to" | "confidentiality" | "registered_at" | "entry_at" | "exit_at";
+                sortBy?: "registry_number" | "external_number" | "subject" | "document_type" | "direction" | "status" | "correspondent" | "assigned_to" | "confidentiality" | "registered_at" | "entry_at" | "exit_at";
+                direction?: "asc" | "desc";
+                sortDir?: "asc" | "desc";
+                q?: string;
+                "filter.registru_id"?: number;
+                "filter.registry_number"?: string;
+                "filter.external_number"?: string;
+                "filter.subject"?: string;
+                "filter.document_type"?: string;
+                "filter.direction"?: string;
+                "filter.status"?: string;
+                "filter.correspondent"?: string;
+                "filter.assigned_to"?: string;
+                "filter.confidentiality"?: string;
+                "filter.registered_at"?: string;
+                "filter.registered_at_from"?: string;
+                "filter.registered_at_to"?: string;
+                "filter.entry_at_from"?: string;
+                "filter.entry_at_to"?: string;
+                "filter.exit_at_from"?: string;
+                "filter.exit_at_to"?: string;
+                "filter.due_date"?: string;
+                "filter.due_date_from"?: string;
+                "filter.due_date_to"?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -24472,11 +24647,8 @@ export interface operations {
                     "application/json": components["schemas"]["get_api_registratura_documents_response"];
                 };
             };
-            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
     };
@@ -24489,24 +24661,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DocumentInput"];
+                "application/json": components["schemas"]["Request_post_api_registratura_documents"];
             };
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegistraturaDocument"];
+                    "application/json": components["schemas"]["post_api_registratura_documents_response"];
                 };
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
     };

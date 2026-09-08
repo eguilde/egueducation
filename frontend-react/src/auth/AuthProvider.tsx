@@ -17,29 +17,12 @@ import {
     type Tokens
 } from './oidc-client';
 import { oidcConfig } from './config';
+import { createContractClient, type ContractClient } from '../api/client';
+import type { components } from '../api/generated';
+import { validateSessionContext } from '../api/runtime-validators';
 
-export interface User {
-    id: string;
-    sub: string;
-    name: string;
-    email: string;
-    email_verified: boolean;
-    phone_number: string;
-    phone_number_verified: boolean;
-    preferred_otp_channel: string;
-    locale: 'ro' | 'en';
-    roles: string[];
-}
-
-export interface SessionContext {
-    user: User;
-    institution_id: string;
-    institution_name: string;
-    permissions: string[];
-    modules: Array<{ code: string; active: boolean }>;
-    authentication: string[];
-    gdpr_capabilities: string[];
-}
+export type User = components['schemas']['SessionUser'];
+export type SessionContext = components['schemas']['SessionContext'];
 
 interface AuthValue {
     user: User | null;
@@ -52,33 +35,26 @@ interface AuthValue {
     has: (permission: string) => boolean;
     updateLocalProfile: (profile: Pick<User, 'id' | 'name' | 'email' | 'email_verified' | 'phone_number' | 'phone_number_verified' | 'locale'>) => void;
     apiFetch: typeof fetch;
+    apiClient: ContractClient;
 }
 
 const AuthContext = createContext<AuthValue | undefined>(undefined);
 const config = oidcConfig();
 
-function isSessionContext(value: unknown): value is SessionContext {
-    if (!value || typeof value !== 'object') return false;
-    const session = value as Partial<SessionContext>;
-    return Boolean(
-        session.user?.id &&
-        session.user.sub &&
-        session.user.name &&
-        Array.isArray(session.user.roles) &&
-        Array.isArray(session.permissions) &&
-        Array.isArray(session.modules)
-    );
-}
-
 async function loadMe(accessToken: string): Promise<SessionContext> {
-    const response = await fetch(`${config.apiBaseUrl}/me`, {
-        credentials: 'include',
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    if (!response.ok) throw new Error('Nu s-a putut valida sesiunea utilizatorului.');
-    const value: unknown = await response.json();
-    if (!isSessionContext(value)) throw new Error('Răspuns /api/me invalid.');
-    return value;
+    const client = createContractClient(async (request) => {
+        const headers = new Headers(request.headers);
+        headers.set('Authorization', `Bearer ${accessToken}`);
+        return fetch(new Request(request, { credentials: 'include', headers }));
+    }, config.apiBaseUrl);
+    const { data, response } = await client.GET('/api/me');
+    if (!response.ok || !data) {
+        throw new Error('Nu s-a putut valida sesiunea utilizatorului.');
+    }
+    if (!validateSessionContext(data)) {
+        throw new Error('Răspuns /api/me invalid conform contractului OpenAPI.');
+    }
+    return data;
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
@@ -182,6 +158,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         response = await execute(refreshed.accessToken);
         return response;
     }, [apply]);
+    const apiClient = useMemo(
+        () => createContractClient((request) => apiFetch(request), config.apiBaseUrl),
+        [apiFetch]
+    );
 
     const value = useMemo<AuthValue>(() => ({
         user: session?.user ?? null,
@@ -193,8 +173,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         completeLogout: finishLogout,
         has,
         updateLocalProfile,
-        apiFetch
-    }), [apiFetch, complete, finishLogout, has, login, logout, ready, session, updateLocalProfile]);
+        apiFetch,
+        apiClient
+    }), [apiClient, apiFetch, complete, finishLogout, has, login, logout, ready, session, updateLocalProfile]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

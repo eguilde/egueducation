@@ -612,7 +612,10 @@ func (s *Service) ActivateEUDIWallet(w http.ResponseWriter, r *http.Request) {
 func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 	subject := s.currentSubject(r)
 	if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
-		_, _ = s.db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value)
+		branding := tenant.ResolveBranding(r.Host, s.cfg.CustomerName, tenant.DefaultInstitutionID(strings.TrimSpace(s.cfg.CustomerDomain+" "+s.cfg.CustomerName)))
+		if strings.TrimSpace(branding.TenantCode) != "" {
+			_, _ = s.db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_code = $1 and data->>'refresh_token' = $2`, branding.TenantCode, cookie.Value)
+		}
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     "egueducation_rt",
@@ -633,6 +636,7 @@ func (s *Service) Logout(w http.ResponseWriter, r *http.Request) {
 func (s *Service) loadSessionContext(ctx context.Context, host string, subject string) (SessionContext, error) {
 	session := SessionContext{
 		User:             SessionUser{Roles: []string{}},
+		PlatformRoles:    []string{},
 		Permissions:      []string{},
 		Modules:          []SessionModule{},
 		Authentication:   []string{},
@@ -710,92 +714,28 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 
 	session.InstitutionID = branding.InstitutionID
 	session.InstitutionName = branding.Name
+	session.TenantCode = tenantCode
 
-	roleRows, err := s.db.Query(scopedCtx, `
-		select distinct role_code
-		from (
-			select ur.role_code
-			from app_user_roles ur
-			join app_users u on u.id = ur.user_id
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-			  and ur.tenant_code = $2
-			union
-			select pr.role_code
-			from app_memberships m
-			join app_users u on u.id = m.user_id
-			join app_position_roles pr on pr.position_code = m.position_code
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-				and m.active = true
-				and m.tenant_code = $2
-		) roles
-		order by role_code
-	`, session.User.ID, tenantCode)
+	roles, err := loadRolesForSubject(scopedCtx, s.db, session.User.Sub, tenantCode)
 	if err != nil {
 		return SessionContext{}, err
 	}
-	defer roleRows.Close()
-
-	for roleRows.Next() {
-		var role string
-		if err := roleRows.Scan(&role); err != nil {
-			return SessionContext{}, err
-		}
-		session.User.Roles = append(session.User.Roles, role)
-	}
-	if err := roleRows.Err(); err != nil {
-		return SessionContext{}, err
-	}
-
-	permissionRows, err := s.db.Query(scopedCtx, `
-		select distinct permission_code
-		from (
-			select up.permission_code
-			from app_user_permissions up
-			join app_users u on u.id = up.user_id
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-			  and up.tenant_code = $2
-			union
-			select rp.permission_code
-			from app_user_roles ur
-			join app_users u on u.id = ur.user_id
-			join app_role_permissions rp on rp.role_code = ur.role_code
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-			  and ur.tenant_code = $2
-			union
-			select pp.permission_code
-			from app_memberships m
-			join app_users u on u.id = m.user_id
-			join app_position_permissions pp on pp.position_code = m.position_code
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-				and m.active = true
-				and m.tenant_code = $2
-			union
-			select rp.permission_code
-			from app_memberships m
-			join app_users u on u.id = m.user_id
-			join app_position_roles pr on pr.position_code = m.position_code
-			join app_role_permissions rp on rp.role_code = pr.role_code
-			where (u.id::text = $1 or lower(u.sub) = lower($1))
-				and m.active = true
-				and m.tenant_code = $2
-		) permissions
-		order by permission_code
-	`, session.User.ID, tenantCode)
+	permissions, err := loadPermissionsForSubject(scopedCtx, s.db, session.User.Sub, tenantCode)
 	if err != nil {
 		return SessionContext{}, err
 	}
-	defer permissionRows.Close()
-
-	for permissionRows.Next() {
-		var permission string
-		if err := permissionRows.Scan(&permission); err != nil {
-			return SessionContext{}, err
-		}
-		session.Permissions = append(session.Permissions, permission)
-	}
-	if err := permissionRows.Err(); err != nil {
+	session.User.Roles = roles
+	session.Permissions = permissions
+	platformRoles, err := loadPlatformRolesForSubject(scopedCtx, s.db, session.User.Sub)
+	if err != nil {
 		return SessionContext{}, err
 	}
+	authzVersion, err := loadAuthorizationVersionForSubject(scopedCtx, s.db, session.User.Sub, tenantCode)
+	if err != nil {
+		return SessionContext{}, err
+	}
+	session.PlatformRoles = platformRoles
+	session.AuthzVersion = authzVersion
 
 	moduleRows, err := s.db.Query(scopedCtx, `
 		select m.code, m.active
@@ -933,10 +873,18 @@ func CurrentInstitutionIDFromRequest(r *http.Request) string {
 }
 
 func IsPlatformSuperAdminFromRequest(r *http.Request) bool {
-	// A tenant role, including super_admin, is not a platform-wide grant. Keep
-	// cross-tenant administration fail-closed until it is backed by a dedicated,
-	// auditable platform privilege and execution path.
-	_ = r
+	// Platform authority is loaded from the dedicated global assignment table
+	// and cross-checked against the access token by RequireAuthenticated. Tenant
+	// roles, including a similarly named super_admin role, never satisfy this.
+	session, ok := sessionFromContext(r.Context())
+	if !ok {
+		return false
+	}
+	for _, role := range session.PlatformRoles {
+		if role == "platform_super_admin" {
+			return true
+		}
+	}
 	return false
 }
 

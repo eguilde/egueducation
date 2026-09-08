@@ -77,6 +77,9 @@ func SchemaContract() []TableContract {
 	return []TableContract{
 		globalTableWithColumns("schema_migrations", "Applied migration ledger.", "version", "applied_at"),
 		globalTableWithColumns("app_users", "Identity directory.", "id", "sub", "name", "email", "phone_number", "locale"),
+		globalTableWithColumns("app_user_identities", "Normalized login identifiers independent from profile fields.", "user_id", "identity_type", "normalized_value", "display_value", "verified_at", "is_primary"),
+		globalTableWithColumns("app_platform_roles", "Platform authority catalog; never inferred from tenant roles.", "code", "label"),
+		globalTableWithColumns("app_user_platform_roles", "Explicit global platform-role assignments.", "user_id", "role_code"),
 		globalTableWithColumns("app_roles", "Role catalog.", "code", "label"),
 		globalTableWithColumns("app_user_roles", "Tenant-scoped user-role grants enforced by authorization queries.", "tenant_code"),
 		globalTableWithColumns("app_permissions", "Permission catalog.", "code", "label"),
@@ -93,6 +96,7 @@ func SchemaContract() []TableContract {
 		globalTableWithColumns("education_portfolio_sections", "Global portfolio section catalog.", "id", "section_code", "component_code", "label_ro", "label_en", "required", "sensitive_data", "sort_order", "active"),
 		tenantTable("app_org_units", "Organization units are tenant-scoped."),
 		tenantTable("app_memberships", "Memberships are tenant-scoped."),
+		tenantTable("app_tenant_authorization_versions", "Authoritative tenant authorization version for session and token invalidation."),
 		institutionTable("registratura_documents", "Incoming/outgoing registry documents."),
 		institutionTable("registre", "Tenant-scoped registries and numbering."),
 		institutionTable("registratura_departments", "Registratura department structure."),

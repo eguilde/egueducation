@@ -62,17 +62,21 @@
   },
   "GET /api/registratura/documents": {
     "summary": "List registry documents",
-    "description": "Searches documents visible in the active tenant and registry context. Supports the filter fields returned by `/api/registratura/documents/filters`; use page and pageSize for server-side pagination.",
+    "description": "Searches documents visible in the active tenant and registry context. `pageSize`, `sort` and `direction` take precedence when supplied with the Costesti-compatible aliases `limit`, `sortBy` and `sortDir`. All filters use the `filter.<field>` form.",
     "tags": ["Registratura"],
     "responseSchema": "Page",
+    "queryParameters": ["page", "pageSize", "limit", "sort", "sortBy", "direction", "sortDir", "q", "filter.registru_id", "filter.registry_number", "filter.external_number", "filter.subject", "filter.document_type", "filter.direction", "filter.status", "filter.correspondent", "filter.assigned_to", "filter.confidentiality", "filter.registered_at", "filter.registered_at_from", "filter.registered_at_to", "filter.entry_at_from", "filter.entry_at_to", "filter.exit_at_from", "filter.exit_at_to", "filter.due_date", "filter.due_date_from", "filter.due_date_to"],
+    "errors": [401, 403, 500],
     "status": "detailed"
   },
   "POST /api/registratura/documents": {
     "summary": "Register one document",
     "description": "Creates an incoming, outgoing or internal registration number in the selected registry. The number is allocated transactionally by the server; clients must never generate it.",
     "tags": ["Registratura"],
-    "requestSchema": "DocumentInput",
+    "requestSchema": "Mutation",
     "responseSchema": "RegistraturaDocument",
+    "responseStatus": 201,
+    "errors": [400, 401, 403, 404, 500],
     "status": "detailed"
   },
   "POST /api/registratura/documents/batch": {

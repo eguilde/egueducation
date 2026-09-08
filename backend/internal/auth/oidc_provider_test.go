@@ -258,3 +258,74 @@ func TestOIDCLoginScriptIsServedAsCSPCompatibleJavaScript(t *testing.T) {
 		t.Fatal("served OIDC script is missing OTP input behavior")
 	}
 }
+
+func TestOIDCGrantClaimReleaseSeparatesAuthorizationFromScopedIdentity(t *testing.T) {
+	subject := oidcClaimSubject{
+		UserID:        "user-123",
+		TenantCode:    "tenant-balotesti",
+		InstitutionID: "inst-balotesti",
+		Name:          "Tenant Operator",
+		Email:         "operator@example.test",
+		PhoneNumber:   "+40100000001",
+		Locale:        "ro",
+		EmailVerified: true,
+		PhoneVerified: true,
+		Roles:         []string{"admin"},
+		PlatformRoles: []string{"platform_super_admin"},
+		Permissions:   []string{"admin.read"},
+		AuthzVersion:  7,
+	}
+
+	grant := &goidc.GrantInfo{ActiveScopes: "openid"}
+	applyOIDCGrantClaimRelease(grant, subject, []string{"egueducation-api"})
+	for _, key := range []string{"user_id", "tenant_code", "institution_id", "roles", "platform_roles", "permissions", "authz_version", "token_use"} {
+		if _, ok := grant.AdditionalTokenClaims[key]; !ok {
+			t.Fatalf("access token is missing authorization claim %q", key)
+		}
+	}
+	for _, key := range []string{"name", "email", "phone_number", "locale", "email_verified", "phone_number_verified"} {
+		if _, ok := grant.AdditionalTokenClaims[key]; ok {
+			t.Fatalf("access token leaked identity claim %q", key)
+		}
+		if _, ok := grant.AdditionalIDTokenClaims[key]; ok {
+			t.Fatalf("ID token released %q without its scope", key)
+		}
+		if _, ok := grant.AdditionalUserInfoClaims[key]; ok {
+			t.Fatalf("UserInfo released %q without its scope", key)
+		}
+	}
+
+	grant = &goidc.GrantInfo{ActiveScopes: "openid profile email phone"}
+	applyOIDCGrantClaimRelease(grant, subject, []string{"egueducation-api"})
+	for _, key := range []string{"name", "locale", "email", "email_verified", "phone_number", "phone_number_verified"} {
+		if _, ok := grant.AdditionalIDTokenClaims[key]; !ok {
+			t.Fatalf("ID token is missing scoped identity claim %q", key)
+		}
+		if _, ok := grant.AdditionalUserInfoClaims[key]; !ok {
+			t.Fatalf("UserInfo is missing scoped identity claim %q", key)
+		}
+		if _, ok := grant.AdditionalTokenClaims[key]; ok {
+			t.Fatalf("access token leaked scoped identity claim %q", key)
+		}
+	}
+}
+
+func TestOTPDeliveryKeepsSMSDefaultAndFailsClosedForUnconfiguredEmail(t *testing.T) {
+	verified := oidcLoginUser{
+		Email:               "operator@example.test",
+		PhoneNumber:         "+40100000001",
+		EmailVerified:       true,
+		PhoneNumberVerified: true,
+	}
+
+	channel, err := resolveOTPDelivery(verified, normalizeOTPDeliveryChannel(""), nil, true)
+	if err != nil || channel != otpDeliverySMS {
+		t.Fatalf("fixture-backed default SMS selection = (%q, %v), want sms with no error", channel, err)
+	}
+	if _, err := resolveOTPDelivery(verified, otpDeliveryEmail, nil, false); err == nil || !strings.Contains(err.Error(), "email") {
+		t.Fatalf("unconfigured verified-email OTP must fail closed with a clear email error, got %v", err)
+	}
+	if _, err := resolveOTPDelivery(oidcLoginUser{Email: verified.Email}, otpDeliveryEmail, nil, false); err == nil || !strings.Contains(err.Error(), "verificată") {
+		t.Fatalf("unverified email must not be selected for OTP, got %v", err)
+	}
+}

@@ -26,6 +26,33 @@ import (
 
 var localOIDCTenantID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
+type oidcTenantContextKey struct{}
+
+func oidcTenantCodeFromContext(ctx context.Context) (string, error) {
+	tenantCode, _ := ctx.Value(oidcTenantContextKey{}).(string)
+	tenantCode = strings.TrimSpace(tenantCode)
+	if tenantCode == "" {
+		return "", errors.New("OIDC request is not bound to a tenant")
+	}
+	return tenantCode, nil
+}
+
+// withOIDCTenantContext resolves the application tenant once, at the OIDC
+// protocol boundary. Every authorization session, code and refresh grant then
+// uses this immutable request value instead of a process-wide storage tenant.
+func withOIDCTenantContext(next http.Handler, cfg *config.Config) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fallbackInstitution := tenant.DefaultInstitutionID(strings.TrimSpace(cfg.CustomerDomain + " " + cfg.CustomerName))
+		branding := tenant.ResolveBranding(r.Host, cfg.CustomerName, fallbackInstitution)
+		if strings.TrimSpace(branding.TenantCode) == "" {
+			http.NotFound(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), oidcTenantContextKey{}, branding.TenantCode)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 func newOIDCProviderHandler(
 	db *pgxpool.Pool,
 	cfg *config.Config,
@@ -90,7 +117,7 @@ func newOIDCProviderHandler(
 		return nil, nil, fmt.Errorf("provider.New: %w", err)
 	}
 
-	handler := wrapRegisterPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg)
+	handler := withOIDCTenantContext(wrapRegisterPage(wrapRefreshTokenCookie(op.Handler(), cfg), cfg), cfg)
 	verifier := NewJWTVerifier(cfg.OIDCIssuer, strings.TrimRight(cfg.OIDCIssuer, "/")+"/jwks", cfg.OIDCAudience)
 	verifier.loader = func(context.Context) (*jose.JSONWebKeySet, error) {
 		active := keyManager.ActiveJWKS()
@@ -145,8 +172,12 @@ func oidcRefreshCookieLogoutPolicy(db *pgxpool.Pool, cfg *config.Config) goidc.L
 	return goidc.NewLogoutPolicy("egueducation-refresh-cookie", func(_ *http.Request, _ *goidc.LogoutSession) bool {
 		return true
 	}, func(w http.ResponseWriter, r *http.Request, _ *goidc.LogoutSession) (goidc.Status, error) {
+		tenantCode, err := oidcTenantCodeFromContext(r.Context())
+		if err != nil {
+			return goidc.StatusFailure, err
+		}
 		if cookie, err := r.Cookie("egueducation_rt"); err == nil && strings.TrimSpace(cookie.Value) != "" {
-			if _, err := db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and data->>'refresh_token' = $2`, localOIDCTenantID, cookie.Value); err != nil {
+			if _, err := db.Exec(r.Context(), `delete from oidc_grant_sessions where tenant_id = $1::uuid and tenant_code = $2 and data->>'refresh_token' = $3`, localOIDCTenantID, tenantCode, cookie.Value); err != nil {
 				return goidc.StatusFailure, fmt.Errorf("revoke refresh grant during RP logout: %w", err)
 			}
 		}
@@ -317,25 +348,33 @@ type oidcAuthnSessionStore struct {
 }
 
 func (s *oidcAuthnSessionStore) Save(ctx context.Context, session *goidc.AuthnSession) error {
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return err
+	}
 	payload, err := json.Marshal(session)
 	if err != nil {
 		return fmt.Errorf("marshal authn session: %w", err)
 	}
 	_, err = s.db.Exec(ctx, `
-		insert into oidc_authn_sessions (tenant_id, id, data, expires_at)
-		values ($1::uuid, $2, $3::jsonb, $4)
-		on conflict (tenant_id, id) do update
+		insert into oidc_authn_sessions (tenant_id, tenant_code, id, data, expires_at)
+		values ($1::uuid, $2, $3, $4::jsonb, $5)
+		on conflict (tenant_code, id) do update
 		set data = excluded.data,
 			expires_at = excluded.expires_at
-	`, localOIDCTenantID, session.ID, string(payload), time.Now().Add(10*time.Minute))
+	`, localOIDCTenantID, tenantCode, session.ID, string(payload), time.Now().Add(10*time.Minute))
 	return err
 }
 
 func (s *oidcAuthnSessionStore) Delete(ctx context.Context, id string) error {
-	_, err := s.db.Exec(ctx, `
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `
 		delete from oidc_authn_sessions
-		where tenant_id = $1::uuid and id = $2
-	`, localOIDCTenantID, id)
+		where tenant_code = $1 and id = $2
+	`, tenantCode, id)
 	return err
 }
 
@@ -356,14 +395,18 @@ func (s *oidcAuthnSessionStore) SessionByCIBAAuthID(ctx context.Context, id stri
 }
 
 func (s *oidcAuthnSessionStore) query(ctx context.Context, field, value string) (*goidc.AuthnSession, error) {
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var payload []byte
-	err := s.db.QueryRow(ctx, `
+	err = s.db.QueryRow(ctx, `
 		select data
 		from oidc_authn_sessions
-		where tenant_id = $1::uuid
+		where tenant_code = $1
 			and data->>$2 = $3
 			and expires_at > now()
-	`, localOIDCTenantID, field, value).Scan(&payload)
+	`, tenantCode, field, value).Scan(&payload)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errors.New("not found")
 	}
@@ -382,34 +425,46 @@ type oidcGrantSessionStore struct {
 }
 
 func (s *oidcGrantSessionStore) Save(ctx context.Context, grant *goidc.GrantSession) error {
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return err
+	}
 	payload, err := json.Marshal(grant)
 	if err != nil {
 		return fmt.Errorf("marshal grant session: %w", err)
 	}
 	_, err = s.db.Exec(ctx, `
-		insert into oidc_grant_sessions (tenant_id, id, data, expires_at)
-		values ($1::uuid, $2, $3::jsonb, $4)
-		on conflict (tenant_id, id) do update
+		insert into oidc_grant_sessions (tenant_id, tenant_code, id, data, expires_at)
+		values ($1::uuid, $2, $3, $4::jsonb, $5)
+		on conflict (tenant_code, id) do update
 		set data = excluded.data,
 			expires_at = excluded.expires_at
-	`, localOIDCTenantID, grant.ID, string(payload), time.Unix(int64(grant.ExpiresAtTimestamp), 0))
+	`, localOIDCTenantID, tenantCode, grant.ID, string(payload), time.Unix(int64(grant.ExpiresAtTimestamp), 0))
 	return err
 }
 
 func (s *oidcGrantSessionStore) Delete(ctx context.Context, id string) error {
-	_, err := s.db.Exec(ctx, `
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `
 		delete from oidc_grant_sessions
-		where tenant_id = $1::uuid and id = $2
-	`, localOIDCTenantID, id)
+		where tenant_code = $1 and id = $2
+	`, tenantCode, id)
 	return err
 }
 
 func (s *oidcGrantSessionStore) DeleteByAuthCode(ctx context.Context, code string) error {
-	_, err := s.db.Exec(ctx, `
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `
 		delete from oidc_grant_sessions
-		where tenant_id = $1::uuid
+		where tenant_code = $1
 			and data->>'authorization_code' = $2
-	`, localOIDCTenantID, code)
+	`, tenantCode, code)
 	return err
 }
 
@@ -422,14 +477,18 @@ func (s *oidcGrantSessionStore) SessionByRefreshToken(ctx context.Context, token
 }
 
 func (s *oidcGrantSessionStore) query(ctx context.Context, field, value string) (*goidc.GrantSession, error) {
+	tenantCode, err := oidcTenantCodeFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var payload []byte
-	err := s.db.QueryRow(ctx, `
+	err = s.db.QueryRow(ctx, `
 		select data
 		from oidc_grant_sessions
-		where tenant_id = $1::uuid
+		where tenant_code = $1
 			and data->>$2 = $3
 			and expires_at > now()
-	`, localOIDCTenantID, field, value).Scan(&payload)
+	`, tenantCode, field, value).Scan(&payload)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errors.New("not found")
 	}
@@ -492,6 +551,13 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		if tenantCode == "" {
 			return errors.New("unknown tenant host")
 		}
+		requestTenantCode, err := oidcTenantCodeFromContext(r.Context())
+		if err != nil {
+			return err
+		}
+		if requestTenantCode != tenantCode {
+			return errors.New("OIDC transaction tenant does not match request host")
+		}
 		tx, err := beginTenantReadTx(r.Context(), db, tenantCode, "grant claims")
 		if err != nil {
 			return err
@@ -509,42 +575,121 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		if err != nil {
 			return fmt.Errorf("load grant tenant roles: %w", err)
 		}
+		permissions, err := loadPermissionsForSubject(r.Context(), tx, subject, tenantCode)
+		if err != nil {
+			return fmt.Errorf("load grant tenant permissions: %w", err)
+		}
+		platformRoles, err := loadPlatformRolesForSubject(r.Context(), tx, subject)
+		if err != nil {
+			return fmt.Errorf("load grant platform roles: %w", err)
+		}
+		authzVersion, err := loadAuthorizationVersionForSubject(r.Context(), tx, subject, tenantCode)
+		if err != nil {
+			return fmt.Errorf("load grant authorization version: %w", err)
+		}
 		if err := tx.Commit(r.Context()); err != nil {
 			return fmt.Errorf("commit tenant-scoped grant claims: %w", err)
 		}
 		audience := tokenAudiences(grant, cfg.OIDCAudience)
 
-		if grant.AdditionalTokenClaims == nil {
-			grant.AdditionalTokenClaims = make(map[string]any)
-		}
-		if grant.AdditionalIDTokenClaims == nil {
-			grant.AdditionalIDTokenClaims = make(map[string]any)
-		}
-		if grant.AdditionalUserInfoClaims == nil {
-			grant.AdditionalUserInfoClaims = make(map[string]any)
-		}
-
-		shared := map[string]any{
-			"user_id":               userID.String(),
-			"tenant_id":             localOIDCTenantID.String(),
-			"institution_id":        preferredInstitution,
-			"name":                  name,
-			"email":                 email,
-			"email_verified":        emailVerified,
-			"phone_number":          phone,
-			"phone_number_verified": phoneVerified,
-			"locale":                locale,
-			"roles":                 roles,
-		}
-		for key, value := range shared {
-			grant.AdditionalTokenClaims[key] = value
-			grant.AdditionalIDTokenClaims[key] = value
-			grant.AdditionalUserInfoClaims[key] = value
-		}
-		grant.AdditionalTokenClaims["aud"] = audience
-		grant.AdditionalTokenClaims["token_use"] = "access"
+		applyOIDCGrantClaimRelease(grant, oidcClaimSubject{
+			UserID:        userID.String(),
+			TenantCode:    tenantCode,
+			InstitutionID: preferredInstitution,
+			Name:          name,
+			Email:         email,
+			PhoneNumber:   phone,
+			Locale:        locale,
+			EmailVerified: emailVerified,
+			PhoneVerified: phoneVerified,
+			Roles:         roles,
+			PlatformRoles: platformRoles,
+			Permissions:   permissions,
+			AuthzVersion:  authzVersion,
+		}, audience)
 		return nil
 	}
+}
+
+type oidcClaimSubject struct {
+	UserID        string
+	TenantCode    string
+	InstitutionID string
+	Name          string
+	Email         string
+	PhoneNumber   string
+	Locale        string
+	EmailVerified bool
+	PhoneVerified bool
+	Roles         []string
+	PlatformRoles []string
+	Permissions   []string
+	AuthzVersion  int64
+}
+
+// applyOIDCGrantClaimRelease keeps authorization data in the access token and
+// releases identity attributes solely via the OIDC ID Token/UserInfo channels
+// governed by their standard scopes. This prevents APIs from receiving profile
+// PII simply because they need tenant roles to authorize a request.
+func applyOIDCGrantClaimRelease(grant *goidc.GrantInfo, subject oidcClaimSubject, audience []string) {
+	if grant == nil {
+		return
+	}
+	if grant.AdditionalTokenClaims == nil {
+		grant.AdditionalTokenClaims = make(map[string]any)
+	}
+	if grant.AdditionalIDTokenClaims == nil {
+		grant.AdditionalIDTokenClaims = make(map[string]any)
+	}
+	if grant.AdditionalUserInfoClaims == nil {
+		grant.AdditionalUserInfoClaims = make(map[string]any)
+	}
+
+	for key, value := range map[string]any{
+		"user_id":        subject.UserID,
+		"tenant_id":      subject.TenantCode,
+		"tenant_code":    subject.TenantCode,
+		"institution_id": subject.InstitutionID,
+		"roles":          subject.Roles,
+		"platform_roles": subject.PlatformRoles,
+		"permissions":    subject.Permissions,
+		"authz_version":  subject.AuthzVersion,
+		"aud":            audience,
+		"token_use":      "access",
+	} {
+		grant.AdditionalTokenClaims[key] = value
+	}
+
+	identityClaims := make(map[string]any)
+	if oidcScopeGranted(grant.ActiveScopes, "profile") {
+		if strings.TrimSpace(subject.Name) != "" {
+			identityClaims["name"] = subject.Name
+		}
+		if strings.TrimSpace(subject.Locale) != "" {
+			identityClaims["locale"] = subject.Locale
+		}
+	}
+	if oidcScopeGranted(grant.ActiveScopes, "email") && strings.TrimSpace(subject.Email) != "" {
+		identityClaims["email"] = subject.Email
+		identityClaims["email_verified"] = subject.EmailVerified
+	}
+	if oidcScopeGranted(grant.ActiveScopes, "phone") && strings.TrimSpace(subject.PhoneNumber) != "" {
+		identityClaims["phone_number"] = subject.PhoneNumber
+		identityClaims["phone_number_verified"] = subject.PhoneVerified
+	}
+	for key, value := range identityClaims {
+		grant.AdditionalIDTokenClaims[key] = value
+		grant.AdditionalUserInfoClaims[key] = value
+	}
+}
+
+func oidcScopeGranted(scopes, expected string) bool {
+	for _, scope := range strings.Fields(scopes) {
+		if scope == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func tokenAudiences(grant *goidc.GrantInfo, configuredAudience string) []string {
@@ -695,6 +840,7 @@ func renderMethodStep(
 			return renderOIDCStep(w, tmpl, data)
 		}
 		sess.SetUserID(userID)
+		setOIDCAuthenticationClaims(sess, "passkey")
 		sess.StoreParameter("step", "consent")
 		return renderConsentStep(w, r, sess, cfg, tmpl, formAction)
 	default:
@@ -715,15 +861,20 @@ func renderOTPIdentifierStep(
 ) (goidc.Status, error) {
 	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	identifier, _ := sess.StoredParameter("identifier").(string)
+	deliveryChannel := normalizeOTPDeliveryChannel(r.FormValue("delivery_channel"))
+	if storedChannel, ok := sess.StoredParameter("otp_delivery_channel").(string); ok && r.Method == http.MethodGet {
+		deliveryChannel = normalizeOTPDeliveryChannel(storedChannel)
+	}
 	data := oidcLoginData{
-		Step:           "otp_identifier",
-		StepLabel:      "Pasul 2",
-		CustomerName:   customerName,
-		FormAction:     formAction,
-		FrontendOrigin: cfg.FrontendOrigin,
-		Identifier:     identifier,
-		WalletEnabled:  cfg.EnableWallet,
-		Theme:          resolveOIDCThemeSettings(r, sess),
+		Step:            "otp_identifier",
+		StepLabel:       "Pasul 2",
+		CustomerName:    customerName,
+		FormAction:      formAction,
+		FrontendOrigin:  cfg.FrontendOrigin,
+		Identifier:      identifier,
+		DeliveryChannel: string(deliveryChannel),
+		WalletEnabled:   cfg.EnableWallet,
+		Theme:           resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -752,6 +903,11 @@ func renderOTPIdentifierStep(
 	}
 	user, err := findLoginUser(r.Context(), db, identifier, loginBranding.TenantCode)
 	if err != nil {
+		if deliveryChannel == otpDeliveryEmail {
+			data.Error = "Serviciul OTP prin email nu este configurat pentru acest mediu. Selectați SMS."
+			data.Identifier = identifier
+			return renderOIDCStep(w, tmpl, data)
+		}
 		if smsService == nil || !smsService.Configured() {
 			data.Error = "Serviciul SMS nu este disponibil momentan."
 			data.Identifier = identifier
@@ -787,6 +943,13 @@ func renderOTPIdentifierStep(
 		})
 	}
 	fixtureEnabled := testOTPFixtureAllowed(r, cfg, user, loginBranding.TenantCode)
+	deliveryChannel, err = resolveOTPDelivery(user, deliveryChannel, smsService, fixtureEnabled)
+	if err != nil {
+		data.Error = err.Error()
+		data.Identifier = identifier
+		data.DeliveryChannel = string(normalizeOTPDeliveryChannel(r.FormValue("delivery_channel")))
+		return renderOIDCStep(w, tmpl, data)
+	}
 	var code string
 	if fixtureEnabled {
 		code, err = otp.GenerateFixture(r.Context(), user.ID, otpPurposeLogin, cfg.TestOTPFixtureCode)
@@ -800,7 +963,7 @@ func renderOTPIdentifierStep(
 	}
 	smsConfigured := smsService != nil && smsService.Configured()
 	message, canContinue := otpLoginUIMessage(cfg, code, smsConfigured || fixtureEnabled)
-	if smsConfigured && !fixtureEnabled {
+	if deliveryChannel == otpDeliverySMS && smsConfigured && !fixtureEnabled {
 		smsMessage := fmt.Sprintf("Codul dumneavoastră de autentificare este: %s. Valabil 10 minute.", code)
 		if _, err := smsService.Send(r.Context(), user.PhoneNumber, smsMessage); err != nil {
 			data.Error = "Nu am putut trimite codul OTP prin SMS."
@@ -817,14 +980,16 @@ func renderOTPIdentifierStep(
 	sess.StoreParameter("step", "otp")
 	sess.StoreParameter("otp_user_id", user.ID.String())
 	sess.StoreParameter("identifier", identifier)
+	sess.StoreParameter("otp_delivery_channel", string(deliveryChannel))
 	return renderOIDCStep(w, tmpl, oidcLoginData{
-		Step:         "otp",
-		StepLabel:    "Pasul 3",
-		CustomerName: customerName,
-		FormAction:   formAction,
-		Identifier:   identifier,
-		Message:      message,
-		Theme:        resolveOIDCThemeSettings(r, sess),
+		Step:            "otp",
+		StepLabel:       "Pasul 3",
+		CustomerName:    customerName,
+		FormAction:      formAction,
+		Identifier:      identifier,
+		Message:         message,
+		DeliveryChannel: string(deliveryChannel),
+		Theme:           resolveOIDCThemeSettings(r, sess),
 	})
 }
 
@@ -889,14 +1054,17 @@ func renderOTPStep(
 ) (goidc.Status, error) {
 	customerName := tenant.ResolveBranding(r.Host, cfg.CustomerName, "").Name
 	identifier, _ := sess.StoredParameter("identifier").(string)
+	deliveryChannel, _ := sess.StoredParameter("otp_delivery_channel").(string)
+	channel := normalizeOTPDeliveryChannel(deliveryChannel)
 	data := oidcLoginData{
-		Step:         "otp",
-		StepLabel:    "Pasul 3",
-		CustomerName: customerName,
-		FormAction:   formAction,
-		Identifier:   identifier,
-		Message:      "Am trimis un cod de verificare către telefonul asociat contului.",
-		Theme:        resolveOIDCThemeSettings(r, sess),
+		Step:            "otp",
+		StepLabel:       "Pasul 3",
+		CustomerName:    customerName,
+		FormAction:      formAction,
+		Identifier:      identifier,
+		Message:         "Am trimis un cod de verificare către " + otpDeliveryLabel(channel) + ".",
+		DeliveryChannel: string(channel),
+		Theme:           resolveOIDCThemeSettings(r, sess),
 	}
 	if r.Method == http.MethodGet {
 		return renderOIDCStep(w, tmpl, data)
@@ -922,7 +1090,7 @@ func renderOTPStep(
 	}
 	code := strings.TrimSpace(r.FormValue("code"))
 	if code == "" {
-		data.Error = "Introduceți codul primit prin SMS."
+		data.Error = "Introduceți codul primit."
 		return renderOIDCStep(w, tmpl, data)
 	}
 	if err := otp.Verify(r.Context(), userID, otpPurposeLogin, code); err != nil {
@@ -930,6 +1098,7 @@ func renderOTPStep(
 		return renderOIDCStep(w, tmpl, data)
 	}
 	sess.SetUserID(userID.String())
+	setOIDCAuthenticationClaims(sess, string(channel)+"_otp")
 	sess.StoreParameter("step", "consent")
 	return renderConsentStep(w, r, sess, cfg, tmpl, formAction)
 }
@@ -985,10 +1154,57 @@ func renderOIDCStep(w http.ResponseWriter, tmpl *template.Template, data oidcLog
 }
 
 type oidcLoginUser struct {
-	ID          uuid.UUID
-	Subject     string
-	Email       string
-	PhoneNumber string
+	ID                  uuid.UUID
+	Subject             string
+	Email               string
+	PhoneNumber         string
+	EmailVerified       bool
+	PhoneNumberVerified bool
+}
+
+type otpDeliveryChannel string
+
+const (
+	otpDeliverySMS   otpDeliveryChannel = "sms"
+	otpDeliveryEmail otpDeliveryChannel = "email"
+)
+
+func normalizeOTPDeliveryChannel(value string) otpDeliveryChannel {
+	if strings.EqualFold(strings.TrimSpace(value), string(otpDeliveryEmail)) {
+		return otpDeliveryEmail
+	}
+	return otpDeliverySMS
+}
+
+func otpDeliveryLabel(channel otpDeliveryChannel) string {
+	if channel == otpDeliveryEmail {
+		return "adresa de email asociată contului"
+	}
+	return "numărul de telefon asociat contului"
+}
+
+// resolveOTPDelivery is deliberately strict. SMS remains the default; email
+// is permitted only after the selected identity is verified and a trusted mail
+// sender is configured. The current runtime has no mail transport/configuration
+// surface, so email requests fail clearly before an OTP is generated.
+func resolveOTPDelivery(user oidcLoginUser, requested otpDeliveryChannel, smsService *notification.SMSService, fixtureEnabled bool) (otpDeliveryChannel, error) {
+	switch requested {
+	case otpDeliveryEmail:
+		if !user.EmailVerified || strings.TrimSpace(user.Email) == "" {
+			return "", errors.New("adresa de email nu este verificată pentru acest cont")
+		}
+		return "", errors.New("serviciul OTP prin email nu este configurat pentru acest mediu")
+	case otpDeliverySMS:
+		if !user.PhoneNumberVerified || strings.TrimSpace(user.PhoneNumber) == "" {
+			return "", errors.New("numărul de telefon nu este verificat pentru acest cont")
+		}
+		if !fixtureEnabled && (smsService == nil || !smsService.Configured()) {
+			return "", errors.New("serviciul SMS nu este configurat pe acest mediu")
+		}
+		return otpDeliverySMS, nil
+	default:
+		return "", errors.New("canal OTP invalid")
+	}
 }
 
 func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, tenantCode string) (oidcLoginUser, error) {
@@ -1010,11 +1226,9 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 
 	var user oidcLoginUser
 	err = tx.QueryRow(ctx, `
-		select id, sub, email, phone_number
+		select id, sub, email, phone_number, email_verified, phone_number_verified
 		from app_users
 		where status = 'active'
-			and phone_number_verified = true
-			and preferred_otp_channel = 'sms'
 			and (
 				lower(sub) = lower($1)
 				or lower(email) = lower($1)
@@ -1024,7 +1238,16 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 					where aliases.user_id = app_users.id
 						and lower(aliases.alias) = lower($1)
 				)
-				or regexp_replace(phone_number, '[^0-9]+', '', 'g') = any($2::text[])
+				or exists (
+					select 1
+					from app_user_identities identity
+					where identity.user_id = app_users.id
+						and identity.verified_at is not null
+						and (
+							(identity.identity_type = 'email' and identity.normalized_value = lower($1))
+							or (identity.identity_type = 'phone' and regexp_replace(identity.normalized_value, '[^0-9]+', '', 'g') = any($2::text[]))
+						)
+				)
 			)
 			and exists (
 				select 1 from app_memberships m
@@ -1032,7 +1255,7 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 			)
 		order by updated_at desc
 		limit 1
-	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.Email, &user.PhoneNumber)
+	`, identifier, candidates, tenantCode).Scan(&user.ID, &user.Subject, &user.Email, &user.PhoneNumber, &user.EmailVerified, &user.PhoneNumberVerified)
 	if err != nil {
 		return oidcLoginUser{}, err
 	}
@@ -1103,6 +1326,123 @@ func loadRolesForSubject(ctx context.Context, db oidcRowsQuerier, subject string
 	return roles, rows.Err()
 }
 
+func setOIDCAuthenticationClaims(session *goidc.AuthnSession, method string) {
+	if session == nil {
+		return
+	}
+	amr := []string{"otp"}
+	acr := "urn:eguilde:acr:sms-otp"
+	if method == "passkey" {
+		amr = []string{"hwk"}
+		acr = "urn:eguilde:acr:passkey"
+	} else if method == "email_otp" {
+		acr = "urn:eguilde:acr:email-otp"
+	}
+	sid := session.ID
+	authTime := time.Now().Unix()
+	for key, value := range map[string]any{"sid": sid, "amr": amr, "acr": acr, "auth_time": authTime} {
+		session.SetTokenClaim(key, value)
+		session.SetIDTokenClaim(key, value)
+		session.SetUserInfoClaim(key, value)
+	}
+}
+
+func loadPlatformRolesForSubject(ctx context.Context, db oidcRowsQuerier, subject string) ([]string, error) {
+	rows, err := db.Query(ctx, `
+		select distinct platform_role.role_code
+		from app_user_platform_roles platform_role
+		join app_users u on u.id = platform_role.user_id
+		where lower(u.sub) = lower($1)
+		order by platform_role.role_code
+	`, subject)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	roles := make([]string, 0, 2)
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+	return roles, rows.Err()
+}
+
+type oidcRowQuerier interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+func loadAuthorizationVersionForSubject(ctx context.Context, db oidcRowQuerier, subject, tenantCode string) (int64, error) {
+	var version int64
+	err := db.QueryRow(ctx, `
+		select authorization.version
+		from app_tenant_authorization_versions authorization
+		join app_users u on u.id = authorization.user_id
+		where lower(u.sub) = lower($1)
+			and authorization.tenant_code = $2
+	`, subject, tenantCode).Scan(&version)
+	return version, err
+}
+
+// loadPermissionsForSubject is the single effective-permission resolver used
+// by both token issuance and /api/me. Direct grants, role grants, position
+// grants and position-derived role grants are deliberately combined under the
+// same tenant-bound database context.
+func loadPermissionsForSubject(ctx context.Context, db oidcRowsQuerier, subject string, tenantCode string) ([]string, error) {
+	rows, err := db.Query(ctx, `
+		select distinct permission_code
+		from (
+			select up.permission_code
+			from app_user_permissions up
+			join app_users u on u.id = up.user_id
+			where lower(u.sub) = lower($1)
+			  and up.tenant_code = $2
+			union
+			select rp.permission_code
+			from app_user_roles ur
+			join app_users u on u.id = ur.user_id
+			join app_role_permissions rp on rp.role_code = ur.role_code
+			where lower(u.sub) = lower($1)
+			  and ur.tenant_code = $2
+			union
+			select pp.permission_code
+			from app_memberships m
+			join app_users u on u.id = m.user_id
+			join app_position_permissions pp on pp.position_code = m.position_code
+			where lower(u.sub) = lower($1)
+			  and m.active = true
+			  and m.tenant_code = $2
+			union
+			select rp.permission_code
+			from app_memberships m
+			join app_users u on u.id = m.user_id
+			join app_position_roles pr on pr.position_code = m.position_code
+			join app_role_permissions rp on rp.role_code = pr.role_code
+			where lower(u.sub) = lower($1)
+			  and m.active = true
+			  and m.tenant_code = $2
+		) permissions
+		order by permission_code
+	`, subject, tenantCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	permissions := make([]string, 0, 32)
+	for rows.Next() {
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, err
+		}
+		permissions = append(permissions, permission)
+	}
+	return permissions, rows.Err()
+}
+
 type scopeItem struct {
 	ID    string
 	Label string
@@ -1129,18 +1469,19 @@ func buildScopeItems(scopes string) []scopeItem {
 }
 
 type oidcLoginData struct {
-	Step           string
-	StepLabel      string
-	CustomerName   string
-	FormAction     string
-	FrontendOrigin string
-	ClientName     string
-	Identifier     string
-	Message        string
-	Error          string
-	WalletEnabled  bool
-	Scopes         []scopeItem
-	Theme          oidcThemeSettings
+	Step            string
+	StepLabel       string
+	CustomerName    string
+	FormAction      string
+	FrontendOrigin  string
+	ClientName      string
+	Identifier      string
+	DeliveryChannel string
+	Message         string
+	Error           string
+	WalletEnabled   bool
+	Scopes          []scopeItem
+	Theme           oidcThemeSettings
 }
 
 type oidcThemeSettings struct {
@@ -1400,8 +1741,8 @@ const oidcLoginHTML = `<!DOCTYPE html>
     .passkey-banner{display:flex;align-items:center;gap:8px;padding:10px;margin-top:10px;border-radius:12px;border:1px solid var(--border);background:var(--card-soft);font-size:12px;color:var(--text)}
     .field{margin-bottom:16px}
     .field label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px}
-    .field input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--control-radius);font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
-    .field input:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus);background:var(--card)}
+    .field input,.field select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--control-radius);font-size:14px;font-family:inherit;color:var(--text);background:var(--card-soft);outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+    .field input:focus,.field select:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px var(--focus);background:var(--card)}
     .hint{font-size:12px;line-height:1.5;color:var(--muted);margin-top:6px}
     .btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:11px 16px;background:var(--primary-500);color:#fff;border:none;border-radius:var(--control-radius);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s,box-shadow .15s;text-decoration:none}
     .btn:hover{background:var(--primary-600);box-shadow:0 10px 20px rgba(15,23,42,.16)}
@@ -1480,9 +1821,17 @@ const oidcLoginHTML = `<!DOCTYPE html>
           <div class="field">
             <label for="identifier">Utilizator, email sau numar de telefon</label>
             <input id="identifier" name="identifier" value="{{.Identifier}}" autocomplete="username" placeholder="utilizator / email / telefon" autofocus>
-            <div class="hint">Dupa identificare, sistemul trimite codul de 6 cifre catre telefonul asociat contului.</div>
+            <div class="hint">SMS este metoda implicită. Emailul poate fi selectat numai pentru o adresă verificată.</div>
           </div>
-          <button type="submit" class="btn">Trimite codul prin SMS</button>
+          <div class="field">
+            <label for="delivery_channel">Canal OTP</label>
+            <select id="delivery_channel" name="delivery_channel" class="field-select">
+              <option value="sms" {{if ne .DeliveryChannel "email"}}selected{{end}}>SMS (implicit)</option>
+              <option value="email" {{if eq .DeliveryChannel "email"}}selected{{end}}>Email verificat</option>
+            </select>
+            <div class="hint">Dacă emailul nu este configurat pentru acest mediu, fluxul se oprește înainte de generarea codului.</div>
+          </div>
+          <button type="submit" class="btn">Trimite codul</button>
         </form>
 
         {{else if eq .Step "otp"}}

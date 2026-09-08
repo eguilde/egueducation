@@ -2,8 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { primeTheme } from "../../components/ThemeMenu";
-import { AdministrationWorkspace } from "./AdministrationWorkspace";
-import type { AdminApi } from "./types";
+import { AdministrationWorkspace, normalizeUserForm, validateUserForm } from "./AdministrationWorkspace";
+import type { AdminApi, UpsertUserInput } from "./types";
 
 const api = (): AdminApi => ({
   dashboard: vi.fn().mockResolvedValue({ stats: {}, modules: [], admin_sections: [], warnings: [] }),
@@ -40,4 +40,35 @@ describe("AdministrationWorkspace resource RBAC", () => {
 		expect(screen.queryByRole("button", { name: "Adaugă sau actualizează" })).not.toBeInTheDocument();
 		expect(transport.saveResource).not.toHaveBeenCalled();
 	});
+});
+
+describe("AdministrationWorkspace user identity form", () => {
+  const phoneOnlyUser: UpsertUserInput = {
+    name: "  Utilizator SMS  ", email: "", phone: " +40712345678 ", locale: "ro", status: "active",
+    email_verified: false, phone_verified: true, preferred_otp_channel: "sms",
+  };
+
+  it("accepts and sends an SMS-primary phone-only user without inventing an e-mail address", () => {
+    expect(validateUserForm(phoneOnlyUser)).toBeUndefined();
+    expect(normalizeUserForm(phoneOnlyUser)).toEqual({
+      name: "Utilizator SMS",
+      email: "",
+      phone: "+40712345678",
+      locale: "ro",
+      status: "active",
+      email_verified: false,
+      phone_verified: true,
+      preferred_otp_channel: "sms",
+    });
+  });
+
+  it("requires an identifier and makes the SMS channel require a phone number", () => {
+    expect(validateUserForm({ ...phoneOnlyUser, phone: "" })).toBe("Introduceți e-mailul sau numărul de telefon al utilizatorului.");
+    expect(validateUserForm({ ...phoneOnlyUser, email: "ana@example.test", phone: "" })).toBe("Pentru autentificare prin SMS este necesar un număr de telefon.");
+    expect(validateUserForm({ ...phoneOnlyUser, phone_verified: false })).toBe("Numărul de telefon trebuie marcat ca verificat pentru autentificare prin SMS.");
+  });
+
+  it("preserves the immutable user id when an existing user is updated", () => {
+    expect(normalizeUserForm({ ...phoneOnlyUser, id: "1a2b3c4d" }).id).toBe("1a2b3c4d");
+  });
 });

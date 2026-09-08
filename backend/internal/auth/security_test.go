@@ -88,3 +88,15 @@ func TestTenantSuperAdminIsNotPlatformOperator(t *testing.T) {
 		t.Fatal("tenant role label must not grant platform-wide administration")
 	}
 }
+
+func TestDedicatedPlatformRoleIsRecognizedWithoutRLSBypass(t *testing.T) {
+	request := httptest.NewRequest("GET", "https://platform.example.test/api/admin/dashboard", nil)
+	session := SessionContext{PlatformRoles: []string{"platform_super_admin"}}
+	request = request.WithContext(context.WithValue(request.Context(), requestSessionContextKey, session))
+	if !IsPlatformSuperAdminFromRequest(request) {
+		t.Fatal("dedicated platform_super_admin assignment was not recognized")
+	}
+	if requestMayBypassTenantRLS(session, "tenant-balotesti") {
+		t.Fatal("platform role must not enable RLS bypass for interactive tenant requests")
+	}
+}

@@ -9,7 +9,21 @@ if (-not (Test-Path $Spec)) { throw "OpenAPI contract not found: $Spec. Run gene
 
 $specData = Get-Content -Raw $Spec | ConvertFrom-Json -AsHashtable
 if ($specData.openapi -ne '3.1.1') { throw "Expected OpenAPI 3.1.1, got '$($specData.openapi)'" }
-if (-not $specData.components.schemas.Problem -or -not $specData.components.securitySchemes.oidcAuthorizationCode) { throw 'Required Problem schema or OIDC security scheme missing.' }
+if (-not $specData.components.schemas.Problem -or -not $specData.components.schemas.AccessTokenAuthorizationClaims -or -not $specData.components.securitySchemes.oidcAuthorizationCode) { throw 'Required Problem, access-token authorization contract, or OIDC security scheme missing.' }
+
+$accessClaims = $specData.components.schemas.AccessTokenAuthorizationClaims
+foreach ($claim in @('sub', 'iss', 'aud', 'exp', 'iat', 'jti', 'sid', 'amr', 'acr', 'token_use', 'tenant_id', 'tenant_code', 'institution_id', 'roles', 'platform_roles', 'permissions', 'authz_version')) {
+    if ($accessClaims.required -notcontains $claim -or -not $accessClaims.properties.Contains($claim)) {
+        throw "Access-token authorization contract is missing required claim '$claim'"
+    }
+}
+
+$sessionContract = $specData.components.schemas.SessionContext
+foreach ($field in @('user', 'tenant_code', 'institution_id', 'institution_name', 'platform_roles', 'authz_version', 'permissions', 'modules', 'authentication', 'gdpr_capabilities')) {
+    if ($sessionContract.required -notcontains $field -or -not $sessionContract.properties.Contains($field)) {
+        throw "SessionContext contract is missing required field '$field'"
+    }
+}
 
 $specRaw = Get-Content -Raw $Spec
 foreach ($reference in [regex]::Matches($specRaw, '"#/components/(schemas|responses|parameters|securitySchemes)/([^"/]+)"')) {
@@ -141,8 +155,8 @@ function Assert-SuccessArrayItemProperties([string]$path,[string[]]$fields,[stri
 }
 # Representative high-risk responses guard authentication/profile, registratura,
 # workflow and archive semantics in addition to structural OpenAPI validity.
-Assert-SuccessProperties '/api/me' @('user','institution_id','permissions','modules','authentication')
-Assert-SuccessProperties '/api/profile' @('user','institution_id','permissions','modules','authentication') 'put'
+Assert-SuccessProperties '/api/me' @('user','tenant_code','institution_id','platform_roles','authz_version','permissions','modules','authentication')
+Assert-SuccessProperties '/api/profile' @('user','tenant_code','institution_id','platform_roles','authz_version','permissions','modules','authentication') 'put'
 Assert-SuccessProperties '/api/passkeys/login-options' @('status','options') 'post'
 Assert-SuccessProperties '/api/passkeys/register-options' @('challenge','rp','user','pubKeyCredParams') 'post'
 Assert-SuccessArrayItemProperties '/api/passkeys' @('id','credential_id','device_name','created_at','last_used_at')
@@ -154,6 +168,35 @@ Assert-SuccessProperties '/api/workflow/dashboard' @('stats')
 Assert-SuccessProperties '/api/workflow/tasks' @('id','definition_code','title','status','priority','available_actions') 'post'
 Assert-SuccessProperties '/api/earchiva/records/filters' @('fonds','series','statuses','source_modules','archivists')
 Assert-SuccessProperties '/api/earchiva/documents/{documentID}' @('id','title','mime_type','status','current_version_no','latest_version')
+
+$accessTokenClaims = $specData.components.schemas.AccessTokenAuthorizationClaims
+foreach ($requiredAuthorizationClaim in @('tenant_code','institution_id','roles','platform_roles','permissions','authz_version','token_use')) {
+    if (-not $accessTokenClaims.properties.Contains($requiredAuthorizationClaim)) { throw "Access-token contract missing authorization claim '$requiredAuthorizationClaim'." }
+}
+foreach ($forbiddenIdentityClaim in @('email','email_verified','phone_number','phone_number_verified','locale','name')) {
+    if ($accessTokenClaims.properties.Contains($forbiddenIdentityClaim)) { throw "Access-token contract leaks scope-controlled identity claim '$forbiddenIdentityClaim'." }
+}
+
+# The Registratura main grid is the first contract-first slice. These checks
+# deliberately reject the old camelCase/UUID request body and the old implicit
+# query-less/200 documentation.
+$documentList = $specData.paths['/api/registratura/documents'].get
+$documentListParameterNames = @($documentList.parameters | ForEach-Object { if ($_.'$ref') { ($_.'$ref' -split '/')[-1] } else { $_.name } })
+$expectedDocumentListParameterNames = @('page', 'pageSize', 'limit', 'sort', 'sortBy', 'direction', 'sortDir', 'q', 'filter.registru_id', 'filter.registry_number', 'filter.external_number', 'filter.subject', 'filter.document_type', 'filter.direction', 'filter.status', 'filter.correspondent', 'filter.assigned_to', 'filter.confidentiality', 'filter.registered_at', 'filter.registered_at_from', 'filter.registered_at_to', 'filter.entry_at_from', 'filter.entry_at_to', 'filter.exit_at_from', 'filter.exit_at_to', 'filter.due_date', 'filter.due_date_from', 'filter.due_date_to')
+if (Compare-Object $documentListParameterNames $expectedDocumentListParameterNames) { throw 'Registratura list query contract drifted from the handler-backed paging, sorting and filter set.' }
+$documentLimit = @($documentList.parameters | Where-Object { $_.name -eq 'limit' })[0]
+$documentSortBy = @($documentList.parameters | Where-Object { $_.name -eq 'sortBy' })[0]
+$documentRegistryFilter = @($documentList.parameters | Where-Object { $_.name -eq 'filter.registru_id' })[0]
+if ($documentLimit.schema.type -ne 'integer' -or $documentLimit.schema.maximum -ne 100 -or $documentSortBy.schema.enum -notcontains 'registry_number' -or $documentRegistryFilter.schema.format -ne 'int64') { throw 'Registratura list parameter types or sort fields do not match the handler.' }
+
+$documentCreate = $specData.paths['/api/registratura/documents'].post
+if (-not $documentCreate.responses['201'] -or $documentCreate.responses['200']) { throw 'Registratura create must document its actual 201 Created response, not 200.' }
+$documentCreateRef = [string]$documentCreate.requestBody.content.'application/json'.schema.'$ref'
+$documentCreateSchema = $specData.components.schemas[$documentCreateRef.Split('/')[-1]]
+$documentCreateFields = @($documentCreateSchema.properties.Keys | Sort-Object)
+$expectedDocumentCreateFields = @('registru_id', 'subject', 'document_type', 'direction', 'status', 'correspondent', 'assigned_to', 'correspondent_party_id', 'assigned_party_id', 'confidentiality', 'summary', 'due_date', 'external_number', 'external_number_date', 'entry_at', 'exit_at', 'activity', 'record_kind', 'department_ids') | Sort-Object
+$documentRegistryIDTypes = @($documentCreateSchema.properties.registru_id.type)
+if ((Compare-Object $documentCreateFields $expectedDocumentCreateFields) -or ($documentRegistryIDTypes -notcontains 'integer') -or $documentCreateSchema.properties.registru_id.format -ne 'int64' -or $documentCreateSchema.properties.Contains('registryId')) { throw 'Registratura create schema must exactly match CreateDocumentRequest snake_case fields, including int64 registru_id.' }
 
 foreach($sample in @(
     @{path='/api/admin/users'; fields=@('id','name','email','phone','locale','status','email_verified','phone_verified','preferred_otp_channel')},

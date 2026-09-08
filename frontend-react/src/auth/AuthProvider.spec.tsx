@@ -28,7 +28,10 @@ const session = {
     },
     institution_id: 'cda3c78c-96f6-45ac-89ce-099428c7d448',
     institution_name: 'Școala de test',
+    tenant_code: 'tenant-test',
     permissions: ['registratura.read'],
+    platform_roles: [],
+    authz_version: 1,
     modules: [{ code: 'registratura', active: true }],
     authentication: ['sms'],
     gdpr_capabilities: []

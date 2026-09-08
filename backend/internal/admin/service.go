@@ -3,7 +3,10 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/mail"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,6 +18,19 @@ import (
 	"github.com/eguilde/egueducation/internal/dossier"
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/eguilde/egueducation/internal/tenant"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+)
+
+var e164PhonePattern = regexp.MustCompile(`^\+[1-9][0-9]{7,14}$`)
+
+var (
+	errUserIdentityCollision          = errors.New("user login identity is already assigned")
+	errVerifiedLoginIdentifierMissing = errors.New("a verified email or phone login identifier is required")
+	errVerifiedPhoneMissing           = errors.New("the preferred sms channel requires a verified phone")
+	errVerifiedEmailMissing           = errors.New("the preferred email channel requires a verified email")
+	errInvalidPreferredOTPChannel     = errors.New("invalid preferred OTP channel")
 )
 
 type Service struct {
@@ -307,18 +323,25 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req.Name = strings.TrimSpace(req.Name)
-	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
-	req.Phone = strings.TrimSpace(req.Phone)
-	req.Locale = strings.TrimSpace(req.Locale)
-	req.Status = strings.TrimSpace(req.Status)
-	req.PreferredOTPChannel = strings.TrimSpace(req.PreferredOTPChannel)
-	if req.Name == "" || req.Email == "" || req.Locale == "" || req.Status == "" {
+	var normalizeErr error
+	req.Email, normalizeErr = normalizeAdminEmail(req.Email)
+	if normalizeErr != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_user"})
 		return
 	}
-	if req.PreferredOTPChannel == "" {
-		req.PreferredOTPChannel = "sms"
+	req.Phone = normalizeAdminPhone(req.Phone)
+	if req.Phone != "" && !e164PhonePattern.MatchString(req.Phone) {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_user"})
+		return
 	}
+	req.Locale = strings.TrimSpace(req.Locale)
+	req.Status = strings.TrimSpace(req.Status)
+	req.PreferredOTPChannel = strings.TrimSpace(req.PreferredOTPChannel)
+	if req.Name == "" || req.Locale == "" || req.Status == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_admin_user"})
+		return
+	}
+	tenantCode := s.tenantCode(r)
 	institutionID := s.institutionID(r)
 	institutionName := s.institutionName(r)
 	if req.ID != "" && !authruntime.IsPlatformSuperAdminFromRequest(r) {
@@ -328,7 +351,7 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 				select 1 from app_memberships
 				where user_id = $1::uuid and active = true and tenant_code <> $2
 			)
-		`, req.ID, s.tenantCode(r)).Scan(&sharedIdentity); err != nil || sharedIdentity {
+		`, req.ID, tenantCode).Scan(&sharedIdentity); err != nil || sharedIdentity {
 			httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "shared_identity_platform_admin_required"})
 			return
 		}
@@ -341,40 +364,94 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(r.Context()) //nolint:errcheck
 
-	subject := req.Email
+	var (
+		emailVerified bool
+		phoneVerified bool
+		userID        string
+		currentEmail  string
+		currentPhone  string
+	)
+	if req.ID != "" {
+		if err := tx.QueryRow(r.Context(), `
+			select id::text, email, phone_number, email_verified, phone_number_verified
+			from app_users
+			where id::text = $1
+				and exists (
+					select 1 from app_memberships m
+					where m.user_id = app_users.id and m.tenant_code = $2 and m.active = true
+				)
+			for update
+		`, req.ID, tenantCode).Scan(&userID, &currentEmail, &currentPhone, &emailVerified, &phoneVerified); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "admin_user_not_found"})
+				return
+			}
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+			return
+		}
+	}
+	emailVerified = resolveRequestedVerification(emailVerified, req.ID != "" && req.Email != currentEmail, req.EmailVerified)
+	phoneVerified = resolveRequestedVerification(phoneVerified, req.ID != "" && req.Phone != currentPhone, req.PhoneVerified)
+	preferredChannel, err := resolveAdminUserAuthentication(req, emailVerified, phoneVerified)
+	if err != nil {
+		writeAdminUserAuthenticationError(w, err)
+		return
+	}
+	req.PreferredOTPChannel = preferredChannel
+	if err := ensureAdminIdentityAvailable(r.Context(), tx, userID, "email", req.Email); err != nil {
+		writeAdminIdentityError(w, err)
+		return
+	}
+	if err := ensureAdminIdentityAvailable(r.Context(), tx, userID, "phone", req.Phone); err != nil {
+		writeAdminIdentityError(w, err)
+		return
+	}
+
 	var item AdminUser
 	if req.ID == "" {
+		subject := uuid.NewString()
 		err = tx.QueryRow(r.Context(), `
 			insert into app_users (
 				sub, name, email, phone_number, locale, status,
 				email_verified, phone_number_verified, preferred_otp_channel
 			) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 			returning id::text, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel
-		`, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, req.EmailVerified, req.PhoneVerified, req.PreferredOTPChannel).Scan(
+		`, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, emailVerified, phoneVerified, req.PreferredOTPChannel).Scan(
 			&item.ID, &item.Sub, &item.Name, &item.Email, &item.Phone, &item.Locale, &item.Status, &item.EmailVerified, &item.PhoneVerified, &item.PreferredOTPChannel,
 		)
 	} else {
 		err = tx.QueryRow(r.Context(), `
 			update app_users
-			set sub = $2,
-				name = $3,
-				email = $4,
-				phone_number = $5,
-				locale = $6,
-				status = $7,
-				email_verified = $8,
-				phone_number_verified = $9,
-				preferred_otp_channel = $10,
+			set name = $2,
+				email = $3,
+				phone_number = $4,
+				locale = $5,
+				status = $6,
+				email_verified = $7,
+				phone_number_verified = $8,
+				preferred_otp_channel = $9,
 				updated_at = now()
 			where id::text = $1
-			  and exists (select 1 from app_memberships m where m.user_id = app_users.id and m.tenant_code = $11 and m.active = true)
+			  and exists (select 1 from app_memberships m where m.user_id = app_users.id and m.tenant_code = $10 and m.active = true)
 			returning id::text, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel
-		`, req.ID, subject, req.Name, req.Email, req.Phone, req.Locale, req.Status, req.EmailVerified, req.PhoneVerified, req.PreferredOTPChannel, s.tenantCode(r)).Scan(
+		`, req.ID, req.Name, req.Email, req.Phone, req.Locale, req.Status, emailVerified, phoneVerified, req.PreferredOTPChannel, tenantCode).Scan(
 			&item.ID, &item.Sub, &item.Name, &item.Email, &item.Phone, &item.Locale, &item.Status, &item.EmailVerified, &item.PhoneVerified, &item.PreferredOTPChannel,
 		)
 	}
 	if err != nil {
+		if isAdminIdentityUniqueViolation(err) {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "admin_user_identity_conflict"})
+			return
+		}
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "admin_user_save_failed"})
+		return
+	}
+	if err := syncAdminUserIdentity(r.Context(), tx, item.ID, "email", item.Email, item.EmailVerified); err != nil {
+		writeAdminIdentityError(w, err)
+		return
+	}
+	if err := syncAdminUserIdentity(r.Context(), tx, item.ID, "phone", item.Phone, item.PhoneVerified); err != nil {
+		writeAdminIdentityError(w, err)
 		return
 	}
 
@@ -393,7 +470,7 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 		from app_modules
 		where active = true
 		on conflict do nothing
-	`, item.ID, s.tenantCode(r)); err != nil {
+	`, item.ID, tenantCode); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 		return
 	}
@@ -409,6 +486,156 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
+}
+
+func normalizeAdminPhone(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	hasLeadingPlus := strings.HasPrefix(value, "+")
+	var digits strings.Builder
+	for _, char := range value {
+		if char >= '0' && char <= '9' {
+			digits.WriteRune(char)
+		}
+	}
+	number := digits.String()
+	if number == "" {
+		return ""
+	}
+	if hasLeadingPlus {
+		return "+" + number
+	}
+	if len(number) == 10 && strings.HasPrefix(number, "0") {
+		return "+40" + number[1:]
+	}
+	if len(number) == 11 && strings.HasPrefix(number, "40") {
+		return "+" + number
+	}
+	return "+" + number
+}
+
+func normalizeAdminEmail(value string) (string, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return "", nil
+	}
+	parsed, err := mail.ParseAddress(value)
+	if err != nil || parsed.Address != value {
+		return "", errors.New("invalid email address")
+	}
+	at := strings.LastIndexByte(value, '@')
+	if at <= 0 || at == len(value)-1 || !strings.Contains(value[at+1:], ".") {
+		return "", errors.New("invalid email address")
+	}
+	return value, nil
+}
+
+func resolveRequestedVerification(current, identifierChanged bool, requested *bool) bool {
+	if requested != nil {
+		return *requested
+	}
+	if identifierChanged {
+		return false
+	}
+	return current
+}
+
+func resolveAdminUserAuthentication(req UpsertUserRequest, currentEmailVerified, currentPhoneVerified bool) (string, error) {
+	if (req.Email == "" || !currentEmailVerified) && (req.Phone == "" || !currentPhoneVerified) {
+		return "", errVerifiedLoginIdentifierMissing
+	}
+	channel := strings.TrimSpace(req.PreferredOTPChannel)
+	if channel == "" {
+		if req.Phone != "" && currentPhoneVerified {
+			channel = "sms"
+		} else {
+			channel = "email"
+		}
+	}
+	switch channel {
+	case "sms":
+		if req.Phone == "" || !currentPhoneVerified {
+			return "", errVerifiedPhoneMissing
+		}
+	case "email":
+		if req.Email == "" || !currentEmailVerified {
+			return "", errVerifiedEmailMissing
+		}
+	default:
+		return "", errInvalidPreferredOTPChannel
+	}
+	return channel, nil
+}
+
+func ensureAdminIdentityAvailable(ctx context.Context, tx pgx.Tx, userID, identityType, normalizedValue string) error {
+	normalizedValue = strings.TrimSpace(normalizedValue)
+	if normalizedValue == "" {
+		return nil
+	}
+	var collision bool
+	if err := tx.QueryRow(ctx, `
+		select exists(
+			select 1
+			from app_user_identities
+			where identity_type = $1
+				and normalized_value = $2
+				and user_id::text <> $3
+		)
+	`, identityType, normalizedValue, userID).Scan(&collision); err != nil {
+		return err
+	}
+	if collision {
+		return errUserIdentityCollision
+	}
+	return nil
+}
+
+func syncAdminUserIdentity(ctx context.Context, tx pgx.Tx, userID, identityType, normalizedValue string, verified bool) error {
+	normalizedValue = strings.TrimSpace(normalizedValue)
+	if _, err := tx.Exec(ctx, `delete from app_user_identities where user_id = $1::uuid and identity_type = $2`, userID, identityType); err != nil {
+		return err
+	}
+	if normalizedValue == "" {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `
+		insert into app_user_identities (
+			user_id, identity_type, normalized_value, display_value, verified_at, is_primary, updated_at
+		) values (
+			$1::uuid, $2, $3, $3,
+			case when $4 then now() else null end,
+			true, now()
+		)
+	`, userID, identityType, normalizedValue, verified)
+	return err
+}
+
+func writeAdminIdentityError(w http.ResponseWriter, err error) {
+	if errors.Is(err, errUserIdentityCollision) || isAdminIdentityUniqueViolation(err) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "admin_user_identity_conflict"})
+		return
+	}
+	httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
+}
+
+func isAdminIdentityUniqueViolation(err error) bool {
+	var databaseError *pgconn.PgError
+	return errors.As(err, &databaseError) && databaseError.Code == "23505"
+}
+
+func writeAdminUserAuthenticationError(w http.ResponseWriter, err error) {
+	code := "invalid_admin_user"
+	switch {
+	case errors.Is(err, errVerifiedLoginIdentifierMissing):
+		code = "admin_user_verified_login_identifier_required"
+	case errors.Is(err, errVerifiedPhoneMissing):
+		code = "admin_user_verified_phone_required"
+	case errors.Is(err, errVerifiedEmailMissing):
+		code = "admin_user_verified_email_required"
+	}
+	httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": code})
 }
 
 func (s *Service) UserFilters(w http.ResponseWriter, r *http.Request) {

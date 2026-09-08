@@ -98,6 +98,9 @@ jobs:
       - name: Tenant hostname directory and fail-closed routing
         working-directory: backend
         run: go test ./internal/tenant -run '^TestDatabaseResolverIntegration$' -count=1 -timeout 60s
+      - name: Identity contract migration and Balotesti authorization bootstrap
+        working-directory: backend
+        run: go test ./internal/db -run '^Test(IdentityContractFoundation|OIDCTenantBindingUpgrade)Integration$' -count=1 -timeout 90s
 
   oidc-browser-integration:
     name: OIDC browser login with deterministic test fixture
@@ -235,12 +238,14 @@ jobs:
       - name: Regenerate the typed API client
         run: npm run api:generate
       - name: Fail when the committed typed client is stale
-        run: git diff --exit-code -- frontend-react/src/api/generated.ts
+        run: git diff --exit-code -- frontend-react/src/api/generated.ts frontend-react/src/api/runtime-validators.ts
         working-directory: .
       - name: Typecheck
         run: npm run typecheck
       - name: PrimeReact and theme-token policy
         run: npm run quality:ui
+      - name: Generated API transport policy
+        run: npm run quality:contracts
       - name: Unit tests
         run: npm test
       - name: Production build

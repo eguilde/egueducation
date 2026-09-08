@@ -243,6 +243,76 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if got := jwtStringClaim(t, idToken, "nonce"); got != nonce {
 		t.Fatal("ID token nonce does not match the authorization request")
 	}
+	for _, claim := range []string{"name", "email", "locale"} {
+		if jwtStringClaim(t, idToken, claim) == "" {
+			t.Fatalf("ID token is missing granted identity claim %q", claim)
+		}
+		if jwtStringClaim(t, accessToken, claim) != "" {
+			t.Fatalf("access token leaked identity claim %q", claim)
+		}
+	}
+	if jwtStringClaim(t, idToken, "phone_number") != "" || jwtStringClaim(t, accessToken, "phone_number") != "" {
+		t.Fatal("phone_number was released without the phone scope")
+	}
+	if got := jwtStringClaim(t, accessToken, "tenant_id"); got != "tenant-egueducation" {
+		t.Fatalf("access token tenant_id = %q, want tenant-egueducation", got)
+	}
+	if got := jwtStringClaim(t, accessToken, "tenant_code"); got != "tenant-egueducation" {
+		t.Fatalf("access token tenant_code = %q, want tenant-egueducation", got)
+	}
+	accessRoles := jwtStringArrayClaim(t, accessToken, "roles")
+	accessPlatformRoles := jwtStringArrayClaim(t, accessToken, "platform_roles")
+	accessPermissions := jwtStringArrayClaim(t, accessToken, "permissions")
+	if len(accessRoles) == 0 || len(accessPermissions) == 0 {
+		t.Fatal("access token must contain effective tenant roles and permissions")
+	}
+	if accessPlatformRoles == nil {
+		t.Fatal("access token must encode platform_roles as an array")
+	}
+	if jwtStringClaim(t, accessToken, "jti") == "" || jwtStringClaim(t, accessToken, "sid") == "" || jwtStringClaim(t, accessToken, "acr") == "" {
+		t.Fatal("access token must contain jti, sid and acr")
+	}
+	if len(jwtStringArrayClaim(t, accessToken, "amr")) == 0 {
+		t.Fatal("access token must contain at least one authentication method")
+	}
+	if got := jwtInt64Claim(t, accessToken, "authz_version"); got <= 0 {
+		t.Fatalf("access token authz_version = %d, want positive value", got)
+	}
+	var tenantBoundGrantCount int
+	if err := adminPool.QueryRow(ctx, `
+		select count(*)
+		from oidc_grant_sessions
+		where tenant_code = 'tenant-egueducation'
+			and data->>'subject' = $1
+	`, user.ID.String()).Scan(&tenantBoundGrantCount); err != nil {
+		t.Fatalf("query tenant-bound OIDC grant: %v", err)
+	}
+	if tenantBoundGrantCount == 0 {
+		t.Fatal("authorization code and refresh grant were not persisted under the resolved tenant")
+	}
+
+	// The same opaque protocol identifier may safely exist in two tenant
+	// namespaces. Before migration 0084 the shared sentinel tenant_id made this
+	// an overwrite; now tenant_code is the primary conflict boundary.
+	const storageBoundaryID = "oidc-integration-cross-tenant-id"
+	for _, tenantCode := range []string{"tenant-egueducation", "tenant-balotesti"} {
+		if _, err := adminPool.Exec(ctx, `
+			insert into oidc_authn_sessions (tenant_id, tenant_code, id, data, expires_at)
+			values ($1::uuid, $2, $3, '{}'::jsonb, now() + interval '5 minutes')
+		`, localOIDCTenantID, tenantCode, storageBoundaryID); err != nil {
+			t.Fatalf("insert tenant-bound OIDC authn session for %s: %v", tenantCode, err)
+		}
+	}
+	t.Cleanup(func() {
+		_, _ = adminPool.Exec(context.Background(), `delete from oidc_authn_sessions where id = $1`, storageBoundaryID)
+	})
+	var storageBoundaryCount int
+	if err := adminPool.QueryRow(ctx, `select count(*) from oidc_authn_sessions where id = $1`, storageBoundaryID).Scan(&storageBoundaryCount); err != nil {
+		t.Fatalf("count tenant-bound OIDC authn sessions: %v", err)
+	}
+	if storageBoundaryCount != 2 {
+		t.Fatalf("same OIDC authn id must remain isolated per tenant, got %d rows", storageBoundaryCount)
+	}
 
 	meRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/api/me", nil)
 	if err != nil {
@@ -267,6 +337,12 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	}
 	if len(me.Modules) == 0 {
 		t.Fatal("browser fixture must be assigned active modules for full UI coverage")
+	}
+	if me.TenantCode != "tenant-egueducation" || me.AuthzVersion <= 0 {
+		t.Fatal("/api/me did not expose the tenant authorization version")
+	}
+	if !sameStringSet(accessRoles, me.User.Roles) || !sameStringSet(accessPlatformRoles, me.PlatformRoles) || !sameStringSet(accessPermissions, me.Permissions) {
+		t.Fatal("access token and /api/me must expose the same effective authorization")
 	}
 
 	mismatchRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/api/me", nil)
@@ -507,20 +583,50 @@ func readResponse(t *testing.T, body io.Reader) string {
 
 func jwtStringClaim(t *testing.T, token, name string) string {
 	t.Helper()
+	claims := jwtClaims(t, token)
+	value, _ := claims[name].(string)
+	return value
+}
+
+func jwtStringArrayClaim(t *testing.T, token, name string) []string {
+	t.Helper()
+	claims := jwtClaims(t, token)
+	raw, _ := claims[name].([]any)
+	values := make([]string, 0, len(raw))
+	for _, item := range raw {
+		value, ok := item.(string)
+		if !ok {
+			t.Fatalf("JWT claim %q contains a non-string value", name)
+		}
+		values = append(values, value)
+	}
+	return values
+}
+
+func jwtInt64Claim(t *testing.T, token, name string) int64 {
+	t.Helper()
+	value, ok := jwtClaims(t, token)[name].(float64)
+	if !ok {
+		t.Fatalf("JWT claim %q is not numeric", name)
+	}
+	return int64(value)
+}
+
+func jwtClaims(t *testing.T, token string) map[string]any {
+	t.Helper()
 	parts := strings.Split(token, ".")
 	if len(parts) != 3 {
-		t.Fatal("ID token is not a compact JWT")
+		t.Fatal("token is not a compact JWT")
 	}
 	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		t.Fatalf("decode ID token payload: %v", err)
+		t.Fatalf("decode token payload: %v", err)
 	}
 	var claims map[string]any
 	if err := json.Unmarshal(payload, &claims); err != nil {
-		t.Fatalf("decode ID token claims: %v", err)
+		t.Fatalf("decode token claims: %v", err)
 	}
-	value, _ := claims[name].(string)
-	return value
+	return claims
 }
 
 func hasExpiredRefreshCookie(cookies []*http.Cookie) bool {

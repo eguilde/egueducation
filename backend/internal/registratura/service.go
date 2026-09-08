@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -219,32 +220,7 @@ func (s *Service) Nomenclatures(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
-	query := httpx.ParsePageQuery(
-		r.URL.Query(),
-		map[string]struct{}{
-			"registru_id":        {},
-			"registry_number":    {},
-			"external_number":    {},
-			"subject":            {},
-			"document_type":      {},
-			"direction":          {},
-			"status":             {},
-			"correspondent":      {},
-			"assigned_to":        {},
-			"confidentiality":    {},
-			"registered_at":      {},
-			"registered_at_from": {},
-			"registered_at_to":   {},
-			"entry_at_from":      {},
-			"entry_at_to":        {},
-			"exit_at_from":       {},
-			"exit_at_to":         {},
-			"due_date":           {},
-			"due_date_from":      {},
-			"due_date_to":        {},
-		},
-		[]string{"registry_number", "external_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at", "entry_at", "exit_at"},
-	)
+	query := documentListPageQuery(r.URL.Query())
 
 	whereClause, args := buildDocumentFilters(s.institutionID(r), query.Filters)
 
@@ -350,13 +326,66 @@ func (s *Service) ListDocuments(w http.ResponseWriter, r *http.Request) {
 	httpx.WritePage(w, http.StatusOK, documents, total, query.Page, query.PageSize)
 }
 
+// documentListPageQuery keeps the original query names while accepting the
+// Costesti-compatible aliases used by contract clients. When both are present,
+// the original names take precedence: pageSize > limit, sort > sortBy and
+// direction > sortDir. This makes migrations deterministic and non-breaking.
+func documentListPageQuery(values url.Values) httpx.PageQuery {
+	copyValues := make(url.Values, len(values))
+	for key, value := range values {
+		copyValues[key] = append([]string(nil), value...)
+	}
+	values = copyValues
+	if strings.TrimSpace(values.Get("pageSize")) == "" {
+		values.Set("pageSize", values.Get("limit"))
+	}
+	if strings.TrimSpace(values.Get("sort")) == "" {
+		values.Set("sort", values.Get("sortBy"))
+	}
+	if strings.TrimSpace(values.Get("direction")) == "" {
+		values.Set("direction", values.Get("sortDir"))
+	}
+	if query := strings.TrimSpace(values.Get("q")); query != "" {
+		values.Set("filter.q", query)
+	}
+
+	return httpx.ParsePageQuery(
+		values,
+		map[string]struct{}{
+			"registru_id":        {},
+			"registry_number":    {},
+			"external_number":    {},
+			"subject":            {},
+			"document_type":      {},
+			"direction":          {},
+			"status":             {},
+			"correspondent":      {},
+			"assigned_to":        {},
+			"confidentiality":    {},
+			"registered_at":      {},
+			"registered_at_from": {},
+			"registered_at_to":   {},
+			"entry_at_from":      {},
+			"entry_at_to":        {},
+			"exit_at_from":       {},
+			"exit_at_to":         {},
+			"due_date":           {},
+			"due_date_from":      {},
+			"due_date_to":        {},
+		},
+		[]string{"q", "registru_id", "registry_number", "external_number", "subject", "document_type", "direction", "status", "correspondent", "assigned_to", "confidentiality", "registered_at", "registered_at_from", "registered_at_to", "entry_at_from", "entry_at_to", "exit_at_from", "exit_at_to", "due_date", "due_date_from", "due_date_to"},
+	)
+}
+
 func (s *Service) DocumentFilters(w http.ResponseWriter, r *http.Request) {
 	s.Nomenclatures(w, r)
 }
 
 func (s *Service) CreateDocument(w http.ResponseWriter, r *http.Request) {
 	var req CreateDocumentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{
 			"code":    "invalid_document_payload",
 			"message": "Cererea nu este valida.",
@@ -1443,6 +1472,11 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("%s = $%d", column, len(args)))
 	}
+	if value := strings.TrimSpace(filters["q"]); value != "" {
+		args = append(args, "%"+strings.ToLower(value)+"%")
+		position := len(args)
+		clauses = append(clauses, fmt.Sprintf("(lower(d.registry_number) like $%d or lower(coalesce(d.external_number, '')) like $%d or lower(d.subject) like $%d or lower(d.correspondent) like $%d or lower(d.assigned_to) like $%d)", position, position, position, position, position))
+	}
 
 	if value := filters["registry_number"]; value != "" {
 		addContains("d.registry_number", value)
@@ -1474,7 +1508,7 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 	if value := filters["confidentiality"]; value != "" {
 		addEqual("d.confidentiality", value)
 	}
-	if value := filters["registered_on"]; value != "" {
+	if value := filters["registered_at"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("d.registered_at::date = $%d::date", len(args)))
 	}
@@ -1505,6 +1539,10 @@ func buildDocumentFilters(institutionID string, filters map[string]string) (stri
 	if value := filters["due_date_from"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("d.due_date >= $%d::date", len(args)))
+	}
+	if value := filters["due_date"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("d.due_date = $%d::date", len(args)))
 	}
 	if value := filters["due_date_to"]; value != "" {
 		args = append(args, value)

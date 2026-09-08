@@ -20,8 +20,11 @@ type SessionModule struct {
 
 type SessionContext struct {
 	User             SessionUser     `json:"user"`
+	TenantCode       string          `json:"tenant_code"`
 	InstitutionID    string          `json:"institution_id"`
 	InstitutionName  string          `json:"institution_name"`
+	PlatformRoles    []string        `json:"platform_roles"`
+	AuthzVersion     int64           `json:"authz_version"`
 	Permissions      []string        `json:"permissions"`
 	Modules          []SessionModule `json:"modules"`
 	Authentication   []string        `json:"authentication"`
@@ -29,9 +32,9 @@ type SessionContext struct {
 }
 
 type RoleCatalogItem struct {
-	Code        string `json:"code"`
-	Label       string `json:"label"`
-	Description string `json:"description"`
+	Code        string   `json:"code"`
+	Label       string   `json:"label"`
+	Description string   `json:"description"`
 	Permissions []string `json:"permissions,omitempty"`
 	Positions   []string `json:"positions,omitempty"`
 }
