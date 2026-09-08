@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
@@ -27,8 +26,7 @@ var errNoRegistraturaArchiveOutboxEvent = errors.New("no registratura archive ou
 type archiveObjectStore interface {
 	Enabled() bool
 	Bucket() string
-	OpenObject(context.Context, string) (io.ReadCloser, error)
-	PutObject(context.Context, string, string, io.Reader, int64) error
+	CopyObject(context.Context, string, string, string) error
 	OriginalObjectKey(string, string, string) string
 	ArtifactObjectKey(string, string, int) string
 }
@@ -207,20 +205,13 @@ func (w *RegistraturaArchiveOutboxWorker) processEvent(ctx context.Context, even
 	// retry. UUIDv5 is scoped by tenant and the immutable Registratura ID.
 	archiveDocumentID := uuidForRegistraturaArchive(event.InstitutionID, event.DocumentID)
 	originalKey := w.storage.OriginalObjectKey(event.InstitutionID, archiveDocumentID, source.FileName)
-	// The source was malware-scanned before Registratura accepted it. Stream it
-	// rather than trusting a client-provided URL or granting the worker a broad
-	// object-store copy permission.
-	body, err := w.storage.OpenObject(ctx, source.StorageKey)
-	if err != nil {
-		return w.failEvent(ctx, event, fmt.Errorf("open registratura archive source: %w", err))
-	}
-	putErr := w.storage.PutObject(ctx, originalKey, source.MimeType, body, source.SizeBytes)
-	closeErr := body.Close()
-	if putErr != nil {
-		return w.failEvent(ctx, event, fmt.Errorf("copy registratura archive source: %w", putErr))
-	}
-	if closeErr != nil {
-		return w.failEvent(ctx, event, fmt.Errorf("close registratura archive source: %w", closeErr))
+	// The source was malware-scanned before Registratura accepted it. Both keys
+	// live in the same tenant-scoped archive bucket, so use an authenticated
+	// server-side copy. This avoids relaying large PDFs through the API process
+	// and works for S3-compatible HTTP endpoints where a GetObject response is
+	// not seekable for a second SigV4/checksum pass.
+	if err := w.storage.CopyObject(ctx, source.StorageKey, originalKey, source.MimeType); err != nil {
+		return w.failEvent(ctx, event, fmt.Errorf("copy registratura archive source: %w", err))
 	}
 
 	if err := w.persistArchiveRecord(ctx, event, source, archiveDocumentID, originalKey); err != nil {

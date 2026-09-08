@@ -50,6 +50,15 @@ func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage,
 	if err != nil {
 		return nil, fmt.Errorf("load archive storage config: %w", err)
 	}
+	// ArchiveStorage uses an explicitly configured S3-compatible endpoint
+	// (currently MinIO). Newer AWS SDK releases calculate optional CRC32
+	// checksums for every PutObject by default. That mode cannot relay a
+	// non-seekable GetObject response over plain HTTP because the checksum
+	// middleware would need either TLS trailers or a second read. Required-only
+	// keeps checksums for operations whose protocol mandates them while allowing
+	// bounded, content-length-delimited streaming copies without buffering an
+	// entire archive document in memory.
+	awsCfg.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(endpoint)
@@ -127,6 +136,26 @@ func (s *ArchiveStorage) PutObject(ctx context.Context, key, contentType string,
 
 	if _, err := s.client.PutObject(ctx, input); err != nil {
 		return fmt.Errorf("put archive object %s: %w", key, err)
+	}
+	return nil
+}
+
+func (s *ArchiveStorage) CopyObject(ctx context.Context, sourceKey, destinationKey, contentType string) error {
+	if !s.Enabled() {
+		return fmt.Errorf("archive storage is disabled")
+	}
+
+	input := &s3.CopyObjectInput{
+		Bucket:     aws.String(s.bucket),
+		Key:        aws.String(destinationKey),
+		CopySource: aws.String(url.PathEscape(path.Join(s.bucket, sourceKey))),
+	}
+	if strings.TrimSpace(contentType) != "" {
+		input.ContentType = aws.String(contentType)
+		input.MetadataDirective = s3types.MetadataDirectiveReplace
+	}
+	if _, err := s.client.CopyObject(ctx, input); err != nil {
+		return fmt.Errorf("copy archive object %s to %s: %w", sourceKey, destinationKey, err)
 	}
 	return nil
 }

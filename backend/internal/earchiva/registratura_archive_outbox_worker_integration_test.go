@@ -162,6 +162,14 @@ func (s *memoryArchiveStore) PutObject(_ context.Context, key, _ string, body io
 	s.objects[key] = value
 	return nil
 }
+func (s *memoryArchiveStore) CopyObject(_ context.Context, sourceKey, destinationKey, _ string) error {
+	value, ok := s.objects[sourceKey]
+	if !ok {
+		return fmt.Errorf("object %q not found", sourceKey)
+	}
+	s.objects[destinationKey] = append([]byte(nil), value...)
+	return nil
+}
 func (s *memoryArchiveStore) OriginalObjectKey(institutionID, documentID, fileName string) string {
 	return strings.Join([]string{"archive", institutionID, documentID, "original", fileName}, "/")
 }
