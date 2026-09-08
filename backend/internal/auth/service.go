@@ -891,13 +891,19 @@ func (s *Service) runtimeCapability(code string) bool {
 }
 
 func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, credentialID string, tenantCode string) (string, string, string, *passkeyPublicKey, uint32, error) {
+	tx, err := beginTenantReadTx(ctx, s.db.Raw(), tenantCode, "passkey credential lookup")
+	if err != nil {
+		return "", "", "", nil, 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
 	var (
 		subject    string
 		userID     string
 		deviceName string
 		payload    string
 	)
-	err := s.db.QueryRow(ctx, `
+	err = tx.QueryRow(ctx, `
 		select u.sub, u.id::text, p.device_name, p.credential_payload::text
 		from app_passkeys p
 		join app_users u on u.id = p.user_id
@@ -907,6 +913,9 @@ func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, creden
 	`, credentialID, tenantCode).Scan(&subject, &userID, &deviceName, &payload)
 	if err != nil {
 		return "", "", "", nil, 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return "", "", "", nil, 0, fmt.Errorf("commit tenant-scoped passkey lookup: %w", err)
 	}
 	publicKey, signCount, err := passkeyPublicKeyFromStoredPayload([]byte(payload), passkeyRPID(s.cfg.FrontendOrigin))
 	if err != nil {
