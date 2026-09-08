@@ -53,6 +53,7 @@ begin
 		when regexp_replace(btrim(u.phone_number), '[^0-9]', '', 'g') like '07%' then
 			'+40' || substr(regexp_replace(btrim(u.phone_number), '[^0-9]', '', 'g'), 2)
 		else regexp_replace(btrim(u.phone_number), '[^0-9+]', '', 'g')
+	end
 	into canonical_user_id, canonical_phone
 	from app_users u
 	where u.sub = 'thomasgalambos';

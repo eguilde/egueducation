@@ -12,18 +12,26 @@ function db(sql: string, scope = primary): string {
   return execFileSync('psql', ['--no-psqlrc', '--tuples-only', '--no-align', '--quiet', url, '-c', scoped], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-function awsObjectExists(key: string): boolean {
+function configureMinioClient(): void {
+  execFileSync('docker', ['exec', 'egueducation-earchiva-system-minio', 'mc', 'alias', 'set', 'e2e', 'http://127.0.0.1:9000', 'minioadmin', 'minioadmin123'], {
+    encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function minioObjectExists(key: string): boolean {
   try {
-    execFileSync('aws', ['--endpoint-url', process.env.ARCHIVE_STORAGE_ENDPOINT ?? 'http://127.0.0.1:9000', 's3api', 'head-object', '--bucket', 'earchiva-system-e2e', '--key', key], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, AWS_ACCESS_KEY_ID: process.env.ARCHIVE_STORAGE_ACCESS_KEY ?? 'minioadmin', AWS_SECRET_ACCESS_KEY: process.env.ARCHIVE_STORAGE_SECRET_KEY ?? 'minioadmin123', AWS_DEFAULT_REGION: 'us-east-1' },
+    configureMinioClient();
+    execFileSync('docker', ['exec', 'egueducation-earchiva-system-minio', 'mc', 'stat', '--json', `e2e/earchiva-system-e2e/${key}`], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     });
     return true;
   } catch { return false; }
 }
 
 function readArchiveArtifact(key: string): string {
-  return execFileSync('aws', ['--endpoint-url', process.env.ARCHIVE_STORAGE_ENDPOINT ?? 'http://127.0.0.1:9000', 's3', 'cp', `s3://earchiva-system-e2e/${key}`, '-'], {
-    encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, AWS_ACCESS_KEY_ID: process.env.ARCHIVE_STORAGE_ACCESS_KEY ?? 'minioadmin', AWS_SECRET_ACCESS_KEY: process.env.ARCHIVE_STORAGE_SECRET_KEY ?? 'minioadmin123', AWS_DEFAULT_REGION: 'us-east-1' },
+  configureMinioClient();
+  return execFileSync('docker', ['exec', 'egueducation-earchiva-system-minio', 'mc', 'cat', `e2e/earchiva-system-e2e/${key}`], {
+    encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
   });
 }
 
@@ -108,8 +116,8 @@ test('PrimeReact upload reaches PostgreSQL, MinIO, Azure OCR, classification, FT
   const [originalKey, artifactKey] = documentRow.split('|');
   expect(originalKey).toContain(`archive/${primary.institution}/`);
   expect(artifactKey).toContain('/artifact.json');
-  expect(awsObjectExists(originalKey)).toBe(true);
-  expect(awsObjectExists(artifactKey)).toBe(true);
+  expect(minioObjectExists(originalKey)).toBe(true);
+  expect(minioObjectExists(artifactKey)).toBe(true);
   expect(readArchiveArtifact(artifactKey)).toContain('Maria Popescu');
   expect(db(`select text_status || '|' || page_count::text || '|' || cardinality(search_embedding)::text from archive_document_versions where document_id='${created.id}'`)).toBe('processed|1|256');
   expect(db(`select count(*)::text from archive_document_chunks where version_id=(select id from archive_document_versions where document_id='${created.id}')`)).toBe('1');

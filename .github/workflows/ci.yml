@@ -306,7 +306,7 @@ jobs:
       - name: Install system dependencies, React dependencies and Chromium
         run: |
           sudo apt-get update
-          sudo apt-get install --yes postgresql-client awscli
+          sudo apt-get install --yes postgresql-client
           cd frontend-react
           npm ci
           npx playwright install --with-deps chromium
