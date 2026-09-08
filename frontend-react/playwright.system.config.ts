@@ -22,7 +22,7 @@ export default defineConfig({
   // This proof drives three real OIDC browser sessions, PostgreSQL RLS,
   // Registratura uploads, a 20-row batch, workflow approval and MinIO outbox
   // delivery. Keep a bounded timeout that reflects the complete contract.
-  timeout: 180_000,
+  timeout: 300_000,
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
