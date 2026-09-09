@@ -3,6 +3,7 @@ package education
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -39,6 +40,11 @@ type PortfolioDeclarationAcknowledgement struct {
 type PortfolioDeclarationEvidenceResponse struct {
 	Templates        []PortfolioDeclarationTemplate        `json:"templates"`
 	Acknowledgements []PortfolioDeclarationAcknowledgement `json:"acknowledgements"`
+}
+
+func writePortfolioDeclarationAcknowledgementFailure(w http.ResponseWriter, stage string, err error) {
+	slog.Error("portfolio declaration acknowledgement failed", "stage", stage, "error", err)
+	httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
 }
 
 // PortfolioDeclarationAcknowledgementRequest deliberately excludes the
@@ -187,7 +193,7 @@ func (s *Service) AcknowledgePortfolioOwnDeclaration(w http.ResponseWriter, r *h
 
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
+		writePortfolioDeclarationAcknowledgementFailure(w, "begin", err)
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -206,7 +212,7 @@ func (s *Service) AcknowledgePortfolioOwnDeclaration(w http.ResponseWriter, r *h
 		return
 	}
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
+		writePortfolioDeclarationAcknowledgementFailure(w, "lock_portfolio", err)
 		return
 	}
 
@@ -226,7 +232,7 @@ func (s *Service) AcknowledgePortfolioOwnDeclaration(w http.ResponseWriter, r *h
 		return
 	}
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
+		writePortfolioDeclarationAcknowledgementFailure(w, "load_template", err)
 		return
 	}
 
@@ -260,11 +266,11 @@ func (s *Service) AcknowledgePortfolioOwnDeclaration(w http.ResponseWriter, r *h
 		`, recordID, s.institutionID(r), declarationType, template.DeclarationVersion), &acknowledgement)
 	}
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
+		writePortfolioDeclarationAcknowledgementFailure(w, "insert_or_load", err)
 		return
 	}
 	if err := tx.Commit(r.Context()); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_declaration_acknowledgement_failed"})
+		writePortfolioDeclarationAcknowledgementFailure(w, "commit", err)
 		return
 	}
 	if created {
