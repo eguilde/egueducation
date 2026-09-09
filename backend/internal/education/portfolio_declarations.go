@@ -246,7 +246,7 @@ func (s *Service) AcknowledgePortfolioOwnDeclaration(w http.ResponseWriter, r *h
 			$1::uuid, $2, public.current_tenant_code(), $3, $4, $5, $6::uuid,
 			$7, jsonb_build_object(
 				'accepted_by_user_id', $6::text,
-				'actor_subject', $8,
+				'actor_subject', $8::text,
 				'channel', 'authenticated_web'
 			), '{}'::jsonb
 		)
