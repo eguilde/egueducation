@@ -236,7 +236,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   );
   await page.goto('/scoala/portfolio');
   expect((await portfolioGrantManagerLoaded).status()).toBe(200);
-  await expect(page.getByRole('status')).toBeHidden({ timeout: 10_000 });
+  await expect(page.getByLabel('Drepturi de atașare active', { exact: true }).getByRole('status')).toBeHidden({ timeout: 10_000 });
   await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
   for (const archive of portfolioArchives) {
     const eligibleListsLoaded = Promise.all([
@@ -257,6 +257,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     const granted = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants' && response.request().method() === 'POST');
     await grantDialog.getByRole('button', { name: 'Acordă acces' }).click();
     expect((await granted).status()).toBe(201);
+    await expect(grantDialog).toBeHidden();
   }
   expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(5);
   const procedureCode = `PORT-E2E-${Date.now()}`;
