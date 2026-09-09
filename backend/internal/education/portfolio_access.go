@@ -228,16 +228,16 @@ func scanPortfolioArchiveAttachmentGrant(row pgx.Row, item *PortfolioArchiveAtta
 }
 
 const portfolioArchiveAttachmentGrantColumns = `
-	grant.id::text, grant.archive_document_id::text, document.title,
-	grant.grantee_user_id::text, grantee.name, coalesce(grant.granted_by_user_id::text, ''),
-	to_char(grant.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
+	attachment_grant.id::text, attachment_grant.archive_document_id::text, document.title,
+	attachment_grant.grantee_user_id::text, grantee.name, coalesce(attachment_grant.granted_by_user_id::text, ''),
+	to_char(attachment_grant.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')`
 
 func (s *Service) PortfolioArchiveAttachmentGrants(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"document_title": {}, "grantee_name": {}}, []string{"document_title", "grantee_name"})
 	if query.Sort == "" {
 		query.Sort = "document_title"
 	}
-	where := "where grant.institution_id = $1"
+	where := "where attachment_grant.institution_id = $1"
 	args := []any{s.institutionID(r)}
 	if value := strings.TrimSpace(query.Filters["document_title"]); value != "" {
 		args = append(args, "%"+strings.ToLower(value)+"%")
@@ -248,7 +248,7 @@ func (s *Service) PortfolioArchiveAttachmentGrants(w http.ResponseWriter, r *htt
 		where += fmt.Sprintf(" and lower(grantee.name) like $%d", len(args))
 	}
 	var total int
-	if err := s.pool.QueryRow(r.Context(), `select count(*) from education_portfolio_archive_attachment_grants grant join archive_documents document on document.id = grant.archive_document_id join app_users grantee on grantee.id = grant.grantee_user_id `+where, args...).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(r.Context(), `select count(*) from education_portfolio_archive_attachment_grants attachment_grant join archive_documents document on document.id = attachment_grant.archive_document_id join app_users grantee on grantee.id = attachment_grant.grantee_user_id `+where, args...).Scan(&total); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_archive_grants_failed"})
 		return
 	}
@@ -257,7 +257,7 @@ func (s *Service) PortfolioArchiveAttachmentGrants(w http.ResponseWriter, r *htt
 		sortColumn = "grantee.name"
 	}
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
-	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`select %s from education_portfolio_archive_attachment_grants grant join archive_documents document on document.id = grant.archive_document_id join app_users grantee on grantee.id = grant.grantee_user_id %s order by %s %s, grant.id limit $%d offset $%d`, portfolioArchiveAttachmentGrantColumns, where, sortColumn, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`select %s from education_portfolio_archive_attachment_grants attachment_grant join archive_documents document on document.id = attachment_grant.archive_document_id join app_users grantee on grantee.id = attachment_grant.grantee_user_id %s order by %s %s, attachment_grant.id limit $%d offset $%d`, portfolioArchiveAttachmentGrantColumns, where, sortColumn, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_archive_grants_failed"})
 		return
@@ -402,7 +402,7 @@ func (s *Service) CreatePortfolioArchiveAttachmentGrant(w http.ResponseWriter, r
 		return
 	}
 	var item PortfolioArchiveAttachmentGrant
-	err = scanPortfolioArchiveAttachmentGrant(s.pool.QueryRow(r.Context(), `select `+portfolioArchiveAttachmentGrantColumns+` from education_portfolio_archive_attachment_grants grant join archive_documents document on document.id=grant.archive_document_id join app_users grantee on grantee.id=grant.grantee_user_id where grant.id=$1::uuid and grant.institution_id=$2`, grantID, s.institutionID(r)), &item)
+	err = scanPortfolioArchiveAttachmentGrant(s.pool.QueryRow(r.Context(), `select `+portfolioArchiveAttachmentGrantColumns+` from education_portfolio_archive_attachment_grants attachment_grant join archive_documents document on document.id=attachment_grant.archive_document_id join app_users grantee on grantee.id=attachment_grant.grantee_user_id where attachment_grant.id=$1::uuid and attachment_grant.institution_id=$2`, grantID, s.institutionID(r)), &item)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_archive_grant_load_failed"})
 		return
@@ -418,7 +418,7 @@ func (s *Service) DeletePortfolioArchiveAttachmentGrant(w http.ResponseWriter, r
 		return
 	}
 	var exists, referenced bool
-	err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_archive_attachment_grants where id=$1::uuid and institution_id=$2),exists(select 1 from education_portfolio_archive_attachment_grants grant join education_portfolio_documents evidence on evidence.archive_document_id=grant.archive_document_id join education_portfolios portfolio on portfolio.id=evidence.portfolio_id where grant.id=$1::uuid and grant.institution_id=$2 and portfolio.status in ('submitted','validated','transferred','archived'))`, grantID, s.institutionID(r)).Scan(&exists, &referenced)
+	err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_archive_attachment_grants where id=$1::uuid and institution_id=$2),exists(select 1 from education_portfolio_archive_attachment_grants attachment_grant join education_portfolio_documents evidence on evidence.archive_document_id=attachment_grant.archive_document_id join education_portfolios portfolio on portfolio.id=evidence.portfolio_id where attachment_grant.id=$1::uuid and attachment_grant.institution_id=$2 and portfolio.status in ('submitted','validated','transferred','archived'))`, grantID, s.institutionID(r)).Scan(&exists, &referenced)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_archive_grant_revoke_failed"})
 		return

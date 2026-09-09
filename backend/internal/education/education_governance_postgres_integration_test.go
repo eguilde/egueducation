@@ -77,6 +77,13 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	if total != 1 || len(attachments) != 1 || attachments[0].ID != storedArchiveID || attachments[0].Title != "Eligible portfolio evidence" || attachments[0].CurrentVersionNo != 1 {
 		t.Fatalf("attachment picker must return only current stored tenant evidence: total=%d items=%#v", total, attachments)
 	}
+	requestA.URL.RawQuery = "page=1&pageSize=25&sort=document_title&direction=asc"
+	grantListResponse := httptest.NewRecorder()
+	service.PortfolioArchiveAttachmentGrants(grantListResponse, requestA)
+	requestA.URL.RawQuery = ""
+	if grantListResponse.Code != http.StatusOK {
+		t.Fatalf("tenant-scoped portfolio attachment grant list failed: status=%d body=%s", grantListResponse.Code, grantListResponse.Body.String())
+	}
 	attachments, total, err = service.listPortfolioArchiveAttachments(requestA, fixture.institutionA, fixture.foreignMemberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("same-tenant user without explicit attachment grant must see no archive evidence: total=%d items=%#v err=%v", total, attachments, err)
