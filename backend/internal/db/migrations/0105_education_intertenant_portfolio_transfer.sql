@@ -262,8 +262,8 @@ begin
 		select source.display_name, destination.display_name
 		into new.source_institution, new.destination_institution
 		from app_tenants source
-		join app_tenants destination
-			on destination.code = new.destination_tenant_code
+		join education_portfolio_transfer_destination_directory destination
+			on destination.tenant_code = new.destination_tenant_code
 			and destination.institution_id = new.destination_institution_id
 			and destination.active
 		where source.code = new.source_tenant_code
@@ -418,7 +418,7 @@ alter table education_portfolio_transfers enable row level security;
 alter table education_portfolio_transfers force row level security;
 drop policy if exists tenant_isolation on education_portfolio_transfers;
 drop policy if exists education_portfolio_transfer_participants on education_portfolio_transfers;
-create policy education_portfolio_transfer_participants on education_portfolio_transfers
+create policy tenant_isolation on education_portfolio_transfers
 	using (
 		public.can_bypass_tenant_rls()
 		or (source_tenant_code = public.current_tenant_code() and source_institution_id = public.current_institution_id())

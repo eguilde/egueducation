@@ -236,7 +236,7 @@ declare actor text := nullif(btrim(current_setting('app.actor_subject', true)), 
 	package_status text;
 	package_institution text;
 	version_document uuid;
-	version_no integer;
+	archive_version_number integer;
 	source_bucket text;
 	source_key text;
 	source_hash text;
@@ -247,11 +247,14 @@ begin
 	select status,institution_id into package_status,package_institution from education_portfolio_valorification_packages where id=new.package_id;
 	if not found or package_institution <> new.institution_id then raise exception 'valorification package document must belong to its package institution'; end if;
 	if package_status <> 'draft' then raise exception 'valorification package documents are immutable after submission'; end if;
-	select document_id,version_no,source_bucket,source_object_key,source_sha256 into version_document,version_no,source_bucket,source_key,source_hash from archive_document_versions where id=new.archive_version_id and institution_id=new.institution_id and status='active';
+	select version.document_id,version.version_no,version.source_bucket,version.source_object_key,version.source_sha256
+	into version_document,archive_version_number,source_bucket,source_key,source_hash
+	from archive_document_versions version
+	where version.id=new.archive_version_id and version.institution_id=new.institution_id and version.status='active';
 	if not found or version_document <> new.archive_document_id then raise exception 'valorification package document must reference an archive version in institution'; end if;
 	if btrim(source_bucket) = '' or btrim(source_key) = '' or lower(btrim(source_hash)) !~ '^[0-9a-f]{64}$' then raise exception 'valorification package document requires an active archive version with complete source provenance'; end if;
 	if not public.can_bypass_tenant_rls() then new.created_by_subject:=actor; end if;
-	new.archive_version_no:=version_no; new.archive_source_bucket:=source_bucket; new.archive_source_object_key:=source_key; new.archive_sha256:=source_hash; new.created_at:=now();
+	new.archive_version_no:=archive_version_number; new.archive_source_bucket:=source_bucket; new.archive_source_object_key:=source_key; new.archive_sha256:=source_hash; new.created_at:=now();
 	return new;
 end $$;
 
