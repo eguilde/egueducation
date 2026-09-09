@@ -41,6 +41,19 @@ function databaseScalar(sql: string, scope: TenantScope = egueducationScope): st
   }).trim();
 }
 
+function tenantDatabaseScalar(sql: string, scope: TenantScope): string {
+  const databaseURL = process.env.DATABASE_URL;
+  if (!databaseURL) throw new Error('DATABASE_URL is required for tenant-scoped PostgreSQL assertions.');
+  // DATABASE_URL uses the same NOSUPERUSER/NOBYPASSRLS role as the backend.
+  // Keeping app.is_super_admin false makes this a real RLS visibility proof;
+  // TEST_DATABASE_URL intentionally remains privileged for deterministic setup.
+  const scopedSQL = `set app.tenant_id = '${scope.code}'; set app.institution_id = '${scope.institutionID}'; set app.is_super_admin = 'false'; ${sql}`;
+  return execFileSync('psql', ['--no-psqlrc', '--tuples-only', '--no-align', '--quiet', databaseURL, '-c', scopedSQL], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
+}
+
 function databaseExec(sql: string, scope: TenantScope = egueducationScope): void {
   databaseScalar(`${sql}; select 'ok'`, scope);
 }
@@ -784,7 +797,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // is deliberately made before the general cross-host token replay checks.
   const crossTenantPortfolio = await api<unknown>(balotestiPage, balotestiToken, `/api/education/portfolios/me/${ownPortfolio.id}`);
   expect(crossTenantPortfolio.status).toBe(403);
-  expect(databaseScalar(`select count(*)::text from education_portfolios where id='${ownPortfolio.id}'`, balotestiScope)).toBe('0');
+  expect(tenantDatabaseScalar(`select count(*)::text from education_portfolios where id='${ownPortfolio.id}'`, balotestiScope)).toBe('0');
   const balotestiRegistries = await api<Array<{ id: number }>>(balotestiPage, balotestiToken, '/api/registratura/registre');
   expect(balotestiRegistries.status).toBe(200);
   const balotestiDocument = await api<CreatedDocument>(balotestiPage, balotestiToken, '/api/registratura/documents', {
@@ -811,7 +824,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     data: { registru_id: balotestiRegistries.body[0].id, subject: `${marker} forbidden`, document_type: 'document', direction: 'intrare', status: 'INCOMING' },
   });
   expect(crossTenantCreate.status()).toBe(401);
-  expect(databaseScalar(`select count(*)::text from registratura_documents where id='${balotestiDocument.body.id}'`, balotestiScope)).toBe('1');
+  expect(tenantDatabaseScalar(`select count(*)::text from registratura_documents where id='${balotestiDocument.body.id}'`, balotestiScope)).toBe('1');
 
   // A token minted for tenant A cannot be replayed against tenant B's
   // hostname. This calls the real backend directly because Vite correctly
