@@ -75,7 +75,7 @@ async function authenticated(page: Page, identifier = fixtureIdentifier, otp = f
   const consent = page.getByRole('button', { name: 'Accepta si continua' });
   if (await consent.count()) await consent.click();
   await expect(page).toHaveURL(expectedOrigin + '/');
-  await expect(page.getByText('Utilizator Test')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible();
   await expect.poll(() => token, { message: 'OIDC token response was not observed by the real browser' }).toBeTruthy();
   return token!;
 }
@@ -98,7 +98,7 @@ async function authenticatedWithPasskey(page: Page, expectedOrigin = 'http://loc
   await expect(consent).toBeVisible();
   await consent.click();
   await expect(page).toHaveURL(expectedOrigin + '/');
-  await expect(page.getByText('Utilizator Test')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible();
   await expect.poll(() => token, { message: 'OIDC passkey token response was not observed by the real browser' }).toBeTruthy();
   return token!;
 }
@@ -139,8 +139,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     delete from app_user_roles where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'
   `);
   let unrelatedTeacherToken = await authenticated(page);
-  const unrelatedTeacherMe = await api<{ user: { roles: string[] }; platform_roles: string[]; permissions: string[] }>(page, unrelatedTeacherToken, '/api/me');
+  const unrelatedTeacherMe = await api<{ user: { id: string; roles: string[] }; platform_roles: string[]; permissions: string[] }>(page, unrelatedTeacherToken, '/api/me');
   expect(unrelatedTeacherMe.status).toBe(200);
+  expect(unrelatedTeacherMe.body.user.id).toBe(platformAdminID);
   expect(unrelatedTeacherMe.body.user.roles).toContain('profesor');
   expect(unrelatedTeacherMe.body.platform_roles).not.toContain('platform_super_admin');
   expect(unrelatedTeacherMe.body.permissions).toEqual(expect.arrayContaining([
@@ -161,8 +162,10 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const approverContext = await browser.newContext({ baseURL: 'http://localhost:4174' });
   const approverPage = await approverContext.newPage();
   let approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
-  const approverMe = await api<{ tenant_code: string; user: { roles: string[] }; platform_roles: string[]; permissions: string[] }>(approverPage, approverToken, '/api/me');
+  expect(approverID).not.toBe(platformAdminID);
+  const approverMe = await api<{ tenant_code: string; user: { id: string; roles: string[] }; platform_roles: string[]; permissions: string[] }>(approverPage, approverToken, '/api/me');
   expect(approverMe.status).toBe(200);
+  expect(approverMe.body.user.id).toBe(approverID);
   expect(approverMe.body.tenant_code).toBe('tenant-egueducation');
   expect(approverMe.body.user.roles).toContain('profesor');
   expect(approverMe.body.platform_roles).not.toContain('platform_super_admin');
@@ -238,9 +241,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   unrelatedTeacherToken = await authenticated(page);
+  expect((await api<{ user: { id: string } }>(page, unrelatedTeacherToken, '/api/me')).body.user.id).toBe(platformAdminID);
   await approverPage.getByRole('button', { name: 'Deconectare' }).click();
   await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
+  expect((await api<{ user: { id: string } }>(approverPage, approverToken, '/api/me')).body.user.id).toBe(approverID);
 
   // Teacher B creates and submits through the own-only React workspace.
   await approverPage.goto('/scoala/portfolio/me');
