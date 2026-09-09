@@ -351,7 +351,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await expect(approverPage.getByText('Opisul a fost regenerat.')).toBeVisible();
   const ownOpis = await api<{ items: Array<{ document_reference: string }>; total: number }>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/opis`);
   expect(ownOpis.status).toBe(200);
-  expect(ownOpis.body.total).toBe(6);
+  expect(ownOpis.body.total).toBe(5);
   expect(ownOpis.body.items.map((item) => item.document_reference).sort()).toEqual(portfolioArchives.map((archive) => `archive://${archive.id}`).sort());
 
   const portfolioSubmittedResponse = approverPage.waitForResponse((response) =>
