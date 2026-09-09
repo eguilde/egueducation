@@ -28,6 +28,8 @@ export default defineConfig({
   timeout: 600_000,
   use: {
     baseURL: 'http://localhost:4173',
+    actionTimeout: 20_000,
+    navigationTimeout: 30_000,
     trace: 'retain-on-failure',
   },
   webServer: [

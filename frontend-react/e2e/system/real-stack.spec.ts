@@ -66,7 +66,14 @@ async function authenticated(page: Page, identifier = fixtureIdentifier, otp = f
     token ??= body?.access_token;
   });
 
-  await page.goto('/');
+  // Logout already returns the SPA to its landing route. Re-navigating to the
+  // same Vite origin can abort an in-flight logout refresh and leave Playwright
+  // waiting until the suite-wide timeout, so navigate only for a fresh context
+  // or when the page is on another origin/route.
+  const currentURL = page.url();
+  if (currentURL === 'about:blank' || new URL(currentURL).origin !== expectedOrigin || new URL(currentURL).pathname !== '/') {
+    await page.goto(expectedOrigin + '/');
+  }
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);
   await page.getByRole('button', { name: /SMS/ }).click();
