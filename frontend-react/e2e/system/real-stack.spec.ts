@@ -224,11 +224,12 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // perform a fresh teacher authorization-code exchange before self-service.
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
-  databaseExec(`update app_users set name='${marker} Profesor portofoliu' where id='${approverID}'; update app_memberships set position_code='super_admin' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; insert into app_user_platform_roles(user_id, role_code) values ('${platformAdminID}', 'platform_super_admin') on conflict (user_id, role_code) do nothing`);
+  databaseExec(`update app_users set name='${marker} Profesor portofoliu' where id='${approverID}'; update app_memberships set position_code='director' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; insert into app_user_platform_roles(user_id, role_code) values ('${platformAdminID}', 'platform_super_admin') on conflict (user_id, role_code) do nothing`);
   const portfolioGrantAdminToken = await authenticated(page);
   const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
   expect(portfolioGrantAdminMe.status).toBe(200);
   expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.archive_grants.manage');
+  expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.school.manage');
   const portfolioGrantManagerLoaded = page.waitForResponse((response) =>
     new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants'
       && response.request().method() === 'GET',
