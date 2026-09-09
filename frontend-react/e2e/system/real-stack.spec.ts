@@ -288,7 +288,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
     await documentDialog.getByLabel('Data adăugării *').fill('2031-09-01');
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
-    await documentDialog.getByRole('option', { name: new RegExp(archive.id) }).click();
+    const authorizedArchiveOption = approverPage.getByRole('option', { name: new RegExp(archive.id) });
+    await expect(authorizedArchiveOption).toBeVisible({ timeout: 10_000 });
+    await authorizedArchiveOption.click();
     const added = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents` && response.request().method() === 'POST');
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await added).status()).toBe(201);
