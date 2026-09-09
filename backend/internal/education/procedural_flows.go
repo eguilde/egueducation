@@ -1050,6 +1050,8 @@ func portfolioOpisSortColumn(value string) string {
 		return "epo.source_scope"
 	case "chronological_index":
 		return "epo.chronological_index"
+	case "document_reference":
+		return "epo.document_reference"
 	case "checked_on":
 		return "epo.checked_on"
 	default:

@@ -1,11 +1,14 @@
 package education
 
-import "testing"
+import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
 
 func TestNormalizeOwnPortfolioRequest(t *testing.T) {
 	valid := OwnPortfolioRequest{
 		SchoolYear:    " 2026-2027 ",
-		SectionCount:  0,
 		LastUpdatedOn: "2026-09-09",
 		Notes:         "  evidence pending  ",
 	}
@@ -18,7 +21,6 @@ func TestNormalizeOwnPortfolioRequest(t *testing.T) {
 
 	for _, testCase := range []OwnPortfolioRequest{
 		{SchoolYear: "", LastUpdatedOn: "2026-09-09"},
-		{SchoolYear: "2026-2027", SectionCount: -1, LastUpdatedOn: "2026-09-09"},
 		{SchoolYear: "2026-2027", LastUpdatedOn: "09-09-2026"},
 	} {
 		if err := normalizeOwnPortfolioRequest(&testCase); err == nil {
@@ -27,9 +29,24 @@ func TestNormalizeOwnPortfolioRequest(t *testing.T) {
 	}
 }
 
-func TestOwnPortfolioRetentionIsServerDerived(t *testing.T) {
-	if got := ownPortfolioRetentionUntil(); len(got) != len("2006-01-02") {
-		t.Fatalf("server retention must be a canonical date, got %q", got)
+func TestPortfolioRecordRequestRejectsClientRetentionDeadline(t *testing.T) {
+	request := httptest.NewRequest("POST", "/education/portfolios/records", strings.NewReader(`{"retention_until":"2030-01-01"}`))
+	var target CreatePortfolioRecordRequest
+	if err := decodePortfolioRecordRequest(request, &target); err == nil {
+		t.Fatal("client-supplied retention_until must be rejected")
+	}
+
+	request = httptest.NewRequest("POST", "/education/portfolios/records", strings.NewReader(`{"owner_name":"Profesor"}`))
+	if err := decodePortfolioRecordRequest(request, &target); err != nil {
+		t.Fatalf("ordinary portfolio payload rejected: %v", err)
+	}
+}
+
+func TestOwnPortfolioRequestRejectsLegacyClientControlledEvidence(t *testing.T) {
+	request := httptest.NewRequest("POST", "/education/portfolios/me", strings.NewReader(`{"school_year":"2026-2027","last_updated_on":"2026-09-09","notes":"","authenticity_declared":true}`))
+	var target OwnPortfolioRequest
+	if err := decodeOwnPortfolioRequest(request, &target); err == nil {
+		t.Fatal("legacy client-controlled declaration flags must be rejected")
 	}
 }
 

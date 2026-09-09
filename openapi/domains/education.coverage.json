@@ -127,7 +127,7 @@
         "pageSize",
         "sort",
         "direction",
-        "domain"
+        "filter.domain"
       ],
       "requestBody": null,
       "success": {
@@ -162,7 +162,7 @@
         "pageSize",
         "sort",
         "direction",
-        "domain"
+        "filter.domain"
       ],
       "requestBody": null,
       "success": {
@@ -384,7 +384,7 @@
         "pageSize",
         "sort",
         "direction",
-        "title"
+        "filter.title"
       ],
       "requestBody": null,
       "success": {
@@ -419,7 +419,7 @@
         "pageSize",
         "sort",
         "direction",
-        "school_year"
+        "filter.school_year"
       ],
       "requestBody": null,
       "success": {
@@ -607,7 +607,7 @@
         "pageSize",
         "sort",
         "direction",
-        "school_year"
+        "filter.school_year"
       ],
       "requestBody": null,
       "success": {
@@ -675,7 +675,7 @@
         "pageSize",
         "sort",
         "direction",
-        "full_name"
+        "filter.full_name"
       ],
       "requestBody": null,
       "success": {
@@ -744,7 +744,7 @@
         "pageSize",
         "sort",
         "direction",
-        "document_type"
+        "filter.document_type"
       ],
       "requestBody": null,
       "success": {
@@ -845,7 +845,7 @@
         "pageSize",
         "sort",
         "direction",
-        "subject_title"
+        "filter.subject_title"
       ],
       "requestBody": null,
       "success": {
@@ -914,7 +914,7 @@
         "pageSize",
         "sort",
         "direction",
-        "topic_title"
+        "filter.topic_title"
       ],
       "requestBody": null,
       "success": {
@@ -1015,7 +1015,7 @@
         "pageSize",
         "sort",
         "direction",
-        "resolution_code"
+        "filter.resolution_code"
       ],
       "requestBody": null,
       "success": {
@@ -1849,7 +1849,7 @@
         "pageSize",
         "sort",
         "direction",
-        "decision_code"
+        "filter.decision_code"
       ],
       "requestBody": null,
       "success": {
@@ -1946,7 +1946,7 @@
         "pageSize",
         "sort",
         "direction",
-        "issuance_code"
+        "filter.issuance_code"
       ],
       "requestBody": null,
       "success": {
@@ -2015,7 +2015,7 @@
         "pageSize",
         "sort",
         "direction",
-        "step_type"
+        "filter.step_type"
       ],
       "requestBody": null,
       "success": {
@@ -2413,7 +2413,7 @@
         "pageSize",
         "sort",
         "direction",
-        "dossier_code"
+        "filter.dossier_code"
       ],
       "requestBody": null,
       "success": {
@@ -2572,7 +2572,7 @@
         "pageSize",
         "sort",
         "direction",
-        "document_code"
+        "filter.document_code"
       ],
       "requestBody": null,
       "success": {
@@ -2673,7 +2673,7 @@
         "pageSize",
         "sort",
         "direction",
-        "stage_type"
+        "filter.stage_type"
       ],
       "requestBody": null,
       "success": {
@@ -3071,7 +3071,7 @@
         "pageSize",
         "sort",
         "direction",
-        "regulation_code"
+        "filter.regulation_code"
       ],
       "requestBody": null,
       "success": {
@@ -3199,7 +3199,7 @@
         "pageSize",
         "sort",
         "direction",
-        "version_label"
+        "filter.version_label"
       ],
       "requestBody": null,
       "success": {
@@ -3268,7 +3268,7 @@
         "pageSize",
         "sort",
         "direction",
-        "phase_type"
+        "filter.phase_type"
       ],
       "requestBody": null,
       "success": {
@@ -3637,7 +3637,7 @@
         "pageSize",
         "sort",
         "direction",
-        "school_year"
+        "filter.school_year"
       ],
       "requestBody": null,
       "success": {
@@ -3736,7 +3736,7 @@
         "pageSize",
         "sort",
         "direction",
-        "full_name"
+        "filter.full_name"
       ],
       "requestBody": null,
       "success": {
@@ -4032,7 +4032,7 @@
         "pageSize",
         "sort",
         "direction",
-        "employee_code"
+        "filter.employee_code"
       ],
       "requestBody": null,
       "success": {
@@ -4160,7 +4160,7 @@
         "pageSize",
         "sort",
         "direction",
-        "assignment_code"
+        "filter.assignment_code"
       ],
       "requestBody": null,
       "success": {
@@ -4229,7 +4229,7 @@
         "pageSize",
         "sort",
         "direction",
-        "case_code"
+        "filter.case_code"
       ],
       "requestBody": null,
       "success": {
@@ -4298,7 +4298,7 @@
         "pageSize",
         "sort",
         "direction",
-        "document_code"
+        "filter.document_code"
       ],
       "requestBody": null,
       "success": {
@@ -4367,7 +4367,7 @@
         "pageSize",
         "sort",
         "direction",
-        "event_type"
+        "filter.event_type"
       ],
       "requestBody": null,
       "success": {
@@ -4969,7 +4969,7 @@
         "pageSize",
         "sort",
         "direction",
-        "evaluation_code"
+        "filter.evaluation_code"
       ],
       "requestBody": null,
       "success": {
@@ -5097,7 +5097,7 @@
         "pageSize",
         "sort",
         "direction",
-        "review_code"
+        "filter.review_code"
       ],
       "requestBody": null,
       "success": {
@@ -5166,7 +5166,7 @@
         "pageSize",
         "sort",
         "direction",
-        "criterion_code"
+        "filter.criterion_code"
       ],
       "requestBody": null,
       "success": {
@@ -5235,7 +5235,7 @@
         "pageSize",
         "sort",
         "direction",
-        "appeal_code"
+        "filter.appeal_code"
       ],
       "requestBody": null,
       "success": {
@@ -5336,7 +5336,7 @@
         "pageSize",
         "sort",
         "direction",
-        "issue_code"
+        "filter.issue_code"
       ],
       "requestBody": null,
       "success": {
@@ -5970,7 +5970,7 @@
         "pageSize",
         "sort",
         "direction",
-        "declaration_code"
+        "filter.declaration_code"
       ],
       "requestBody": null,
       "success": {
@@ -6192,7 +6192,7 @@
         "pageSize",
         "sort",
         "direction",
-        "case_code"
+        "filter.case_code"
       ],
       "requestBody": null,
       "success": {
@@ -6320,7 +6320,7 @@
         "pageSize",
         "sort",
         "direction",
-        "document_code"
+        "filter.document_code"
       ],
       "requestBody": null,
       "success": {
@@ -6389,7 +6389,7 @@
         "pageSize",
         "sort",
         "direction",
-        "criterion_code"
+        "filter.criterion_code"
       ],
       "requestBody": null,
       "success": {
@@ -6458,7 +6458,7 @@
         "pageSize",
         "sort",
         "direction",
-        "appeal_code"
+        "filter.appeal_code"
       ],
       "requestBody": null,
       "success": {
@@ -6559,7 +6559,7 @@
         "pageSize",
         "sort",
         "direction",
-        "decision_code"
+        "filter.decision_code"
       ],
       "requestBody": null,
       "success": {
@@ -6660,7 +6660,7 @@
         "pageSize",
         "sort",
         "direction",
-        "issue_code"
+        "filter.issue_code"
       ],
       "requestBody": null,
       "success": {
@@ -7396,7 +7396,7 @@
         "pageSize",
         "sort",
         "direction",
-        "grant_code"
+        "filter.grant_code"
       ],
       "requestBody": null,
       "success": {
@@ -7524,7 +7524,7 @@
         "pageSize",
         "sort",
         "direction",
-        "document_code"
+        "filter.document_code"
       ],
       "requestBody": null,
       "success": {
@@ -7593,7 +7593,7 @@
         "pageSize",
         "sort",
         "direction",
-        "criterion_code"
+        "filter.criterion_code"
       ],
       "requestBody": null,
       "success": {
@@ -7662,7 +7662,7 @@
         "pageSize",
         "sort",
         "direction",
-        "appeal_code"
+        "filter.appeal_code"
       ],
       "requestBody": null,
       "success": {
@@ -7763,7 +7763,7 @@
         "pageSize",
         "sort",
         "direction",
-        "decision_code"
+        "filter.decision_code"
       ],
       "requestBody": null,
       "success": {
@@ -7864,7 +7864,7 @@
         "pageSize",
         "sort",
         "direction",
-        "issue_code"
+        "filter.issue_code"
       ],
       "requestBody": null,
       "success": {
@@ -8600,7 +8600,7 @@
         "pageSize",
         "sort",
         "direction",
-        "portfolio_code"
+        "filter.portfolio_code"
       ],
       "requestBody": null,
       "success": {
@@ -8712,6 +8712,26 @@
       "modelEvidence": "handler response model verified from the named Go DTO or explicit response map"
     },
     {
+      "operationKey": "POST /api/education/portfolios/records/{recordID}/export-manifests",
+      "operationId": "post_api_education_portfolios_records_recordid_export_manifests",
+      "handler": "PortfolioExportManifestCreate",
+      "source": "backend/internal/education/portfolio_export_manifest.go:75",
+      "contractStatus": "detailed",
+      "security": ["oidcAuthorizationCode"],
+      "tenantScope": "institution and tenant are derived from authenticated session/token claims; the manifest body is built from database snapshots only",
+      "requiredPermission": "education.portfolios.read or education.portfolios.read_own (own records only)",
+      "pathParameters": ["recordID"],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 201,
+        "contentType": "application/json",
+        "schema": "PortfolioExportManifestResponse"
+      },
+      "errors": [400, 401, 403, 404, 422, 500],
+      "modelEvidence": "concrete server-issued response DTO; no client-composed export rows are accepted"
+    },
+    {
       "operationKey": "GET /api/education/portfolios/records/filters",
       "operationId": "get_api_education_portfolios_records_filters",
       "handler": "PortfolioFilters",
@@ -8759,7 +8779,7 @@
         "pageSize",
         "sort",
         "direction",
-        "section_code"
+        "filter.section_code"
       ],
       "requestBody": null,
       "success": {
@@ -8828,7 +8848,7 @@
         "pageSize",
         "sort",
         "direction",
-        "requirement_code"
+        "filter.requirement_code"
       ],
       "requestBody": null,
       "success": {
@@ -8897,7 +8917,7 @@
         "pageSize",
         "sort",
         "direction",
-        "section_code"
+        "filter.section_code"
       ],
       "requestBody": null,
       "success": {
@@ -8966,7 +8986,7 @@
         "pageSize",
         "sort",
         "direction",
-        "event_type"
+        "filter.event_type"
       ],
       "requestBody": null,
       "success": {
@@ -9035,7 +9055,7 @@
         "pageSize",
         "sort",
         "direction",
-        "transfer_code"
+        "filter.transfer_code"
       ],
       "requestBody": null,
       "success": {
@@ -9104,7 +9124,7 @@
         "pageSize",
         "sort",
         "direction",
-        "review_code"
+        "filter.review_code"
       ],
       "requestBody": null,
       "success": {
@@ -9173,7 +9193,7 @@
         "pageSize",
         "sort",
         "direction",
-        "valorification_code"
+        "filter.valorification_code"
       ],
       "requestBody": null,
       "success": {
@@ -9240,7 +9260,7 @@
         "pageSize",
         "sort",
         "direction",
-        "section_code"
+        "filter.section_code"
       ],
       "requestBody": null,
       "success": {
@@ -10143,12 +10163,34 @@
       "handler": "PortfolioOwnRecords",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution and owner are derived from authenticated session/token claims; no client owner selector is accepted",
       "requiredPermission": "education.portfolios.read_own",
-      "pathParameters": [], "queryParameters": [], "requestBody": null,
-      "success": {"status": 200, "contentType": "application/json", "schema": "EducationPageOfPortfolioRecord"},
-      "errors": [400, 401, 403, 404, 422, 500],
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.school_year",
+        "filter.status"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
       "modelEvidence": "owner UUID resolved from authenticated subject and constrained in SQL"
     },
     {
@@ -10157,12 +10199,29 @@
       "handler": "PortfolioOwnRecordDetail",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution and owner are derived from authenticated session/token claims; record must be owned by caller",
       "requiredPermission": "education.portfolios.read_own",
-      "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
-      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 422, 500],
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
       "modelEvidence": "owner UUID resolved from authenticated subject and constrained in SQL"
     },
     {
@@ -10171,13 +10230,32 @@
       "handler": "PortfolioOwnCreate",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution and owner are derived from authenticated session/token claims; body owner/status/transfer fields are ignored",
       "requiredPermission": "education.portfolios.manage_own",
-      "pathParameters": [], "queryParameters": [],
-      "requestBody": {"required": true, "contentType": "application/json", "schema": "OwnPortfolioRequest"},
-      "success": {"status": 201, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 409, 422, 500],
+      "pathParameters": [],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "OwnPortfolioRequest"
+      },
+      "success": {
+        "status": 201,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
       "modelEvidence": "owner UUID and draft state are server-derived"
     },
     {
@@ -10186,13 +10264,34 @@
       "handler": "PortfolioOwnUpdate",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution and owner are derived from authenticated session/token claims; record must be draft or returned",
       "requiredPermission": "education.portfolios.manage_own",
-      "pathParameters": ["recordID"], "queryParameters": [],
-      "requestBody": {"required": true, "contentType": "application/json", "schema": "OwnPortfolioRequest"},
-      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 409, 422, 500],
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "OwnPortfolioRequest"
+      },
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
       "modelEvidence": "owner/status/transfer/custody are not mutable through own endpoint"
     },
     {
@@ -10201,12 +10300,30 @@
       "handler": "PortfolioOwnSubmit",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution and owner are derived from authenticated session/token claims; only draft/returned transitions are allowed",
       "requiredPermission": "education.portfolios.manage_own",
-      "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
-      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 409, 422, 500],
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
       "modelEvidence": "explicit submit transition"
     },
     {
@@ -10215,12 +10332,30 @@
       "handler": "PortfolioAdminVerify",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution is derived from authenticated session/token claims; only submitted records transition",
       "requiredPermission": "education.portfolios.verify",
-      "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
-      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 409, 422, 500],
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
       "modelEvidence": "explicit administrator verification transition"
     },
     {
@@ -10229,31 +10364,616 @@
       "handler": "PortfolioAdminReturn",
       "source": "backend/internal/education/portfolio_access.go",
       "contractStatus": "detailed",
-      "security": ["oidcAuthorizationCode"],
+      "security": [
+        "oidcAuthorizationCode"
+      ],
       "tenantScope": "institution is derived from authenticated session/token claims; only submitted records transition",
       "requiredPermission": "education.portfolios.request_corrections",
-      "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
-      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"},
-      "errors": [400, 401, 403, 404, 409, 422, 500],
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
       "modelEvidence": "explicit administrator return transition"
     },
-    {"operationKey":"GET /api/education/portfolios/archive-attachment-grants","operationId":"get_api_education_portfolios_archive_attachment_grants","handler":"PortfolioArchiveAttachmentGrants","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution is derived from the authenticated session; only tenant grants and minimal joined labels are returned","requiredPermission":"education.portfolios.archive_grants.manage","pathParameters":[],"queryParameters":["page","pageSize","sort","direction","filter.document_title","filter.grantee_name"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioArchiveAttachmentGrant"},"errors":[400,401,403,422,500],"modelEvidence":"tenant-scoped grant/document/user join"},
-    {"operationKey":"GET /api/education/portfolios/archive-attachment-grants/eligible-documents","operationId":"get_api_education_portfolios_archive_attachment_grants_eligible_documents","handler":"PortfolioArchiveEligibleDocuments","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution is derived from the authenticated session; only ready documents with an active current stored version are returned","requiredPermission":"education.portfolios.archive_grants.manage","pathParameters":[],"queryParameters":["page","pageSize","sort","direction","filter.title"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioArchiveAttachment"},"errors":[400,401,403,422,500],"modelEvidence":"tenant-scoped archive/version join with ready/active/storage predicates"},
-    {"operationKey":"GET /api/education/portfolios/archive-attachment-grants/eligible-users","operationId":"get_api_education_portfolios_archive_attachment_grants_eligible_users","handler":"PortfolioArchiveEligibleUsers","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution is derived from the authenticated session; only active users with an active membership in the active tenant are returned","requiredPermission":"education.portfolios.archive_grants.manage","pathParameters":[],"queryParameters":["page","pageSize","sort","direction","filter.name"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfEligibleGovernanceUser"},"errors":[400,401,403,422,500],"modelEvidence":"active membership and active tenant join constrained by current institution"},
-    {"operationKey":"POST /api/education/portfolios/archive-attachment-grants","operationId":"post_api_education_portfolios_archive_attachment_grants","handler":"CreatePortfolioArchiveAttachmentGrant","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution and granting actor are derived from the authenticated session; target user must have an active membership in the same institution","requiredPermission":"education.portfolios.archive_grants.manage","pathParameters":[],"queryParameters":[],"requestBody":{"required":true,"contentType":"application/json","schema":"CreatePortfolioArchiveAttachmentGrantRequest"},"success":{"status":201,"contentType":"application/json","schema":"PortfolioArchiveAttachmentGrant"},"errors":[400,401,403,404,409,422,500],"modelEvidence":"insert-select validates tenant membership and ready active stored archive evidence"},
-    {"operationKey":"DELETE /api/education/portfolios/archive-attachment-grants/{grantID}","operationId":"delete_api_education_portfolios_archive_attachment_grants_grantid","handler":"DeletePortfolioArchiveAttachmentGrant","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution is derived from the authenticated session; submitted or validated evidence prevents revocation","requiredPermission":"education.portfolios.archive_grants.manage","pathParameters":["grantID"],"queryParameters":[],"requestBody":null,"success":{"status":204,"contentType":"application/json","schema":null},"errors":[400,401,403,404,409,422,500],"modelEvidence":"tenant-scoped guarded delete with immutable-evidence conflict"},
-    {"operationKey":"GET /api/education/portfolios/me/archive-documents","operationId":"get_api_education_portfolios_me_archive_documents","handler":"PortfolioOwnArchiveDocuments","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"institution is derived from the authenticated session; only ready, active, stored documents explicitly granted to the authenticated owner are returned","requiredPermission":"education.portfolios.read_own","pathParameters":[],"queryParameters":["page","pageSize","sort","direction","filter.title"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioArchiveAttachment"},"errors":[400,401,403,422,500],"modelEvidence":"owner grant plus institution-scoped archive/version join returns only id, title and current_version_no"},
-    {"operationKey":"GET /api/education/portfolios/me/{recordID}/documents","operationId":"get_api_education_portfolios_me_recordid_documents","handler":"PortfolioOwnDocuments","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived","requiredPermission":"education.portfolios.read_own","pathParameters":["recordID"],"queryParameters":["page","pageSize","sort","direction","section_code"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioDocument"},"errors":[400,401,403,404,422,500],"modelEvidence":"owner wrapper delegates to validated document listing"},
-    {"operationKey":"POST /api/education/portfolios/me/{recordID}/documents","operationId":"post_api_education_portfolios_me_recordid_documents","handler":"PortfolioOwnDocumentCreate","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived; only draft/returned content may change","requiredPermission":"education.portfolios.manage_own","pathParameters":["recordID"],"queryParameters":[],"requestBody":{"required":true,"contentType":"application/json","schema":"OwnPortfolioDocumentRequest"},"success":{"status":201,"contentType":"application/json","schema":"PortfolioDocument"},"errors":[400,401,403,404,409,422,500],"modelEvidence":"owner wrapper sets provenance and authenticity state server-side before validated document mutation"},
-    {"operationKey":"PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}","operationId":"patch_api_education_portfolios_me_recordid_documents_documentid","handler":"PortfolioOwnDocumentUpdate","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived; only draft/returned content may change","requiredPermission":"education.portfolios.manage_own","pathParameters":["recordID","documentID"],"queryParameters":[],"requestBody":{"required":true,"contentType":"application/json","schema":"OwnPortfolioDocumentRequest"},"success":{"status":200,"contentType":"application/json","schema":"PortfolioDocument"},"errors":[400,401,403,404,409,422,500],"modelEvidence":"owner wrapper sets provenance and authenticity state server-side before validated document mutation"},
-    {"operationKey":"DELETE /api/education/portfolios/me/{recordID}/documents/{documentID}","operationId":"delete_api_education_portfolios_me_recordid_documents_documentid","handler":"PortfolioOwnDocumentDelete","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived; only draft/returned content may change","requiredPermission":"education.portfolios.manage_own","pathParameters":["recordID","documentID"],"queryParameters":[],"requestBody":null,"success":{"status":204,"contentType":"application/json","schema":null},"errors":[400,401,403,404,409,422,500],"modelEvidence":"owner wrapper delegates to validated document mutation"},
-    {"operationKey":"GET /api/education/portfolios/me/{recordID}/checklist","operationId":"get_api_education_portfolios_me_recordid_checklist","handler":"PortfolioOwnChecklist","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived","requiredPermission":"education.portfolios.read_own","pathParameters":["recordID"],"queryParameters":["page","pageSize","sort","direction","requirement_code"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioChecklistItem"},"errors":[400,401,403,404,422,500],"modelEvidence":"owner wrapper delegates to checklist listing"},
-    {"operationKey":"GET /api/education/portfolios/me/{recordID}/opis","operationId":"get_api_education_portfolios_me_recordid_opis","handler":"PortfolioOwnOpis","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived","requiredPermission":"education.portfolios.read_own","pathParameters":["recordID"],"queryParameters":["page","pageSize","sort","direction","section_code"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioOpisEntry"},"errors":[400,401,403,404,422,500],"modelEvidence":"owner wrapper delegates to opis listing"},
-    {"operationKey":"POST /api/education/portfolios/me/{recordID}/opis/regenerate","operationId":"post_api_education_portfolios_me_recordid_opis_regenerate","handler":"PortfolioOwnOpisRegenerate","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived; only draft/returned content may change","requiredPermission":"education.portfolios.manage_own","pathParameters":["recordID"],"queryParameters":[],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationRegeneratePortfolioOpisResponse"},"errors":[400,401,403,404,409,422,500],"modelEvidence":"owner wrapper delegates to server-generated opis"},
-    {"operationKey":"GET /api/education/portfolios/me/{recordID}/reviews","operationId":"get_api_education_portfolios_me_recordid_reviews","handler":"PortfolioOwnReviews","source":"backend/internal/education/portfolio_access.go","contractStatus":"detailed","security":["oidcAuthorizationCode"],"tenantScope":"record owner and institution are server-derived","requiredPermission":"education.portfolios.read_own","pathParameters":["recordID"],"queryParameters":["page","pageSize","sort","direction","review_code"],"requestBody":null,"success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioReviewEvent"},"errors":[400,401,403,404,422,500],"modelEvidence":"owner wrapper delegates to review listing"}
+    {
+      "operationKey": "GET /api/education/portfolios/archive-attachment-grants",
+      "operationId": "get_api_education_portfolios_archive_attachment_grants",
+      "handler": "PortfolioArchiveAttachmentGrants",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from the authenticated session; only tenant grants and minimal joined labels are returned",
+      "requiredPermission": "education.portfolios.archive_grants.manage",
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.document_title",
+        "filter.grantee_name"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioArchiveAttachmentGrant"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        422,
+        500
+      ],
+      "modelEvidence": "tenant-scoped grant/document/user join"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/archive-attachment-grants/eligible-documents",
+      "operationId": "get_api_education_portfolios_archive_attachment_grants_eligible_documents",
+      "handler": "PortfolioArchiveEligibleDocuments",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from the authenticated session; only ready documents with an active current stored version are returned",
+      "requiredPermission": "education.portfolios.archive_grants.manage",
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.title"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioArchiveAttachment"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        422,
+        500
+      ],
+      "modelEvidence": "tenant-scoped archive/version join with ready/active/storage predicates"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/archive-attachment-grants/eligible-users",
+      "operationId": "get_api_education_portfolios_archive_attachment_grants_eligible_users",
+      "handler": "PortfolioArchiveEligibleUsers",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from the authenticated session; only active users with an active membership in the active tenant are returned",
+      "requiredPermission": "education.portfolios.archive_grants.manage",
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.name"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfEligibleGovernanceUser"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        422,
+        500
+      ],
+      "modelEvidence": "active membership and active tenant join constrained by current institution"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/archive-attachment-grants",
+      "operationId": "post_api_education_portfolios_archive_attachment_grants",
+      "handler": "CreatePortfolioArchiveAttachmentGrant",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution and granting actor are derived from the authenticated session; target user must have an active membership in the same institution",
+      "requiredPermission": "education.portfolios.archive_grants.manage",
+      "pathParameters": [],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "CreatePortfolioArchiveAttachmentGrantRequest"
+      },
+      "success": {
+        "status": 201,
+        "contentType": "application/json",
+        "schema": "PortfolioArchiveAttachmentGrant"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "insert-select validates tenant membership and ready active stored archive evidence"
+    },
+    {
+      "operationKey": "DELETE /api/education/portfolios/archive-attachment-grants/{grantID}",
+      "operationId": "delete_api_education_portfolios_archive_attachment_grants_grantid",
+      "handler": "DeletePortfolioArchiveAttachmentGrant",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from the authenticated session; submitted or validated evidence prevents revocation",
+      "requiredPermission": "education.portfolios.archive_grants.manage",
+      "pathParameters": [
+        "grantID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 204,
+        "contentType": "application/json",
+        "schema": null
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "tenant-scoped guarded delete with immutable-evidence conflict"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/archive-documents",
+      "operationId": "get_api_education_portfolios_me_archive_documents",
+      "handler": "PortfolioOwnArchiveDocuments",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from the authenticated session; only ready, active, stored documents explicitly granted to the authenticated owner are returned",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.title"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioArchiveAttachment"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        422,
+        500
+      ],
+      "modelEvidence": "owner grant plus institution-scoped archive/version join returns only id, title and current_version_no"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/documents",
+      "operationId": "get_api_education_portfolios_me_recordid_documents",
+      "handler": "PortfolioOwnDocuments",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.section_code"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioDocument"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to validated document listing"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/me/{recordID}/documents",
+      "operationId": "post_api_education_portfolios_me_recordid_documents",
+      "handler": "PortfolioOwnDocumentCreate",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived; only draft/returned content may change",
+      "requiredPermission": "education.portfolios.manage_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "OwnPortfolioDocumentRequest"
+      },
+      "success": {
+        "status": 201,
+        "contentType": "application/json",
+        "schema": "PortfolioDocument"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper sets provenance and authenticity state server-side before validated document mutation"
+    },
+    {
+      "operationKey": "PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}",
+      "operationId": "patch_api_education_portfolios_me_recordid_documents_documentid",
+      "handler": "PortfolioOwnDocumentUpdate",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived; only draft/returned content may change",
+      "requiredPermission": "education.portfolios.manage_own",
+      "pathParameters": [
+        "recordID",
+        "documentID"
+      ],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "OwnPortfolioDocumentRequest"
+      },
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioDocument"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper sets provenance and authenticity state server-side before validated document mutation"
+    },
+    {
+      "operationKey": "DELETE /api/education/portfolios/me/{recordID}/documents/{documentID}",
+      "operationId": "delete_api_education_portfolios_me_recordid_documents_documentid",
+      "handler": "PortfolioOwnDocumentDelete",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived; only draft/returned content may change",
+      "requiredPermission": "education.portfolios.manage_own",
+      "pathParameters": [
+        "recordID",
+        "documentID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 204,
+        "contentType": "application/json",
+        "schema": null
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to validated document mutation"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/checklist",
+      "operationId": "get_api_education_portfolios_me_recordid_checklist",
+      "handler": "PortfolioOwnChecklist",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.requirement_code"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioChecklistItem"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to checklist listing"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/opis",
+      "operationId": "get_api_education_portfolios_me_recordid_opis",
+      "handler": "PortfolioOwnOpis",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.section_code"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioOpisEntry"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to opis listing"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/me/{recordID}/opis/regenerate",
+      "operationId": "post_api_education_portfolios_me_recordid_opis_regenerate",
+      "handler": "PortfolioOwnOpisRegenerate",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived; only draft/returned content may change",
+      "requiredPermission": "education.portfolios.manage_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationRegeneratePortfolioOpisResponse"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to server-generated opis"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/reviews",
+      "operationId": "get_api_education_portfolios_me_recordid_reviews",
+      "handler": "PortfolioOwnReviews",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner and institution are server-derived",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.review_code"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioReviewEvent"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "owner wrapper delegates to review listing"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/declarations",
+      "operationId": "get_api_education_portfolios_me_recordid_declarations",
+      "handler": "PortfolioOwnDeclarationEvidence", "source": "backend/internal/education/portfolio_declarations.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "portfolio owner, institution and tenant are server-derived", "requiredPermission": "education.portfolios.read_own", "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
+      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioDeclarationEvidenceResponse"}, "errors": [400,401,403,404,422,500], "modelEvidence": "current server-issued templates and immutable owner acknowledgements"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements",
+      "operationId": "post_api_education_portfolios_me_recordid_declarations_declarationtype_acknowledgements",
+      "handler": "AcknowledgePortfolioOwnDeclaration", "source": "backend/internal/education/portfolio_declarations.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "portfolio owner, institution and tenant are server-derived; text and version are selected by the server", "requiredPermission": "education.portfolios.manage_own", "pathParameters": ["recordID","declarationType"], "queryParameters": [],
+      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioDeclarationAcknowledgementRequest"}, "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioDeclarationAcknowledgement"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "idempotent immutable acknowledgement bound to current template"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/records/{recordID}/declarations",
+      "operationId": "get_api_education_portfolios_records_recordid_declarations",
+      "handler": "PortfolioDeclarationEvidence", "source": "backend/internal/education/portfolio_declarations.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "institution and tenant are server-derived", "requiredPermission": "one of education.portfolios.school.read, education.portfolios.read, education.portfolios.verify or education.portfolios.manage", "pathParameters": ["recordID"], "queryParameters": [], "requestBody": null,
+      "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioDeclarationEvidenceResponse"}, "errors": [400,401,403,404,422,500], "modelEvidence": "reviewer receives immutable evidence only"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/records/{recordID}/activity-cessation",
+      "operationId": "post_api_education_portfolios_records_recordid_activity_cessation",
+      "handler": "RecordPortfolioActivityCessation", "source": "backend/internal/education/service.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "institution and tenant are server-derived; retention deadline is database-derived", "requiredPermission": "education.portfolios.school.manage", "pathParameters": ["recordID"], "queryParameters": [],
+      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioCessationRequest"}, "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "explicit activity cessation command starts retention"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/records/{recordID}/legal-hold",
+      "operationId": "post_api_education_portfolios_records_recordid_legal_hold",
+      "handler": "SetPortfolioLegalHold", "source": "backend/internal/education/service.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "institution and tenant are server-derived", "requiredPermission": "education.portfolios.school.manage", "pathParameters": ["recordID"], "queryParameters": [],
+      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioLegalHoldRequest"}, "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "institution lifecycle command with audited legal-hold state"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/procedures",
+      "operationId": "get_api_education_portfolios_procedures",
+      "handler": "PortfolioProcedures", "source": "backend/internal/education/portfolio_procedures.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "tenantScope": "institution and tenant are derived from authenticated session/token claims and host membership", "requiredPermission": "one of education.portfolios.school.read or education.portfolios.read", "pathParameters": [],
+      "queryParameters": ["page","pageSize","sort","direction","filter.procedure_code","filter.title","filter.lifecycle_status"], "requestBody": null,
+      "success": {"status": 200, "contentType": "application/json", "schema": "EducationPageOfPortfolioProcedure"}, "errors": [400,401,403,404,422,500], "modelEvidence": "httpx.WritePage of PortfolioProcedure"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/procedures/{procedureID}", "operationId": "get_api_education_portfolios_procedures_procedureid", "handler": "PortfolioProcedureDetail", "source": "backend/internal/education/portfolio_procedures.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"], "tenantScope": "institution derived from authenticated session/token claims", "requiredPermission": "one of education.portfolios.school.read or education.portfolios.read", "pathParameters": ["procedureID"], "queryParameters": [], "requestBody": null, "success": {"status": 200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors": [400,401,403,404,422,500], "modelEvidence":"PortfolioProcedure"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/procedures/{procedureID}/section-rules", "operationId": "get_api_education_portfolios_procedures_procedureid_section_rules", "handler": "PortfolioProcedureSectionRules", "source": "backend/internal/education/portfolio_procedures.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"], "tenantScope": "institution derived from authenticated session/token claims", "requiredPermission": "one of education.portfolios.school.read or education.portfolios.read", "pathParameters": ["procedureID"], "queryParameters": ["page","pageSize","sort","direction","filter.section_code","filter.label_ro"], "requestBody": null, "success": {"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioProcedureSectionRule"}, "errors":[400,401,403,404,422,500], "modelEvidence":"httpx.WritePage of PortfolioProcedureSectionRule"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/procedures", "operationId":"post_api_education_portfolios_procedures", "handler":"CreatePortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution and tenant are server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":[], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"CreatePortfolioProcedureRequest"}, "success":{"status":201,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,409,422,500], "modelEvidence":"version number and author are server-derived"
+    },
+    {
+      "operationKey":"PATCH /api/education/portfolios/procedures/{procedureID}", "operationId":"patch_api_education_portfolios_procedures_procedureid", "handler":"UpdatePortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution is server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"UpdatePortfolioProcedureRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"draft-only update with expected_updated_at optimistic concurrency"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/procedures/{procedureID}/approve", "operationId":"post_api_education_portfolios_procedures_procedureid_approve", "handler":"ApprovePortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution is server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"PortfolioProcedureEvidenceRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"draft to approved transition with evidence"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/procedures/{procedureID}/publish", "operationId":"post_api_education_portfolios_procedures_procedureid_publish", "handler":"PublishPortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution is server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"PortfolioProcedureEvidenceRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"approved to published transition with evidence"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/procedures/{procedureID}/supersede", "operationId":"post_api_education_portfolios_procedures_procedureid_supersede", "handler":"SupersedePortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution is server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"PortfolioProcedureEvidenceRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"published to superseded transition; evidence is immutable audit evidence"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/procedures/{procedureID}/withdraw", "operationId":"post_api_education_portfolios_procedures_procedureid_withdraw", "handler":"WithdrawPortfolioProcedure", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution is server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"PortfolioProcedureEvidenceRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedure"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"permitted lifecycle withdrawal with immutable audit evidence"
+    },
+    {
+      "operationKey":"PUT /api/education/portfolios/procedures/{procedureID}/section-rules", "operationId":"put_api_education_portfolios_procedures_procedureid_section_rules", "handler":"ReplacePortfolioProcedureSectionRules", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution and tenant are server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"ReplacePortfolioProcedureSectionRulesRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedureSectionRulesReplaceResponse"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"transactional draft-only replacement with expected_updated_at"
+    }
   ],
   "components": {
     "schemas": {
+      "PortfolioDeclarationTemplate": {"type":"object","additionalProperties":false,"required":["declaration_type","declaration_version","declaration_text","source_ref","effective_from"],"properties":{"declaration_type":{"type":"string","enum":["gdpr_information","authenticity"]},"declaration_version":{"type":"string"},"declaration_text":{"type":"string"},"source_ref":{"type":"string"},"effective_from":{"type":"string","format":"date"}}},
+      "PortfolioDeclarationAcknowledgement": {"type":"object","additionalProperties":false,"required":["id","portfolio_id","declaration_type","declaration_version","declaration_text","accepted_at","accepted_by_user_id","attestation_method","attestation_evidence","signature_evidence"],"properties":{"id":{"type":"string","format":"uuid"},"portfolio_id":{"type":"string","format":"uuid"},"declaration_type":{"type":"string","enum":["gdpr_information","authenticity"]},"declaration_version":{"type":"string"},"declaration_text":{"type":"string"},"accepted_at":{"type":"string","format":"date-time"},"accepted_by_user_id":{"type":"string","format":"uuid"},"attestation_method":{"type":"string"},"attestation_evidence":{"type":"object","additionalProperties":true,"x-free-form-property":true},"signature_evidence":{"type":"object","additionalProperties":true,"x-free-form-property":true}}},
+      "PortfolioDeclarationEvidenceResponse": {"type":"object","additionalProperties":false,"required":["templates","acknowledgements"],"properties":{"templates":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioDeclarationTemplate"}},"acknowledgements":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioDeclarationAcknowledgement"}}}},
+      "PortfolioDeclarationAcknowledgementRequest": {"type":"object","additionalProperties":false,"required":["confirmed"],"properties":{"confirmed":{"type":"boolean","const":true}}},
+      "PortfolioCessationRequest": {"type":"object","additionalProperties":false,"required":["activity_ceased_on","reason"],"properties":{"activity_ceased_on":{"type":"string","format":"date"},"reason":{"type":"string","minLength":1}}},
+      "PortfolioLegalHoldRequest": {"type":"object","additionalProperties":false,"required":["active","reason"],"properties":{"active":{"type":"boolean"},"reason":{"type":"string"}}},
+      "PortfolioProcedure": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id","procedure_code","version_no","title","source_ref","lifecycle_status","calendar_rules","access_rules","accepted_formats","retention_rules","transfer_rules","created_by_user_id","created_at","updated_at","institution_id"],
+        "properties": {"id":{"type":"string","format":"uuid"},"procedure_code":{"type":"string"},"version_no":{"type":"integer","minimum":1},"title":{"type":"string"},"source_ref":{"type":"string"},"lifecycle_status":{"type":"string","enum":["draft","approved","published","superseded","withdrawn"]},"effective_from":{"type":"string","format":"date"},"effective_to":{"type":"string","format":"date"},"calendar_rules":{"type":"object","additionalProperties":true,"x-free-form-property":true},"access_rules":{"type":"object","additionalProperties":true,"x-free-form-property":true},"accepted_formats":{"type":"object","additionalProperties":true,"x-free-form-property":true},"retention_rules":{"type":"object","additionalProperties":true,"x-free-form-property":true},"transfer_rules":{"type":"object","additionalProperties":true,"x-free-form-property":true},"approved_at":{"type":"string","format":"date-time"},"approved_by_user_id":{"type":"string","format":"uuid"},"published_at":{"type":"string","format":"date-time"},"published_by_user_id":{"type":"string","format":"uuid"},"created_by_user_id":{"type":"string","format":"uuid"},"created_at":{"type":"string","format":"date-time"},"updated_at":{"type":"string","format":"date-time"},"superseded_at":{"type":"string","format":"date-time"},"withdrawn_at":{"type":"string","format":"date-time"},"institution_id":{"type":"string"}}
+      },
+      "PortfolioProcedureSectionRule": {
+        "type":"object", "additionalProperties":false, "required":["id","procedure_id","section_code","label_ro","label_en","source_catalog_version","required","sort_order","active"],
+        "properties":{"id":{"type":"string","format":"uuid"},"procedure_id":{"type":"string","format":"uuid"},"section_code":{"type":"string"},"label_ro":{"type":"string"},"label_en":{"type":"string"},"source_catalog_version":{"type":"string"},"required":{"type":"boolean"},"sort_order":{"type":"integer","minimum":1},"active":{"type":"boolean"}}
+      },
+      "CreatePortfolioProcedureRequest": {"type":"object","additionalProperties":false,"required":["procedure_code","title"],"properties":{"procedure_code":{"type":"string","minLength":1},"title":{"type":"string","minLength":1},"source_ref":{"type":"string"},"effective_from":{"type":"string","format":"date"},"effective_to":{"type":"string","format":"date"},"calendar_rules":{"type":"object","additionalProperties":true},"access_rules":{"type":"object","additionalProperties":true},"accepted_formats":{"type":"object","additionalProperties":true},"retention_rules":{"type":"object","additionalProperties":true},"transfer_rules":{"type":"object","additionalProperties":true}}},
+      "UpdatePortfolioProcedureRequest": {"allOf":[{"$ref":"#/components/schemas/CreatePortfolioProcedureRequest"},{"type":"object","additionalProperties":false,"required":["expected_updated_at"],"properties":{"expected_updated_at":{"type":"string","format":"date-time"}}}]},
+      "PortfolioProcedureEvidenceRequest": {"type":"object","additionalProperties":false,"required":["expected_updated_at","evidence"],"properties":{"expected_updated_at":{"type":"string","format":"date-time"},"evidence":{"type":"object","additionalProperties":true,"minProperties":1}}},
+      "ReplacePortfolioProcedureSectionRulesRequest": {"type":"object","additionalProperties":false,"required":["expected_updated_at","rules"],"properties":{"expected_updated_at":{"type":"string","format":"date-time"},"rules":{"type":"array","minItems":1,"items":{"$ref":"#/components/schemas/PortfolioProcedureSectionRule"}}}},
+      "PortfolioProcedureSectionRulesReplaceResponse": {"type":"object","additionalProperties":false,"required":["procedure_id","rule_count"],"properties":{"procedure_id":{"type":"string","format":"uuid"},"rule_count":{"type":"integer","minimum":0}}},
+      "EducationPageOfPortfolioProcedure": {"type":"object","additionalProperties":false,"required":["items","page","pageSize","total"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioProcedure"}},"page":{"type":"integer","minimum":1},"pageSize":{"type":"integer","minimum":1,"maximum":100},"total":{"type":"integer","minimum":0}}},
+      "EducationPageOfPortfolioProcedureSectionRule": {"type":"object","additionalProperties":false,"required":["items","page","pageSize","total"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioProcedureSectionRule"}},"page":{"type":"integer","minimum":1},"pageSize":{"type":"integer","minimum":1,"maximum":100},"total":{"type":"integer","minimum":0}}},
       "AdvancePortfolioTransferRequest": {
         "type": "object",
         "properties": {
@@ -15888,6 +16608,38 @@
         "x-source": "backend/internal/education/*.go",
         "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
       },
+      "PortfolioExportManifest": {
+        "type": "object",
+        "required": ["manifest_version", "hash_algorithm", "manifest_sha256", "tenant_code", "institution_id", "portfolio", "documents"],
+        "properties": {
+          "manifest_version": {"type": "string"}, "hash_algorithm": {"type": "string", "const": "SHA-256"},
+          "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "tenant_code": {"type": "string"}, "institution_id": {"type": "string"},
+          "portfolio": {"$ref": "#/components/schemas/PortfolioExportManifestPortfolio"},
+          "documents": {"type": "array", "items": {"$ref": "#/components/schemas/PortfolioExportManifestDocument"}}
+        },
+        "x-go-model": "PortfolioExportManifest", "x-source": "backend/internal/education/portfolio_export_manifest.go"
+      },
+      "PortfolioExportManifestPortfolio": {
+        "type": "object", "required": ["id", "portfolio_code", "school_year", "status"],
+        "properties": {"id": {"type": "string", "format": "uuid"}, "portfolio_code": {"type": "string"}, "school_year": {"type": "string"}, "status": {"type": "string"}, "applied_procedure_id": {"type": "string", "format": "uuid"}},
+        "x-go-model": "PortfolioExportManifestPortfolio"
+      },
+      "PortfolioExportManifestDocument": {
+        "type": "object",
+        "required": ["evidence_record_id", "section_code", "component_code", "document_title", "chronological_no", "issued_on", "evidence_type", "archive_document_id", "archive_version_id", "archive_version_no", "source_bucket", "source_object_key", "source_sha256"],
+        "properties": {
+          "evidence_record_id": {"type": "string", "format": "uuid"}, "section_code": {"type": "string"}, "component_code": {"type": "string"}, "document_title": {"type": "string"},
+          "chronological_no": {"type": "integer", "format": "int32"}, "issued_on": {"type": "string", "format": "date"}, "evidence_type": {"type": "string"},
+          "archive_document_id": {"type": "string", "format": "uuid"}, "archive_version_id": {"type": "string", "format": "uuid"}, "archive_version_no": {"type": "integer", "format": "int32"},
+          "source_bucket": {"type": "string"}, "source_object_key": {"type": "string"}, "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "x-go-model": "PortfolioExportManifestDocument"
+      },
+      "PortfolioExportManifestResponse": {
+        "type": "object", "required": ["export_manifest_id", "generated_at", "manifest"],
+        "properties": {"export_manifest_id": {"type": "string", "format": "uuid"}, "generated_at": {"type": "string", "format": "date-time"}, "manifest": {"$ref": "#/components/schemas/PortfolioExportManifest"}},
+        "x-go-model": "PortfolioExportManifestResponse", "x-source": "backend/internal/education/portfolio_export_manifest.go"
+      },
       "PortfolioReviewEvent": {
         "type": "object",
         "properties": {
@@ -18280,93 +19032,199 @@
       },
       "PortfolioArchiveAttachment": {
         "type": "object",
-        "required": ["id", "title", "current_version_no"],
+        "required": [
+          "id",
+          "title",
+          "current_version_no"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "title": { "type": "string" },
-          "current_version_no": { "type": "integer", "minimum": 1 }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "current_version_no": {
+            "type": "integer",
+            "minimum": 1
+          }
         },
         "x-go-model": "PortfolioArchiveAttachment",
         "x-source": "backend/internal/education/portfolio_models.go"
       },
       "EligibleGovernanceUser": {
         "type": "object",
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
         },
         "x-go-model": "EligibleGovernanceUser",
         "x-source": "backend/internal/education/eligible_users.go"
       },
       "PortfolioArchiveAttachmentGrant": {
         "type": "object",
-        "required": ["id", "archive_document_id", "document_title", "grantee_user_id", "grantee_name", "created_at"],
+        "required": [
+          "id",
+          "archive_document_id",
+          "document_title",
+          "grantee_user_id",
+          "grantee_name",
+          "created_at"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "archive_document_id": { "type": "string", "format": "uuid" },
-          "document_title": { "type": "string" },
-          "grantee_user_id": { "type": "string", "format": "uuid" },
-          "grantee_name": { "type": "string" },
-          "granted_by_user_id": { "type": "string", "format": "uuid" },
-          "created_at": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archive_document_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "document_title": {
+            "type": "string"
+          },
+          "grantee_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grantee_name": {
+            "type": "string"
+          },
+          "granted_by_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
         },
         "x-go-model": "PortfolioArchiveAttachmentGrant",
         "x-source": "backend/internal/education/portfolio_models.go"
       },
       "CreatePortfolioArchiveAttachmentGrantRequest": {
         "type": "object",
-        "required": ["archive_document_id", "grantee_user_id"],
+        "required": [
+          "archive_document_id",
+          "grantee_user_id"
+        ],
         "additionalProperties": false,
         "properties": {
-          "archive_document_id": { "type": "string", "format": "uuid" },
-          "grantee_user_id": { "type": "string", "format": "uuid" }
+          "archive_document_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grantee_user_id": {
+            "type": "string",
+            "format": "uuid"
+          }
         },
         "x-go-model": "CreatePortfolioArchiveAttachmentGrantRequest",
         "x-source": "backend/internal/education/portfolio_models.go"
       },
       "EducationPageOfPortfolioArchiveAttachment": {
         "type": "object",
-        "required": ["items", "page", "pageSize", "total"],
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/PortfolioArchiveAttachment" }
+            "items": {
+              "$ref": "#/components/schemas/PortfolioArchiveAttachment"
+            }
           },
-          "page": { "type": "integer", "minimum": 1 },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
-          "total": { "type": "integer", "minimum": 0 }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
         "x-derived-from": "httpx.WritePage"
       },
       "EducationPageOfEligibleGovernanceUser": {
         "type": "object",
-        "required": ["items", "page", "pageSize", "total"],
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/EligibleGovernanceUser" }
+            "items": {
+              "$ref": "#/components/schemas/EligibleGovernanceUser"
+            }
           },
-          "page": { "type": "integer", "minimum": 1 },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
-          "total": { "type": "integer", "minimum": 0 }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
         "x-derived-from": "httpx.WritePage"
       },
       "EducationPageOfPortfolioArchiveAttachmentGrant": {
         "type": "object",
-        "required": ["items", "page", "pageSize", "total"],
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/PortfolioArchiveAttachmentGrant" }
+            "items": {
+              "$ref": "#/components/schemas/PortfolioArchiveAttachmentGrant"
+            }
           },
-          "page": { "type": "integer", "minimum": 1 },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
-          "total": { "type": "integer", "minimum": 0 }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
         "x-derived-from": "httpx.WritePage"
       },
@@ -18637,13 +19495,29 @@
       },
       "EducationRegeneratePortfolioOpisResponse": {
         "type": "object",
-        "required": ["status", "portfolio_id", "regenerated_entries", "checked_by"],
+        "required": [
+          "status",
+          "portfolio_id",
+          "regenerated_entries",
+          "checked_by"
+        ],
         "additionalProperties": false,
         "properties": {
-          "status": { "type": "string", "const": "ok" },
-          "portfolio_id": { "type": "string", "format": "uuid" },
-          "regenerated_entries": { "type": "integer", "minimum": 0 },
-          "checked_by": { "type": "string" }
+          "status": {
+            "type": "string",
+            "const": "ok"
+          },
+          "portfolio_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "regenerated_entries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "checked_by": {
+            "type": "string"
+          }
         },
         "x-source": "backend/internal/education/portfolio_opis_sync.go"
       }
@@ -18655,8 +19529,8 @@
     "The generator deterministically imports this domain fragment and uses each operation's handler-backed request and success schema."
   ],
   "validation": {
-    "expectedOperations": 325,
-    "documentedOperations": 325,
+    "expectedOperations": 340,
+    "documentedOperations": 340,
     "missingHandlerSources": [],
     "unknownResponseSchemas": [],
     "allInstitutionScoped": true,

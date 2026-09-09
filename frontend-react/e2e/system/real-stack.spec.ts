@@ -189,18 +189,20 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   ]));
 
   // The submitted portfolio must cover precisely the statutory catalog. The
-  // assertion deliberately rejects both an omitted component and an extra
-  // legacy component, rather than merely counting six rows.
+  // assertion deliberately rejects both an omitted section and an extra
+  // legacy section, rather than merely counting five rows.
   const portfolioSchoolYear = '2031-2032';
   const requiredPortfolioComponents = [
-    ['identificare', 'cv'], ['identificare', 'date_identificare'],
-    ['identificare', 'studii'], ['cariera', 'contracte_incadrare'],
-    ['declaratii', 'autenticitate'], ['declaratii', 'consimtamant'],
+    ['identificare_profesionala', 'structura_cadru'],
+    ['predare_invatare_evaluare', 'structura_cadru'],
+    ['activitati_complementare', 'structura_cadru'],
+    ['managementul_clasei', 'structura_cadru'],
+    ['evolutie_dezvoltare_profesionala', 'structura_cadru'],
   ] as const;
   expect(databaseScalar(`select coalesce(string_agg(section_code || '/' || component_code, ',' order by sort_order, section_code, component_code), '') from education_portfolio_sections where active and required`))
     .toBe(requiredPortfolioComponents.map(([section, component]) => `${section}/${component}`).join(','));
 
-  // Seed six independent ready archive documents with active, stored source
+  // Seed five independent ready archive documents with active, stored source
   // versions. Each one is granted separately by the administrator through the
   // React control below; the seventh remains same-tenant but intentionally
   // ungranted to prove the access boundary.
@@ -250,6 +252,23 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     expect((await granted).status()).toBe(201);
   }
   expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(6);
+  const procedureCode = `PORT-E2E-${Date.now()}`;
+  const procedureCreated = await api<{ id: string; updated_at: string }>(page, portfolioGrantAdminToken, '/api/education/portfolios/procedures', {
+    method: 'POST',
+    body: JSON.stringify({ procedure_code: procedureCode, title: `${marker} procedură portofoliu`, source_ref: 'Ordinul nr. 3.858/2026', effective_from: '2026-09-01', calendar_rules: {}, access_rules: {}, accepted_formats: {}, retention_rules: {}, transfer_rules: {} }),
+  });
+  expect(procedureCreated.status).toBe(201);
+  const procedureRules = await api<{ procedure_id: string; rule_count: number }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/section-rules`, {
+    method: 'PUT',
+    body: JSON.stringify({ expected_updated_at: procedureCreated.body.updated_at, rules: requiredPortfolioComponents.map(([section], index) => ({ id: crypto.randomUUID(), procedure_id: procedureCreated.body.id, section_code: section, label_ro: section, label_en: '', source_catalog_version: 'ome-3858-2026-annexa-1-v1', required: true, sort_order: (index + 1) * 10, active: true })) }),
+  });
+  expect(procedureRules.status).toBe(200);
+  const procedureAfterRules = await api<{ updated_at: string }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}`);
+  const procedureApproved = await api<{ updated_at: string }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/approve`, { method: 'POST', body: JSON.stringify({ expected_updated_at: procedureAfterRules.body.updated_at, evidence: { decision_reference: `${marker}-aprobare` } }) });
+  expect(procedureApproved.status).toBe(200);
+  const procedurePublished = await api<{ lifecycle_status: string }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/publish`, { method: 'POST', body: JSON.stringify({ expected_updated_at: procedureApproved.body.updated_at, evidence: { publication_reference: `${marker}-publicare` } }) });
+  expect(procedurePublished.status).toBe(200);
+  expect(procedurePublished.body.lifecycle_status).toBe('published');
   databaseExec(`delete from app_user_platform_roles where user_id='${platformAdminID}'; update app_memberships set position_code='profesor' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'`);
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
@@ -267,8 +286,6 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await approverPage.getByRole('button', { name: 'Portofoliu nou' }).click();
   const portfolioDialog = approverPage.getByRole('dialog', { name: 'Portofoliu profesional' });
   await portfolioDialog.getByLabel('An școlar *').fill(portfolioSchoolYear);
-  await portfolioDialog.getByLabel('Declarație de autenticitate').click();
-  await portfolioDialog.getByLabel('Acord prelucrare date').click();
   const portfolioCreatedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === '/api/education/portfolios/me' && response.request().method() === 'POST',
   );
@@ -278,6 +295,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const ownPortfolio = await createdPortfolioHTTP.json() as OwnPortfolio;
   expect(ownPortfolio).toMatchObject({ school_year: portfolioSchoolYear, status: 'draft', institution_id: 'inst-001' });
   await expect(approverPage.getByText('Ciorna a fost creată.')).toBeVisible();
+  for (let declarationIndex = 0; declarationIndex < 2; declarationIndex += 1) {
+    await approverPage.getByRole('button', { name: 'Citește și confirmă' }).first().click();
+    const declarationDialog = approverPage.getByRole('dialog');
+    await declarationDialog.getByLabel('Confirm declarația afișată').click();
+    const acknowledgementResponse = approverPage.waitForResponse((response) => response.request().method() === 'POST' && new URL(response.url()).pathname.includes(`/api/education/portfolios/me/${ownPortfolio.id}/declarations/`));
+    await declarationDialog.getByRole('button', { name: 'Confirmă declarația' }).click();
+    expect((await acknowledgementResponse).status()).toBe(200);
+  }
 
   // A genuine same-tenant archive record is still forbidden until explicitly
   // granted to this immutable teacher identity.
@@ -294,8 +319,8 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   for (const archive of portfolioArchives) {
     await approverPage.getByRole('button', { name: 'Adaugă document' }).click();
     const documentDialog = approverPage.getByRole('dialog', { name: 'Adaugă document în portofoliu' });
-    await documentDialog.getByLabel('Secțiune *').fill(archive.section);
-    await documentDialog.getByLabel('Componentă *').fill(archive.component);
+    await documentDialog.getByRole('combobox', { name: 'Componentă din catalog' }).click();
+    await approverPage.getByRole('option', { name: new RegExp(archive.section) }).click();
     await documentDialog.getByLabel('Titlu *').fill(archive.title);
     await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
     await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
@@ -313,7 +338,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const opisRegeneratedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/opis/regenerate` && response.request().method() === 'POST',
   );
-  await approverPage.getByRole('button', { name: 'Regenerează opisul' }).click();
+  await approverPage.getByRole('button', { name: 'Regenerare opis' }).click();
   expect((await opisRegeneratedResponse).status()).toBe(200);
   await expect(approverPage.getByText('Opisul a fost regenerat.')).toBeVisible();
   const ownOpis = await api<{ items: Array<{ document_reference: string }>; total: number }>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/opis`);
@@ -344,19 +369,19 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     select count(*)::text from education_portfolio_documents
     where portfolio_id='${ownPortfolio.id}' and institution_id='inst-001'
       and source_scope='portofoliu'
-  `)).toBe('6');
+  `)).toBe('5');
   expect(databaseScalar(`
     select count(*)::text from education_portfolio_opis
     where portfolio_id='${ownPortfolio.id}' and institution_id='inst-001'
-  `)).toBe('6');
-  expect(databaseScalar(`select count(*)::text from education_portfolio_documents evidence join archive_document_versions version on version.id=evidence.archive_version_id where evidence.portfolio_id='${ownPortfolio.id}' and evidence.archive_version_no=version.version_no and evidence.archive_sha256=version.source_sha256 and evidence.archive_source_bucket=version.source_bucket and evidence.archive_source_object_key=version.source_object_key`)).toBe('6');
+  `)).toBe('5');
+  expect(databaseScalar(`select count(*)::text from education_portfolio_documents evidence join archive_document_versions version on version.id=evidence.archive_version_id where evidence.portfolio_id='${ownPortfolio.id}' and evidence.archive_version_no=version.version_no and evidence.archive_sha256=version.source_sha256 and evidence.archive_source_bucket=version.source_bucket and evidence.archive_source_object_key=version.source_object_key`)).toBe('5');
   expect(databaseScalar(`
     select count(*)::text from app_audit_log
     where target_id='${ownPortfolio.id}'
       and action in ('education.portfolios.own.create','education.portfolios.opis.regenerate','education.portfolios.submit')
       and actor_subject='oidc-browser-approver-subject'
   `)).toBe('3');
-  expect(databaseScalar(`select count(*)::text from app_audit_log where action='education.portfolios.document.create' and actor_subject='oidc-browser-approver-subject' and target_id = any(array[${portfolioDocuments.map((document) => `'${document.id}'`).join(',')}])`)).toBe('6');
+  expect(databaseScalar(`select count(*)::text from app_audit_log where action='education.portfolios.document.create' and actor_subject='oidc-browser-approver-subject' and target_id = any(array[${portfolioDocuments.map((document) => `'${document.id}'`).join(',')}])`)).toBe('5');
 
   // Restore the primary fixture to the explicit platform authority required by
   // the existing administration, Registratură and passkey portions below.

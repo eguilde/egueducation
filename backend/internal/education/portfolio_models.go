@@ -12,6 +12,13 @@ type PortfolioRecord struct {
 	SectionCount         int    `json:"section_count"`
 	LastUpdatedOn        string `json:"last_updated_on"`
 	RetentionUntil       string `json:"retention_until"`
+	ActivityCeasedOn     string `json:"activity_ceased_on,omitempty"`
+	RetentionPeriodDays  int    `json:"retention_period_days"`
+	LegalHoldActive      bool   `json:"legal_hold_active"`
+	LegalHoldReason      string `json:"legal_hold_reason,omitempty"`
+	WithdrawnAt          string `json:"withdrawn_at,omitempty"`
+	WithdrawalReason     string `json:"withdrawal_reason,omitempty"`
+	AppliedProcedureID   string `json:"applied_procedure_id,omitempty"`
 	TransferStatus       string `json:"transfer_status"`
 	AuthenticityDeclared bool   `json:"authenticity_declared"`
 	ConsentCaptured      bool   `json:"consent_captured"`
@@ -48,7 +55,6 @@ type CreatePortfolioRecordRequest struct {
 	Status               string `json:"status"`
 	SectionCount         int    `json:"section_count"`
 	LastUpdatedOn        string `json:"last_updated_on"`
-	RetentionUntil       string `json:"retention_until"`
 	TransferStatus       string `json:"transfer_status"`
 	AuthenticityDeclared bool   `json:"authenticity_declared"`
 	ConsentCaptured      bool   `json:"consent_captured"`
@@ -56,15 +62,28 @@ type CreatePortfolioRecordRequest struct {
 	Notes                string `json:"notes"`
 }
 
+// PortfolioCessationRequest is an institution-controlled lifecycle command.
+// Retention is calculated in persistence from this event; it is never an
+// input supplied by a portfolio client.
+type PortfolioCessationRequest struct {
+	ActivityCeasedOn string `json:"activity_ceased_on"`
+	Reason           string `json:"reason"`
+}
+
+// PortfolioLegalHoldRequest records or releases a legal hold. A route is
+// deliberately expected to protect this command with a dedicated lifecycle
+// permission once the public contract is published.
+type PortfolioLegalHoldRequest struct {
+	Active bool   `json:"active"`
+	Reason string `json:"reason"`
+}
+
 // OwnPortfolioRequest is the public command contract for a portfolio owner.
 // Identity, lifecycle, custody, transfer and retention are server-controlled.
 type OwnPortfolioRequest struct {
-	SchoolYear           string `json:"school_year"`
-	SectionCount         int    `json:"section_count"`
-	LastUpdatedOn        string `json:"last_updated_on"`
-	AuthenticityDeclared bool   `json:"authenticity_declared"`
-	ConsentCaptured      bool   `json:"consent_captured"`
-	Notes                string `json:"notes"`
+	SchoolYear    string `json:"school_year"`
+	LastUpdatedOn string `json:"last_updated_on"`
+	Notes         string `json:"notes"`
 }
 
 type EducationRequirement struct {
@@ -209,6 +228,8 @@ type PortfolioTransferEvent struct {
 	ReceivedBy             string `json:"received_by"`
 	InstitutionID          string `json:"institution_id"`
 	Notes                  string `json:"notes"`
+	WithdrawnAt            string `json:"withdrawn_at,omitempty"`
+	WithdrawalReason       string `json:"withdrawal_reason,omitempty"`
 }
 
 type CreatePortfolioTransferEventRequest struct {
@@ -260,6 +281,8 @@ type PortfolioValorificationEvent struct {
 	CompletedOn        string `json:"completed_on"`
 	InstitutionID      string `json:"institution_id"`
 	Notes              string `json:"notes"`
+	WithdrawnAt        string `json:"withdrawn_at,omitempty"`
+	WithdrawalReason   string `json:"withdrawal_reason,omitempty"`
 }
 
 type CreatePortfolioValorificationEventRequest struct {

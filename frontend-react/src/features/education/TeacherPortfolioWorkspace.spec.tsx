@@ -5,9 +5,19 @@ import { TeacherPortfolioWorkspace } from "./TeacherPortfolioWorkspace";
 import type { EducationApi } from "./types";
 
 const portfolio = { id: "own-1", portfolio_code: "PORT-CD-1", owner_name: "Ana Pop", owner_role: "Profesor", school_year: "2026-2027", status: "draft", section_count: 2, last_updated_on: "2026-09-01", authenticity_declared: true, consent_captured: true, notes: "" };
+const declarationEvidence = {
+  templates: [
+    { declaration_type: "gdpr_information" as const, declaration_version: "gdpr-v1", declaration_text: "Informare GDPR", source_ref: "Sursă", effective_from: "2026-09-01" },
+    { declaration_type: "authenticity" as const, declaration_version: "auth-v1", declaration_text: "Declarație autenticitate", source_ref: "Sursă", effective_from: "2026-09-01" },
+  ],
+  acknowledgements: [
+    { id: "ack-1", portfolio_id: "own-1", declaration_type: "gdpr_information" as const, declaration_version: "gdpr-v1", declaration_text: "Informare GDPR", accepted_at: "2026-09-01T10:00:00Z", accepted_by_user_id: "user-1", attestation_method: "authenticated_web_acknowledgement" },
+    { id: "ack-2", portfolio_id: "own-1", declaration_type: "authenticity" as const, declaration_version: "auth-v1", declaration_text: "Declarație autenticitate", accepted_at: "2026-09-01T10:00:00Z", accepted_by_user_id: "user-1", attestation_method: "authenticated_web_acknowledgement" },
+  ],
+};
 const api = (): EducationApi => ({
-  governanceDashboard: vi.fn(), directorCockpit: vi.fn(), eligibleGovernanceUsers: vi.fn(), dashboardAt: vi.fn(), governanceMeetings: vi.fn(), governanceMeetingDetail: vi.fn(), saveGovernanceMeeting: vi.fn(), deleteGovernanceMeeting: vi.fn(), records: vi.fn(), recordDetail: vi.fn(), saveRecord: vi.fn(), deleteRecord: vi.fn(), recordPdf: vi.fn(), relatedRecords: vi.fn(), relatedDetail: vi.fn(), saveRelated: vi.fn(), deleteRelated: vi.fn(), relatedPdf: vi.fn(), exportFile: vi.fn(), metadata: vi.fn(), command: vi.fn(),
-  ownPortfolios: vi.fn().mockResolvedValue({ items: [portfolio], total: 1, page: 1, pageSize: 1 }), ownPortfolio: vi.fn().mockResolvedValue(portfolio), createOwnPortfolio: vi.fn(), updateOwnPortfolio: vi.fn().mockResolvedValue(portfolio), submitOwnPortfolio: vi.fn().mockResolvedValue({ ...portfolio, status: "submitted" }), ownPortfolioRelated: vi.fn().mockResolvedValue({ items: [{ id: "document-1", document_title: "Planificare", section_code: "S1", file_reference: "archive://document-1" }], total: 1, page: 1, pageSize: 1 }), regenerateOwnPortfolioOpis: vi.fn().mockResolvedValue(undefined), createOwnPortfolioDocument: vi.fn().mockResolvedValue({ id: "document-1" }), deleteOwnPortfolioDocument: vi.fn().mockResolvedValue(undefined), ownPortfolioArchiveDocuments: vi.fn().mockResolvedValue({ items: [{ id: "11111111-1111-4111-8111-111111111111", title: "Dovadă eArhivă", current_version_no: 1 }], total: 1, page: 1, pageSize: 1 }), attachmentGrants: vi.fn(), eligibleAttachmentDocuments: vi.fn(), eligibleAttachmentUsers: vi.fn(), createAttachmentGrant: vi.fn(), deleteAttachmentGrant: vi.fn(),
+  governanceDashboard: vi.fn(), directorCockpit: vi.fn(), eligibleGovernanceUsers: vi.fn(), dashboardAt: vi.fn(), governanceMeetings: vi.fn(), governanceMeetingDetail: vi.fn(), saveGovernanceMeeting: vi.fn(), deleteGovernanceMeeting: vi.fn(), records: vi.fn(), recordDetail: vi.fn(), saveRecord: vi.fn(), deleteRecord: vi.fn(), recordPdf: vi.fn(), relatedRecords: vi.fn().mockResolvedValue({ items: [{ id: "section-1", section_code: "I", component_code: "I.1", label_ro: "Proiectare didactică", sensitive_data: false }], total: 1, page: 1, pageSize: 100 }), relatedDetail: vi.fn(), saveRelated: vi.fn(), deleteRelated: vi.fn(), relatedPdf: vi.fn(), metadata: vi.fn(), command: vi.fn(),
+  ownPortfolios: vi.fn().mockResolvedValue({ items: [portfolio], total: 1, page: 1, pageSize: 1 }), ownPortfolio: vi.fn().mockResolvedValue(portfolio), createOwnPortfolio: vi.fn(), updateOwnPortfolio: vi.fn().mockResolvedValue(portfolio), submitOwnPortfolio: vi.fn().mockResolvedValue({ ...portfolio, status: "submitted" }), ownPortfolioDeclarations: vi.fn().mockResolvedValue(declarationEvidence), acknowledgeOwnPortfolioDeclaration: vi.fn(), portfolioProcedures: vi.fn(), portfolioProcedure: vi.fn(), createPortfolioProcedure: vi.fn(), updatePortfolioProcedure: vi.fn(), portfolioProcedureRules: vi.fn(), replacePortfolioProcedureRules: vi.fn(), transitionPortfolioProcedure: vi.fn(), ownPortfolioRelated: vi.fn().mockResolvedValue({ items: [{ id: "document-1", document_title: "Planificare", section_code: "S1", file_reference: "archive://document-1" }], total: 1, page: 1, pageSize: 1 }), regenerateOwnPortfolioOpis: vi.fn().mockResolvedValue(undefined), recordPortfolioCessation: vi.fn(), setPortfolioLegalHold: vi.fn(), createOwnPortfolioDocument: vi.fn().mockResolvedValue({ id: "document-1" }), deleteOwnPortfolioDocument: vi.fn().mockResolvedValue(undefined), ownPortfolioArchiveDocuments: vi.fn().mockResolvedValue({ items: [{ id: "11111111-1111-4111-8111-111111111111", title: "Dovadă eArhivă", current_version_no: 1 }], total: 1, page: 1, pageSize: 1 }), attachmentGrants: vi.fn(), eligibleAttachmentDocuments: vi.fn(), eligibleAttachmentUsers: vi.fn(), createAttachmentGrant: vi.fn(), deleteAttachmentGrant: vi.fn(), createPortfolioExportManifest: vi.fn(),
 });
 
 describe("TeacherPortfolioWorkspace", () => {
@@ -17,13 +27,19 @@ describe("TeacherPortfolioWorkspace", () => {
     expect(await screen.findByText("PORT-CD-1")).toBeInTheDocument();
     expect(screen.getByText(/Ana Pop/)).toBeInTheDocument();
     expect((await screen.findAllByText("Planificare")).length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole("button", { name: "Regenerează opisul" }));
+    expect(transport.ownPortfolios).toHaveBeenCalledWith(expect.objectContaining({ pageSize: 100, sort: "school_year" }));
+    expect(transport.ownPortfolioRelated).toHaveBeenCalledWith("own-1", "documents", expect.objectContaining({ page: 1, pageSize: 10 }));
+    fireEvent.click(screen.getByRole("button", { name: "Șterge Planificare" }));
+    expect(transport.deleteOwnPortfolioDocument).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmă eliminarea" }));
+    await waitFor(() => expect(transport.deleteOwnPortfolioDocument).toHaveBeenCalledWith("own-1", "document-1"));
+    fireEvent.click(screen.getByRole("button", { name: "Regenerare opis" }));
     await waitFor(() => expect(transport.regenerateOwnPortfolioOpis).toHaveBeenCalledWith("own-1"));
     fireEvent.click(screen.getByRole("button", { name: "Adaugă document" }));
     const dialog = screen.getByRole("dialog", { name: "Adaugă document în portofoliu" });
-    expect(screen.getByText(/serverul verifică existența/i)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Secțiune *"), { target: { value: "I" } });
-    fireEvent.change(screen.getByLabelText("Componentă *"), { target: { value: "I.1" } });
+    expect(screen.getByText(/serverul verifică dreptul de acces/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("combobox", { name: "Componentă din catalog" }));
+    fireEvent.click(await screen.findByRole("option", { name: /Proiectare didactică/ }));
     fireEvent.change(screen.getByLabelText("Titlu *"), { target: { value: "Dovadă" } });
     fireEvent.change(screen.getByLabelText("Tip dovadă *"), { target: { value: "adeverință" } });
     fireEvent.click(screen.getByRole("combobox", { name: "Document eArhivă autorizat" }));
@@ -31,7 +47,8 @@ describe("TeacherPortfolioWorkspace", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Adaugă document" }));
     await waitFor(() => expect(transport.createOwnPortfolioDocument).toHaveBeenCalledWith("own-1", expect.objectContaining({ file_reference: "archive://11111111-1111-4111-8111-111111111111" })));
     fireEvent.click(screen.getByRole("button", { name: "Trimite spre verificare" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmă trimiterea" }));
     await waitFor(() => expect(transport.submitOwnPortfolio).toHaveBeenCalledWith("own-1"));
     expect(transport.records).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 });

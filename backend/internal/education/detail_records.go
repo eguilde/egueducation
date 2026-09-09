@@ -1297,8 +1297,15 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_failed"})
+		return
+	}
+	defer func() { _ = tx.Rollback(r.Context()) }()
+
 	var item PortfolioDocument
-	err := s.pool.QueryRow(r.Context(), `
+	err = tx.QueryRow(r.Context(), `
 		insert into education_portfolio_documents (
 			portfolio_id,
 			section_code,
@@ -1374,6 +1381,17 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if _, _, err := s.syncPortfolioOpisTx(r.Context(), tx, r, recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_opis_sync_failed"})
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_failed"})
+		return
+	}
+
+	// Auditing is deliberately post-commit: an audit event must never claim a
+	// document exists when the document/OPIS transaction was rolled back.
 	s.logAudit(r, "education.portfolios.document.create", "portfolio_document", item.ID, "Portfolio document created.", map[string]any{
 		"portfolio_id":        item.PortfolioID,
 		"section_code":        item.SectionCode,
@@ -1383,11 +1401,6 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		"authenticity_status": item.AuthenticityStatus,
 		"chronological_index": item.ChronologicalIndex,
 	})
-
-	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_opis_sync_failed"})
-		return
-	}
 
 	httpx.JSON(w, http.StatusCreated, item)
 }
@@ -1428,8 +1441,15 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_failed"})
+		return
+	}
+	defer func() { _ = tx.Rollback(r.Context()) }()
+
 	var item PortfolioDocument
-	err := s.pool.QueryRow(r.Context(), `
+	err = tx.QueryRow(r.Context(), `
 		update education_portfolio_documents
 		set
 			section_code = $1,
@@ -1490,6 +1510,15 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	if _, _, err := s.syncPortfolioOpisTx(r.Context(), tx, r, recordID, s.institutionID(r)); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_opis_sync_failed"})
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_failed"})
+		return
+	}
+
 	s.logAudit(r, "education.portfolios.document.update", "portfolio_document", item.ID, "Portfolio document updated.", map[string]any{
 		"portfolio_id":        item.PortfolioID,
 		"section_code":        item.SectionCode,
@@ -1500,18 +1529,20 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		"chronological_index": item.ChronologicalIndex,
 	})
 
-	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_opis_sync_failed"})
-		return
-	}
-
 	httpx.JSON(w, http.StatusOK, item)
 }
 
 func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
-	tag, err := s.pool.Exec(r.Context(), `
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_failed"})
+		return
+	}
+	defer func() { _ = tx.Rollback(r.Context()) }()
+
+	tag, err := tx.Exec(r.Context(), `
 		delete from education_portfolio_documents
 		where id = $1 and portfolio_id = $2 and institution_id = $3
 	`, documentID, recordID, s.institutionID(r))
@@ -1524,14 +1555,18 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.logAudit(r, "education.portfolios.document.delete", "portfolio_document", documentID, "Portfolio document deleted.", map[string]any{
-		"portfolio_id": recordID,
-	})
-
-	if _, _, err := s.syncPortfolioOpis(r.Context(), r, recordID, s.institutionID(r)); err != nil {
+	if _, _, err := s.syncPortfolioOpisTx(r.Context(), tx, r, recordID, s.institutionID(r)); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_opis_sync_failed"})
 		return
 	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_failed"})
+		return
+	}
+
+	s.logAudit(r, "education.portfolios.document.delete", "portfolio_document", documentID, "Portfolio document deleted.", map[string]any{
+		"portfolio_id": recordID,
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -2225,6 +2260,8 @@ func portfolioChecklistSortColumn(value string) string {
 		return "epc.section_code"
 	case "source_scope":
 		return "epc.source_scope"
+	case "mandatory":
+		return "epc.mandatory"
 	case "status":
 		return "epc.status"
 	case "document_count":

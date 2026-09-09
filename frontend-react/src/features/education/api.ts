@@ -15,6 +15,14 @@ import type {
   OwnPortfolioArchiveDocument,
   PortfolioAttachmentGrant,
   PortfolioOpisRegeneration,
+  PortfolioCessationInput,
+  PortfolioLegalHoldInput,
+  PortfolioDeclarationEvidence,
+  PortfolioDeclarationAcknowledgement,
+  PortfolioProcedure,
+  PortfolioProcedureInput,
+  PortfolioProcedureRule,
+  PortfolioEvidenceManifestResponse,
 } from "./types";
 import { createOpenApiTransport } from "../../api/client";
 
@@ -103,12 +111,12 @@ export function createEducationApi(
       return toPage(await request<GovernanceMeeting[] | EducationPage<GovernanceMeeting>>(`/education/governance/meetings?${query}`));
     },
     governanceMeetingDetail: (id) => request<GovernanceMeeting>(`/education/governance/meetings/${encodeURIComponent(id)}`),
-    saveGovernanceMeeting: (input, id?) => request<GovernanceMeeting>(id ? `/education/governance/meetings/${encodeURIComponent(id)}` : "/education/governance/meetings", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    saveGovernanceMeeting: (input, id?) => request<GovernanceMeeting>(id ? `/education/governance/meetings/${encodeURIComponent(id)}` : "/education/governance/meetings", { method: id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     deleteGovernanceMeeting: (id) => request<void>(`/education/governance/meetings/${encodeURIComponent(id)}`, { method: "DELETE" }),
     records: async (domain, input = {}) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`${recordsPaths[domain]}?${listQuery(input)}`)),
     recordDetail: (domain, id) => request<EducationRecord>(`${recordsPaths[domain]}/${encodeURIComponent(id)}`),
     saveRecord: (domain, input: EducationRecordInput, id?) => request<EducationRecord>(id ? `${recordsPaths[domain]}/${encodeURIComponent(id)}` : recordsPaths[domain], {
-      method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input),
+      method: id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input),
     }),
     deleteRecord: (domain, id) => request<void>(`${recordsPaths[domain]}/${encodeURIComponent(id)}`, { method: "DELETE" }),
     async recordPdf(domain, id) {
@@ -118,34 +126,41 @@ export function createEducationApi(
     },
     relatedRecords: async (path, input = {}) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`${path}?${listQuery(input)}`)),
     relatedDetail: (path, id) => request<EducationRecord>(`${path}/${encodeURIComponent(id)}`),
-    saveRelated: (path, input, id?) => request<EducationRecord>(id ? `${path}/${encodeURIComponent(id)}` : path, { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    saveRelated: (path, input, id?) => request<EducationRecord>(id ? `${path}/${encodeURIComponent(id)}` : path, { method: id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     deleteRelated: (path, id) => request<void>(`${path}/${encodeURIComponent(id)}`, { method: "DELETE" }),
     async relatedPdf(path, id) {
       const result = await transport.request<Blob>("GET", `${apiBase}${path}/${encodeURIComponent(id)}/pdf`, { headers: { Accept: "application/pdf" } });
       if (!result.response.ok) throw new Error(`education_related_pdf_${result.response.status}`);
       return result.data as Blob;
     },
-    async exportFile(format) {
-      const result = await transport.request<Blob>("GET", `${apiBase}/education/exports/${format}`, { headers: { Accept: format === "pdf" ? "application/pdf" : "text/csv" } });
-      if (!result.response.ok) throw new Error(`education_export_${result.response.status}`);
-      return result.data as Blob;
-    },
     metadata: (path) => request<Record<string, unknown>>(path),
     command: (path) => request<void>(path, { method: "POST" }),
-    ownPortfolios: async () => toPage(await request<OwnPortfolio[] | EducationPage<OwnPortfolio>>("/education/portfolios/me")),
+    ownPortfolios: async (input = {}) => toPage(await request<OwnPortfolio[] | EducationPage<OwnPortfolio>>(`/education/portfolios/me?${listQuery(input)}`)),
     ownPortfolio: (id) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}`),
     createOwnPortfolio: (input) => request<OwnPortfolio>("/education/portfolios/me", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     updateOwnPortfolio: (id, input) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     submitOwnPortfolio: (id) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}/submit`, { method: "POST" }),
-    ownPortfolioRelated: async (id, resource) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`/education/portfolios/me/${encodeURIComponent(id)}/${resource}`)),
+    ownPortfolioDeclarations: (id) => request<PortfolioDeclarationEvidence>(`/education/portfolios/me/${encodeURIComponent(id)}/declarations`),
+    acknowledgeOwnPortfolioDeclaration: (id, declarationType) => request<PortfolioDeclarationAcknowledgement>(`/education/portfolios/me/${encodeURIComponent(id)}/declarations/${encodeURIComponent(declarationType)}/acknowledgements`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmed: true }) }),
+    portfolioProcedures: (input) => request<EducationPage<PortfolioProcedure>>(`/education/portfolios/procedures?${listQuery(input)}`).then(toPage),
+    portfolioProcedure: (id) => request<PortfolioProcedure>(`/education/portfolios/procedures/${encodeURIComponent(id)}`),
+    createPortfolioProcedure: (input: PortfolioProcedureInput) => request<PortfolioProcedure>("/education/portfolios/procedures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    updatePortfolioProcedure: (id, input: PortfolioProcedureInput) => request<PortfolioProcedure>(`/education/portfolios/procedures/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    portfolioProcedureRules: (id) => request<EducationPage<PortfolioProcedureRule>>(`/education/portfolios/procedures/${encodeURIComponent(id)}/section-rules?page=1&pageSize=100&sort=sort_order&direction=asc`).then(toPage),
+    replacePortfolioProcedureRules: (id, input) => request(`/education/portfolios/procedures/${encodeURIComponent(id)}/section-rules`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }).then(() => undefined),
+    transitionPortfolioProcedure: (id, transition, input) => request<PortfolioProcedure>(`/education/portfolios/procedures/${encodeURIComponent(id)}/${encodeURIComponent(transition)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    ownPortfolioRelated: async (id, resource, input = {}) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`/education/portfolios/me/${encodeURIComponent(id)}/${resource}?${listQuery(input)}`)),
     regenerateOwnPortfolioOpis: (id) => request<PortfolioOpisRegeneration>(`/education/portfolios/me/${encodeURIComponent(id)}/opis/regenerate`, { method: "POST" }),
+    recordPortfolioCessation: (id, input: PortfolioCessationInput) => request<OwnPortfolio>(`/education/portfolios/records/${encodeURIComponent(id)}/activity-cessation`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    setPortfolioLegalHold: (id, input: PortfolioLegalHoldInput) => request<OwnPortfolio>(`/education/portfolios/records/${encodeURIComponent(id)}/legal-hold`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     createOwnPortfolioDocument: (id, input) => request<EducationRecord>(`/education/portfolios/me/${encodeURIComponent(id)}/documents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     deleteOwnPortfolioDocument: (portfolioID, documentID) => request<void>(`/education/portfolios/me/${encodeURIComponent(portfolioID)}/documents/${encodeURIComponent(documentID)}`, { method: "DELETE" }),
-    ownPortfolioArchiveDocuments: async () => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>("/education/portfolios/me/archive-documents?page=1&pageSize=25&sort=title&direction=asc")),
-    attachmentGrants: async () => toPage(await request<PortfolioAttachmentGrant[] | EducationPage<PortfolioAttachmentGrant>>("/education/portfolios/archive-attachment-grants?page=1&pageSize=50")),
-    eligibleAttachmentDocuments: async () => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>("/education/portfolios/archive-attachment-grants/eligible-documents?page=1&pageSize=50&sort=title&direction=asc")),
-    eligibleAttachmentUsers: async () => toPage(await request<EligibleGovernanceUser[] | EducationPage<EligibleGovernanceUser>>("/education/portfolios/archive-attachment-grants/eligible-users?page=1&pageSize=100&sort=name&direction=asc")),
+    ownPortfolioArchiveDocuments: async (input = {}) => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>(`/education/portfolios/me/archive-documents?${listQuery({ pageSize: 25, sort: "title", direction: "asc", ...input })}`)),
+    attachmentGrants: async (input = {}) => toPage(await request<PortfolioAttachmentGrant[] | EducationPage<PortfolioAttachmentGrant>>(`/education/portfolios/archive-attachment-grants?${listQuery({ pageSize: 50, ...input })}`)),
+    eligibleAttachmentDocuments: async (input = {}) => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>(`/education/portfolios/archive-attachment-grants/eligible-documents?${listQuery({ pageSize: 50, sort: "title", direction: "asc", ...input })}`)),
+    eligibleAttachmentUsers: async (input = {}) => toPage(await request<EligibleGovernanceUser[] | EducationPage<EligibleGovernanceUser>>(`/education/portfolios/archive-attachment-grants/eligible-users?${listQuery({ pageSize: 100, sort: "name", direction: "asc", ...input })}`)),
     createAttachmentGrant: (input) => request<PortfolioAttachmentGrant>("/education/portfolios/archive-attachment-grants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
     deleteAttachmentGrant: (id) => request<void>(`/education/portfolios/archive-attachment-grants/${encodeURIComponent(id)}`, { method: "DELETE" }),
+    createPortfolioExportManifest: (id) => request<PortfolioEvidenceManifestResponse>(`/education/portfolios/records/${encodeURIComponent(id)}/export-manifests`, { method: "POST" }),
   };
 }

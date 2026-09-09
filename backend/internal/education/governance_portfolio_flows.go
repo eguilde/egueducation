@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 
+	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
@@ -745,16 +746,35 @@ func (s *Service) UpdatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 func (s *Service) DeletePortfolioTransfer(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	tag, err := s.pool.Exec(r.Context(), `delete from education_portfolio_transfers where id = $1 and portfolio_id = $2 and institution_id = $3`, itemID, recordID, s.institutionID(r))
+	tag, err := s.pool.Exec(r.Context(), `
+		update education_portfolio_transfers transfer
+		set withdrawn_at = now(), withdrawn_by_subject = $1,
+			withdrawal_reason = 'withdrawn through legacy delete command', updated_at = now()
+		from education_portfolios portfolio
+		where transfer.id = $2::uuid and transfer.portfolio_id = $3::uuid and transfer.institution_id = $4
+			and portfolio.id = transfer.portfolio_id and portfolio.institution_id = transfer.institution_id
+			and portfolio.status in ('draft', 'returned') and portfolio.activity_ceased_on is null
+			and portfolio.retention_until is null and not portfolio.legal_hold_active
+			and transfer.withdrawn_at is null
+	`, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), itemID, recordID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_delete_failed"})
 		return
 	}
 	if tag.RowsAffected() == 0 {
-		writeEducationNotFound(w, "education_portfolio_transfer_not_found")
+		var exists bool
+		if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_transfers where id = $1::uuid and portfolio_id = $2::uuid and institution_id = $3)`, itemID, recordID, s.institutionID(r)).Scan(&exists); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_delete_failed"})
+			return
+		}
+		if !exists {
+			writeEducationNotFound(w, "education_portfolio_transfer_not_found")
+			return
+		}
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_transfer_withdrawal_blocked"})
 		return
 	}
-	s.logAudit(r, "education.portfolios.transfer.delete", "portfolio_transfer", itemID, "Portfolio transfer deleted.", map[string]any{"portfolio_id": recordID})
+	s.logAudit(r, "education.portfolios.transfer.withdraw", "portfolio_transfer", itemID, "Portfolio transfer withdrawn; evidence tombstone retained.", map[string]any{"portfolio_id": recordID})
 	if err := s.syncPortfolioTransferStatus(r.Context(), recordID, s.institutionID(r)); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_delete_failed"})
 		return
@@ -984,7 +1004,7 @@ func buildGovernanceResolutionFilters(filters map[string]string, meetingID strin
 }
 
 func buildPortfolioTransferFilters(filters map[string]string, recordID string, institutionID string) (string, []any) {
-	where := []string{"ept.portfolio_id = $1", "ept.institution_id = $2"}
+	where := []string{"ept.portfolio_id = $1", "ept.institution_id = $2", "ept.withdrawn_at is null"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
 		"transfer_code":           "ept.transfer_code",

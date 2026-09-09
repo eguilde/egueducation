@@ -13,7 +13,10 @@ import { Card } from "@primereact/ui/card";
 import { DataTable } from "@primereact/ui/datatable";
 import { Dialog } from "@primereact/ui/dialog";
 import { InputText } from "@primereact/ui/inputtext";
+import { Textarea } from "@primereact/ui/textarea";
+import { Checkbox } from "@primereact/ui/checkbox";
 import { Message } from "@primereact/ui/message";
+import { Popover } from "@primereact/ui/popover";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
@@ -22,6 +25,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { visibleEducationAreas } from "./catalog";
 import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
+import { PortfolioProcedureManager, type PortfolioProcedureApi, type PortfolioProcedure as ProcedureView, type PortfolioProcedureRule as ProcedureRuleView } from "./PortfolioProcedureManager";
 import type {
   EducationApi,
   DirectorCockpit,
@@ -44,6 +48,84 @@ const Spinner = () => (
   </ProgressSpinner.Root>
 );
 
+const procedureView = (item: import("./types").PortfolioProcedure): ProcedureView => ({
+  id: item.id, code: item.procedure_code, title: item.title, description: item.source_ref,
+  status: item.lifecycle_status, version: item.version_no, updated_at: item.updated_at,
+});
+const procedureRuleView = (item: import("./types").PortfolioProcedureRule): ProcedureRuleView => ({
+  id: item.id, legal_section_code: item.section_code, label: item.label_ro,
+  required: item.required, minimum_evidence_count: 1, sort_order: item.sort_order,
+});
+function portfolioProcedureAdapter(api: EducationApi): PortfolioProcedureApi {
+  return {
+    list: async (query) => { const result = await api.portfolioProcedures(query); return { ...result, items: result.items.map(procedureView) }; },
+    detail: async (id) => procedureView(await api.portfolioProcedure(id)),
+    create: async (input) => procedureView(await api.createPortfolioProcedure({ procedure_code: input.code, title: input.title, source_ref: input.description ?? "Ordinul nr. 3.858/2026", calendar_rules: {}, access_rules: {}, accepted_formats: {}, retention_rules: {}, transfer_rules: {} })),
+    update: async (id, input) => {
+      const current = await api.portfolioProcedure(id);
+      return procedureView(await api.updatePortfolioProcedure(id, { procedure_code: input.code, title: input.title, source_ref: input.description ?? current.source_ref, effective_from: current.effective_from, effective_to: current.effective_to, calendar_rules: current.calendar_rules, access_rules: current.access_rules, accepted_formats: current.accepted_formats, retention_rules: current.retention_rules, transfer_rules: current.transfer_rules, expected_updated_at: input.expected_updated_at }));
+    },
+    rules: async (id) => (await api.portfolioProcedureRules(id)).items.map(procedureRuleView),
+    replaceRules: async (id, input) => {
+      await api.replacePortfolioProcedureRules(id, { expected_updated_at: input.expected_updated_at, rules: input.rules.map((rule, index) => ({ section_code: rule.legal_section_code, label_ro: rule.label ?? rule.legal_section_code, label_en: "", source_catalog_version: "ome-3858-2026-annexa-1-v1", required: rule.required, sort_order: rule.sort_order ?? (index + 1) * 10, active: true })) });
+      return (await api.portfolioProcedureRules(id)).items.map(procedureRuleView);
+    },
+    transition: async (id, input) => procedureView(await api.transitionPortfolioProcedure(id, input.transition, { expected_updated_at: input.expected_updated_at, evidence: { reference: input.evidence } })),
+  };
+}
+
+type SchoolRowAction = {
+  label: string;
+  icon: string;
+  onSelect: () => void;
+  severity?: "secondary" | "danger" | "warn" | "success";
+  disabled?: boolean;
+};
+
+/** A compact, accessible action menu shared by School registry tables. */
+function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger
+        as={Button}
+        iconOnly
+        rounded
+        size="small"
+        variant="text"
+        aria-label="Acțiuni înregistrare"
+        title="Acțiuni înregistrare"
+      >
+        <i className="pi pi-ellipsis-v" aria-hidden="true" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="left" align="start" sideOffset={6}>
+          <Popover.Popup>
+            <Popover.Content>
+              <div className="flex min-w-40 flex-col gap-1" role="menu">
+                {actions.map((action) => (
+                  <Button
+                    key={action.label}
+                    size="small"
+                    variant="text"
+                    severity={action.severity}
+                    disabled={action.disabled}
+                    aria-label={action.label}
+                    title={action.label}
+                    onClick={action.onSelect}
+                  >
+                    <i className={action.icon} aria-hidden="true" />
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            </Popover.Content>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export interface EducationListPanelProps<T extends { id: string }> {
   title: string;
   description: string;
@@ -58,8 +140,12 @@ export interface EducationListPanelProps<T extends { id: string }> {
     field?: string;
     header: string;
     render: (item: T) => ReactNode;
+    /** Keep operational controls pinned on narrow, horizontally-scrolled tables. */
+    action?: boolean;
   }>;
   emptyMessage: string;
+  onAdd?: () => void;
+  addLabel?: string;
 }
 
 /** Reusable authenticated list state for all paginated Education resources. */
@@ -69,8 +155,13 @@ export function EducationListPanel<T extends { id: string }>({
   load,
   columns,
   emptyMessage,
+  onAdd,
+  addLabel = "înregistrare",
 }: EducationListPanelProps<T>) {
-  const [query, setQuery] = useState("");
+  // Backend list contracts expose documented field filters; `q` is not a
+  // supported Education query parameter, so never offer a misleading global
+  // search control here.
+  const query = "";
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [sort, setSort] = useState<{
@@ -87,6 +178,7 @@ export function EducationListPanel<T extends { id: string }>({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const requestSequence = useRef(0);
+  const filterEffectReady = useRef(false);
   const refresh = async (
     nextQuery = query,
     nextPage = pageNumber,
@@ -120,6 +212,19 @@ export function EducationListPanel<T extends { id: string }>({
   useEffect(() => {
     void refresh("");
   }, [load]); // load is stable in each resource page.
+  // Header filters are server-side. Debouncing prevents a request per keypress
+  // while preserving the backend as the source of truth for result sets.
+  useEffect(() => {
+    if (!filterEffectReady.current) {
+      filterEffectReady.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setPageNumber(1);
+      void refresh(query, 1, pageSize, sort, filters);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [query, filters]);
 
   return (
     <Card.Root>
@@ -128,25 +233,16 @@ export function EducationListPanel<T extends { id: string }>({
         <Card.Content>
           <div className="flex flex-col gap-4">
             <p>{description}</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <InputText
-                aria-label={`Caută în ${title}`}
-                value={query}
-                placeholder="Caută"
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setQuery(event.target.value)
-                }
-              />
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outlined"
                 severity="secondary"
+                disabled={loading || Object.keys(filters).length === 0}
                 onClick={() => {
-                  setPageNumber(1);
-                  void refresh(query, 1, pageSize, sort, filters);
+                  setFilters({});
                 }}
-                disabled={loading}
               >
-                Aplică filtre
+                Resetează filtrele
               </Button>
             </div>
             {error && (
@@ -160,7 +256,7 @@ export function EducationListPanel<T extends { id: string }>({
               <div className="flex justify-center p-8">
                 <Spinner />
               </div>
-            ) : page.items.length === 0 ? (
+            ) : page.items.length === 0 && !onAdd ? (
               <Message.Root severity="info">
                 <Message.Content>
                   <Message.Text>{emptyMessage}</Message.Text>
@@ -171,12 +267,17 @@ export function EducationListPanel<T extends { id: string }>({
                 data={page.items as unknown as Record<string, unknown>[]}
                 dataKey="id"
                 scrollable
+                className="max-h-[calc(100dvh-20rem)] min-h-72 overflow-auto"
               >
                 <DataTable.Table>
-                  <DataTable.THead>
+                  <DataTable.THead className="sticky top-0 z-10">
                     <DataTable.THeadRow>
                       {columns.map((column) => (
-                        <DataTable.THeadCell key={column.header}>
+                        <DataTable.THeadCell
+                          key={column.header}
+                          frozen={column.action || undefined}
+                          alignFrozen={column.action ? "right" : undefined}
+                        >
                           {column.field ? (
                             <Button
                               variant="text"
@@ -206,6 +307,20 @@ export function EducationListPanel<T extends { id: string }>({
                                   : " ↓"
                                 : ""}
                             </Button>
+                          ) : column.action && onAdd ? (
+                            <span className="flex items-center justify-between gap-2">
+                              <span>{column.header}</span>
+                              <Button
+                                iconOnly
+                                rounded
+                                size="small"
+                                aria-label={`Adaugă ${addLabel}`}
+                                title={`Adaugă ${addLabel}`}
+                                onClick={onAdd}
+                              >
+                                <i className="pi pi-plus" aria-hidden="true" />
+                              </Button>
+                            </span>
                           ) : (
                             <span>{column.header}</span>
                           )}
@@ -235,7 +350,11 @@ export function EducationListPanel<T extends { id: string }>({
                       return (
                         <DataTable.Row key={row.id} index={index}>
                           {columns.map((column) => (
-                            <DataTable.Cell key={column.header}>
+                            <DataTable.Cell
+                              key={column.header}
+                              frozen={column.action || undefined}
+                              alignFrozen={column.action ? "right" : undefined}
+                            >
                               {column.render(row)}
                             </DataTable.Cell>
                           ))}
@@ -246,8 +365,15 @@ export function EducationListPanel<T extends { id: string }>({
                 </DataTable.Table>
               </DataTable.Root>
             )}
+            {!loading && page.items.length === 0 && onAdd && (
+              <Message.Root severity="info">
+                <Message.Content>
+                  <Message.Text>{emptyMessage}</Message.Text>
+                </Message.Content>
+              </Message.Root>
+            )}
             <div
-              className="flex flex-wrap items-center justify-between gap-2"
+              className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2"
               aria-label="Paginare"
             >
               <span>
@@ -416,15 +542,6 @@ function GovernanceMeetingsPage({
       {canManage && (
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() =>
-              setEditing({
-                input: inputFromRecord(undefined, meetingFields),
-              })
-            }
-          >
-            Ședință nouă
-          </Button>
-          <Button
             variant="outlined"
             onClick={() => navigate("/scoala/governance/ca-wizard")}
           >
@@ -495,12 +612,14 @@ function GovernanceMeetingsPage({
           },
           {
             header: "Acțiuni",
+            action: true,
             render: (item) => (
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() =>
+              <SchoolRowActionMenu
+                actions={[
+                  {
+                    label: "Detalii",
+                    icon: "pi pi-eye",
+                    onSelect: () =>
                     void api
                       .governanceMeetingDetail(item.id)
                       .then((value) => {
@@ -509,42 +628,41 @@ function GovernanceMeetingsPage({
                       })
                       .catch(() =>
                         setError("Detaliul ședinței nu a putut fi încărcat."),
-                      )
-                  }
-                >
-                  Detalii
-                </Button>
-                {canManage && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() =>
+                      ),
+                  },
+                  ...(canManage
+                    ? [{
+                        label: "Editează",
+                        icon: "pi pi-pencil",
+                        onSelect: () =>
                       setEditing({
                         id: item.id,
                         input: inputFromRecord(
                           item as unknown as EducationRecord,
                           governanceFields,
                         ),
-                      })
-                    }
-                  >
-                    Editează
-                  </Button>
-                )}
-                {canManage && (
-                  <Button
-                    size="small"
-                    severity="danger"
-                    variant="text"
-                    onClick={() => setPendingDelete(item.id)}
-                  >
-                    Șterge
-                  </Button>
-                )}
-              </div>
+                      }),
+                      }, {
+                        label: "Șterge",
+                        icon: "pi pi-trash",
+                        severity: "danger" as const,
+                        onSelect: () => setPendingDelete(item.id),
+                      }]
+                    : []),
+                ]}
+              />
             ),
           },
         ]}
+        onAdd={
+          canManage
+            ? () =>
+                setEditing({
+                  input: inputFromRecord(undefined, meetingFields),
+                })
+            : undefined
+        }
+        addLabel="ședință"
       />
       <RecordFormDialog
         open={editing}
@@ -1297,12 +1415,32 @@ function GovernanceMeetingRelations({
   const [detail, setDetail] = useState<EducationRecord>();
   const [pendingDelete, setPendingDelete] = useState<string>();
   const [selectedRelatedId, setSelectedRelatedId] = useState<string>();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [sort, setSort] = useState<{ field?: string; direction?: "asc" | "desc" }>({});
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [refresh, setRefresh] = useState(0);
+  const filterEffectReady = useRef(false);
   const path = relation.path(meetingId);
-  const load = useCallback(async () => {
+  const load = useCallback(async (
+    nextPage = 1,
+    nextPageSize = 20,
+    nextSort: { field?: string; direction?: "asc" | "desc" } = {},
+    nextFilters: Record<string, string> = {},
+  ) => {
     setLoading(true);
     setError(undefined);
     try {
-      setPage(await api.relatedRecords(path));
+      const result = await api.relatedRecords(path, {
+        page: nextPage,
+        pageSize: nextPageSize,
+        sort: nextSort.field,
+        direction: nextSort.direction,
+        filters: nextFilters,
+      });
+      setPage(result);
+      setPageNumber(result.page ?? nextPage);
+      setPageSize(result.pageSize ?? nextPageSize);
     } catch {
       setError("Subresursa nu a putut fi încărcată.");
     } finally {
@@ -1310,14 +1448,24 @@ function GovernanceMeetingRelations({
     }
   }, [api, path]);
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(1, 20, {}, {});
+  }, [load, refresh]);
+  useEffect(() => {
+    if (!filterEffectReady.current) {
+      filterEffectReady.current = true;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void load(1, pageSize, sort, filters);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [filters, load]);
   const action = async (fn: () => Promise<void>) => {
     try {
       await fn();
       setEditing(undefined);
       setDetail(undefined);
-      await load();
+      setRefresh((value) => value + 1);
     } catch {
       setError("Operația nu a putut fi finalizată.");
     }
@@ -1335,26 +1483,17 @@ function GovernanceMeetingRelations({
                   size="small"
                   variant={item.id === relation.id ? undefined : "outlined"}
                   severity={item.id === relation.id ? undefined : "secondary"}
-                  onClick={() => setRelation(item)}
+                  onClick={() => {
+                    setRelation(item);
+                    setFilters({});
+                    setSort({});
+                    setPageNumber(1);
+                  }}
                 >
                   {item.label}
                 </Button>
               ))}
             </div>
-            {canManage && (
-              <div>
-                <Button
-                  size="small"
-                  onClick={() =>
-                    setEditing({
-                      input: inputFromRecord(undefined, relation.fields),
-                    })
-                  }
-                >
-                  Adaugă {relation.label.toLowerCase()}
-                </Button>
-              </div>
-            )}
             {error && (
               <Message.Root severity="error">
                 <Message.Content>
@@ -1366,7 +1505,7 @@ function GovernanceMeetingRelations({
               <div className="flex justify-center p-6">
                 <Spinner />
               </div>
-            ) : page.items.length === 0 ? (
+            ) : page.items.length === 0 && !canManage ? (
               <Message.Root severity="info">
                 <Message.Content>
                   <Message.Text>
@@ -1378,13 +1517,77 @@ function GovernanceMeetingRelations({
               <DataTable.Root
                 data={page.items as Record<string, unknown>[]}
                 dataKey="id"
+                scrollable
+                className="max-h-[calc(100dvh-22rem)] min-h-64 overflow-auto"
               >
                 <DataTable.Table>
-                  <DataTable.THead>
+                  <DataTable.THead className="sticky top-0 z-10">
                     <DataTable.THeadRow>
-                      <DataTable.THeadCell>Înregistrare</DataTable.THeadCell>
-                      <DataTable.THeadCell>Stare</DataTable.THeadCell>
-                      <DataTable.THeadCell>Acțiuni</DataTable.THeadCell>
+                      <DataTable.THeadCell>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => {
+                            const field = relation.fields[0]?.key ?? "title";
+                            const direction = sort.field === field && sort.direction === "asc" ? "desc" : "asc";
+                            setSort({ field, direction });
+                            void load(1, pageSize, { field, direction }, filters);
+                          }}
+                        >
+                          Înregistrare{sort.field === (relation.fields[0]?.key ?? "title") ? sort.direction === "asc" ? " ↑" : " ↓" : ""}
+                        </Button>
+                        <InputText
+                          aria-label="Filtru Înregistrare"
+                          className="mt-1 w-full"
+                          value={filters[relation.fields[0]?.key ?? "title"] ?? ""}
+                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                            setFilters((current) => ({ ...current, [relation.fields[0]?.key ?? "title"]: event.target.value }))
+                          }
+                        />
+                      </DataTable.THeadCell>
+                      <DataTable.THeadCell>
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => {
+                            const field = "status";
+                            const direction = sort.field === field && sort.direction === "asc" ? "desc" : "asc";
+                            setSort({ field, direction });
+                            void load(1, pageSize, { field, direction }, filters);
+                          }}
+                        >
+                          Stare{sort.field === "status" ? sort.direction === "asc" ? " ↑" : " ↓" : ""}
+                        </Button>
+                        <InputText
+                          aria-label="Filtru Stare"
+                          className="mt-1 w-full"
+                          value={filters.status ?? ""}
+                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                            setFilters((current) => ({ ...current, status: event.target.value }))
+                          }
+                        />
+                      </DataTable.THeadCell>
+                      <DataTable.THeadCell frozen alignFrozen="right">
+                        <span className="flex items-center justify-between gap-2">
+                          <span>Acțiuni</span>
+                          {canManage && (
+                            <Button
+                              iconOnly
+                              rounded
+                              size="small"
+                              aria-label={`Adaugă ${relation.label.toLowerCase()}`}
+                              title={`Adaugă ${relation.label.toLowerCase()}`}
+                              onClick={() =>
+                                setEditing({
+                                  input: inputFromRecord(undefined, relation.fields),
+                                })
+                              }
+                            >
+                              <i className="pi pi-plus" aria-hidden="true" />
+                            </Button>
+                          )}
+                        </span>
+                      </DataTable.THeadCell>
                     </DataTable.THeadRow>
                   </DataTable.THead>
                   <DataTable.TBody>
@@ -1398,12 +1601,13 @@ function GovernanceMeetingRelations({
                           <DataTable.Cell>
                             {displayRecord(record, recordStatusKeys)}
                           </DataTable.Cell>
-                          <DataTable.Cell>
-                            <div className="flex flex-wrap gap-1">
-                              <Button
-                                size="small"
-                                variant="text"
-                                onClick={() =>
+                          <DataTable.Cell frozen alignFrozen="right">
+                            <SchoolRowActionMenu
+                              actions={[
+                                {
+                                  label: "Detalii",
+                                  icon: "pi pi-eye",
+                                  onSelect: () =>
                                   void api
                                     .relatedDetail(path, record.id)
                                     .then((value) => {
@@ -1414,16 +1618,13 @@ function GovernanceMeetingRelations({
                                       setError(
                                         "Detaliul nu a putut fi încărcat.",
                                       ),
-                                    )
-                                }
-                              >
-                                Detalii
-                              </Button>
-                              {canManage && relation.advance && (
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() =>
+                                    ),
+                                  },
+                                ...(canManage && relation.advance
+                                  ? [{
+                                      label: "Avansează",
+                                      icon: "pi pi-arrow-right",
+                                      onSelect: () =>
                                     void api
                                       .command(
                                         relation.advance?.(
@@ -1431,62 +1632,49 @@ function GovernanceMeetingRelations({
                                           record.id,
                                         ) ?? "",
                                       )
-                                      .then(load)
+                                      .then(() => setRefresh((value) => value + 1))
                                       .catch(() =>
                                         setError(
                                           "Transferul nu a putut fi avansat.",
-                                        ),
-                                      )
-                                  }
-                                >
-                                  Avansează
-                                </Button>
-                              )}
-                              {relation.pdf && (
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() =>
+                                          ),
+                                      ),
+                                      }]
+                                  : []),
+                                ...(relation.pdf
+                                  ? [{
+                                      label: "PDF",
+                                      icon: "pi pi-file-pdf",
+                                      onSelect: () =>
                                     viewPdf(
                                       api.relatedPdf(path, record.id),
                                       () =>
                                         setError(
                                           "PDF-ul nu a putut fi încărcat.",
-                                        ),
-                                    )
-                                  }
-                                >
-                                  PDF
-                                </Button>
-                              )}
-                              {canManage && (
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() =>
+                                      ),
+                                    ),
+                                      }]
+                                  : []),
+                                ...(canManage
+                                  ? [{
+                                      label: "Editează",
+                                      icon: "pi pi-pencil",
+                                      onSelect: () =>
                                     setEditing({
                                       id: record.id,
                                       input: inputFromRecord(
                                         record,
                                         relation.fields,
                                       ),
-                                    })
-                                  }
-                                >
-                                  Editează
-                                </Button>
-                              )}
-                              {canManage && (
-                                <Button
-                                  size="small"
-                                  severity="danger"
-                                  variant="text"
-                                  onClick={() => setPendingDelete(record.id)}
-                                >
-                                  Șterge
-                                </Button>
-                              )}
-                            </div>
+                                      }),
+                                      }, {
+                                        label: "Șterge",
+                                        icon: "pi pi-trash",
+                                        severity: "danger" as const,
+                                        onSelect: () => setPendingDelete(record.id),
+                                      }]
+                                  : []),
+                              ]}
+                            />
                           </DataTable.Cell>
                         </DataTable.Row>
                       );
@@ -1494,6 +1682,39 @@ function GovernanceMeetingRelations({
                   </DataTable.TBody>
                 </DataTable.Table>
               </DataTable.Root>
+            )}
+            {!loading && (
+              <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2" aria-label="Paginare subresursă">
+                <span>{page.total ? `${(pageNumber - 1) * pageSize + 1} - ${Math.min(pageNumber * pageSize, page.total)} din ${page.total}` : "0 rezultate"}</span>
+                <div className="flex items-center gap-2">
+                  <Select.Root
+                    value={pageSize}
+                    options={[10, 20, 50, 100].map((value) => ({ label: String(value), value }))}
+                    optionLabel="label"
+                    optionValue="value"
+                    onValueChange={(event: SelectValueChangeEvent) => {
+                      const next = Number(event.value);
+                      setPageSize(next);
+                      setPageNumber(1);
+                      void load(1, next, sort, filters);
+                    }}
+                  >
+                    <Select.Trigger aria-label="Rânduri pe pagină subresursă"><Select.Value /><Select.Indicator /></Select.Trigger>
+                    <Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal>
+                  </Select.Root>
+                  <Button size="small" variant="outlined" disabled={pageNumber <= 1} onClick={() => { const next = pageNumber - 1; setPageNumber(next); void load(next, pageSize, sort, filters); }}>Anterior</Button>
+                  <Button size="small" variant="outlined" disabled={pageNumber * pageSize >= page.total} onClick={() => { const next = pageNumber + 1; setPageNumber(next); void load(next, pageSize, sort, filters); }}>Următor</Button>
+                </div>
+              </div>
+            )}
+            {!loading && page.items.length === 0 && canManage && (
+              <Message.Root severity="info">
+                <Message.Content>
+                  <Message.Text>
+                    Nu există {relation.label.toLowerCase()}.
+                  </Message.Text>
+                </Message.Content>
+              </Message.Root>
             )}
             <RecordFormDialog
               open={editing}
@@ -1685,7 +1906,6 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "status", label: "Stare" },
     { key: "section_count", label: "Secțiuni", kind: "number" },
     { key: "last_updated_on", label: "Actualizat la", kind: "date" },
-    { key: "retention_until", label: "Retenție până la", kind: "date" },
     { key: "transfer_status", label: "Transfer" },
     {
       key: "authenticity_declared",
@@ -1760,18 +1980,6 @@ function viewPdf(load: Promise<Blob>, onError: () => void) {
     })
     .catch(onError);
 }
-function downloadBlob(load: Promise<Blob>, name: string, onError: () => void) {
-  void load
-    .then((blob) => {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = name;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    })
-    .catch(onError);
-}
 function inputFromRecord(
   record: EducationRecord | undefined,
   fields: RecordField[],
@@ -1826,6 +2034,13 @@ function DomainRecordsPage({
   const [refresh, setRefresh] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string>();
   const [selectedRecordId, setSelectedRecordId] = useState<string>();
+  const [portfolioLifecycle, setPortfolioLifecycle] = useState<{
+    record: EducationRecord;
+    kind: "cessation" | "legal_hold";
+    date: string;
+    reason: string;
+    active: boolean;
+  }>();
   const fields = domainFields[domain];
   const tableFields = domainTableFields[domain];
   const metadata = domainMetadata[domain];
@@ -1865,13 +2080,6 @@ function DomainRecordsPage({
       )}
       {canManage && (
         <div className="flex flex-wrap gap-2">
-          <Button
-            onClick={() =>
-              setEditing({ input: inputFromRecord(undefined, fields) })
-            }
-          >
-            Înregistrare nouă
-          </Button>
           {domainWizardRoutes[domain] && (
             <Button
               variant="outlined"
@@ -1906,64 +2114,99 @@ function DomainRecordsPage({
           },
           {
             header: "Acțiuni",
+            action: true,
             render: (item) => (
-              <div className="flex flex-wrap gap-1">
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() =>
+              <SchoolRowActionMenu
+                actions={[
+                  {
+                    label: "Detalii",
+                    icon: "pi pi-eye",
+                    onSelect: () =>
                     void api
                       .recordDetail(domain, item.id)
                       .then((value) => {
                         setDetail(value);
                         setSelectedRecordId(item.id);
                       })
-                      .catch(() => setError("Detaliul nu a putut fi încărcat."))
-                  }
-                >
-                  Detalii
-                </Button>
-                {supportsPdf(domain) && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() =>
+                      .catch(() => setError("Detaliul nu a putut fi încărcat.")),
+                  },
+                  ...(supportsPdf(domain)
+                    ? [{
+                        label: "PDF",
+                        icon: "pi pi-file-pdf",
+                        onSelect: () =>
                       viewPdf(api.recordPdf(domain, item.id), () =>
                         setError("PDF-ul nu a putut fi generat."),
-                      )
-                    }
-                  >
-                    PDF
-                  </Button>
-                )}
-                {canManage && (
-                  <Button
-                    size="small"
-                    variant="text"
-                    onClick={() =>
+                      ),
+                      }]
+                    : []),
+                  ...(canManage
+                    ? [{
+                        label: "Editează",
+                        icon: "pi pi-pencil",
+                        onSelect: () =>
                       setEditing({
                         id: item.id,
                         input: inputFromRecord(item, fields),
-                      })
-                    }
-                  >
-                    Editează
-                  </Button>
-                )}
-                {canManage && (
-                  <Button
-                    size="small"
-                    severity="danger"
-                    variant="text"
-                    onClick={() => setPendingDelete(item.id)}
-                  >
-                    Șterge
-                  </Button>
-                )}
-              </div>
+                      }),
+                      }, {
+                        label: "Șterge",
+                        icon: "pi pi-trash",
+                        severity: "danger" as const,
+                        onSelect: () => setPendingDelete(item.id),
+                      }]
+                    : []),
+                  ...(domain === "portfolios" && (canManage || canManageSchoolPortfolios)
+                    ? [{
+                        label: "Regenerare opis",
+                        icon: "pi pi-refresh",
+                        onSelect: () => void action(async () => {
+                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/opis/regenerate`);
+                        }),
+                      }, {
+                        label: "Solicită completări",
+                        icon: "pi pi-replay",
+                        severity: "warn" as const,
+                        disabled: String(item.status ?? "") !== "submitted",
+                        onSelect: () => void action(async () => {
+                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/return`);
+                        }),
+                      }]
+                    : []),
+                  ...(domain === "portfolios" && canVerifyPortfolio
+                    ? [{
+                        label: "Validează portofoliul",
+                        icon: "pi pi-check-circle",
+                        severity: "success" as const,
+                        disabled: String(item.status ?? "") !== "submitted",
+                        onSelect: () => void action(async () => {
+                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/verify`);
+                        }),
+                      }]
+                    : []),
+                  ...(domain === "portfolios" && canManageSchoolPortfolios
+                    ? [{
+                        label: "Înregistrează încetarea activității",
+                        icon: "pi pi-calendar-times",
+                        onSelect: () => setPortfolioLifecycle({ record: item, kind: "cessation", date: new Date().toISOString().slice(0, 10), reason: "", active: false }),
+                      }, {
+                        label: Boolean(item.legal_hold_active) ? "Ridică blocarea juridică" : "Aplică blocare juridică",
+                        icon: "pi pi-lock",
+                        severity: "warn" as const,
+                        onSelect: () => setPortfolioLifecycle({ record: item, kind: "legal_hold", date: "", reason: "", active: !Boolean(item.legal_hold_active) }),
+                      }]
+                    : []),
+                ]}
+              />
             ),
           },
         ]}
+        onAdd={
+          canManage
+            ? () => setEditing({ input: inputFromRecord(undefined, fields) })
+            : undefined
+        }
+        addLabel="înregistrare"
       />
       <RecordFormDialog
         open={editing}
@@ -1997,48 +2240,7 @@ function DomainRecordsPage({
           })
         }
       />
-      {selectedRecordId && domain === "portfolios" && (canManage || canManageSchoolPortfolios || canVerifyPortfolio) && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outlined"
-            severity="secondary"
-            disabled={!canManage && !canManageSchoolPortfolios}
-            onClick={() =>
-              void api
-                .command(
-                  `/education/portfolios/records/${encodeURIComponent(selectedRecordId)}/opis/regenerate`,
-                )
-                .then(() => setRefresh((value) => value + 1))
-                .catch(() => setError("Opisul nu a putut fi regenerat."))
-            }
-          >
-            Regenerare opis
-          </Button>
-          {(canManage || canManageSchoolPortfolios) && (
-            <Button
-              variant="outlined"
-              severity="warn"
-              disabled={String(detail?.status ?? "") !== "submitted"}
-              onClick={() => void action(async () => {
-                await api.command(`/education/portfolios/records/${encodeURIComponent(selectedRecordId)}/return`);
-              })}
-            >
-              Solicită completări
-            </Button>
-          )}
-          {(canManage || canVerifyPortfolio) && (
-            <Button
-              severity="success"
-              disabled={String(detail?.status ?? "") !== "submitted"}
-              onClick={() => void action(async () => {
-                await api.command(`/education/portfolios/records/${encodeURIComponent(selectedRecordId)}/verify`);
-              })}
-            >
-              Validează portofoliul
-            </Button>
-          )}
-        </div>
-      )}
+      <Dialog.Root open={Boolean(portfolioLifecycle)} onOpenChange={(event: { value?: boolean }) => !event.value && setPortfolioLifecycle(undefined)}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>{portfolioLifecycle?.kind === "cessation" ? "Înregistrează încetarea activității" : portfolioLifecycle?.active ? "Aplică blocare juridică" : "Ridică blocarea juridică"}</Dialog.Title><Dialog.Close aria-label="Închide operația de ciclu de viață" /></Dialog.Header><Dialog.Content>{portfolioLifecycle && <div className="flex flex-col gap-3">{portfolioLifecycle.kind === "cessation" && <label className="flex flex-col gap-1"><span>Data încetării *</span><InputText type="date" value={portfolioLifecycle.date} onChange={(event: ChangeEvent<HTMLInputElement>) => setPortfolioLifecycle((current) => current ? { ...current, date: event.target.value } : current)} /></label>}{portfolioLifecycle.kind === "legal_hold" && <label className="flex items-center gap-2"><Checkbox.Root checked={portfolioLifecycle.active} disabled><Checkbox.Box><Checkbox.Indicator /></Checkbox.Box></Checkbox.Root><span>{portfolioLifecycle.active ? "Blocarea juridică va fi activată." : "Blocarea juridică va fi ridicată."}</span></label>}<label className="flex flex-col gap-1"><span>Motiv {portfolioLifecycle.kind === "cessation" || portfolioLifecycle.active ? "*" : ""}</span><Textarea value={portfolioLifecycle.reason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setPortfolioLifecycle((current) => current ? { ...current, reason: event.target.value } : current)} /></label></div>}</Dialog.Content><Dialog.Footer><div className="flex justify-end gap-2"><Button variant="outlined" severity="secondary" onClick={() => setPortfolioLifecycle(undefined)}>Renunță</Button><Button disabled={!portfolioLifecycle || (portfolioLifecycle.kind === "cessation" && (!portfolioLifecycle.date || !portfolioLifecycle.reason.trim())) || (portfolioLifecycle.kind === "legal_hold" && portfolioLifecycle.active && !portfolioLifecycle.reason.trim())} onClick={() => portfolioLifecycle && void action(async () => { if (portfolioLifecycle.kind === "cessation") await api.recordPortfolioCessation(portfolioLifecycle.record.id, { activity_ceased_on: portfolioLifecycle.date, reason: portfolioLifecycle.reason }); else await api.setPortfolioLegalHold(portfolioLifecycle.record.id, { active: portfolioLifecycle.active, reason: portfolioLifecycle.reason }); setPortfolioLifecycle(undefined); })}>Confirmă</Button></div></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>
       {selectedRecordId && domainRelations[domain] && (
         <GovernanceMeetingRelations
           api={api}
@@ -2616,94 +2818,48 @@ function Overview({
 
 function EducationCatalogs({ api }: { api: EducationApi }) {
   const [selected, setSelected] = useState("Taxonomii");
-  const catalogs: Record<string, string> = {
-    Taxonomii: "/education/taxonomies",
-    Cerințe: "/education/requirements",
-    "Secțiuni portofoliu": "/education/portfolios/sections",
+  const catalogs: Record<string, { path: string; columns: EducationListPanelProps<EducationRecord>["columns"] }> = {
+    Taxonomii: {
+      path: "/education/taxonomies",
+      columns: [
+        { header: "Element", render: (record) => displayRecord(record, ["label_ro", "label", "name", "title", "code"]) },
+        { header: "Cod", render: (record) => String(record.code ?? record.id ?? "—") },
+      ],
+    },
+    Cerințe: {
+      path: "/education/requirements",
+      columns: [
+        { field: "domain", header: "Domeniu", render: (record) => String(record.domain ?? "—") },
+        { header: "Cod", render: (record) => String(record.code ?? "—") },
+        { header: "Cerință", render: (record) => String(record.title_ro ?? record.title ?? "—") },
+        { field: "implementation_status", header: "Stare", render: (record) => <Tag value={String(record.implementation_status ?? "—")} severity={record.implementation_status === "implemented" ? "success" : "secondary"} /> },
+      ],
+    },
+    "Secțiuni portofoliu": {
+      path: "/education/portfolios/sections",
+      columns: [
+        { field: "section_code", header: "Secțiune", render: (record) => String(record.section_code ?? "—") },
+        { field: "component_code", header: "Componentă", render: (record) => String(record.component_code ?? "—") },
+        { field: "label", header: "Denumire", render: (record) => String(record.label_ro ?? "—") },
+        { header: "Obligatoriu", render: (record) => <Tag value={record.required ? "Da" : "Nu"} severity={record.required ? "info" : "secondary"} /> },
+      ],
+    },
   };
-  const path = catalogs[selected] as string;
-  const [items, setItems] = useState<EducationRecord[]>([]);
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    void api
-      .relatedRecords(path)
-      .then((page) => {
-        setItems(page.items);
-        setError(undefined);
-      })
-      .catch(() => setError("Catalogul nu a putut fi încărcat."));
-  }, [api, path]);
+  const catalog = catalogs[selected] as (typeof catalogs)[string];
   return (
-    <Card.Root>
-      <Card.Body>
-        <Card.Title>Cataloge educaționale</Card.Title>
-        <Card.Content>
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(catalogs).map((label) => (
-                <Button
-                  key={label}
-                  size="small"
-                  variant={label === selected ? undefined : "outlined"}
-                  severity={label === selected ? undefined : "secondary"}
-                  onClick={() => setSelected(label)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-            {error ? (
-              <Message.Root severity="error">
-                <Message.Content>
-                  <Message.Text>{error}</Message.Text>
-                </Message.Content>
-              </Message.Root>
-            ) : items.length === 0 ? (
-              <Message.Root severity="info">
-                <Message.Content>
-                  <Message.Text>Nu există elemente în catalog.</Message.Text>
-                </Message.Content>
-              </Message.Root>
-            ) : (
-              <DataTable.Root data={items as Record<string, unknown>[]}>
-                <DataTable.Table>
-                  <DataTable.THead>
-                    <DataTable.THeadRow>
-                      <DataTable.THeadCell>Element</DataTable.THeadCell>
-                      <DataTable.THeadCell>Cod</DataTable.THeadCell>
-                    </DataTable.THeadRow>
-                  </DataTable.THead>
-                  <DataTable.TBody>
-                    {({ item, index }) => {
-                      const record = item as EducationRecord;
-                      return (
-                        <DataTable.Row
-                          key={record.id ?? String(index)}
-                          index={index}
-                        >
-                          <DataTable.Cell>
-                            {displayRecord(record, [
-                              "label_ro",
-                              "label",
-                              "name",
-                              "title",
-                              "code",
-                            ])}
-                          </DataTable.Cell>
-                          <DataTable.Cell>
-                            {String(record.code ?? record.id ?? "—")}
-                          </DataTable.Cell>
-                        </DataTable.Row>
-                      );
-                    }}
-                  </DataTable.TBody>
-                </DataTable.Table>
-              </DataTable.Root>
-            )}
-          </div>
-        </Card.Content>
-      </Card.Body>
-    </Card.Root>
+    <div className="flex flex-col gap-3">
+      <nav aria-label="Cataloge educaționale" className="flex flex-wrap gap-2">
+        {Object.keys(catalogs).map((label) => <Button key={label} size="small" variant={label === selected ? undefined : "outlined"} severity={label === selected ? undefined : "secondary"} onClick={() => setSelected(label)}>{label}</Button>)}
+      </nav>
+      <EducationListPanel
+        key={selected}
+        title={selected}
+        description="Catalog operațional utilizat de fluxurile Școală. Filtrele, sortarea și paginarea sunt procesate de server."
+        load={(_query, page, pageSize, sort, filters) => api.relatedRecords(catalog.path, { page, pageSize, sort: sort?.field, direction: sort?.direction, filters })}
+        columns={catalog.columns}
+        emptyMessage="Nu există elemente în catalog pentru filtrele curente."
+      />
+    </div>
   );
 }
 
@@ -2748,7 +2904,6 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           ? "compliance"
           : "overview";
   const [active, setActive] = useState(routeActive);
-  const [exportError, setExportError] = useState<string>();
   useEffect(() => {
     setActive(routeActive);
     if (!areas.some((area) => area.id === active))
@@ -2796,39 +2951,6 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           <Card.Content>
             <div className="flex flex-col gap-3">
               <p>Operațiuni școlare pentru instituția curentă.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  severity="secondary"
-                  onClick={() =>
-                    viewPdf(api.exportFile("pdf"), () =>
-                      setExportError("Exportul PDF nu a putut fi generat."),
-                    )
-                  }
-                >
-                  Export PDF
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  severity="secondary"
-                  onClick={() =>
-                    downloadBlob(api.exportFile("csv"), "educatie.csv", () =>
-                      setExportError("Exportul CSV nu a putut fi generat."),
-                    )
-                  }
-                >
-                  Export CSV
-                </Button>
-              </div>
-              {exportError && (
-                <Message.Root severity="error">
-                  <Message.Content>
-                    <Message.Text>{exportError}</Message.Text>
-                  </Message.Content>
-                </Message.Root>
-              )}
               <nav aria-label="Domenii Școală" className="flex flex-wrap gap-2">
                 {areas.map((area) => (
                   <Button
@@ -2883,6 +3005,9 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
         />
       ) : (
         <>
+          {active === "portfolios" && permissions.includes("education.portfolios.school.manage") && (
+            <PortfolioProcedureManager api={portfolioProcedureAdapter(api)} />
+          )}
           {active === "portfolios" && permissions.includes("education.portfolios.archive_grants.manage") && (
             <PortfolioArchiveGrantManager api={api} />
           )}

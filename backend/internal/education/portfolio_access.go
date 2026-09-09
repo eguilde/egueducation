@@ -83,6 +83,9 @@ func scanPortfolioRecord(row pgx.Row, item *PortfolioRecord) error {
 		&item.ID, &item.PortfolioCode, &item.OwnerUserID, &item.OwnerPersonnelID,
 		&item.OwnerName, &item.OwnerRole, &item.SchoolYear, &item.Status,
 		&item.SectionCount, &item.LastUpdatedOn, &item.RetentionUntil,
+		&item.ActivityCeasedOn, &item.RetentionPeriodDays, &item.LegalHoldActive,
+		&item.LegalHoldReason, &item.WithdrawnAt, &item.WithdrawalReason,
+		&item.AppliedProcedureID,
 		&item.TransferStatus, &item.AuthenticityDeclared, &item.ConsentCaptured,
 		&item.Custodian, &item.InstitutionID, &item.Notes,
 	)
@@ -92,7 +95,11 @@ const portfolioRecordColumns = `
 	id::text, portfolio_code, coalesce(owner_user_id::text, ''),
 	coalesce(owner_personnel_id::text, ''), owner_name, owner_role, school_year,
 	status, section_count, to_char(last_updated_on, 'YYYY-MM-DD'),
-	to_char(retention_until, 'YYYY-MM-DD'), transfer_status,
+	coalesce(to_char(retention_until, 'YYYY-MM-DD'), ''),
+	coalesce(to_char(activity_ceased_on, 'YYYY-MM-DD'), ''), retention_period_days,
+	legal_hold_active, legal_hold_reason, coalesce(to_char(withdrawn_at, 'YYYY-MM-DD"T"HH24:MI:SS"Z"'), ''), withdrawal_reason,
+	coalesce(applied_procedure_id::text, ''),
+	transfer_status,
 	authenticity_declared, consent_captured, custodian, institution_id, notes`
 
 func (s *Service) loadOwnPortfolio(r *http.Request, recordID, actorID string) (PortfolioRecord, error) {
@@ -109,10 +116,26 @@ func (s *Service) PortfolioOwnRecords(w http.ResponseWriter, r *http.Request) {
 		writePortfolioAccessFailure(w, err)
 		return
 	}
-	rows, err := s.pool.Query(r.Context(), `select `+portfolioRecordColumns+`
-		from education_portfolios
-		where institution_id = $1 and owner_user_id = $2::uuid
-		order by school_year desc, updated_at desc`, s.institutionID(r), actorID)
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"school_year": {}, "status": {}, "updated_at": {}}, []string{"school_year", "status"})
+	if query.Sort == "" {
+		query.Sort = "school_year"
+	}
+	where := "where institution_id = $1 and owner_user_id = $2::uuid and withdrawn_at is null"
+	args := []any{s.institutionID(r), actorID}
+	for _, filter := range []string{"school_year", "status"} {
+		if value := strings.TrimSpace(query.Filters[filter]); value != "" {
+			args = append(args, "%"+strings.ToLower(value)+"%")
+			where += fmt.Sprintf(" and lower(%s) like $%d", filter, len(args))
+		}
+	}
+	var total int
+	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_portfolios "+where, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_own_portfolios_failed"})
+		return
+	}
+	sortColumn := map[string]string{"school_year": "school_year", "status": "status", "updated_at": "updated_at"}[query.Sort]
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), `select `+portfolioRecordColumns+` from education_portfolios `+where+fmt.Sprintf(" order by %s %s, updated_at desc limit $%d offset $%d", sortColumn, query.Direction, len(args)-1, len(args)), args...)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_own_portfolios_failed"})
 		return
@@ -131,11 +154,7 @@ func (s *Service) PortfolioOwnRecords(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_own_portfolios_failed"})
 		return
 	}
-	pageSize := len(items)
-	if pageSize < 1 {
-		pageSize = 1
-	}
-	httpx.WritePage(w, http.StatusOK, items, len(items), 1, pageSize)
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
 }
 
 // listPortfolioArchiveAttachments intentionally queries the archive only by
@@ -465,20 +484,33 @@ func normalizeOwnPortfolioRequest(req *OwnPortfolioRequest) error {
 	if req.SchoolYear == "" || req.LastUpdatedOn == "" {
 		return errors.New("missing fields")
 	}
-	if req.SectionCount < 0 {
-		return errors.New("negative sections")
-	}
 	if _, err := time.Parse("2006-01-02", req.LastUpdatedOn); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Own routes never accept a teacher-controlled retention date. The existing
-// three-year product baseline is calculated by the server and can only be
-// extended later by an institution retention workflow.
-func ownPortfolioRetentionUntil() string {
-	return time.Now().UTC().AddDate(3, 0, 0).Format("2006-01-02")
+func decodeOwnPortfolioRequest(r *http.Request, target *OwnPortfolioRequest) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	return normalizeOwnPortfolioRequest(target)
+}
+
+func (s *Service) resolvePublishedPortfolioProcedure(r *http.Request) (string, error) {
+	var procedureID string
+	err := s.pool.QueryRow(r.Context(), `
+		select id::text from education_portfolio_procedure_versions
+		where institution_id = $1 and tenant_code = public.current_tenant_code()
+			and lifecycle_status = 'published'
+			and (effective_from is null or effective_from <= current_date)
+			and (effective_to is null or effective_to >= current_date)
+		order by effective_from desc nulls last, published_at desc
+		limit 1
+	`, s.institutionID(r)).Scan(&procedureID)
+	return procedureID, err
 }
 
 func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
@@ -488,7 +520,7 @@ func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req OwnPortfolioRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || normalizeOwnPortfolioRequest(&req) != nil {
+	if err := decodeOwnPortfolioRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_own_portfolio_payload"})
 		return
 	}
@@ -499,17 +531,27 @@ func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	role := "Profesor"
 	portfolioCode := fmt.Sprintf("PORT-CD-%d-%d", time.Now().UTC().Year(), time.Now().UTC().UnixNano())
+	appliedProcedureID, err := s.resolvePublishedPortfolioProcedure(r)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_published_procedure_required"})
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_procedure_resolve_failed"})
+		return
+	}
 	var item PortfolioRecord
 	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolios (
 			portfolio_code, owner_user_id, owner_name, owner_role, school_year,
 			status, section_count, last_updated_on, retention_until, transfer_status,
-			authenticity_declared, consent_captured, custodian, institution_id, notes
-		) values ($1, $2::uuid, $3, $4, $5, 'draft', $6, $7, $8, 'none', $9, $10, '', $11, $12)
+			authenticity_declared, consent_captured, custodian, institution_id, notes,
+			applied_procedure_id
+		) values ($1, $2::uuid, $3, $4, $5, 'draft', $6, $7, null, 'none', $8, $9, '', $10, $11, $12::uuid)
 		returning `+portfolioRecordColumns,
-		portfolioCode, actorID, name, role, req.SchoolYear, req.SectionCount,
-		req.LastUpdatedOn, ownPortfolioRetentionUntil(), req.AuthenticityDeclared,
-		req.ConsentCaptured, s.institutionID(r), req.Notes), &item)
+		portfolioCode, actorID, name, role, req.SchoolYear, 0,
+		req.LastUpdatedOn, false, false,
+		s.institutionID(r), req.Notes, appliedProcedureID), &item)
 	if err != nil {
 		var databaseError *pgconn.PgError
 		if errors.As(err, &databaseError) && databaseError.Code == "23505" {
@@ -533,19 +575,17 @@ func (s *Service) PortfolioOwnUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req OwnPortfolioRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || normalizeOwnPortfolioRequest(&req) != nil {
+	if err := decodeOwnPortfolioRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_own_portfolio_payload"})
 		return
 	}
 	var item PortfolioRecord
 	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
-		update education_portfolios set school_year = $1, section_count = $2,
-			last_updated_on = $3, retention_until = $4, authenticity_declared = $5,
-			consent_captured = $6, notes = $7, updated_at = now()
-		where id = $8::uuid and institution_id = $9 and owner_user_id = $10::uuid and status in ('draft', 'returned')
+	update education_portfolios set school_year = $1,
+			last_updated_on = $2, notes = $3, updated_at = now()
+		where id = $4::uuid and institution_id = $5 and owner_user_id = $6::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
 		returning `+portfolioRecordColumns,
-		req.SchoolYear, req.SectionCount, req.LastUpdatedOn, ownPortfolioRetentionUntil(),
-		req.AuthenticityDeclared, req.ConsentCaptured, req.Notes, recordID,
+		req.SchoolYear, req.LastUpdatedOn, req.Notes, recordID,
 		s.institutionID(r), actorID), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_own_portfolio_not_editable"})
@@ -574,7 +614,7 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(r.Context())
 	var item PortfolioRecord
 	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `select `+portfolioRecordColumns+`
-		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid for update`,
+		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and withdrawn_at is null and not legal_hold_active for update`,
 		recordID, s.institutionID(r), actorID), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_own_portfolio_not_found")
@@ -619,31 +659,67 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var missingComponents []string
+	if item.AppliedProcedureID == "" {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_submit_incomplete", "blockers": map[string]any{"published_procedure": false}})
+		return
+	}
 	if err = tx.QueryRow(r.Context(), `
-		select coalesce(array_agg(section.section_code || '/' || section.component_code order by section.sort_order), '{}')
-		from education_portfolio_sections section
-		where section.active and section.required and not exists (
+		select coalesce(array_agg(rule.section_code order by rule.sort_order), '{}')
+		from education_portfolio_procedure_section_rules rule
+		join education_portfolio_procedure_versions procedure on procedure.id = rule.procedure_id
+		where rule.procedure_id = $3::uuid and rule.institution_id = $2
+			and rule.active and rule.required
+			and procedure.institution_id = $2 and procedure.tenant_code = public.current_tenant_code()
+			and procedure.lifecycle_status in ('published', 'superseded')
+			and not exists (
 			select 1 from education_portfolio_documents evidence
 			where evidence.portfolio_id = $1::uuid and evidence.institution_id = $2
-				and evidence.section_code = section.section_code and evidence.component_code = section.component_code
+				and evidence.section_code = rule.section_code
 				and evidence.source_scope = 'portofoliu' and evidence.archive_version_id is not null
 		)
-	`, recordID, s.institutionID(r)).Scan(&missingComponents); err != nil {
+	`, recordID, s.institutionID(r), item.AppliedProcedureID).Scan(&missingComponents); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_submit_readiness_failed"})
 		return
 	}
-	if !item.AuthenticityDeclared || !item.ConsentCaptured || evidenceCount == 0 || evidenceCount != snapshottedCount || len(missingComponents) > 0 {
+	var missingDeclarations []string
+	if err = tx.QueryRow(r.Context(), `
+		with current_templates as (
+			select distinct on (declaration_type)
+				declaration_type, declaration_version, declaration_text
+			from education_portfolio_declaration_templates
+			where lifecycle_status = 'published'
+				and effective_from <= current_date
+				and (effective_to is null or effective_to >= current_date)
+			order by declaration_type, effective_from desc, created_at desc
+		)
+		select coalesce(array_agg(template.declaration_type order by template.declaration_type), '{}')
+		from current_templates template
+		where not exists (
+			select 1 from education_portfolio_declaration_acknowledgements acknowledgement
+			where acknowledgement.portfolio_id = $1::uuid
+				and acknowledgement.institution_id = $2
+				and acknowledgement.tenant_code = public.current_tenant_code()
+				and acknowledgement.accepted_by_user_id = $3::uuid
+				and acknowledgement.declaration_type = template.declaration_type
+				and acknowledgement.declaration_version = template.declaration_version
+				and acknowledgement.declaration_text = template.declaration_text
+		)
+	`, recordID, s.institutionID(r), actorID).Scan(&missingDeclarations); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_submit_readiness_failed"})
+		return
+	}
+	if evidenceCount == 0 || evidenceCount != snapshottedCount || len(missingComponents) > 0 || len(missingDeclarations) > 0 {
 		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_submit_incomplete", "blockers": map[string]any{
-			"authenticity_declared":  item.AuthenticityDeclared,
-			"consent_captured":       item.ConsentCaptured,
 			"unsnapshotted_evidence": evidenceCount - snapshottedCount,
 			"missing_components":     missingComponents,
+			"missing_declarations":   missingDeclarations,
 		}})
 		return
 	}
 	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `
-		update education_portfolios set status = 'submitted', section_count = $4, updated_at = now()
-		where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and status in ('draft', 'returned')
+		update education_portfolios set status = 'submitted', section_count = $4,
+			authenticity_declared = true, consent_captured = true, updated_at = now()
+		where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
 		returning `+portfolioRecordColumns, recordID, s.institutionID(r), actorID, evidenceCount), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_submit_transition_invalid"})
@@ -675,7 +751,7 @@ func (s *Service) PortfolioAdminTransition(w http.ResponseWriter, r *http.Reques
 	var item PortfolioRecord
 	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		update education_portfolios set status = $1, updated_at = now()
-		where id = $2::uuid and institution_id = $3 and status = $4
+		where id = $2::uuid and institution_id = $3 and status = $4 and withdrawn_at is null and not legal_hold_active
 		returning `+portfolioRecordColumns, nextStatus, recordID, s.institutionID(r), previous), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_transition_invalid"})
@@ -708,7 +784,7 @@ func (s *Service) requireOwnPortfolioContent(w http.ResponseWriter, r *http.Requ
 		return true
 	}
 	var state string
-	err = s.pool.QueryRow(r.Context(), `select status from education_portfolios where id = $1::uuid and institution_id = $2`, recordID, s.institutionID(r)).Scan(&state)
+	err = s.pool.QueryRow(r.Context(), `select status from education_portfolios where id = $1::uuid and institution_id = $2 and withdrawn_at is null and not legal_hold_active`, recordID, s.institutionID(r)).Scan(&state)
 	if err != nil {
 		writePortfolioAccessFailure(w, err)
 		return false

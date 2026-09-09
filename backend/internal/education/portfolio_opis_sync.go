@@ -10,6 +10,7 @@ import (
 	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 var errPortfolioRecordNotFound = errors.New("education portfolio record not found")
@@ -61,6 +62,23 @@ func (s *Service) syncPortfolioOpis(ctx context.Context, r *http.Request, record
 	return regeneratedEntries, checkedBy, nil
 }
 
+// syncPortfolioOpisTx rebuilds the derived OPIS projection using the caller's
+// transaction. Portfolio-document writes must use this variant so a failed
+// rebuild cannot leave the evidence rows and OPIS out of sync.
+func (s *Service) syncPortfolioOpisTx(ctx context.Context, tx pgx.Tx, r *http.Request, recordID string, institutionID string) (int, string, error) {
+	checkedBy, err := s.portfolioOpisCheckedBy(r)
+	if err != nil {
+		return 0, "", err
+	}
+
+	regeneratedEntries, err := s.rebuildPortfolioOpisTx(ctx, tx, recordID, institutionID, checkedBy)
+	if err != nil {
+		return 0, checkedBy, err
+	}
+
+	return regeneratedEntries, checkedBy, nil
+}
+
 func (s *Service) rebuildPortfolioOpis(ctx context.Context, recordID string, institutionID string, checkedBy string) (int, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -70,6 +88,19 @@ func (s *Service) rebuildPortfolioOpis(ctx context.Context, recordID string, ins
 		_ = tx.Rollback(ctx)
 	}()
 
+	regeneratedEntries, err := s.rebuildPortfolioOpisTx(ctx, tx, recordID, institutionID, checkedBy)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("commit portfolio opis sync: %w", err)
+	}
+
+	return regeneratedEntries, nil
+}
+
+func (s *Service) rebuildPortfolioOpisTx(ctx context.Context, tx pgx.Tx, recordID string, institutionID string, checkedBy string) (int, error) {
 	var exists bool
 	if err := tx.QueryRow(ctx, `
 		select exists(
@@ -136,10 +167,6 @@ func (s *Service) rebuildPortfolioOpis(ctx context.Context, recordID string, ins
 		return 0, fmt.Errorf("insert portfolio opis entries during sync: %w", err)
 	}
 	regeneratedEntries := int(tag.RowsAffected())
-
-	if err := tx.Commit(ctx); err != nil {
-		return 0, fmt.Errorf("commit portfolio opis sync: %w", err)
-	}
 
 	return regeneratedEntries, nil
 }

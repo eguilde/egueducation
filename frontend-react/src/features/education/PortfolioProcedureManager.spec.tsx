@@ -1,0 +1,13 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { PrimeReactProvider } from "@primereact/core/config";
+import { describe, expect, it, vi } from "vitest";
+import { PortfolioProcedureManager, type PortfolioProcedureApi } from "./PortfolioProcedureManager";
+
+const procedure = { id: "p-1", code: "PP-2026", title: "Procedura portofoliului", status: "draft", version: 1, updated_at: "2026-09-09T10:00:00Z" };
+function api(rows = [procedure]): PortfolioProcedureApi { return { list: vi.fn().mockResolvedValue({ items: rows, total: rows.length, page: 1, pageSize: 20 }), detail: vi.fn().mockResolvedValue(procedure), create: vi.fn().mockResolvedValue(procedure), update: vi.fn().mockResolvedValue(procedure), rules: vi.fn().mockResolvedValue([]), replaceRules: vi.fn().mockResolvedValue([]), transition: vi.fn().mockResolvedValue({ ...procedure, status: "approved" }) }; }
+function view(client: PortfolioProcedureApi) { return render(<PrimeReactProvider><PortfolioProcedureManager api={client} /></PrimeReactProvider>); }
+describe("PortfolioProcedureManager", () => {
+  it("uses a server query and retains Add in the action header when empty", async () => { const client = api([]); view(client); const add = await screen.findByRole("button", { name: "Adaugă procedură" }); await waitFor(() => expect(client.list).toHaveBeenCalledWith(expect.objectContaining({ page: 1, pageSize: 20, filters: {} }))); fireEvent.click(add); expect(await screen.findByRole("dialog")).toHaveTextContent("Adaugă procedură"); });
+  it("sends a debounced header filter to the server", async () => { const client = api(); view(client); await screen.findByText(procedure.title); fireEvent.change(screen.getByLabelText("Filtru Titlu"), { target: { value: "portofoliu" } }); await waitFor(() => expect(client.list).toHaveBeenLastCalledWith(expect.objectContaining({ filters: expect.objectContaining({ title: "portofoliu" }) })), { timeout: 1200 }); });
+  it("persists a new procedure through the explicit contract", async () => { const client = api([]); view(client); fireEvent.click(await screen.findByRole("button", { name: "Adaugă procedură" })); const dialog = await screen.findByRole("dialog"); fireEvent.change(dialog.querySelectorAll("input")[0], { target: { value: "PP-2026" } }); fireEvent.change(dialog.querySelectorAll("input")[1], { target: { value: "Procedura portofoliului" } }); fireEvent.click(screen.getByRole("button", { name: "Salvează" })); await waitFor(() => expect(client.create).toHaveBeenCalledWith(expect.objectContaining({ code: "PP-2026", title: "Procedura portofoliului" }))); });
+});

@@ -605,6 +605,7 @@ func main() {
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records", educationService.PortfolioRecords)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}", educationService.PortfolioRecordDetail)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/pdf", educationService.PortfolioRecordPDF)
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read", "education.portfolios.read_own", "education.portfolios.export_own")).Post("/education/portfolios/records/{recordID}/export-manifests", educationService.PortfolioExportManifestCreate)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/transfer-summary", educationService.PortfolioTransferSummary)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/filters", educationService.PortfolioFilters)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/documents", educationService.PortfolioDocuments)
@@ -621,7 +622,20 @@ func main() {
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/reviews/{itemID}", educationService.PortfolioReviewDetail)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/valorifications", educationService.PortfolioValorifications)
 				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/records/{recordID}/valorifications/{itemID}", educationService.PortfolioValorificationDetail)
-				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/sections", educationService.PortfolioSections)
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read", "education.portfolios.read_own")).Get("/education/portfolios/sections", educationService.PortfolioSections)
+				// Institutional procedure versions intentionally exclude own-portfolio
+				// readers: teachers can consume their applied procedure through the
+				// portfolio projection, but cannot enumerate institution procedures.
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/procedures", educationService.PortfolioProcedures)
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/procedures/{procedureID}", educationService.PortfolioProcedureDetail)
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read")).Get("/education/portfolios/procedures/{procedureID}/section-rules", educationService.PortfolioProcedureSectionRules)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/procedures", educationService.CreatePortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Patch("/education/portfolios/procedures/{procedureID}", educationService.UpdatePortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/procedures/{procedureID}/approve", educationService.ApprovePortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/procedures/{procedureID}/publish", educationService.PublishPortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/procedures/{procedureID}/supersede", educationService.SupersedePortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/procedures/{procedureID}/withdraw", educationService.WithdrawPortfolioProcedure)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Put("/education/portfolios/procedures/{procedureID}/section-rules", educationService.ReplacePortfolioProcedureSectionRules)
 				// Own-portfolio routes are intentionally separate from the legacy
 				// institution-wide records routes. A teacher cannot accidentally gain
 				// access to another teacher's record through an old handler.
@@ -631,6 +645,8 @@ func main() {
 				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Post("/education/portfolios/me", educationService.PortfolioOwnCreate)
 				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Patch("/education/portfolios/me/{recordID}", educationService.PortfolioOwnUpdate)
 				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/submit", educationService.PortfolioOwnSubmit)
+				r.With(authService.RequirePermissions("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/declarations", educationService.PortfolioOwnDeclarationEvidence)
+				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements", educationService.AcknowledgePortfolioOwnDeclaration)
 				r.With(authService.RequirePermissions("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/documents", educationService.PortfolioOwnDocuments)
 				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/documents", educationService.PortfolioOwnDocumentCreate)
 				r.With(authService.RequirePermissions("education.portfolios.manage_own")).Patch("/education/portfolios/me/{recordID}/documents/{documentID}", educationService.PortfolioOwnDocumentUpdate)
@@ -646,6 +662,9 @@ func main() {
 				r.With(authService.RequirePermissions("education.portfolios.archive_grants.manage")).Delete("/education/portfolios/archive-attachment-grants/{grantID}", educationService.DeletePortfolioArchiveAttachmentGrant)
 				r.With(authService.RequireAnyPermissions("education.portfolios.verify", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/verify", educationService.PortfolioAdminVerify)
 				r.With(authService.RequireAnyPermissions("education.portfolios.request_corrections", "education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/return", educationService.PortfolioAdminReturn)
+				r.With(authService.RequireAnyPermissions("education.portfolios.school.read", "education.portfolios.read", "education.portfolios.verify", "education.portfolios.manage")).Get("/education/portfolios/records/{recordID}/declarations", educationService.PortfolioDeclarationEvidence)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/activity-cessation", educationService.RecordPortfolioActivityCessation)
+				r.With(authService.RequirePermissions("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/legal-hold", educationService.SetPortfolioLegalHold)
 				r.With(authService.RequirePermissions("education.portfolios.manage")).Post("/education/portfolios/records", educationService.CreatePortfolioRecord)
 				r.With(authService.RequirePermissions("education.portfolios.manage")).Patch("/education/portfolios/records/{recordID}", educationService.UpdatePortfolioRecord)
 				r.With(authService.RequirePermissions("education.portfolios.manage")).Delete("/education/portfolios/records/{recordID}", educationService.DeletePortfolioRecord)

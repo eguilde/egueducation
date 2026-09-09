@@ -2081,7 +2081,7 @@ func (s *Service) PortfolioRecords(w http.ResponseWriter, r *http.Request) {
 			epf.status,
 			epf.section_count,
 			to_char(epf.last_updated_on, 'YYYY-MM-DD'),
-			to_char(epf.retention_until, 'YYYY-MM-DD'),
+			coalesce(to_char(epf.retention_until, 'YYYY-MM-DD'), ''),
 			epf.transfer_status,
 			epf.authenticity_declared,
 			epf.consent_captured,
@@ -2180,7 +2180,7 @@ func (s *Service) PortfolioFilters(w http.ResponseWriter, r *http.Request) {
 func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) {
 	institutionID := s.institutionID(r)
 	var req CreatePortfolioRecordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodePortfolioRecordRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_payload"})
 		return
 	}
@@ -2192,12 +2192,11 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	req.SchoolYear = strings.TrimSpace(req.SchoolYear)
 	req.Status = strings.TrimSpace(req.Status)
 	req.LastUpdatedOn = strings.TrimSpace(req.LastUpdatedOn)
-	req.RetentionUntil = strings.TrimSpace(req.RetentionUntil)
 	req.TransferStatus = strings.TrimSpace(req.TransferStatus)
 	req.Custodian = strings.TrimSpace(req.Custodian)
 	req.Notes = strings.TrimSpace(req.Notes)
 
-	if req.OwnerUserID == "" || req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.RetentionUntil == "" || req.TransferStatus == "" {
+	if req.OwnerUserID == "" || req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.TransferStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_fields"})
 		return
 	}
@@ -2231,15 +2230,20 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_last_updated"})
 		return
 	}
-	if _, err := time.Parse("2006-01-02", req.RetentionUntil); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_retention"})
+
+	portfolioCode := fmt.Sprintf("PORT-CD-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	appliedProcedureID, err := s.resolvePublishedPortfolioProcedure(r)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_published_procedure_required"})
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_procedure_resolve_failed"})
 		return
 	}
 
-	portfolioCode := fmt.Sprintf("PORT-CD-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
-
 	var item PortfolioRecord
-	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
+	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolios (
 			portfolio_code,
 			owner_user_id,
@@ -2256,8 +2260,9 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 			consent_captured,
 			custodian,
 			institution_id,
-			notes
-		) values ($1,$2::uuid,nullif($3, '')::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+			notes,
+			applied_procedure_id
+		) values ($1,$2::uuid,nullif($3, '')::uuid,$4,$5,$6,$7,$8,$9,null,$10,$11,$12,$13,$14,$15,$16::uuid)
 		returning `+portfolioRecordColumns,
 		portfolioCode,
 		req.OwnerUserID,
@@ -2268,13 +2273,13 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		req.Status,
 		req.SectionCount,
 		req.LastUpdatedOn,
-		req.RetentionUntil,
 		req.TransferStatus,
 		req.AuthenticityDeclared,
 		req.ConsentCaptured,
 		req.Custodian,
 		institutionID,
 		req.Notes,
+		appliedProcedureID,
 	), &item)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_create_failed"})
@@ -2294,6 +2299,24 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
+}
+
+// decodePortfolioRecordRequest explicitly rejects retention_until. This is
+// intentional even though the generic JSON decoder normally ignores unknown
+// fields: a client must not be able to suggest a retention deadline.
+func decodePortfolioRecordRequest(r *http.Request, target *CreatePortfolioRecordRequest) error {
+	var raw json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	if _, supplied := fields["retention_until"]; supplied {
+		return errors.New("retention_until is server controlled")
+	}
+	return json.Unmarshal(raw, target)
 }
 
 func (s *Service) MobilityDashboard(w http.ResponseWriter, r *http.Request) {
@@ -4018,7 +4041,7 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 
 	institutionID := s.institutionID(r)
 	var req CreatePortfolioRecordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodePortfolioRecordRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_payload"})
 		return
 	}
@@ -4030,12 +4053,11 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	req.SchoolYear = strings.TrimSpace(req.SchoolYear)
 	req.Status = strings.TrimSpace(req.Status)
 	req.LastUpdatedOn = strings.TrimSpace(req.LastUpdatedOn)
-	req.RetentionUntil = strings.TrimSpace(req.RetentionUntil)
 	req.TransferStatus = strings.TrimSpace(req.TransferStatus)
 	req.Custodian = strings.TrimSpace(req.Custodian)
 	req.Notes = strings.TrimSpace(req.Notes)
 
-	if req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.RetentionUntil == "" || req.TransferStatus == "" {
+	if req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.TransferStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_fields"})
 		return
 	}
@@ -4090,10 +4112,6 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_last_updated"})
 		return
 	}
-	if _, err := time.Parse("2006-01-02", req.RetentionUntil); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_retention"})
-		return
-	}
 	// Ownership is immutable. Admin clients may echo it for optimistic-concurrency
 	// checks, but an update can never silently reassign a professional portfolio.
 	if req.OwnerUserID != "" || req.OwnerPersonnelID != "" {
@@ -4125,19 +4143,18 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 			owner_role = $2,
 			school_year = $3,
 			last_updated_on = $4,
-			retention_until = $5,
-			custodian = $6,
-			notes = $7,
+			custodian = $5,
+			notes = $6,
 			updated_at = now()
-		where id = $8::uuid and institution_id = $9
-			and status = $10 and transfer_status = $11 and section_count = $12
-			and authenticity_declared = $13 and consent_captured = $14
+		where id = $7::uuid and institution_id = $8
+			and status = $9 and transfer_status = $10 and section_count = $11
+			and authenticity_declared = $12 and consent_captured = $13
+			and withdrawn_at is null and not legal_hold_active
 		returning `+portfolioRecordColumns,
 		req.OwnerName,
 		req.OwnerRole,
 		req.SchoolYear,
 		req.LastUpdatedOn,
-		req.RetentionUntil,
 		req.Custodian,
 		req.Notes,
 		recordID,
@@ -4177,21 +4194,119 @@ func (s *Service) DeletePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// The legacy DELETE route is retained only for compatibility. It creates a
+	// tombstone for an unsubmitted record; evidence that has been submitted,
+	// ceased activity/retention, or is under legal hold cannot be withdrawn.
 	commandTag, err := s.pool.Exec(r.Context(), `
-		delete from education_portfolios
-		where id = $1::uuid and institution_id = $2
-	`, recordID, s.institutionID(r))
+		update education_portfolios
+		set status = 'withdrawn', withdrawn_at = now(),
+			withdrawn_by_subject = $1, withdrawal_reason = 'withdrawn through legacy delete command',
+			updated_at = now()
+		where id = $2::uuid and institution_id = $3
+			and status in ('draft', 'returned')
+			and activity_ceased_on is null and retention_until is null
+			and not legal_hold_active and withdrawn_at is null
+	`, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), recordID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_delete_failed"})
 		return
 	}
 	if commandTag.RowsAffected() == 0 {
-		writeEducationNotFound(w, "portfolio_not_found")
+		var exists bool
+		if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolios where id = $1::uuid and institution_id = $2)`, recordID, s.institutionID(r)).Scan(&exists); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_delete_failed"})
+			return
+		}
+		if !exists {
+			writeEducationNotFound(w, "portfolio_not_found")
+			return
+		}
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_withdrawal_blocked"})
 		return
 	}
 
-	s.logAudit(r, "education.portfolios.delete", "portfolio_record", recordID, "Portfolio record deleted.", nil)
+	s.logAudit(r, "education.portfolios.withdraw", "portfolio_record", recordID, "Portfolio record withdrawn; evidence tombstone retained.", nil)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// RecordPortfolioActivityCessation is a server-side lifecycle command. The
+// router/OpenAPI contract must expose it under a dedicated lifecycle
+// permission; until then it is intentionally not reachable through generic
+// portfolio CRUD.
+func (s *Service) RecordPortfolioActivityCessation(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	allowed, err := s.portfolioAdminAllowed(r, "education.portfolios.school.manage")
+	if err != nil || !allowed {
+		writePortfolioAccessFailure(w, err)
+		return
+	}
+	var req PortfolioCessationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_cessation_payload"})
+		return
+	}
+	req.ActivityCeasedOn = strings.TrimSpace(req.ActivityCeasedOn)
+	req.Reason = strings.TrimSpace(req.Reason)
+	if _, err := time.Parse("2006-01-02", req.ActivityCeasedOn); err != nil || req.Reason == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_cessation"})
+		return
+	}
+	var item PortfolioRecord
+	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
+		update education_portfolios
+		set activity_ceased_on = $1::date, activity_cessation_reason = $2, updated_at = now()
+		where id = $3::uuid and institution_id = $4 and activity_ceased_on is null and withdrawn_at is null
+		returning `+portfolioRecordColumns,
+		req.ActivityCeasedOn, req.Reason, recordID, s.institutionID(r)), &item)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_cessation_not_available"})
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_cessation_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.activity_ceased", "portfolio_record", item.ID, "Portfolio cessation recorded; retention deadline calculated by server.", map[string]any{"activity_ceased_on": item.ActivityCeasedOn, "retention_until": item.RetentionUntil})
+	httpx.JSON(w, http.StatusOK, item)
+}
+
+// SetPortfolioLegalHold is a server-side lifecycle command. A legal hold
+// blocks further lifecycle mutations and any attempted withdrawal.
+func (s *Service) SetPortfolioLegalHold(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	allowed, err := s.portfolioAdminAllowed(r, "education.portfolios.school.manage")
+	if err != nil || !allowed {
+		writePortfolioAccessFailure(w, err)
+		return
+	}
+	var req PortfolioLegalHoldRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_legal_hold_payload"})
+		return
+	}
+	req.Reason = strings.TrimSpace(req.Reason)
+	if req.Reason == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "portfolio_legal_hold_reason_required"})
+		return
+	}
+	var item PortfolioRecord
+	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
+		update education_portfolios
+		set legal_hold_active = $1, legal_hold_reason = $2,
+			legal_hold_set_at = now(), legal_hold_set_by_subject = $3, updated_at = now()
+		where id = $4::uuid and institution_id = $5 and withdrawn_at is null
+		returning `+portfolioRecordColumns,
+		req.Active, req.Reason, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), recordID, s.institutionID(r)), &item)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "portfolio_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_legal_hold_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.legal_hold", "portfolio_record", item.ID, "Portfolio legal hold state changed.", map[string]any{"active": item.LegalHoldActive, "reason": item.LegalHoldReason})
+	httpx.JSON(w, http.StatusOK, item)
 }
 
 func (s *Service) UpdateMobilityCase(w http.ResponseWriter, r *http.Request) {
@@ -5002,7 +5117,7 @@ func (s *Service) PortfolioRecordDetail(w http.ResponseWriter, r *http.Request) 
 			status,
 			section_count,
 			to_char(last_updated_on, 'YYYY-MM-DD'),
-			to_char(retention_until, 'YYYY-MM-DD'),
+			coalesce(to_char(retention_until, 'YYYY-MM-DD'), ''),
 			transfer_status,
 			authenticity_declared,
 			consent_captured,

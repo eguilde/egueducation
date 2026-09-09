@@ -4160,6 +4160,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/me/{recordID}/declarations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/me/{recordID}/declarations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_me_recordid_declarations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_me_recordid_declarations_declarationtype_acknowledgements"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/me/{recordID}/documents": {
         parameters: {
             query?: never;
@@ -4288,6 +4328,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/procedures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/procedures
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_procedures"];
+        put?: never;
+        /**
+         * POST /api/education/portfolios/procedures
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_procedures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/procedures/{procedureID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_procedures_procedureid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /api/education/portfolios/procedures/{procedureID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        patch: operations["patch_api_education_portfolios_procedures_procedureid"];
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/procedures/{procedureID}/approve
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_procedures_procedureid_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/procedures/{procedureID}/publish
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_procedures_procedureid_publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}/section-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/procedures/{procedureID}/section-rules
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_procedures_procedureid_section_rules"];
+        /**
+         * PUT /api/education/portfolios/procedures/{procedureID}/section-rules
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        put: operations["put_api_education_portfolios_procedures_procedureid_section_rules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}/supersede": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/procedures/{procedureID}/supersede
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_procedures_procedureid_supersede"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/procedures/{procedureID}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/procedures/{procedureID}/withdraw
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_procedures_procedureid_withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/records": {
         parameters: {
             query?: never;
@@ -4358,6 +4550,26 @@ export interface paths {
          * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioRecord. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
          */
         patch: operations["patch_api_education_portfolios_records_recordid"];
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/activity-cessation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/activity-cessation
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_activity_cessation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/checklist": {
@@ -4464,6 +4676,26 @@ export interface paths {
         patch: operations["patch_api_education_portfolios_records_recordid_custody_itemid"];
         trace?: never;
     };
+    "/api/education/portfolios/records/{recordID}/declarations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/declarations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_declarations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/records/{recordID}/documents": {
         parameters: {
             query?: never;
@@ -4514,6 +4746,26 @@ export interface paths {
          * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioDocument. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
          */
         patch: operations["patch_api_education_portfolios_records_recordid_documents_documentid"];
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/legal-hold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/legal-hold
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_legal_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/opis": {
@@ -7399,6 +7651,30 @@ export interface components {
             section_code?: string;
             source_scope?: string;
         };
+        CreatePortfolioProcedureRequest: {
+            accepted_formats?: {
+                [key: string]: unknown;
+            };
+            access_rules?: {
+                [key: string]: unknown;
+            };
+            calendar_rules?: {
+                [key: string]: unknown;
+            };
+            /** Format: date */
+            effective_from?: string;
+            /** Format: date */
+            effective_to?: string;
+            procedure_code: string;
+            retention_rules?: {
+                [key: string]: unknown;
+            };
+            source_ref?: string;
+            title: string;
+            transfer_rules?: {
+                [key: string]: unknown;
+            };
+        };
         CreatePortfolioRecordRequest: {
             authenticity_declared?: boolean;
             consent_captured?: boolean;
@@ -7919,6 +8195,18 @@ export interface components {
         };
         EducationPageOfPortfolioOpisEntry: {
             items: components["schemas"]["PortfolioOpisEntry"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfPortfolioProcedure: {
+            items: components["schemas"]["PortfolioProcedure"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfPortfolioProcedureSectionRule: {
+            items: components["schemas"]["PortfolioProcedureSectionRule"][];
             page: number;
             pageSize: number;
             total: number;
@@ -8679,12 +8967,9 @@ export interface components {
             sensitive_data?: boolean;
         };
         OwnPortfolioRequest: {
-            authenticity_declared?: boolean;
-            consent_captured?: boolean;
             last_updated_on?: string;
             notes?: string;
             school_year?: string;
-            section_count?: number;
         };
         PersonnelAssignment: {
             assigned_on?: string;
@@ -8996,6 +9281,11 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        PortfolioCessationRequest: {
+            /** Format: date */
+            activity_ceased_on: string;
+            reason: string;
+        };
         PortfolioChecklistItem: {
             checked_by?: string;
             /** Format: int32 */
@@ -9063,6 +9353,44 @@ export interface components {
         PortfolioDashboardResponse: {
             stats?: components["schemas"]["PortfolioStats"];
         };
+        PortfolioDeclarationAcknowledgement: {
+            /** Format: date-time */
+            accepted_at: string;
+            /** Format: uuid */
+            accepted_by_user_id: string;
+            attestation_evidence: {
+                [key: string]: unknown;
+            };
+            attestation_method: string;
+            declaration_text: string;
+            /** @enum {string} */
+            declaration_type: "gdpr_information" | "authenticity";
+            declaration_version: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            portfolio_id: string;
+            signature_evidence: {
+                [key: string]: unknown;
+            };
+        };
+        PortfolioDeclarationAcknowledgementRequest: {
+            /** @constant */
+            confirmed: true;
+        };
+        PortfolioDeclarationEvidenceResponse: {
+            acknowledgements: components["schemas"]["PortfolioDeclarationAcknowledgement"][];
+            templates: components["schemas"]["PortfolioDeclarationTemplate"][];
+        };
+        PortfolioDeclarationTemplate: {
+            declaration_text: string;
+            /** @enum {string} */
+            declaration_type: "gdpr_information" | "authenticity";
+            declaration_version: string;
+            /** Format: date */
+            effective_from: string;
+            source_ref: string;
+        };
         PortfolioDocument: {
             added_on?: string;
             authenticity_status?: string;
@@ -9086,6 +9414,10 @@ export interface components {
             statuses?: string[];
             transfer_statuses?: string[];
         };
+        PortfolioLegalHoldRequest: {
+            active: boolean;
+            reason: string;
+        };
         PortfolioOpisEntry: {
             checked_by?: string;
             checked_on?: string;
@@ -9101,6 +9433,79 @@ export interface components {
             portfolio_id?: string;
             section_code?: string;
             source_scope?: string;
+        };
+        PortfolioProcedure: {
+            accepted_formats: {
+                [key: string]: unknown;
+            };
+            access_rules: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            approved_at?: string;
+            /** Format: uuid */
+            approved_by_user_id?: string;
+            calendar_rules: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            created_at: string;
+            /** Format: uuid */
+            created_by_user_id: string;
+            /** Format: date */
+            effective_from?: string;
+            /** Format: date */
+            effective_to?: string;
+            /** Format: uuid */
+            id: string;
+            institution_id: string;
+            /** @enum {string} */
+            lifecycle_status: "draft" | "approved" | "published" | "superseded" | "withdrawn";
+            procedure_code: string;
+            /** Format: date-time */
+            published_at?: string;
+            /** Format: uuid */
+            published_by_user_id?: string;
+            retention_rules: {
+                [key: string]: unknown;
+            };
+            source_ref: string;
+            /** Format: date-time */
+            superseded_at?: string;
+            title: string;
+            transfer_rules: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            updated_at: string;
+            version_no: number;
+            /** Format: date-time */
+            withdrawn_at?: string;
+        };
+        PortfolioProcedureEvidenceRequest: {
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** Format: date-time */
+            expected_updated_at: string;
+        };
+        PortfolioProcedureSectionRule: {
+            active: boolean;
+            /** Format: uuid */
+            id: string;
+            label_en: string;
+            label_ro: string;
+            /** Format: uuid */
+            procedure_id: string;
+            required: boolean;
+            section_code: string;
+            sort_order: number;
+            source_catalog_version: string;
+        };
+        PortfolioProcedureSectionRulesReplaceResponse: {
+            /** Format: uuid */
+            procedure_id: string;
+            rule_count: number;
         };
         PortfolioRecord: {
             authenticity_declared?: boolean;
@@ -9547,6 +9952,11 @@ export interface components {
             regulation_id?: string;
             started_on?: string;
             status?: string;
+        };
+        ReplacePortfolioProcedureSectionRulesRequest: {
+            /** Format: date-time */
+            expected_updated_at: string;
+            rules: components["schemas"]["PortfolioProcedureSectionRule"][];
         };
         Request_patch_api_registratura_admin_departments_id: {
             active?: boolean | null;
@@ -10058,6 +10468,10 @@ export interface components {
             label_ro?: string;
             /** Format: int32 */
             sort_order?: number;
+        };
+        UpdatePortfolioProcedureRequest: components["schemas"]["CreatePortfolioProcedureRequest"] & {
+            /** Format: date-time */
+            expected_updated_at: string;
         };
         WorkflowRequest: {
             action?: string;
@@ -14515,7 +14929,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                school_year?: string;
+                "filter.school_year"?: string;
             };
             header?: never;
             path?: never;
@@ -14691,7 +15105,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                full_name?: string;
+                "filter.full_name"?: string;
             };
             header?: never;
             path: {
@@ -14846,7 +15260,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                domain?: string;
+                "filter.domain"?: string;
             };
             header?: never;
             path?: never;
@@ -15046,7 +15460,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                decision_code?: string;
+                "filter.decision_code"?: string;
             };
             header?: never;
             path?: never;
@@ -15220,7 +15634,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                issuance_code?: string;
+                "filter.issuance_code"?: string;
             };
             header?: never;
             path: {
@@ -15375,7 +15789,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                step_type?: string;
+                "filter.step_type"?: string;
             };
             header?: never;
             path: {
@@ -15556,7 +15970,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                declaration_code?: string;
+                "filter.declaration_code"?: string;
             };
             header?: never;
             path?: never;
@@ -15782,7 +16196,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                evaluation_code?: string;
+                "filter.evaluation_code"?: string;
             };
             header?: never;
             path?: never;
@@ -15956,7 +16370,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                appeal_code?: string;
+                "filter.appeal_code"?: string;
             };
             header?: never;
             path: {
@@ -16140,7 +16554,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                criterion_code?: string;
+                "filter.criterion_code"?: string;
             };
             header?: never;
             path: {
@@ -16323,7 +16737,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                issue_code?: string;
+                "filter.issue_code"?: string;
             };
             header?: never;
             path: {
@@ -16507,7 +16921,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                review_code?: string;
+                "filter.review_code"?: string;
             };
             header?: never;
             path: {
@@ -16722,7 +17136,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                school_year?: string;
+                "filter.school_year"?: string;
             };
             header?: never;
             path?: never;
@@ -16836,7 +17250,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                title?: string;
+                "filter.title"?: string;
             };
             header?: never;
             path?: never;
@@ -17010,7 +17424,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                document_type?: string;
+                "filter.document_type"?: string;
             };
             header?: never;
             path: {
@@ -17222,7 +17636,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                topic_title?: string;
+                "filter.topic_title"?: string;
             };
             header?: never;
             path: {
@@ -17406,7 +17820,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                full_name?: string;
+                "filter.full_name"?: string;
             };
             header?: never;
             path: {
@@ -17561,7 +17975,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                resolution_code?: string;
+                "filter.resolution_code"?: string;
             };
             header?: never;
             path: {
@@ -17745,7 +18159,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                subject_title?: string;
+                "filter.subject_title"?: string;
             };
             header?: never;
             path: {
@@ -17900,7 +18314,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                school_year?: string;
+                "filter.school_year"?: string;
             };
             header?: never;
             path?: never;
@@ -18074,7 +18488,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                grant_code?: string;
+                "filter.grant_code"?: string;
             };
             header?: never;
             path?: never;
@@ -18248,7 +18662,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                appeal_code?: string;
+                "filter.appeal_code"?: string;
             };
             header?: never;
             path: {
@@ -18432,7 +18846,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                document_code?: string;
+                "filter.document_code"?: string;
             };
             header?: never;
             path: {
@@ -18587,7 +19001,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                decision_code?: string;
+                "filter.decision_code"?: string;
             };
             header?: never;
             path: {
@@ -18799,7 +19213,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                issue_code?: string;
+                "filter.issue_code"?: string;
             };
             header?: never;
             path: {
@@ -18983,7 +19397,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                criterion_code?: string;
+                "filter.criterion_code"?: string;
             };
             header?: never;
             path: {
@@ -19164,7 +19578,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                dossier_code?: string;
+                "filter.dossier_code"?: string;
             };
             header?: never;
             path?: never;
@@ -19338,7 +19752,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                document_code?: string;
+                "filter.document_code"?: string;
             };
             header?: never;
             path: {
@@ -19578,7 +19992,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                stage_type?: string;
+                "filter.stage_type"?: string;
             };
             header?: never;
             path: {
@@ -19759,7 +20173,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                case_code?: string;
+                "filter.case_code"?: string;
             };
             header?: never;
             path?: never;
@@ -19933,7 +20347,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                appeal_code?: string;
+                "filter.appeal_code"?: string;
             };
             header?: never;
             path: {
@@ -20117,7 +20531,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                document_code?: string;
+                "filter.document_code"?: string;
             };
             header?: never;
             path: {
@@ -20272,7 +20686,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                decision_code?: string;
+                "filter.decision_code"?: string;
             };
             header?: never;
             path: {
@@ -20484,7 +20898,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                issue_code?: string;
+                "filter.issue_code"?: string;
             };
             header?: never;
             path: {
@@ -20668,7 +21082,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                criterion_code?: string;
+                "filter.criterion_code"?: string;
             };
             header?: never;
             path: {
@@ -20849,7 +21263,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                employee_code?: string;
+                "filter.employee_code"?: string;
             };
             header?: never;
             path?: never;
@@ -21023,7 +21437,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                event_type?: string;
+                "filter.event_type"?: string;
             };
             header?: never;
             path: {
@@ -21178,7 +21592,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                assignment_code?: string;
+                "filter.assignment_code"?: string;
             };
             header?: never;
             path: {
@@ -21333,7 +21747,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                case_code?: string;
+                "filter.case_code"?: string;
             };
             header?: never;
             path: {
@@ -21488,7 +21902,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                document_code?: string;
+                "filter.document_code"?: string;
             };
             header?: never;
             path: {
@@ -21842,7 +22256,14 @@ export interface operations {
     };
     get_api_education_portfolios_me: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.school_year"?: string;
+                "filter.status"?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -21994,7 +22415,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                requirement_code?: string;
+                "filter.requirement_code"?: string;
             };
             header?: never;
             path: {
@@ -22021,6 +22442,67 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolios_me_recordid_declarations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioDeclarationEvidenceResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_me_recordid_declarations_declarationtype_acknowledgements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                declarationType: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioDeclarationAcknowledgementRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioDeclarationAcknowledgement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_me_recordid_documents: {
         parameters: {
             query?: {
@@ -22028,7 +22510,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                section_code?: string;
+                "filter.section_code"?: string;
             };
             header?: never;
             path: {
@@ -22154,7 +22636,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                section_code?: string;
+                "filter.section_code"?: string;
             };
             header?: never;
             path: {
@@ -22216,7 +22698,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                review_code?: string;
+                "filter.review_code"?: string;
             };
             header?: never;
             path: {
@@ -22275,6 +22757,324 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolios_procedures: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.procedure_code"?: string;
+                "filter.title"?: string;
+                "filter.lifecycle_status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_procedures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortfolioProcedureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_procedures_procedureid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_portfolios_procedures_procedureid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePortfolioProcedureRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_procedures_procedureid_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioProcedureEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_procedures_procedureid_publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioProcedureEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_procedures_procedureid_section_rules: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.section_code"?: string;
+                "filter.label_ro"?: string;
+            };
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioProcedureSectionRule"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    put_api_education_portfolios_procedures_procedureid_section_rules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplacePortfolioProcedureSectionRulesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedureSectionRulesReplaceResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_procedures_procedureid_supersede: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioProcedureEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_procedures_procedureid_withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                procedureID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioProcedureEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioProcedure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records: {
         parameters: {
             query?: {
@@ -22282,7 +23082,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                portfolio_code?: string;
+                "filter.portfolio_code"?: string;
             };
             header?: never;
             path?: never;
@@ -22449,6 +23249,38 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    post_api_education_portfolios_records_recordid_activity_cessation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioCessationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records_recordid_checklist: {
         parameters: {
             query?: {
@@ -22456,7 +23288,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                requirement_code?: string;
+                "filter.requirement_code"?: string;
             };
             header?: never;
             path: {
@@ -22611,7 +23443,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                event_type?: string;
+                "filter.event_type"?: string;
             };
             header?: never;
             path: {
@@ -22759,6 +23591,34 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolios_records_recordid_declarations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioDeclarationEvidenceResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records_recordid_documents: {
         parameters: {
             query?: {
@@ -22766,7 +23626,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                section_code?: string;
+                "filter.section_code"?: string;
             };
             header?: never;
             path: {
@@ -22914,6 +23774,38 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    post_api_education_portfolios_records_recordid_legal_hold: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioLegalHoldRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioRecord"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records_recordid_opis: {
         parameters: {
             query?: {
@@ -22921,7 +23813,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                section_code?: string;
+                "filter.section_code"?: string;
             };
             header?: never;
             path: {
@@ -23164,7 +24056,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                review_code?: string;
+                "filter.review_code"?: string;
             };
             header?: never;
             path: {
@@ -23347,7 +24239,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                transfer_code?: string;
+                "filter.transfer_code"?: string;
             };
             header?: never;
             path: {
@@ -23535,7 +24427,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                valorification_code?: string;
+                "filter.valorification_code"?: string;
             };
             header?: never;
             path: {
@@ -23722,7 +24614,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                section_code?: string;
+                "filter.section_code"?: string;
             };
             header?: never;
             path?: never;
@@ -23780,7 +24672,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                regulation_code?: string;
+                "filter.regulation_code"?: string;
             };
             header?: never;
             path?: never;
@@ -23982,7 +24874,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                version_label?: string;
+                "filter.version_label"?: string;
             };
             header?: never;
             path: {
@@ -24137,7 +25029,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                phase_type?: string;
+                "filter.phase_type"?: string;
             };
             header?: never;
             path: {
@@ -24292,7 +25184,7 @@ export interface operations {
                 pageSize?: components["parameters"]["PageSize"];
                 sort?: string;
                 direction?: string;
-                domain?: string;
+                "filter.domain"?: string;
             };
             header?: never;
             path?: never;

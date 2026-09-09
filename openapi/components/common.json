@@ -58,7 +58,7 @@
         "properties": {
           "items": { "type": "array", "items": {} },
           "page": { "type": "integer", "minimum": 1 },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 100 },
           "total": { "type": "integer", "minimum": 0 }
         }
       },
@@ -394,7 +394,7 @@
     },
     "parameters": {
       "Page": { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },
-      "PageSize": { "name": "pageSize", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 25 } }
+      "PageSize": { "name": "pageSize", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 25 } }
     }
   }
 }

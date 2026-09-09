@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -319,21 +320,40 @@ func (s *Service) UpdatePortfolioValorification(w http.ResponseWriter, r *http.R
 func (s *Service) DeletePortfolioValorification(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	tag, err := s.pool.Exec(r.Context(), `delete from education_portfolio_valorifications where id = $1 and portfolio_id = $2 and institution_id = $3`, itemID, recordID, s.institutionID(r))
+	tag, err := s.pool.Exec(r.Context(), `
+		update education_portfolio_valorifications valorification
+		set withdrawn_at = now(), withdrawn_by_subject = $1,
+			withdrawal_reason = 'withdrawn through legacy delete command', updated_at = now()
+		from education_portfolios portfolio
+		where valorification.id = $2::uuid and valorification.portfolio_id = $3::uuid and valorification.institution_id = $4
+			and portfolio.id = valorification.portfolio_id and portfolio.institution_id = valorification.institution_id
+			and portfolio.status in ('draft', 'returned') and portfolio.activity_ceased_on is null
+			and portfolio.retention_until is null and not portfolio.legal_hold_active
+			and valorification.withdrawn_at is null
+	`, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), itemID, recordID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_delete_failed"})
 		return
 	}
 	if tag.RowsAffected() == 0 {
-		writeEducationNotFound(w, "education_portfolio_valorification_not_found")
+		var exists bool
+		if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_valorifications where id = $1::uuid and portfolio_id = $2::uuid and institution_id = $3)`, itemID, recordID, s.institutionID(r)).Scan(&exists); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_delete_failed"})
+			return
+		}
+		if !exists {
+			writeEducationNotFound(w, "education_portfolio_valorification_not_found")
+			return
+		}
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_valorification_withdrawal_blocked"})
 		return
 	}
-	s.logAudit(r, "education.portfolios.valorification.delete", "portfolio_valorification", itemID, "Portfolio valorification flow deleted.", map[string]any{"portfolio_id": recordID})
+	s.logAudit(r, "education.portfolios.valorification.withdraw", "portfolio_valorification", itemID, "Portfolio valorification withdrawn; evidence tombstone retained.", map[string]any{"portfolio_id": recordID})
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func buildPortfolioValorificationFilters(filters map[string]string, recordID string, institutionID string) (string, []any) {
-	where := []string{"epv.portfolio_id = $1", "epv.institution_id = $2"}
+	where := []string{"epv.portfolio_id = $1", "epv.institution_id = $2", "epv.withdrawn_at is null"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
 		"valorification_code": "epv.valorification_code",

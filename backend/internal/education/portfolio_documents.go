@@ -41,7 +41,7 @@ func (s *Service) PortfolioRecordPDF(w http.ResponseWriter, r *http.Request) {
 			status,
 			section_count,
 			to_char(last_updated_on, 'YYYY-MM-DD'),
-			to_char(retention_until, 'YYYY-MM-DD'),
+			coalesce(to_char(retention_until, 'YYYY-MM-DD'), ''),
 			transfer_status,
 			authenticity_declared,
 			consent_captured,

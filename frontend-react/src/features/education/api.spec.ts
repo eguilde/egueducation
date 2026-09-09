@@ -79,7 +79,7 @@ describe("Education API", () => {
     expect(requestAt(fetcher).method).toBe("POST");
     expect(requestAt(fetcher).headers.get("content-type")).toBe("application/json");
     expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/personnel/records/p1");
-    expect(requestAt(fetcher, 1).method).toBe("PUT");
+    expect(requestAt(fetcher, 1).method).toBe("PATCH");
     expect(requestAt(fetcher, 2).method).toBe("DELETE");
   });
 
@@ -88,14 +88,6 @@ describe("Education API", () => {
     await expect(createEducationApi(fetcher).recordPdf("portfolios", "p 1")).resolves.toBeInstanceOf(Blob);
     expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/p%201/pdf");
     expect(requestAt(fetcher).headers.get("accept")).toBe("application/pdf");
-  });
-
-  it("uses protected backend endpoints for the PDF and CSV exports", async () => {
-    const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(new Blob(["data"]), { status: 200 })));
-    const api = createEducationApi(fetcher);
-    await api.exportFile("pdf"); await api.exportFile("csv");
-    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/exports/pdf");
-    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/exports/csv");
   });
 
   it("loads documented dashboard and filter metadata through the same authenticated client", async () => {
@@ -116,8 +108,8 @@ describe("Education API", () => {
     const api = createEducationApi(fetcher);
     await api.ownPortfolios();
     await api.ownPortfolio("own-1");
-    await api.createOwnPortfolio({ school_year: "2026-2027", section_count: 1, last_updated_on: "2026-09-01", authenticity_declared: true, consent_captured: true, notes: "" });
-    await api.updateOwnPortfolio("own-1", { school_year: "2026-2027", section_count: 2, last_updated_on: "2026-09-02", authenticity_declared: true, consent_captured: true, notes: "actualizat" });
+    await api.createOwnPortfolio({ school_year: "2026-2027", last_updated_on: "2026-09-01", notes: "" });
+    await api.updateOwnPortfolio("own-1", { school_year: "2026-2027", last_updated_on: "2026-09-02", notes: "actualizat" });
     await api.submitOwnPortfolio("own-1");
     await api.ownPortfolioRelated("own-1", "opis");
     await api.regenerateOwnPortfolioOpis("own-1");

@@ -151,17 +151,17 @@ test("school governance uses server pagination, sorting and column filters", asy
   await page.getByRole("button", { name: "Titlu" }).click();
   expect(new URL((await sorted).url()).searchParams.get("direction")).toBe("asc");
 
-  await page.getByLabel("Filtru Organism").fill("ca");
   const filtered = page.waitForRequest((request) =>
     new URL(request.url()).searchParams.get("filter.organism") === "ca",
   );
-  await page.getByRole("button", { name: "Aplică filtre" }).click();
+  await page.getByLabel("Filtru Organism").fill("ca");
+  await page.getByLabel("Filtru Organism").press("Tab");
   await filtered;
 
   const pageTwo = page.waitForRequest((request) =>
     new URL(request.url()).searchParams.get("page") === "2",
   );
-  await page.getByRole("button", { name: "Următor" }).click();
+  await page.getByLabel("Paginare", { exact: true }).getByRole("button", { name: "Următor" }).click();
   expect(new URL((await pageTwo).url()).searchParams.get("pageSize")).toBe("20");
 });
 
@@ -194,15 +194,34 @@ test("mocked teacher portfolio UX stays on owner-scoped contracts", async ({ pag
     permissions: ["education.read", "education.portfolios.read_own", "education.portfolios.manage_own"], modules: [{ code: "education", active: true }], authentication: ["sms"], gdpr_capabilities: [],
   });
   const portfolio = { id: "own-portfolio", portfolio_code: "PORT-CD-1", owner_name: "Profesor Test", owner_role: "Profesor", school_year: "2026-2027", status: "draft", section_count: 2, last_updated_on: "2026-09-01", authenticity_declared: true, consent_captured: true, notes: "" };
+  const templates = [
+    { declaration_type: "authenticity", declaration_version: "1", declaration_text: "Confirm că documentele sunt autentice.", source_ref: "OME 3858/2026", effective_from: "2026-05-08" },
+    { declaration_type: "gdpr_information", declaration_version: "1", declaration_text: "Confirm prelucrarea datelor conform scopului legal.", source_ref: "OME 3858/2026", effective_from: "2026-05-08" },
+  ];
+  const acknowledgements: Array<{ id: string; portfolio_id: string; declaration_type: string; declaration_version: string; declaration_text: string; accepted_at: string; accepted_by_user_id: string; attestation_method: string }> = [];
   await page.route("**/api/education/portfolios/me/own-portfolio/opis/regenerate", (route) => route.fulfill({ status: 204 }));
   await page.route("**/api/education/portfolios/me/own-portfolio/submit", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ ...portfolio, status: "submitted" }) }));
-  await page.route("**/api/education/portfolios/me/own-portfolio/{documents,checklist,opis,reviews}", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 1 }) }));
+  await page.route(/\/api\/education\/portfolios\/me\/own-portfolio\/(documents|checklist|opis|reviews)(\?.*)?$/, (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 1 }) }));
+  await page.route("**/api/education/portfolios/me/own-portfolio/declarations", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ templates, acknowledgements }) }));
+  await page.route(/\/api\/education\/portfolios\/me\/own-portfolio\/declarations\/([^/]+)\/acknowledgements$/, (route) => {
+    const declarationType = new URL(route.request().url()).pathname.split("/").at(-2) ?? "";
+    const template = templates.find((item) => item.declaration_type === declarationType)!;
+    acknowledgements.push({ id: `ack-${declarationType}`, portfolio_id: portfolio.id, declaration_type: declarationType, declaration_version: "1", declaration_text: template.declaration_text, accepted_at: new Date().toISOString(), accepted_by_user_id: "22222222-2222-4222-8222-222222222222", attestation_method: "explicit_ui_confirmation" });
+    return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(acknowledgements.at(-1)) });
+  });
   await page.route("**/api/education/portfolios/me/own-portfolio", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(portfolio) }));
-  await page.route("**/api/education/portfolios/me", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [portfolio], total: 1, page: 1, pageSize: 1 }) }));
+  await page.route("**/api/education/portfolios/me?**", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [portfolio], total: 1, page: 1, pageSize: 1 }) }));
   await page.goto("/scoala/portfolio/me");
   await expect(page.getByRole("region", { name: "Portofoliul meu profesional" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Portofoliul meu profesional" }).getByText("Profesor Test")).toBeVisible();
+  for (const template of templates) {
+    await page.getByRole("button", { name: "Citește și confirmă" }).first().click();
+    await expect(page.getByText(template.declaration_text)).toBeVisible();
+    await page.getByRole("checkbox", { name: "Confirm declarația afișată" }).click();
+    await page.getByRole("button", { name: "Confirmă declarația" }).click();
+  }
   const ownSubmit = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/education/portfolios/me/own-portfolio/submit"));
   await page.getByRole("button", { name: "Trimite spre verificare" }).click();
+  await page.getByRole("button", { name: "Confirmă trimiterea" }).click();
   expect(new URL((await ownSubmit).url()).pathname).toContain("/portfolios/me/");
 });

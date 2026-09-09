@@ -15,12 +15,12 @@ import (
 )
 
 type PortfolioTransferSummary struct {
-	Portfolio      PortfolioTransferSummaryPortfolio     `json:"portfolio"`
-	Completeness   PortfolioCompletenessSummary          `json:"completeness"`
-	Transfer       PortfolioTransferSummaryTransfer      `json:"transfer"`
-	Mobility       PortfolioTransferSummaryMobility      `json:"mobility"`
-	Valorification PortfolioValorificationSummaryBlock   `json:"valorification"`
-	Readiness      PortfolioTransferSummaryReadiness     `json:"readiness"`
+	Portfolio      PortfolioTransferSummaryPortfolio   `json:"portfolio"`
+	Completeness   PortfolioCompletenessSummary        `json:"completeness"`
+	Transfer       PortfolioTransferSummaryTransfer    `json:"transfer"`
+	Mobility       PortfolioTransferSummaryMobility    `json:"mobility"`
+	Valorification PortfolioValorificationSummaryBlock `json:"valorification"`
+	Readiness      PortfolioTransferSummaryReadiness   `json:"readiness"`
 }
 
 type PortfolioTransferSummaryPortfolio struct {
@@ -74,23 +74,23 @@ type PortfolioTransferSummaryReadiness struct {
 }
 
 type PortfolioCompletenessSummary struct {
-	TotalDocuments              int      `json:"total_documents"`
-	PortfolioDocuments           int      `json:"portfolio_documents"`
-	PersonnelDocuments           int      `json:"personnel_documents"`
-	SensitiveDocuments           int      `json:"sensitive_documents"`
-	TotalChecklistItems          int      `json:"total_checklist_items"`
-	MandatoryChecklistItems      int      `json:"mandatory_checklist_items"`
-	CompletedChecklistItems      int      `json:"completed_checklist_items"`
-	PartialChecklistItems        int      `json:"partial_checklist_items"`
-	MissingChecklistItems        int      `json:"missing_checklist_items"`
-	ReviewingChecklistItems      int      `json:"reviewing_checklist_items"`
-	OpisEntries                  int      `json:"opis_entries"`
-	CustodyEvents                int      `json:"custody_events"`
-	ReviewEvents                 int      `json:"review_events"`
-	ValorificationEvents         int      `json:"valorification_events"`
-	ReadyForReview               bool     `json:"ready_for_review"`
-	ReadyForTransfer             bool     `json:"ready_for_transfer"`
-	Blockers                     []string `json:"blockers"`
+	TotalDocuments          int      `json:"total_documents"`
+	PortfolioDocuments      int      `json:"portfolio_documents"`
+	PersonnelDocuments      int      `json:"personnel_documents"`
+	SensitiveDocuments      int      `json:"sensitive_documents"`
+	TotalChecklistItems     int      `json:"total_checklist_items"`
+	MandatoryChecklistItems int      `json:"mandatory_checklist_items"`
+	CompletedChecklistItems int      `json:"completed_checklist_items"`
+	PartialChecklistItems   int      `json:"partial_checklist_items"`
+	MissingChecklistItems   int      `json:"missing_checklist_items"`
+	ReviewingChecklistItems int      `json:"reviewing_checklist_items"`
+	OpisEntries             int      `json:"opis_entries"`
+	CustodyEvents           int      `json:"custody_events"`
+	ReviewEvents            int      `json:"review_events"`
+	ValorificationEvents    int      `json:"valorification_events"`
+	ReadyForReview          bool     `json:"ready_for_review"`
+	ReadyForTransfer        bool     `json:"ready_for_transfer"`
+	Blockers                []string `json:"blockers"`
 }
 
 type PortfolioValorificationSummaryBlock struct {
@@ -220,7 +220,7 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 			count(*) filter (where status = 'receptionat') as received_events,
 			count(*) filter (where status = 'inchis') as closed_events
 		from education_portfolio_transfers
-		where portfolio_id = $1::uuid and institution_id = $2
+		where portfolio_id = $1::uuid and institution_id = $2 and withdrawn_at is null
 	`, recordID, institutionID).Scan(
 		&summary.Transfer.TotalEvents,
 		&summary.Transfer.PreparedEvents,
