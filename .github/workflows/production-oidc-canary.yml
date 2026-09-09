@@ -53,7 +53,7 @@ jobs:
         working-directory: frontend-react
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
       - name: Run production OIDC canary without artifacts
         working-directory: frontend-react
         run: npx playwright test --config=playwright.production.config.ts --workers=1

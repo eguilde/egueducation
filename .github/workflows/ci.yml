@@ -167,7 +167,7 @@ jobs:
         working-directory: frontend-react
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
       - name: Real browser authorization-code, OTP, callback, refresh and session flow
         working-directory: frontend-react
         run: npx playwright test --config=playwright.oidc.config.ts --workers=1
@@ -239,11 +239,10 @@ jobs:
           cache-dependency-path: frontend-react/package-lock.json
       - name: Install PostgreSQL client, React dependencies and Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
           cd frontend-react
           npm ci
-          npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
+          sudo apt-get install --yes postgresql-client
       - name: Provision the non-bypass application database role
         run: |
           psql "$MIGRATION_DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
@@ -315,11 +314,10 @@ jobs:
           cache-dependency-path: frontend-react/package-lock.json
       - name: Install system dependencies, React dependencies and Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
           cd frontend-react
           npm ci
-          npx playwright install --with-deps chromium
+          bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
+          sudo apt-get install --yes postgresql-client
       - name: Build the isolated archive PDF validator used by the live server
         working-directory: backend
         run: go build -o /tmp/egueducation-pdf-validator ./cmd/archive-pdf-validator
@@ -447,7 +445,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend-react/package-lock.json
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
       - run: npm run e2e
       - name: Upload failed browser traces
         if: failure()
@@ -472,7 +470,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: bash "$GITHUB_WORKSPACE/scripts/ci/install-playwright-chromium.sh"
       - run: npx playwright test e2e/registratura-parity.spec.ts --workers=1
       - name: Upload failed browser traces
         if: failure()
