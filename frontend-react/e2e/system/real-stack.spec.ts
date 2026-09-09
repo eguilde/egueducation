@@ -401,6 +401,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/submit` && response.request().method() === 'POST',
   );
   await approverPage.getByRole('button', { name: 'Trimite spre verificare' }).click();
+  await approverPage.getByRole('button', { name: 'Confirmă trimiterea' }).click();
   expect((await portfolioSubmittedResponse).status()).toBe(200);
   await expect(approverPage.getByText('Portofoliul a fost trimis spre verificare.')).toBeVisible();
 
