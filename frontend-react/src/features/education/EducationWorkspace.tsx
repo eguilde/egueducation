@@ -22,9 +22,22 @@ import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
 import { Tag } from "@primereact/ui/tag";
 import { useAuth } from "../../auth/AuthProvider";
+import type { ContractClient } from "../../api/client";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { visibleEducationAreas } from "./catalog";
 import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
+import {
+  createEducationDelegationApi,
+  EducationDelegationManager,
+  type EducationDelegation,
+  type EducationDelegationApi,
+} from "./EducationDelegationManager";
+import {
+  createIntertenantPortfolioTransferApi,
+  PortfolioIntertenantTransfer,
+  type IntertenantPortfolioTransferApi,
+} from "./PortfolioIntertenantTransfer";
+import { PortfolioValorificationPackageManager } from "./PortfolioValorificationPackageManager";
 import { PortfolioProcedureManager, type PortfolioProcedureApi, type PortfolioProcedure as ProcedureView, type PortfolioProcedureRule as ProcedureRuleView } from "./PortfolioProcedureManager";
 import type {
   EducationApi,
@@ -48,6 +61,21 @@ const Spinner = () => (
   </ProgressSpinner.Root>
 );
 
+export function educationPermissionAllows(
+  directPermissions: readonly string[],
+  activeDelegations: ReadonlyArray<Pick<EducationDelegation, "permission_code" | "resource_type" | "resource_id">>,
+  permission: string,
+  resourceType = "institution",
+  resourceID?: string,
+) {
+  if (directPermissions.includes(permission)) return true;
+  return activeDelegations.some((item) =>
+    item.permission_code === permission &&
+    (item.resource_type === "institution" ||
+      (item.resource_type === resourceType && Boolean(resourceID) && item.resource_id === resourceID)),
+  );
+}
+
 const procedureView = (item: import("./types").PortfolioProcedure): ProcedureView => ({
   id: item.id, code: item.procedure_code, title: item.title, description: item.source_ref,
   status: item.lifecycle_status, version: item.version_no, updated_at: item.updated_at,
@@ -60,16 +88,12 @@ function portfolioProcedureAdapter(api: EducationApi): PortfolioProcedureApi {
   return {
     list: async (query) => { const result = await api.portfolioProcedures(query); return { ...result, items: result.items.map(procedureView) }; },
     detail: async (id) => procedureView(await api.portfolioProcedure(id)),
-    create: async (input) => procedureView(await api.createPortfolioProcedure({ procedure_code: input.code, title: input.title, source_ref: input.description ?? "Ordinul nr. 3.858/2026", calendar_rules: {}, access_rules: {}, accepted_formats: {}, retention_rules: {}, transfer_rules: {} })),
+    create: async (input) => procedureView(await api.createPortfolioProcedure({ procedure_code: input.code, title: input.title, source_ref: input.description })),
     update: async (id, input) => {
       const current = await api.portfolioProcedure(id);
-      return procedureView(await api.updatePortfolioProcedure(id, { procedure_code: input.code, title: input.title, source_ref: input.description ?? current.source_ref, effective_from: current.effective_from, effective_to: current.effective_to, calendar_rules: current.calendar_rules, access_rules: current.access_rules, accepted_formats: current.accepted_formats, retention_rules: current.retention_rules, transfer_rules: current.transfer_rules, expected_updated_at: input.expected_updated_at }));
+      return procedureView(await api.updatePortfolioProcedure(id, { procedure_code: input.code, title: input.title, source_ref: input.description ?? current.source_ref, effective_from: current.effective_from, effective_to: current.effective_to, calendar_rules: current.calendar_rules, access_rules: current.access_rules, accepted_formats: current.accepted_formats, retention_rules: current.retention_rules, transfer_rules: current.transfer_rules, expected_updated_at: input.expected_updated_at ?? current.updated_at }));
     },
     rules: async (id) => (await api.portfolioProcedureRules(id)).items.map(procedureRuleView),
-    replaceRules: async (id, input) => {
-      await api.replacePortfolioProcedureRules(id, { expected_updated_at: input.expected_updated_at, rules: input.rules.map((rule, index) => ({ section_code: rule.legal_section_code, label_ro: rule.label ?? rule.legal_section_code, label_en: "", source_catalog_version: "ome-3858-2026-annexa-1-v1", required: rule.required, sort_order: rule.sort_order ?? (index + 1) * 10, active: true })) });
-      return (await api.portfolioProcedureRules(id)).items.map(procedureRuleView);
-    },
     transition: async (id, input) => procedureView(await api.transitionPortfolioProcedure(id, input.transition, { expected_updated_at: input.expected_updated_at, evidence: { reference: input.evidence } })),
   };
 }
@@ -1995,14 +2019,38 @@ function DomainRecordsPage({
   api,
   area,
   canManage,
+  canManageRecord,
   canVerifyPortfolio = false,
+  canVerifyPortfolioRecord,
   canManageSchoolPortfolios = false,
+  canManageSchoolPortfolioRecord,
+  portfolioTransferApi,
+  canSendPortfolioTransfer = false,
+  canReceivePortfolioTransfer = false,
+  canSendPortfolioTransferRecord,
+  canReceivePortfolioTransferRecord,
+  valorificationClient,
+  canReadPortfolioValorification = false,
+  canManagePortfolioValorification = false,
+  canManagePortfolioValorificationRecord,
 }: {
   api: EducationApi;
   area: EducationArea;
   canManage: boolean;
+  canManageRecord?: (recordID: string) => boolean;
   canVerifyPortfolio?: boolean;
+  canVerifyPortfolioRecord?: (recordID: string) => boolean;
   canManageSchoolPortfolios?: boolean;
+  canManageSchoolPortfolioRecord?: (recordID: string) => boolean;
+  portfolioTransferApi?: IntertenantPortfolioTransferApi;
+  canSendPortfolioTransfer?: boolean;
+  canReceivePortfolioTransfer?: boolean;
+  canSendPortfolioTransferRecord?: (recordID: string) => boolean;
+  canReceivePortfolioTransferRecord?: (recordID: string) => boolean;
+  valorificationClient?: ContractClient;
+  canReadPortfolioValorification?: boolean;
+  canManagePortfolioValorification?: boolean;
+  canManagePortfolioValorificationRecord?: (recordID: string) => boolean;
 }) {
   const navigate = useNavigate();
   const domain = area.id as EducationRecordsDomain;
@@ -2115,7 +2163,11 @@ function DomainRecordsPage({
           {
             header: "Acțiuni",
             action: true,
-            render: (item) => (
+            render: (item) => {
+              const rowCanManage = canManage || Boolean(canManageRecord?.(item.id));
+              const rowCanVerifyPortfolio = canVerifyPortfolio || Boolean(canVerifyPortfolioRecord?.(item.id));
+              const rowCanManageSchoolPortfolio = canManageSchoolPortfolios || Boolean(canManageSchoolPortfolioRecord?.(item.id));
+              return (
               <SchoolRowActionMenu
                 actions={[
                   {
@@ -2140,7 +2192,7 @@ function DomainRecordsPage({
                       ),
                       }]
                     : []),
-                  ...(canManage
+                  ...(rowCanManage
                     ? [{
                         label: "Editează",
                         icon: "pi pi-pencil",
@@ -2156,7 +2208,7 @@ function DomainRecordsPage({
                         onSelect: () => setPendingDelete(item.id),
                       }]
                     : []),
-                  ...(domain === "portfolios" && (canManage || canManageSchoolPortfolios)
+                  ...(domain === "portfolios" && (rowCanManage || rowCanManageSchoolPortfolio)
                     ? [{
                         label: "Regenerare opis",
                         icon: "pi pi-refresh",
@@ -2173,7 +2225,7 @@ function DomainRecordsPage({
                         }),
                       }]
                     : []),
-                  ...(domain === "portfolios" && canVerifyPortfolio
+                  ...(domain === "portfolios" && rowCanVerifyPortfolio
                     ? [{
                         label: "Validează portofoliul",
                         icon: "pi pi-check-circle",
@@ -2184,7 +2236,7 @@ function DomainRecordsPage({
                         }),
                       }]
                     : []),
-                  ...(domain === "portfolios" && canManageSchoolPortfolios
+                  ...(domain === "portfolios" && rowCanManageSchoolPortfolio
                     ? [{
                         label: "Înregistrează încetarea activității",
                         icon: "pi pi-calendar-times",
@@ -2198,7 +2250,8 @@ function DomainRecordsPage({
                     : []),
                 ]}
               />
-            ),
+              );
+            },
           },
         ]}
         onAdd={
@@ -2257,6 +2310,30 @@ function DomainRecordsPage({
             (suffix) =>
               `${recordsBasePath(domain)}/${encodeURIComponent(selectedRecordId)}${suffix}`,
           )}
+        />
+      )}
+      {domain === "portfolios" && selectedRecordId && portfolioTransferApi && (
+        canSendPortfolioTransfer || canReceivePortfolioTransfer ||
+        Boolean(canSendPortfolioTransferRecord?.(selectedRecordId)) ||
+        Boolean(canReceivePortfolioTransferRecord?.(selectedRecordId))
+      ) && (
+        <PortfolioIntertenantTransfer
+          portfolioID={selectedRecordId}
+          api={portfolioTransferApi}
+          capabilities={{
+            send: canSendPortfolioTransfer || Boolean(canSendPortfolioTransferRecord?.(selectedRecordId)),
+            receive: canReceivePortfolioTransfer || Boolean(canReceivePortfolioTransferRecord?.(selectedRecordId)),
+          }}
+        />
+      )}
+      {domain === "portfolios" && selectedRecordId && valorificationClient && canReadPortfolioValorification && (
+        <PortfolioValorificationPackageManager
+          portfolioID={selectedRecordId}
+          client={valorificationClient}
+          capabilities={{
+            read: canReadPortfolioValorification,
+            manage: canManagePortfolioValorification || Boolean(canManagePortfolioValorificationRecord?.(selectedRecordId)),
+          }}
         />
       )}
     </div>
@@ -2869,6 +2946,7 @@ export interface EducationWorkspaceProps {
   institutionId?: string;
   permissions?: readonly string[];
   modules?: readonly EducationModule[];
+  delegationApi?: EducationDelegationApi;
 }
 
 /**
@@ -2879,7 +2957,7 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
   const auth = useAuth();
   const institutionId =
     props.institutionId ?? auth.session?.institution_id ?? "";
-  const permissions = props.permissions ?? auth.session?.permissions ?? [];
+  const directPermissions = props.permissions ?? auth.session?.permissions ?? [];
   const modules = props.modules ?? auth.session?.modules ?? [];
   const fallbackApi = useMemo(
     () =>
@@ -2889,6 +2967,55 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
     [auth.apiFetch, institutionId, props.apiFetch],
   );
   const api = props.api ?? fallbackApi;
+  const portfolioTransferApi = useMemo(
+    () => createIntertenantPortfolioTransferApi(auth.apiClient),
+    [auth.apiClient],
+  );
+  const delegationApi = useMemo(
+    () => props.delegationApi ?? createEducationDelegationApi(auth.apiClient),
+    [auth.apiClient, props.delegationApi],
+  );
+  const [activeDelegations, setActiveDelegations] = useState<EducationDelegation[]>([]);
+  const loadActiveDelegations = useCallback(async () => {
+    if (!directPermissions.includes("education.delegations.read") || !auth.user?.id) {
+      setActiveDelegations([]);
+      return;
+    }
+    const collected: EducationDelegation[] = [];
+    let pageNumber = 1;
+    let total = 0;
+    do {
+      const page = await delegationApi.list({
+        page: pageNumber,
+        pageSize: 100,
+        filters: { status: "accepted", delegate_user_id: auth.user.id },
+      });
+      collected.push(...page.items);
+      total = page.total;
+      pageNumber += 1;
+    } while (collected.length < total && pageNumber <= 100);
+    const today = new Date().toISOString().slice(0, 10);
+    setActiveDelegations(collected.filter((item) =>
+      item.delegate_user_id === auth.user?.id &&
+      item.status === "accepted" &&
+      item.valid_from <= today &&
+      (!item.valid_until || item.valid_until >= today),
+    ));
+  }, [auth.user?.id, delegationApi, directPermissions]);
+  useEffect(() => {
+    let active = true;
+    void loadActiveDelegations().catch(() => {
+      if (active) setActiveDelegations([]);
+    });
+    return () => { active = false; };
+  }, [loadActiveDelegations]);
+  const permissions = useMemo(
+    () => [...new Set([...directPermissions, ...activeDelegations.map((item) => item.permission_code)])],
+    [activeDelegations, directPermissions],
+  );
+  const allows = useCallback((permission: string, resourceType = "institution", resourceID?: string) => {
+    return educationPermissionAllows(directPermissions, activeDelegations, permission, resourceType, resourceID);
+  }, [activeDelegations, directPermissions]);
   const location = useLocation();
   const areas = useMemo(
     () => visibleEducationAreas(permissions, modules),
@@ -2994,10 +3121,25 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           permissions={permissions}
         />
       ) : active === "overview" ? (
-        <Overview
-          api={api}
-          canReadGovernance={permissions.includes("education.governance.read")}
-        />
+        <>
+          <Overview
+            api={api}
+            canReadGovernance={permissions.includes("education.governance.read")}
+          />
+          {permissions.includes("education.delegations.read") && (
+            <EducationDelegationManager
+              api={delegationApi}
+              onChanged={loadActiveDelegations}
+              capabilities={{
+                read: true,
+                offer: permissions.includes("education.delegations.offer"),
+                accept: permissions.includes("education.delegations.accept"),
+                revoke: permissions.includes("education.delegations.revoke"),
+                expire: permissions.includes("education.delegations.revoke"),
+              }}
+            />
+          )}
+        </>
       ) : active === "governance" ? (
         <GovernanceMeetingsPage
           api={api}
@@ -3005,20 +3147,46 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
         />
       ) : (
         <>
-          {active === "portfolios" && permissions.includes("education.portfolios.school.manage") && (
+          {active === "portfolios" && allows("education.portfolios.school.manage") && (
             <PortfolioProcedureManager api={portfolioProcedureAdapter(api)} />
           )}
-          {active === "portfolios" && permissions.includes("education.portfolios.archive_grants.manage") && (
+          {active === "portfolios" && allows("education.portfolios.archive_grants.manage") && (
             <PortfolioArchiveGrantManager api={api} />
           )}
           <DomainRecordsPage
             api={api}
             area={current}
-            canManage={permissions.includes(
+            canManage={allows(permissionForDomain(current.id as EducationRecordsDomain))}
+            canManageRecord={(recordID) => allows(
               permissionForDomain(current.id as EducationRecordsDomain),
+              current.id === "portfolios" ? "portfolio" :
+                current.id === "decisions" ? "decision" :
+                  current.id === "regulations" ? "regulation" :
+                    current.id === "personnel" ? "personnel" : "institution",
+              recordID,
             )}
-            canVerifyPortfolio={permissions.includes("education.portfolios.verify")}
-            canManageSchoolPortfolios={permissions.includes("education.portfolios.school.manage")}
+            canVerifyPortfolio={allows("education.portfolios.verify")}
+            canVerifyPortfolioRecord={(recordID) => allows("education.portfolios.verify", "portfolio", recordID)}
+            canManageSchoolPortfolios={allows("education.portfolios.school.manage")}
+            canManageSchoolPortfolioRecord={(recordID) => allows("education.portfolios.school.manage", "portfolio", recordID)}
+            portfolioTransferApi={portfolioTransferApi}
+            canSendPortfolioTransfer={allows("education.portfolios.transfer")}
+            canReceivePortfolioTransfer={allows("education.portfolios.transfer.receive")}
+            canSendPortfolioTransferRecord={(recordID) => allows("education.portfolios.transfer", "portfolio", recordID)}
+            canReceivePortfolioTransferRecord={(recordID) => allows("education.portfolios.transfer.receive", "portfolio", recordID)}
+            valorificationClient={auth.apiClient}
+            canReadPortfolioValorification={
+              permissions.includes("education.portfolios.read") ||
+              permissions.includes("education.portfolios.school.read")
+            }
+            canManagePortfolioValorification={
+              allows("education.portfolios.manage") ||
+              allows("education.portfolios.school.manage")
+            }
+            canManagePortfolioValorificationRecord={(recordID) =>
+              allows("education.portfolios.manage", "portfolio", recordID) ||
+              allows("education.portfolios.school.manage", "portfolio", recordID)
+            }
           />
         </>
       )}

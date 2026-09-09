@@ -569,13 +569,12 @@ func (s *Service) PortfolioTransfers(w http.ResponseWriter, r *http.Request) {
 	}
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
 	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`
-		select id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status,
-			to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
+		select %s
 		from education_portfolio_transfers ept
 		%s
 		order by %s %s, handover_on desc, transfer_code
 		limit $%d offset $%d
-	`, whereClause, portfolioTransferSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	`, portfolioTransferRowColumns, whereClause, portfolioTransferSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfers_failed"})
 		return
@@ -583,8 +582,8 @@ func (s *Service) PortfolioTransfers(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	items := make([]PortfolioTransferEvent, 0, query.PageSize)
 	for rows.Next() {
-		var item PortfolioTransferEvent
-		if err := rows.Scan(&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status, &item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes); err != nil {
+		item, err := scanPortfolioTransfer(rows)
+		if err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfers_scan_failed"})
 			return
 		}
@@ -600,13 +599,11 @@ func (s *Service) PortfolioTransfers(w http.ResponseWriter, r *http.Request) {
 func (s *Service) PortfolioTransferDetail(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	var item PortfolioTransferEvent
-	err := s.pool.QueryRow(r.Context(), `
-		select id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status,
-			to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
+	item, err := scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
+		select `+portfolioTransferRowColumns+`
 		from education_portfolio_transfers
 		where id = $1 and portfolio_id = $2 and institution_id = $3
-	`, itemID, recordID, s.institutionID(r)).Scan(&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status, &item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes)
+	`, itemID, recordID, s.institutionID(r)))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeEducationNotFound(w, "education_portfolio_transfer_not_found")
@@ -620,17 +617,19 @@ func (s *Service) PortfolioTransferDetail(w http.ResponseWriter, r *http.Request
 
 func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	var req CreatePortfolioTransferEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var req CreateIntertenantPortfolioTransferRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_payload"})
 		return
 	}
-	normalizePortfolioTransferRequest(&req)
-	if req.TransferType == "" || req.SourceInstitution == "" || req.DestinationInstitution == "" || req.Status == "" || req.HandoverOn == "" {
+	normalizeCreatePortfolioTransferRequest(&req)
+	if req.TransferType == "" || req.DestinationTenantCode == "" || req.HandoverOn == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_transfer_fields"})
 		return
 	}
-	if !containsString([]string{"predare", "primire", "mutare", "detasare"}, req.TransferType) || !containsString([]string{"pregatit", "trimis", "receptionat", "inchis"}, req.Status) {
+	if !containsString([]string{"predare", "primire", "mutare", "detasare"}, req.TransferType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_fields"})
 		return
 	}
@@ -638,32 +637,46 @@ func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_handover_on"})
 		return
 	}
-	receivedOn := any(nil)
-	if req.ReceivedOn != "" {
-		if _, err := time.Parse("2006-01-02", req.ReceivedOn); err != nil {
-			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_received_on"})
-			return
-		}
-		receivedOn = req.ReceivedOn
+	var sourceTenantCode, sourceInstitutionID, sourceInstitution, destinationInstitutionID, destinationInstitution string
+	err := s.pool.QueryRow(r.Context(), `
+		select source.code, source.institution_id, source.display_name,
+			destination.institution_id, destination.display_name
+		from app_tenants source
+		join app_tenants destination on destination.code=$2 and destination.active
+		where source.code=public.current_tenant_code() and source.institution_id=$1 and source.active
+			and destination.code<>source.code and destination.institution_id<>source.institution_id
+	`, s.institutionID(r), req.DestinationTenantCode).Scan(
+		&sourceTenantCode, &sourceInstitutionID, &sourceInstitution,
+		&destinationInstitutionID, &destinationInstitution,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_transfer_destination_invalid"})
+		return
 	}
-	if containsString([]string{"receptionat", "inchis"}, req.Status) && receivedOn == nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_transfer_received_on"})
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_create_failed"})
+		return
+	}
+	actorSubject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+	if actorSubject == "" {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "portfolio_transfer_actor_required"})
 		return
 	}
 	code := fmt.Sprintf("TRF-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
-	var item PortfolioTransferEvent
-	err := s.pool.QueryRow(r.Context(), `
+	item, err := scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_transfers (
-			portfolio_id, transfer_code, transfer_type, source_institution, destination_institution, status, handover_on, received_on, handover_by, received_by, institution_id, notes
+			portfolio_id, transfer_code, transfer_type, source_institution, destination_institution,
+			status, handover_on, handover_by, institution_id, notes, routing_version,
+			source_tenant_code, source_institution_id, destination_tenant_code, destination_institution_id
 		)
-		select ep.id, $2, $3, $4, $5, $6, $7, $8, $9, $10, ep.institution_id, $11
+		select ep.id, $2, $3, $4, $5, 'pregatit', $6, $7, ep.institution_id, $8, 2,
+			$9, $10, $11, $12
 		from education_portfolios ep
-		where ep.id = $1 and ep.institution_id = $12
-		returning id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status, to_char(handover_on, 'YYYY-MM-DD'),
-			coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
-	`, recordID, code, req.TransferType, req.SourceInstitution, req.DestinationInstitution, req.Status, req.HandoverOn, receivedOn, req.HandoverBy, req.ReceivedBy, req.Notes, s.institutionID(r)).Scan(
-		&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status, &item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes,
-	)
+		where ep.id = $1 and ep.institution_id = $10 and ep.status in ('submitted','validated') and ep.withdrawn_at is null
+		returning `+portfolioTransferRowColumns+`
+	`, recordID, code, req.TransferType, sourceInstitution, destinationInstitution,
+		req.HandoverOn, actorSubject, req.Notes, sourceTenantCode, sourceInstitutionID,
+		req.DestinationTenantCode, destinationInstitutionID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeEducationNotFound(w, "education_portfolio_not_found")
@@ -685,17 +698,19 @@ func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 func (s *Service) UpdatePortfolioTransfer(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	var req CreatePortfolioTransferEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var req UpdatePreparedPortfolioTransferRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_payload"})
 		return
 	}
-	normalizePortfolioTransferRequest(&req)
-	if req.TransferType == "" || req.SourceInstitution == "" || req.DestinationInstitution == "" || req.Status == "" || req.HandoverOn == "" {
+	normalizeUpdatePortfolioTransferRequest(&req)
+	if req.TransferType == "" || req.HandoverOn == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_transfer_fields"})
 		return
 	}
-	if !containsString([]string{"predare", "primire", "mutare", "detasare"}, req.TransferType) || !containsString([]string{"pregatit", "trimis", "receptionat", "inchis"}, req.Status) {
+	if !containsString([]string{"predare", "primire", "mutare", "detasare"}, req.TransferType) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_fields"})
 		return
 	}
@@ -703,28 +718,12 @@ func (s *Service) UpdatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_handover_on"})
 		return
 	}
-	receivedOn := any(nil)
-	if req.ReceivedOn != "" {
-		if _, err := time.Parse("2006-01-02", req.ReceivedOn); err != nil {
-			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_received_on"})
-			return
-		}
-		receivedOn = req.ReceivedOn
-	}
-	if containsString([]string{"receptionat", "inchis"}, req.Status) && receivedOn == nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_transfer_received_on"})
-		return
-	}
-	var item PortfolioTransferEvent
-	err := s.pool.QueryRow(r.Context(), `
+	item, err := scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 		update education_portfolio_transfers
-		set transfer_type = $1, source_institution = $2, destination_institution = $3, status = $4, handover_on = $5, received_on = $6, handover_by = $7, received_by = $8, notes = $9, updated_at = now()
-		where id = $10 and portfolio_id = $11 and institution_id = $12
-		returning id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status, to_char(handover_on, 'YYYY-MM-DD'),
-			coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
-	`, req.TransferType, req.SourceInstitution, req.DestinationInstitution, req.Status, req.HandoverOn, receivedOn, req.HandoverBy, req.ReceivedBy, req.Notes, itemID, recordID, s.institutionID(r)).Scan(
-		&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status, &item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes,
-	)
+		set transfer_type = $1, handover_on = $2, notes = $3, updated_at = now()
+		where id = $4 and portfolio_id = $5 and institution_id = $6 and status = 'pregatit'
+		returning `+portfolioTransferRowColumns+`
+	`, req.TransferType, req.HandoverOn, req.Notes, itemID, recordID, s.institutionID(r)))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeEducationNotFound(w, "education_portfolio_transfer_not_found")
@@ -753,7 +752,9 @@ func (s *Service) DeletePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		from education_portfolios portfolio
 		where transfer.id = $2::uuid and transfer.portfolio_id = $3::uuid and transfer.institution_id = $4
 			and portfolio.id = transfer.portfolio_id and portfolio.institution_id = transfer.institution_id
-			and portfolio.status in ('draft', 'returned') and portfolio.activity_ceased_on is null
+			and ((transfer.routing_version=2 and transfer.status='pregatit')
+				or (transfer.routing_version=1 and portfolio.status in ('draft', 'returned')))
+			and portfolio.activity_ceased_on is null
 			and portfolio.retention_until is null and not portfolio.legal_hold_active
 			and transfer.withdrawn_at is null
 	`, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), itemID, recordID, s.institutionID(r))
@@ -1142,15 +1143,16 @@ func normalizeGovernanceResolutionRequest(req *CreateGovernanceResolutionRequest
 	req.Notes = strings.TrimSpace(req.Notes)
 }
 
-func normalizePortfolioTransferRequest(req *CreatePortfolioTransferEventRequest) {
+func normalizeCreatePortfolioTransferRequest(req *CreateIntertenantPortfolioTransferRequest) {
 	req.TransferType = strings.TrimSpace(req.TransferType)
-	req.SourceInstitution = strings.TrimSpace(req.SourceInstitution)
-	req.DestinationInstitution = strings.TrimSpace(req.DestinationInstitution)
-	req.Status = strings.TrimSpace(req.Status)
 	req.HandoverOn = strings.TrimSpace(req.HandoverOn)
-	req.ReceivedOn = strings.TrimSpace(req.ReceivedOn)
-	req.HandoverBy = strings.TrimSpace(req.HandoverBy)
-	req.ReceivedBy = strings.TrimSpace(req.ReceivedBy)
+	req.Notes = strings.TrimSpace(req.Notes)
+	req.DestinationTenantCode = strings.TrimSpace(req.DestinationTenantCode)
+}
+
+func normalizeUpdatePortfolioTransferRequest(req *UpdatePreparedPortfolioTransferRequest) {
+	req.TransferType = strings.TrimSpace(req.TransferType)
+	req.HandoverOn = strings.TrimSpace(req.HandoverOn)
 	req.Notes = strings.TrimSpace(req.Notes)
 }
 

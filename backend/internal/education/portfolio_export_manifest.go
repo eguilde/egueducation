@@ -70,7 +70,7 @@ func (s *Service) PortfolioExportManifestCreate(w http.ResponseWriter, r *http.R
 		writePortfolioAccessFailure(w, nil)
 		return
 	}
-	manifest, err := s.buildPortfolioExportManifest(r, recordID)
+	result, err := s.createPortfolioExportManifestEvidence(r, recordID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_portfolio_not_found")
 		return
@@ -84,10 +84,18 @@ func (s *Service) PortfolioExportManifestCreate(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	s.logAudit(r, "education.portfolios.export_manifest.create", "portfolio_export_manifest", result.ExportManifestID, "Authoritative portfolio evidence manifest generated.", map[string]any{"portfolio_id": recordID, "manifest_sha256": result.Manifest.ManifestSHA256, "document_count": len(result.Manifest.Documents)})
+	httpx.JSON(w, http.StatusCreated, result)
+}
+
+func (s *Service) createPortfolioExportManifestEvidence(r *http.Request, recordID string) (PortfolioExportManifestResponse, error) {
+	manifest, err := s.buildPortfolioExportManifest(r, recordID)
+	if err != nil {
+		return PortfolioExportManifestResponse{}, err
+	}
 	payload, err := json.Marshal(manifest)
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_export_manifest_failed"})
-		return
+		return PortfolioExportManifestResponse{}, err
 	}
 	var result PortfolioExportManifestResponse
 	err = s.pool.QueryRow(r.Context(), `
@@ -100,12 +108,10 @@ func (s *Service) PortfolioExportManifestCreate(w http.ResponseWriter, r *http.R
 		returning id::text, to_char(generated_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
 	`, recordID, s.institutionID(r), manifest.TenantCode, manifest.ManifestVersion, manifest.ManifestSHA256, payload, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))).Scan(&result.ExportManifestID, &result.GeneratedAt)
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_export_manifest_persist_failed"})
-		return
+		return PortfolioExportManifestResponse{}, err
 	}
 	result.Manifest = manifest
-	s.logAudit(r, "education.portfolios.export_manifest.create", "portfolio_export_manifest", result.ExportManifestID, "Authoritative portfolio evidence manifest generated.", map[string]any{"portfolio_id": recordID, "manifest_sha256": manifest.ManifestSHA256, "document_count": len(manifest.Documents)})
-	httpx.JSON(w, http.StatusCreated, result)
+	return result, nil
 }
 
 // portfolioExportManifestAllowed preserves institution-reader behaviour while

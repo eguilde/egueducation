@@ -426,3 +426,379 @@ func nullableDate(value string) any {
 	}
 	return trimmed
 }
+
+// PortfolioValorificationPackage is the strict successor to the legacy
+// free-text valorification event. Its source is always a real record in the
+// corresponding education domain and document evidence is pinned to an
+// eArhiva version by the database.
+type PortfolioValorificationPackage struct {
+	ID                   string `json:"id"`
+	TenantCode           string `json:"tenant_code"`
+	InstitutionID        string `json:"institution_id"`
+	PortfolioID          string `json:"portfolio_id"`
+	Scope                string `json:"scope"`
+	SourceEvaluationID   string `json:"source_evaluation_id,omitempty"`
+	SourceMobilityCaseID string `json:"source_mobility_case_id,omitempty"`
+	SourceMeritGrantID   string `json:"source_merit_grant_id,omitempty"`
+	Status               string `json:"status"`
+	CreatedBySubject     string `json:"created_by_subject"`
+	CreatedAt            string `json:"created_at"`
+	SubmittedBySubject   string `json:"submitted_by_subject,omitempty"`
+	SubmittedAt          string `json:"submitted_at,omitempty"`
+	ValidatedBySubject   string `json:"validated_by_subject,omitempty"`
+	ValidatedAt          string `json:"validated_at,omitempty"`
+	CompletedBySubject   string `json:"completed_by_subject,omitempty"`
+	CompletedAt          string `json:"completed_at,omitempty"`
+}
+
+type CreatePortfolioValorificationPackageRequest struct {
+	Scope                string `json:"scope"`
+	SourceEvaluationID   string `json:"source_evaluation_id"`
+	SourceMobilityCaseID string `json:"source_mobility_case_id"`
+	SourceMeritGrantID   string `json:"source_merit_grant_id"`
+}
+
+type AddPortfolioValorificationPackageDocumentRequest struct {
+	ArchiveDocumentID string `json:"archive_document_id"`
+	ArchiveVersionID  string `json:"archive_version_id"`
+}
+
+type AdvancePortfolioValorificationPackageRequest struct {
+	Action string `json:"action"`
+}
+
+type PortfolioValorificationPackageDocument struct {
+	ID                     string `json:"id"`
+	PackageID              string `json:"package_id"`
+	ArchiveDocumentID      string `json:"archive_document_id"`
+	ArchiveVersionID       string `json:"archive_version_id"`
+	ArchiveVersionNo       int    `json:"archive_version_no"`
+	ArchiveSourceBucket    string `json:"archive_source_bucket"`
+	ArchiveSourceObjectKey string `json:"archive_source_object_key"`
+	ArchiveSHA256          string `json:"archive_sha256"`
+	CreatedBySubject       string `json:"created_by_subject"`
+	CreatedAt              string `json:"created_at"`
+}
+
+type PortfolioValorificationEligibleSource struct {
+	ID    string `json:"id"`
+	Scope string `json:"scope"`
+	Label string `json:"label"`
+}
+
+type PortfolioValorificationEligibleArchiveVersion struct {
+	ArchiveDocumentID string `json:"archive_document_id"`
+	ArchiveVersionID  string `json:"archive_version_id"`
+	VersionNo         int    `json:"version_no"`
+	Title             string `json:"title"`
+}
+
+const portfolioValorificationPackageColumns = `
+	id::text, tenant_code, institution_id, portfolio_id::text, scope,
+	coalesce(source_evaluation_id::text,''), coalesce(source_mobility_case_id::text,''), coalesce(source_merit_grant_id::text,''),
+	status, created_by_subject, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+	submitted_by_subject, coalesce(to_char(submitted_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),''),
+	validated_by_subject, coalesce(to_char(validated_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),''),
+	completed_by_subject, coalesce(to_char(completed_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),'')`
+
+func scanPortfolioValorificationPackage(row interface{ Scan(...any) error }) (PortfolioValorificationPackage, error) {
+	var item PortfolioValorificationPackage
+	err := row.Scan(&item.ID, &item.TenantCode, &item.InstitutionID, &item.PortfolioID, &item.Scope,
+		&item.SourceEvaluationID, &item.SourceMobilityCaseID, &item.SourceMeritGrantID,
+		&item.Status, &item.CreatedBySubject, &item.CreatedAt, &item.SubmittedBySubject, &item.SubmittedAt,
+		&item.ValidatedBySubject, &item.ValidatedAt, &item.CompletedBySubject, &item.CompletedAt)
+	return item, err
+}
+
+const portfolioValorificationPackageDocumentColumns = `
+	id::text, package_id::text, archive_document_id::text, archive_version_id::text,
+	archive_version_no, archive_source_bucket, archive_source_object_key, archive_sha256,
+	created_by_subject, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`
+
+func scanPortfolioValorificationPackageDocument(row interface{ Scan(...any) error }) (PortfolioValorificationPackageDocument, error) {
+	var item PortfolioValorificationPackageDocument
+	err := row.Scan(&item.ID, &item.PackageID, &item.ArchiveDocumentID, &item.ArchiveVersionID,
+		&item.ArchiveVersionNo, &item.ArchiveSourceBucket, &item.ArchiveSourceObjectKey, &item.ArchiveSHA256,
+		&item.CreatedBySubject, &item.CreatedAt)
+	return item, err
+}
+
+func (s *Service) PortfolioValorificationPackages(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"scope": {}, "status": {}}, []string{"scope", "status"})
+	if query.Sort == "" {
+		query.Sort = "created_at"
+	}
+	where := []string{"portfolio_id = $1::uuid", "institution_id = $2"}
+	args := []any{recordID, s.institutionID(r)}
+	for _, filter := range []string{"scope", "status"} {
+		if value := strings.TrimSpace(query.Filters[filter]); value != "" {
+			args = append(args, value)
+			where = append(where, filter+" = $"+fmt.Sprint(len(args)))
+		}
+	}
+	whereSQL := " where " + strings.Join(where, " and ")
+	var total int
+	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_portfolio_valorification_packages"+whereSQL, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_packages_failed"})
+		return
+	}
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	sortColumn := map[string]string{"created_at": "created_at", "scope": "scope", "status": "status"}[query.Sort]
+	if sortColumn == "" {
+		sortColumn = "created_at"
+	}
+	rows, err := s.pool.Query(r.Context(), fmt.Sprintf("select %s from education_portfolio_valorification_packages%s order by %s %s, id limit $%d offset $%d", portfolioValorificationPackageColumns, whereSQL, sortColumn, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_packages_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioValorificationPackage, 0, query.PageSize)
+	for rows.Next() {
+		item, err := scanPortfolioValorificationPackage(rows)
+		if err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_packages_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_packages_scan_failed"})
+		return
+	}
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
+func (s *Service) PortfolioValorificationPackageDetail(w http.ResponseWriter, r *http.Request) {
+	recordID, itemID := strings.TrimSpace(chi.URLParam(r, "recordID")), strings.TrimSpace(chi.URLParam(r, "itemID"))
+	item, err := scanPortfolioValorificationPackage(s.pool.QueryRow(r.Context(), `
+		select `+portfolioValorificationPackageColumns+`
+		from education_portfolio_valorification_packages
+		where id=$1::uuid and portfolio_id=$2::uuid and institution_id=$3
+	`, itemID, recordID, s.institutionID(r)))
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_portfolio_valorification_package_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_package_detail_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, item)
+}
+
+func (s *Service) PortfolioValorificationPackageDocuments(w http.ResponseWriter, r *http.Request) {
+	recordID, itemID := strings.TrimSpace(chi.URLParam(r, "recordID")), strings.TrimSpace(chi.URLParam(r, "itemID"))
+	rows, err := s.pool.Query(r.Context(), `
+		select `+portfolioValorificationPackageDocumentColumns+`
+		from education_portfolio_valorification_package_documents document
+		join education_portfolio_valorification_packages package on package.id=document.package_id
+		where package.id=$1::uuid and package.portfolio_id=$2::uuid and package.institution_id=$3
+		order by document.created_at, document.id
+	`, itemID, recordID, s.institutionID(r))
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_package_documents_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioValorificationPackageDocument, 0)
+	for rows.Next() {
+		item, err := scanPortfolioValorificationPackageDocument(rows)
+		if err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_package_documents_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_package_documents_scan_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, items)
+}
+
+func (s *Service) PortfolioValorificationEligibleSources(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	scope := strings.TrimSpace(r.URL.Query().Get("scope"))
+	query := ""
+	switch scope {
+	case "evaluare_profesionala":
+		query = `select source.id::text, 'evaluare_profesionala', source.evaluation_code || ' · ' || source.full_name || ' · ' || source.status
+			from education_evaluations source join education_portfolios portfolio on portfolio.owner_personnel_id=source.personnel_id and portfolio.school_year=source.school_year
+			where portfolio.id=$1::uuid and portfolio.institution_id=$2 and source.institution_id=$2 order by source.evaluation_code`
+	case "mobilitate":
+		query = `select source.id::text, 'mobilitate', source.case_code || ' · ' || source.full_name || ' · ' || source.status
+			from education_mobility_cases source join education_portfolios portfolio on portfolio.owner_personnel_id=source.personnel_id and portfolio.school_year=source.school_year
+			where portfolio.id=$1::uuid and portfolio.institution_id=$2 and source.institution_id=$2 order by source.case_code`
+	case "gradatie_merit":
+		query = `select source.id::text, 'gradatie_merit', source.grant_code || ' · ' || source.full_name || ' · ' || source.status
+			from education_merit_grants source join education_portfolios portfolio on portfolio.owner_personnel_id=source.personnel_id and portfolio.school_year=source.school_year
+			where portfolio.id=$1::uuid and portfolio.institution_id=$2 and source.institution_id=$2 order by source.grant_code`
+	default:
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_scope"})
+		return
+	}
+	rows, err := s.pool.Query(r.Context(), query, recordID, s.institutionID(r))
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_sources_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioValorificationEligibleSource, 0)
+	for rows.Next() {
+		var item PortfolioValorificationEligibleSource
+		if err := rows.Scan(&item.ID, &item.Scope, &item.Label); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_sources_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_sources_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, items)
+}
+
+func (s *Service) PortfolioValorificationEligibleArchiveVersions(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	rows, err := s.pool.Query(r.Context(), `
+		select version.document_id::text, version.id::text, version.version_no, coalesce(nullif(version.title,''), document.title)
+		from archive_document_versions version
+		join archive_documents document on document.id=version.document_id and document.institution_id=version.institution_id
+		where version.institution_id=$2 and version.status='active'
+			and btrim(version.source_bucket)<>'' and btrim(version.source_object_key)<>'' and lower(btrim(version.source_sha256)) ~ '^[0-9a-f]{64}$'
+			and exists (select 1 from education_portfolios portfolio where portfolio.id=$1::uuid and portfolio.institution_id=$2)
+		order by coalesce(nullif(version.title,''), document.title), version.version_no desc
+		limit 100
+	`, recordID, s.institutionID(r))
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_archive_versions_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioValorificationEligibleArchiveVersion, 0)
+	for rows.Next() {
+		var item PortfolioValorificationEligibleArchiveVersion
+		if err := rows.Scan(&item.ArchiveDocumentID, &item.ArchiveVersionID, &item.VersionNo, &item.Title); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_archive_versions_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_valorification_archive_versions_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, items)
+}
+
+// CreatePortfolioValorificationPackage deliberately accepts only source UUIDs,
+// never a free-text "target reference". The migration trigger repeats and
+// enforces every scope/source/institution invariant at the database boundary.
+func (s *Service) CreatePortfolioValorificationPackage(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	var req CreatePortfolioValorificationPackageRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_payload"})
+		return
+	}
+	req.Scope, req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID = strings.TrimSpace(req.Scope), strings.TrimSpace(req.SourceEvaluationID), strings.TrimSpace(req.SourceMobilityCaseID), strings.TrimSpace(req.SourceMeritGrantID)
+	valid := (req.Scope == "evaluare_profesionala" && req.SourceEvaluationID != "" && req.SourceMobilityCaseID == "" && req.SourceMeritGrantID == "") ||
+		(req.Scope == "mobilitate" && req.SourceEvaluationID == "" && req.SourceMobilityCaseID != "" && req.SourceMeritGrantID == "") ||
+		(req.Scope == "gradatie_merit" && req.SourceEvaluationID == "" && req.SourceMobilityCaseID == "" && req.SourceMeritGrantID != "")
+	if !valid {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_source"})
+		return
+	}
+	item, err := scanPortfolioValorificationPackage(s.pool.QueryRow(r.Context(), `
+		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,source_evaluation_id,source_mobility_case_id,source_merit_grant_id)
+		select public.current_tenant_code(), $2, portfolio.id, $3,
+			nullif($4,'')::uuid, nullif($5,'')::uuid, nullif($6,'')::uuid
+		from education_portfolios portfolio
+		where portfolio.id=$1::uuid and portfolio.institution_id=$2 and portfolio.withdrawn_at is null
+		returning `+portfolioValorificationPackageColumns, recordID, s.institutionID(r), req.Scope, req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_portfolio_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_valorification_package_create_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.valorification_package.create", "portfolio_valorification_package", item.ID, "Scope-bound portfolio valorification package created.", map[string]any{"portfolio_id": item.PortfolioID, "scope": item.Scope})
+	httpx.JSON(w, http.StatusCreated, item)
+}
+
+func (s *Service) AdvancePortfolioValorificationPackage(w http.ResponseWriter, r *http.Request) {
+	recordID, itemID := strings.TrimSpace(chi.URLParam(r, "recordID")), strings.TrimSpace(chi.URLParam(r, "itemID"))
+	var req AdvancePortfolioValorificationPackageRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_advance_payload"})
+		return
+	}
+	status := map[string]string{"submit": "submitted", "validate": "validated", "complete": "completed"}[strings.TrimSpace(req.Action)]
+	if status == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_action"})
+		return
+	}
+	item, err := scanPortfolioValorificationPackage(s.pool.QueryRow(r.Context(), `
+		update education_portfolio_valorification_packages package set status=$1
+		where package.id=$2::uuid and package.portfolio_id=$3::uuid and package.institution_id=$4
+		returning `+portfolioValorificationPackageColumns, status, itemID, recordID, s.institutionID(r)))
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_portfolio_valorification_package_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_valorification_package_transition_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.valorification_package.advance", "portfolio_valorification_package", item.ID, "Portfolio valorification package lifecycle advanced.", map[string]any{"portfolio_id": recordID, "status": item.Status})
+	httpx.JSON(w, http.StatusOK, item)
+}
+
+// AddPortfolioValorificationPackageDocument accepts only immutable archive
+// identifiers. Placeholder metadata is overwritten by the database trigger
+// from the referenced archive version, so neither browser nor handler owns the
+// hash or storage provenance.
+func (s *Service) AddPortfolioValorificationPackageDocument(w http.ResponseWriter, r *http.Request) {
+	recordID, itemID := strings.TrimSpace(chi.URLParam(r, "recordID")), strings.TrimSpace(chi.URLParam(r, "itemID"))
+	var req AddPortfolioValorificationPackageDocumentRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_document_payload"})
+		return
+	}
+	req.ArchiveDocumentID, req.ArchiveVersionID = strings.TrimSpace(req.ArchiveDocumentID), strings.TrimSpace(req.ArchiveVersionID)
+	if req.ArchiveDocumentID == "" || req.ArchiveVersionID == "" {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_valorification_package_document_source"})
+		return
+	}
+	var documentID string
+	err := s.pool.QueryRow(r.Context(), `
+		insert into education_portfolio_valorification_package_documents (
+			package_id,institution_id,archive_document_id,archive_version_id,
+			archive_version_no,archive_source_bucket,archive_source_object_key,archive_sha256
+		)
+		select package.id, $3, $4::uuid, $5::uuid, 1, '', '', repeat('0',64)
+		from education_portfolio_valorification_packages package
+		where package.id=$1::uuid and package.portfolio_id=$2::uuid and package.institution_id=$3
+		returning id::text`, itemID, recordID, s.institutionID(r), req.ArchiveDocumentID, req.ArchiveVersionID).Scan(&documentID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_portfolio_valorification_package_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_valorification_package_document_create_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.valorification_package.document.add", "portfolio_valorification_package_document", documentID, "Immutable archive version attached to valorification package.", map[string]any{"package_id": itemID})
+	httpx.JSON(w, http.StatusCreated, map[string]string{"id": documentID})
+}

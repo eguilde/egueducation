@@ -113,46 +113,11 @@ export interface PortfolioDeclarationEvidence {
   templates: PortfolioDeclarationTemplate[];
   acknowledgements: PortfolioDeclarationAcknowledgement[];
 }
-export interface PortfolioProcedure {
-  id: string;
-  procedure_code: string;
-  version_no: number;
-  title: string;
-  source_ref: string;
-  lifecycle_status: "draft" | "approved" | "published" | "superseded" | "withdrawn";
-  effective_from?: string;
-  effective_to?: string;
-  calendar_rules: Record<string, unknown>;
-  access_rules: Record<string, unknown>;
-  accepted_formats: Record<string, unknown>;
-  retention_rules: Record<string, unknown>;
-  transfer_rules: Record<string, unknown>;
-  updated_at: string;
-}
-export interface PortfolioProcedureRule {
-  id?: string;
-  procedure_id?: string;
-  section_code: string;
-  label_ro: string;
-  label_en: string;
-  source_catalog_version: string;
-  required: boolean;
-  sort_order: number;
-  active: boolean;
-}
-export interface PortfolioProcedureInput {
-  procedure_code: string;
-  title: string;
-  source_ref: string;
-  effective_from?: string;
-  effective_to?: string;
-  calendar_rules: Record<string, unknown>;
-  access_rules: Record<string, unknown>;
-  accepted_formats: Record<string, unknown>;
-  retention_rules: Record<string, unknown>;
-  transfer_rules: Record<string, unknown>;
-  expected_updated_at?: string;
-}
+/** Generated OpenAPI procedure contracts; UI must not manufacture legal defaults. */
+export type PortfolioProcedure = components["schemas"]["PortfolioProcedure"];
+export type PortfolioProcedureRule = components["schemas"]["PortfolioProcedureSectionRule"];
+export type PortfolioProcedureCreateInput = components["schemas"]["CreatePortfolioProcedureRequest"];
+export type PortfolioProcedureUpdateInput = components["schemas"]["UpdatePortfolioProcedureRequest"];
 
 type GeneratedOwnPortfolioDocumentInput = components["schemas"]["OwnPortfolioDocumentRequest"];
 export type OwnPortfolioDocumentInput = Required<Pick<GeneratedOwnPortfolioDocumentInput,
@@ -253,8 +218,8 @@ export interface EducationApi {
   acknowledgeOwnPortfolioDeclaration(id: string, declarationType: PortfolioDeclarationType): Promise<PortfolioDeclarationAcknowledgement>;
   portfolioProcedures(input?: EducationListQuery): Promise<EducationPage<PortfolioProcedure>>;
   portfolioProcedure(id: string): Promise<PortfolioProcedure>;
-  createPortfolioProcedure(input: PortfolioProcedureInput): Promise<PortfolioProcedure>;
-  updatePortfolioProcedure(id: string, input: PortfolioProcedureInput): Promise<PortfolioProcedure>;
+  createPortfolioProcedure(input: PortfolioProcedureCreateInput): Promise<PortfolioProcedure>;
+  updatePortfolioProcedure(id: string, input: PortfolioProcedureUpdateInput): Promise<PortfolioProcedure>;
   portfolioProcedureRules(id: string): Promise<EducationPage<PortfolioProcedureRule>>;
   replacePortfolioProcedureRules(id: string, input: { expected_updated_at: string; rules: PortfolioProcedureRule[] }): Promise<void>;
   transitionPortfolioProcedure(id: string, transition: "approve" | "publish" | "supersede" | "withdraw", input: { expected_updated_at: string; evidence: Record<string, unknown> }): Promise<PortfolioProcedure>;

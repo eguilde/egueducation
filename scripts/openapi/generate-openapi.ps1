@@ -334,6 +334,7 @@ foreach ($match in $routePattern.Matches($routerSource)) {
         }
         if ($coverage.requestBody -and $coverage.requestBody.schema) { $override.requestSchema = [string]$coverage.requestBody.schema }
         if ($coverage.requestBody) { $override.requestContentType = [string]$coverage.requestBody.contentType }
+        if ($coverage.Contains('requestBody') -and -not $coverage.requestBody) { $override.requestBody = $false }
     }
     [object[]]$tag = if ($override -and $override.tags) { @($override.tags) } else { @((Get-Tag $path)) }
     $family = Get-ContractFamily $path

@@ -285,6 +285,15 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     body: JSON.stringify({ procedure_code: procedureCode, title: `${marker} procedură portofoliu`, source_ref: 'Ordinul nr. 3.858/2026', effective_from: '2026-09-01', calendar_rules: {}, access_rules: {}, accepted_formats: {}, retention_rules: {}, transfer_rules: {} }),
   });
   expect(procedureCreated.status).toBe(201);
+  // A draft procedure cannot be published merely by sending publication
+  // evidence: the server must reject it until every statutory section rule is
+  // present. This is intentionally exercised against the real admin token.
+  const prematurePublication = await api<{ code?: string }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/publish`, {
+    method: 'POST',
+    body: JSON.stringify({ expected_updated_at: procedureCreated.body.updated_at, evidence: { publication_reference: `${marker}-prematur` } }),
+  });
+  expect(prematurePublication.status).toBe(422);
+  expect(prematurePublication.body.code).toBe('portfolio_procedure_mandatory_sections_missing');
   const procedureRules = await api<{ procedure_id: string; rule_count: number }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/section-rules`, {
     method: 'PUT',
     body: JSON.stringify({ expected_updated_at: procedureCreated.body.updated_at, rules: requiredPortfolioComponents.map(([section], index) => ({ id: crypto.randomUUID(), procedure_id: procedureCreated.body.id, section_code: section, label_ro: section, label_en: '', source_catalog_version: 'ome-3858-2026-annexa-1-v1', required: true, sort_order: (index + 1) * 10, active: true })) }),
@@ -296,6 +305,10 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const procedurePublished = await api<{ lifecycle_status: string }>(page, portfolioGrantAdminToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}/publish`, { method: 'POST', body: JSON.stringify({ expected_updated_at: procedureApproved.body.updated_at, evidence: { publication_reference: `${marker}-publicare` } }) });
   expect(procedurePublished.status).toBe(200);
   expect(procedurePublished.body.lifecycle_status).toBe('published');
+  expect(databaseScalar(`
+    select lifecycle_status || '|' || created_by_user_id::text || '|' || approved_by_user_id::text || '|' || published_by_user_id::text
+    from education_portfolio_procedure_versions where id='${procedureCreated.body.id}'
+  `)).toBe(`published|${platformAdminID}|${platformAdminID}|${platformAdminID}`);
   databaseExec(`delete from app_user_platform_roles where user_id='${platformAdminID}'; update app_memberships set position_code='profesor' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'`);
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
@@ -305,6 +318,8 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
   expect((await api<{ user: { id: string } }>(approverPage, approverToken, '/api/me')).body.user.id).toBe(approverID);
+  const teacherProcedureRead = await api<unknown>(approverPage, approverToken, `/api/education/portfolios/procedures/${procedureCreated.body.id}`);
+  expect(teacherProcedureRead.status).toBe(403);
 
   // Teacher B creates and submits through the own-only React workspace.
   await approverPage.goto('/scoala/portfolio/me');
@@ -322,14 +337,36 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const ownPortfolio = await createdPortfolioHTTP.json() as OwnPortfolio;
   expect(ownPortfolio).toMatchObject({ school_year: portfolioSchoolYear, status: 'draft', institution_id: 'inst-001' });
   await expect(approverPage.getByText('Ciorna a fost creată.')).toBeVisible();
+  const acknowledgementTypes = new Set<string>();
   for (let declarationIndex = 0; declarationIndex < 2; declarationIndex += 1) {
     await approverPage.getByRole('button', { name: 'Citește și confirmă' }).first().click();
     const declarationDialog = approverPage.getByRole('dialog');
     await declarationDialog.getByLabel('Confirm declarația afișată').click();
     const acknowledgementResponse = approverPage.waitForResponse((response) => response.request().method() === 'POST' && new URL(response.url()).pathname.includes(`/api/education/portfolios/me/${ownPortfolio.id}/declarations/`));
     await declarationDialog.getByRole('button', { name: 'Confirmă declarația' }).click();
-    expect((await acknowledgementResponse).status()).toBe(200);
+    const acknowledgementHTTP = await acknowledgementResponse;
+    expect(acknowledgementHTTP.status()).toBe(200);
+    expect(acknowledgementHTTP.request().postDataJSON()).toEqual({ confirmed: true });
+    const acknowledgement = await acknowledgementHTTP.json() as {
+      declaration_type: string; declaration_version: string; declaration_text: string;
+      accepted_by_user_id: string; attestation_method: string;
+      attestation_evidence?: { accepted_by_user_id?: string; channel?: string };
+    };
+    acknowledgementTypes.add(acknowledgement.declaration_type);
+    expect(acknowledgement).toMatchObject({
+      accepted_by_user_id: approverID,
+      attestation_method: 'authenticated_web_acknowledgement',
+      attestation_evidence: { accepted_by_user_id: approverID, channel: 'authenticated_web' },
+    });
+    expect(acknowledgement.declaration_version).not.toBe('');
+    expect(acknowledgement.declaration_text).not.toBe('');
   }
+  expect([...acknowledgementTypes].sort()).toEqual(['authenticity', 'gdpr_information']);
+  const declarationEvidence = await api<{ templates: Array<{ declaration_type: string }>; acknowledgements: Array<{ declaration_type: string; accepted_by_user_id: string }> }>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/declarations`);
+  expect(declarationEvidence.status).toBe(200);
+  expect(declarationEvidence.body.templates.map((item) => item.declaration_type).sort()).toEqual(['authenticity', 'gdpr_information']);
+  expect(declarationEvidence.body.acknowledgements.map((item) => item.declaration_type).sort()).toEqual(['authenticity', 'gdpr_information']);
+  expect(declarationEvidence.body.acknowledgements.every((item) => item.accepted_by_user_id === approverID)).toBe(true);
 
   // A genuine same-tenant archive record is still forbidden until explicitly
   // granted to this immutable teacher identity.

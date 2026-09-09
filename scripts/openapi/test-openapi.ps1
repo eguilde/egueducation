@@ -236,10 +236,10 @@ foreach ($assetPath in @('/api/oidc/ui/login.js', '/api/oidc/ui/logout.js')) {
 
 $educationCoverage = Get-Content -Raw 'openapi/domains/education.coverage.json' | ConvertFrom-Json -AsHashtable
 $unresolvedEducationRequests = @($educationCoverage.operations | Where-Object { $_.requestBody -and -not $specData.components.schemas.Contains($_.requestBody.schema) })
-if ($educationCoverage.operations.Count -ne 341 -or @($educationCoverage.validation.missingHandlerSources).Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0 -or @($educationCoverage.validation.unknownResponseSchemas).Count -ne 0) {
-	throw 'Education domain coverage drift: expected 341 handler-backed operations with all request and response schemas resolved.'
+if ($educationCoverage.operations.Count -ne 356 -or @($educationCoverage.validation.missingHandlerSources).Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0 -or @($educationCoverage.validation.unknownResponseSchemas).Count -ne 0) {
+	throw 'Education domain coverage drift: expected 356 handler-backed operations with all request and response schemas resolved.'
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 506) { throw "Router extraction drift: expected 506 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
-Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 341 Education operations schema-complete."
+if ($actualCount -ne 521) { throw "Router extraction drift: expected 521 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 356 Education operations schema-complete."

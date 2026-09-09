@@ -1564,6 +1564,130 @@ export interface paths {
         patch: operations["patch_api_education_declarations_records_recordid"];
         trace?: never;
     };
+    "/api/education/delegations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/delegations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_delegations"];
+        put?: never;
+        /**
+         * POST /api/education/delegations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_delegations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/eligible-adjuncts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/delegations/eligible-adjuncts
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_delegations_eligible_adjuncts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/eligible-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/delegations/eligible-permissions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_delegations_eligible_permissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/{delegationID}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/delegations/{delegationID}/accept
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_delegations_delegationid_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/{delegationID}/expire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/delegations/{delegationID}/expire
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_delegations_delegationid_expire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/{delegationID}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/delegations/{delegationID}/revoke
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_delegations_delegationid_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/director/cockpit": {
         parameters: {
             query?: never;
@@ -3968,6 +4092,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolio-transfer-destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolio-transfer-destinations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolio_transfer_destinations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolio-transfer-inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolio-transfer-inbox
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolio_transfer_inbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolio-transfer-inbox/{itemID}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolio-transfer-inbox/{itemID}/accept
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolio_transfer_inbox_itemid_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/archive-attachment-grants": {
         parameters: {
             query?: never;
@@ -5044,6 +5228,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/records/{recordID}/valorification-packages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/valorification-packages
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_valorification_packages"];
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/valorification-packages
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_valorification_packages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/valorification-packages/eligible-archive-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-archive-versions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_valorification_packages_eligible_archive_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/valorification-packages/eligible-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-sources
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_valorification_packages_eligible_sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/valorification-packages/{itemID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_valorification_packages_itemid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_valorification_packages_itemid_advance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_valorification_packages_itemid_documents"];
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_valorification_packages_itemid_documents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/records/{recordID}/valorifications": {
         parameters: {
             query?: never;
@@ -5057,11 +5369,7 @@ export interface paths {
          */
         get: operations["get_api_education_portfolios_records_recordid_valorifications"];
         put?: never;
-        /**
-         * Create or execute Create Portfolio Valorification
-         * @description Tenant- and institution-scoped Education operation. Handler: CreatePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
-         */
-        post: operations["post_api_education_portfolios_records_recordid_valorifications"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5082,18 +5390,10 @@ export interface paths {
         get: operations["get_api_education_portfolios_records_recordid_valorifications_itemid"];
         put?: never;
         post?: never;
-        /**
-         * Delete Delete Portfolio Valorification
-         * @description Tenant- and institution-scoped Education operation. Handler: DeletePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage. Successful deletion returns HTTP 204 with no response body.
-         */
-        delete: operations["delete_api_education_portfolios_records_recordid_valorifications_itemid"];
+        delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Update Update Portfolio Valorification
-         * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
-         */
-        patch: operations["patch_api_education_portfolios_records_recordid_valorifications_itemid"];
+        patch?: never;
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/verify": {
@@ -7082,8 +7382,18 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        AddPortfolioValorificationPackageDocumentRequest: {
+            /** Format: uuid */
+            archive_document_id: string;
+            /** Format: uuid */
+            archive_version_id: string;
+        };
         AdvancePortfolioTransferRequest: {
             action?: string;
+        };
+        AdvancePortfolioValorificationPackageRequest: {
+            /** @enum {string} */
+            action: "submit" | "validate" | "complete";
         };
         ArchiveDocument: {
             /** Format: uuid */
@@ -7310,6 +7620,14 @@ export interface components {
             signed_by?: string;
             title?: string;
             vote_id?: string;
+        };
+        CreateIntertenantPortfolioTransferRequest: {
+            destination_tenant_code: string;
+            /** Format: date */
+            handover_on: string;
+            notes?: string;
+            /** @enum {string} */
+            transfer_type: "predare" | "primire" | "mutare" | "detasare";
         };
         CreateManagerialDocumentRequest: {
             approved_on?: string;
@@ -7725,26 +8043,15 @@ export interface components {
             reviewed_on?: string;
             reviewer_name?: string;
         };
-        CreatePortfolioTransferEventRequest: {
-            destination_institution?: string;
-            handover_by?: string;
-            handover_on?: string;
-            notes?: string;
-            received_by?: string;
-            received_on?: string;
-            source_institution?: string;
-            status?: string;
-            transfer_type?: string;
-        };
-        CreatePortfolioValorificationEventRequest: {
-            completed_on?: string;
-            notes?: string;
-            requested_by?: string;
-            scope?: string;
-            started_on?: string;
-            status?: string;
-            target_institution?: string;
-            target_reference?: string;
+        CreatePortfolioValorificationPackageRequest: {
+            /** @enum {string} */
+            scope: "evaluare_profesionala" | "mobilitate" | "gradatie_merit";
+            /** Format: uuid */
+            source_evaluation_id?: string;
+            /** Format: uuid */
+            source_merit_grant_id?: string;
+            /** Format: uuid */
+            source_mobility_case_id?: string;
         };
         CreatePublicationRecordRequest: {
             anonymization_status?: string;
@@ -7940,6 +8247,46 @@ export interface components {
             user_id?: string;
         };
         EducationCommitteeCompletenessResponse: components["schemas"]["CommitteeCompletenessSummary"];
+        EducationDelegation: {
+            accepted_at: string;
+            accepted_by_user_id: string;
+            delegate_name: string;
+            /** Format: uuid */
+            delegate_user_id: string;
+            delegator_name: string;
+            /** Format: uuid */
+            delegator_user_id: string;
+            expired_at: string;
+            expired_by_user_id: string;
+            /** Format: uuid */
+            id: string;
+            institution_id: string;
+            notes: string;
+            /** Format: date-time */
+            offered_at: string;
+            /** Format: uuid */
+            offered_by_user_id: string;
+            permission_code: string;
+            resource_id: string;
+            /** @enum {string} */
+            resource_type: "institution" | "portfolio" | "meeting" | "decision" | "regulation" | "personnel";
+            revoked_at: string;
+            revoked_by_user_id: string;
+            /** @enum {string} */
+            status: "offered" | "accepted" | "revoked" | "expired";
+            tenant_code: string;
+            /** Format: date */
+            valid_from: string;
+            valid_until: string;
+        };
+        EducationDelegationEligibleAdjunct: {
+            email: string;
+            name: string;
+            /** Format: uuid */
+            user_id: string;
+        };
+        EducationDelegationEligibleAdjunctList: components["schemas"]["EducationDelegationEligibleAdjunct"][];
+        EducationDelegationEligiblePermissionList: string[];
         EducationGovernanceBodyCompletenessSummaryResponse: components["schemas"]["GovernanceBodyCompletenessSummary"];
         EducationGovernanceBodyDetailResponse: components["schemas"]["GovernanceBodyRecord"];
         EducationManagerialPortfolioSummaryResponse: components["schemas"]["ManagerialPortfolioSummary"];
@@ -7963,6 +8310,12 @@ export interface components {
         };
         EducationPageOfDecisionPublicationStep: {
             items: components["schemas"]["DecisionPublicationStep"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfEducationDelegation: {
+            items: components["schemas"]["EducationDelegation"][];
             page: number;
             pageSize: number;
             total: number;
@@ -8251,6 +8604,12 @@ export interface components {
         };
         EducationPageOfPortfolioValorificationEvent: {
             items: components["schemas"]["PortfolioValorificationEvent"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfPortfolioValorificationPackage: {
+            items: components["schemas"]["PortfolioValorificationPackage"][];
             page: number;
             pageSize: number;
             total: number;
@@ -8941,6 +9300,23 @@ export interface components {
             total_cases?: number;
             /** Format: int32 */
             transfer_cases?: number;
+        };
+        OfferEducationDelegationRequest: {
+            /** Format: uuid */
+            delegate_user_id: string;
+            notes?: string;
+            permission_code: string;
+            /** Format: uuid */
+            resource_id?: string;
+            /**
+             * @default institution
+             * @enum {string}
+             */
+            resource_type: "institution" | "portfolio" | "meeting" | "decision" | "regulation" | "personnel";
+            /** Format: date */
+            valid_from?: string;
+            /** Format: date */
+            valid_until?: string;
         };
         OidcDiscoveryDocument: {
             /** Format: uri */
@@ -9635,17 +10011,37 @@ export interface components {
             /** Format: int32 */
             validated_portfolios?: number;
         };
+        PortfolioTransferDestination: {
+            display_name: string;
+            institution_id: string;
+            short_name: string;
+            tenant_code: string;
+        };
+        PortfolioTransferDestinationList: components["schemas"]["PortfolioTransferDestination"][];
         PortfolioTransferEvent: {
+            closed_at?: string;
+            closed_by_subject?: string;
             destination_institution?: string;
+            destination_institution_id?: string;
+            destination_tenant_code?: string;
+            export_manifest_id?: string;
             handover_by?: string;
             handover_on?: string;
             id?: string;
             institution_id?: string;
             notes?: string;
             portfolio_id?: string;
+            received_at?: string;
             received_by?: string;
+            received_by_subject?: string;
             received_on?: string;
+            /** Format: int32 */
+            routing_version?: number;
+            sent_at?: string;
+            sent_by_subject?: string;
             source_institution?: string;
+            source_institution_id?: string;
+            source_tenant_code?: string;
             status?: string;
             transfer_code?: string;
             transfer_type?: string;
@@ -9715,6 +10111,23 @@ export interface components {
             /** Format: int32 */
             total_events?: number;
         };
+        PortfolioValorificationEligibleArchiveVersion: {
+            /** Format: uuid */
+            archive_document_id: string;
+            /** Format: uuid */
+            archive_version_id: string;
+            title: string;
+            version_no: number;
+        };
+        PortfolioValorificationEligibleArchiveVersionList: components["schemas"]["PortfolioValorificationEligibleArchiveVersion"][];
+        PortfolioValorificationEligibleSource: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** @enum {string} */
+            scope: "evaluare_profesionala" | "mobilitate" | "gradatie_merit";
+        };
+        PortfolioValorificationEligibleSourceList: components["schemas"]["PortfolioValorificationEligibleSource"][];
         PortfolioValorificationEvent: {
             completed_on?: string;
             id?: string;
@@ -9729,6 +10142,52 @@ export interface components {
             target_reference?: string;
             valorification_code?: string;
         };
+        PortfolioValorificationPackage: {
+            completed_at?: string;
+            completed_by_subject?: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            /** Format: uuid */
+            id: string;
+            institution_id: string;
+            /** Format: uuid */
+            portfolio_id: string;
+            /** @enum {string} */
+            scope: "evaluare_profesionala" | "mobilitate" | "gradatie_merit";
+            source_evaluation_id?: string;
+            source_merit_grant_id?: string;
+            source_mobility_case_id?: string;
+            /** @enum {string} */
+            status: "draft" | "submitted" | "validated" | "completed";
+            submitted_at?: string;
+            submitted_by_subject?: string;
+            tenant_code: string;
+            validated_at?: string;
+            validated_by_subject?: string;
+        };
+        PortfolioValorificationPackageDocument: {
+            /** Format: uuid */
+            archive_document_id: string;
+            archive_sha256: string;
+            archive_source_bucket: string;
+            archive_source_object_key: string;
+            /** Format: uuid */
+            archive_version_id: string;
+            archive_version_no: number;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            package_id: string;
+        };
+        PortfolioValorificationPackageDocumentCreateResponse: {
+            /** Format: uuid */
+            id: string;
+        };
+        PortfolioValorificationPackageDocumentList: components["schemas"]["PortfolioValorificationPackageDocument"][];
         PortfolioValorificationScopeStat: {
             /** Format: int32 */
             completed?: number;
@@ -10262,30 +10721,6 @@ export interface components {
             taxonomy_parent_code?: string;
             title?: string;
         };
-        Request_post_api_education_exports_csv: {
-            format?: string;
-            record_id?: string;
-        };
-        Request_post_api_education_exports_pdf: {
-            format?: string;
-            record_id?: string;
-        };
-        Request_post_api_education_portfolios_me_recordid_submit: {
-            format?: string;
-            record_id?: string;
-        };
-        Request_post_api_education_portfolios_records_recordid_export_manifests: {
-            format?: string;
-            record_id?: string;
-        };
-        Request_post_api_education_portfolios_records_recordid_return: {
-            format?: string;
-            record_id?: string;
-        };
-        Request_post_api_education_portfolios_records_recordid_verify: {
-            format?: string;
-            record_id?: string;
-        };
         Request_post_api_gdpr_exports: {
             approved_by?: string;
             approved_on?: string;
@@ -10543,6 +10978,13 @@ export interface components {
         UpdatePortfolioProcedureRequest: components["schemas"]["CreatePortfolioProcedureRequest"] & {
             /** Format: date-time */
             expected_updated_at: string;
+        };
+        UpdatePreparedPortfolioTransferRequest: {
+            /** Format: date */
+            handover_on: string;
+            notes?: string;
+            /** @enum {string} */
+            transfer_type: "predare" | "primire" | "mutare" | "detasare";
         };
         WorkflowRequest: {
             action?: string;
@@ -16208,6 +16650,207 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_delegations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.status"?: string;
+                "filter.permission_code"?: string;
+                "filter.delegate_user_id"?: string;
+                "filter.delegate_name"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfEducationDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_delegations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferEducationDelegationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_delegations_eligible_adjuncts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegationEligibleAdjunctList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_delegations_eligible_permissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegationEligiblePermissionList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_delegations_delegationid_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delegationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_delegations_delegationid_expire: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delegationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_delegations_delegationid_revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                delegationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationDelegation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_director_cockpit: {
         parameters: {
             query?: never;
@@ -17147,11 +17790,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_exports_csv"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {
@@ -17177,11 +17816,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_exports_pdf"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {
@@ -22149,6 +22784,94 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolio_transfer_destinations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioTransferDestinationList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolio_transfer_inbox: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.transfer_code"?: string;
+                "filter.source_institution"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioTransferEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolio_transfer_inbox_itemid_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioTransferEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_archive_attachment_grants: {
         parameters: {
             query?: {
@@ -22805,11 +23528,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_portfolios_me_recordid_submit"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {
@@ -23854,11 +24573,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_portfolios_records_recordid_export_manifests"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             201: {
@@ -24129,11 +24844,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_portfolios_records_recordid_return"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {
@@ -24380,12 +25091,12 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePortfolioTransferEventRequest"];
+                "application/json": components["schemas"]["CreateIntertenantPortfolioTransferRequest"];
             };
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -24469,7 +25180,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePortfolioTransferEventRequest"];
+                "application/json": components["schemas"]["UpdatePreparedPortfolioTransferRequest"];
             };
         };
         responses: {
@@ -24523,6 +25234,255 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolios_records_recordid_valorification_packages: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.scope"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioValorificationPackage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_valorification_packages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortfolioValorificationPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationPackage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_valorification_packages_eligible_archive_versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationEligibleArchiveVersionList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_valorification_packages_eligible_sources: {
+        parameters: {
+            query?: {
+                scope?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationEligibleSourceList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_valorification_packages_itemid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationPackage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_valorification_packages_itemid_advance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdvancePortfolioValorificationPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationPackage"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_valorification_packages_itemid_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationPackageDocumentList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_valorification_packages_itemid_documents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPortfolioValorificationPackageDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationPackageDocumentCreateResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records_recordid_valorifications: {
         parameters: {
             query?: {
@@ -24547,38 +25507,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EducationPageOfPortfolioValorificationEvent"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    post_api_education_portfolios_records_recordid_valorifications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortfolioValorificationEventRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortfolioValorificationEvent"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -24618,66 +25546,6 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
-    delete_api_education_portfolios_records_recordid_valorifications_itemid: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-                itemID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    patch_api_education_portfolios_records_recordid_valorifications_itemid: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-                itemID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortfolioValorificationEventRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortfolioValorificationEvent"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
     post_api_education_portfolios_records_recordid_verify: {
         parameters: {
             query?: never;
@@ -24687,11 +25555,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request_post_api_education_portfolios_records_recordid_verify"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {

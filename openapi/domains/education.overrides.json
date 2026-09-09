@@ -3337,7 +3337,7 @@
     ],
     "status": "detailed",
     "institutionContext": false,
-    "requestSchema": "CreatePortfolioTransferEventRequest",
+    "requestSchema": "CreateIntertenantPortfolioTransferRequest",
     "responseSchema": "PortfolioTransferEvent"
   },
   "PATCH /api/education/portfolios/records/{recordID}/transfers/{itemID}": {
@@ -3349,7 +3349,7 @@
     ],
     "status": "detailed",
     "institutionContext": false,
-    "requestSchema": "CreatePortfolioTransferEventRequest",
+    "requestSchema": "UpdatePreparedPortfolioTransferRequest",
     "responseSchema": "PortfolioTransferEvent"
   },
   "POST /api/education/portfolios/records/{recordID}/transfers/{itemID}/advance": {

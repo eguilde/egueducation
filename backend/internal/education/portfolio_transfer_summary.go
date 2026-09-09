@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -24,12 +25,13 @@ type PortfolioTransferSummary struct {
 }
 
 type PortfolioTransferSummaryPortfolio struct {
-	ID             string `json:"id"`
-	PortfolioCode  string `json:"portfolio_code"`
-	OwnerName      string `json:"owner_name"`
-	OwnerRole      string `json:"owner_role"`
-	SchoolYear     string `json:"school_year"`
-	TransferStatus string `json:"transfer_status"`
+	ID               string `json:"id"`
+	PortfolioCode    string `json:"portfolio_code"`
+	OwnerName        string `json:"owner_name"`
+	OwnerRole        string `json:"owner_role"`
+	OwnerPersonnelID string `json:"owner_personnel_id"`
+	SchoolYear       string `json:"school_year"`
+	TransferStatus   string `json:"transfer_status"`
 }
 
 type PortfolioTransferSummaryTransfer struct {
@@ -97,6 +99,7 @@ type PortfolioValorificationSummaryBlock struct {
 	TotalEvents       int                                  `json:"total_events"`
 	OpenEvents        int                                  `json:"open_events"`
 	CompletedEvents   int                                  `json:"completed_events"`
+	LegacyEvents      int                                  `json:"legacy_events"`
 	LinkedEvaluations int                                  `json:"linked_evaluations"`
 	LinkedMobility    int                                  `json:"linked_mobility"`
 	LinkedMerit       int                                  `json:"linked_merit"`
@@ -127,6 +130,37 @@ type AdvancePortfolioTransferRequest struct {
 	Action string `json:"action"`
 }
 
+const portfolioTransferRowColumns = `
+	id::text, portfolio_id::text, transfer_code, transfer_type,
+	source_institution, destination_institution, status,
+	to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''),
+	handover_by, received_by, institution_id, notes,
+	routing_version, coalesce(source_tenant_code, ''), coalesce(source_institution_id, ''),
+	coalesce(destination_tenant_code, ''), coalesce(destination_institution_id, ''),
+	coalesce(export_manifest_id::text, ''),
+	coalesce(to_char(sent_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ''), sent_by_subject,
+	coalesce(to_char(received_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ''), received_by_subject,
+	coalesce(to_char(closed_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), ''), closed_by_subject`
+
+type portfolioTransferRowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanPortfolioTransfer(row portfolioTransferRowScanner) (PortfolioTransferEvent, error) {
+	var item PortfolioTransferEvent
+	err := row.Scan(
+		&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType,
+		&item.SourceInstitution, &item.DestinationInstitution, &item.Status,
+		&item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy,
+		&item.InstitutionID, &item.Notes, &item.RoutingVersion,
+		&item.SourceTenantCode, &item.SourceInstitutionID,
+		&item.DestinationTenantCode, &item.DestinationInstitutionID,
+		&item.ExportManifestID, &item.SentAt, &item.SentBySubject,
+		&item.ReceivedAt, &item.ReceivedBySubject, &item.ClosedAt, &item.ClosedBySubject,
+	)
+	return item, err
+}
+
 func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	institutionID := s.institutionID(r)
@@ -138,6 +172,7 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 			portfolio_code,
 			owner_name,
 			owner_role,
+			coalesce(owner_personnel_id::text, ''),
 			school_year,
 			transfer_status
 		from education_portfolios
@@ -147,6 +182,7 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 		&summary.Portfolio.PortfolioCode,
 		&summary.Portfolio.OwnerName,
 		&summary.Portfolio.OwnerRole,
+		&summary.Portfolio.OwnerPersonnelID,
 		&summary.Portfolio.SchoolYear,
 		&summary.Portfolio.TransferStatus,
 	)
@@ -174,7 +210,7 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 			coalesce((select count(*) from education_portfolio_opis epo where epo.portfolio_id = $1::uuid and epo.institution_id = $2), 0) as opis_entries,
 			coalesce((select count(*) from education_portfolio_custody epc where epc.portfolio_id = $1::uuid and epc.institution_id = $2), 0) as custody_events,
 			coalesce((select count(*) from education_portfolio_reviews epr where epr.portfolio_id = $1::uuid and epr.institution_id = $2), 0) as review_events,
-			coalesce((select count(*) from education_portfolio_valorifications epv where epv.portfolio_id = $1::uuid and epv.institution_id = $2), 0) as valorification_events
+			coalesce((select count(*) from education_portfolio_valorification_packages package where package.portfolio_id = $1::uuid and package.institution_id = $2 and package.status in ('validated', 'completed')), 0) as valorification_events
 	`, recordID, institutionID).Scan(
 		&summary.Completeness.TotalDocuments,
 		&summary.Completeness.PortfolioDocuments,
@@ -284,8 +320,8 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 		from education_mobility_cases
 		where institution_id = $1
 			and school_year = $2
-			and lower(trim(full_name)) = lower(trim($3))
-	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerName).Scan(
+			and personnel_id = nullif($3, '')::uuid
+	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerPersonnelID).Scan(
 		&summary.Mobility.MatchedCases,
 		&summary.Mobility.ActiveCases,
 		&summary.Mobility.TransferCases,
@@ -300,15 +336,17 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 
 	if err := s.pool.QueryRow(r.Context(), `
 		select
-			count(*) as total_events,
-			count(*) filter (where status in ('planificat', 'in_pregatire', 'transmis', 'validat')) as open_events,
-			count(*) filter (where status = 'finalizat') as completed_events
-		from education_portfolio_valorifications
+			count(*) filter (where status in ('validated', 'completed')) as total_events,
+			count(*) filter (where status = 'validated') as open_events,
+			count(*) filter (where status = 'completed') as completed_events,
+			(select count(*) from education_portfolio_valorifications legacy where legacy.portfolio_id = $1::uuid and legacy.institution_id = $2) as legacy_events
+		from education_portfolio_valorification_packages
 		where portfolio_id = $1::uuid and institution_id = $2
 	`, recordID, institutionID).Scan(
 		&summary.Valorification.TotalEvents,
 		&summary.Valorification.OpenEvents,
 		&summary.Valorification.CompletedEvents,
+		&summary.Valorification.LegacyEvents,
 	); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfer_summary_failed"})
 		return
@@ -317,10 +355,10 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 	rows, err := s.pool.Query(r.Context(), `
 		select
 			scope,
-			count(*) as total,
-			count(*) filter (where status in ('planificat', 'in_pregatire', 'transmis', 'validat')) as open,
-			count(*) filter (where status = 'finalizat') as completed
-		from education_portfolio_valorifications
+			count(*) filter (where status in ('validated', 'completed')) as total,
+			count(*) filter (where status = 'validated') as open,
+			count(*) filter (where status = 'completed') as completed
+		from education_portfolio_valorification_packages
 		where portfolio_id = $1::uuid and institution_id = $2
 		group by scope
 		order by scope
@@ -349,17 +387,17 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 	err = s.pool.QueryRow(r.Context(), `
 		select
 			id::text,
-			valorification_code,
+			'PKG-' || left(id::text, 8),
 			scope,
 			status,
-			requested_by,
-			target_institution,
-			target_reference,
-			to_char(started_on, 'YYYY-MM-DD'),
-			coalesce(to_char(completed_on, 'YYYY-MM-DD'), '')
-		from education_portfolio_valorifications
-		where portfolio_id = $1::uuid and institution_id = $2
-		order by started_on desc, created_at desc
+			created_by_subject,
+			institution_id,
+			coalesce(source_evaluation_id::text, source_mobility_case_id::text, source_merit_grant_id::text),
+			to_char(created_at, 'YYYY-MM-DD'),
+			coalesce(to_char(completed_at, 'YYYY-MM-DD'), '')
+		from education_portfolio_valorification_packages
+		where portfolio_id = $1::uuid and institution_id = $2 and status in ('validated', 'completed')
+		order by coalesce(completed_at, validated_at, created_at) desc, created_at desc
 		limit 1
 	`, recordID, institutionID).Scan(
 		&lastValorification.ID,
@@ -383,32 +421,23 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := s.pool.QueryRow(r.Context(), `
-		select count(*)
-		from education_evaluations
-		where institution_id = $1
-			and school_year = $2
-			and lower(trim(full_name)) = lower(trim($3))
-	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerName).Scan(&summary.Valorification.LinkedEvaluations); err != nil {
+		select count(*) from education_evaluations
+		where institution_id=$1 and school_year=$2 and personnel_id=nullif($3,'')::uuid
+	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerPersonnelID).Scan(&summary.Valorification.LinkedEvaluations); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfer_summary_failed"})
 		return
 	}
 	if err := s.pool.QueryRow(r.Context(), `
-		select count(*)
-		from education_mobility_cases
-		where institution_id = $1
-			and school_year = $2
-			and lower(trim(full_name)) = lower(trim($3))
-	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerName).Scan(&summary.Valorification.LinkedMobility); err != nil {
+		select count(*) from education_mobility_cases
+		where institution_id=$1 and school_year=$2 and personnel_id=nullif($3,'')::uuid
+	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerPersonnelID).Scan(&summary.Valorification.LinkedMobility); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfer_summary_failed"})
 		return
 	}
 	if err := s.pool.QueryRow(r.Context(), `
-		select count(*)
-		from education_merit_grants
-		where institution_id = $1
-			and school_year = $2
-			and lower(trim(full_name)) = lower(trim($3))
-	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerName).Scan(&summary.Valorification.LinkedMerit); err != nil {
+		select count(*) from education_merit_grants
+		where institution_id=$1 and school_year=$2 and personnel_id=nullif($3,'')::uuid
+	`, institutionID, summary.Portfolio.SchoolYear, summary.Portfolio.OwnerPersonnelID).Scan(&summary.Valorification.LinkedMerit); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_transfer_summary_failed"})
 		return
 	}
@@ -469,47 +498,66 @@ func (s *Service) AdvancePortfolioTransfer(w http.ResponseWriter, r *http.Reques
 	var err error
 	switch req.Action {
 	case "mark_sent":
-		err = s.pool.QueryRow(r.Context(), `
+		var prepared bool
+		if err := s.pool.QueryRow(r.Context(), `select exists(
+			select 1 from education_portfolio_transfers
+			where id=$1::uuid and portfolio_id=$2::uuid and institution_id=$3
+				and status='pregatit' and withdrawn_at is null
+		)`, itemID, recordID, institutionID).Scan(&prepared); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_advance_failed"})
+			return
+		}
+		if !prepared {
+			writeEducationNotFound(w, "education_portfolio_transfer_not_found")
+			return
+		}
+		manifest, manifestErr := s.createPortfolioExportManifestEvidence(r, recordID)
+		if errors.Is(manifestErr, errPortfolioExportNotReady) {
+			httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_export_provenance_incomplete"})
+			return
+		}
+		if manifestErr != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_manifest_failed"})
+			return
+		}
+		actorSubject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+		item, err = scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 			update education_portfolio_transfers
-			set status = 'trimis', updated_at = now()
+			set status = 'trimis', export_manifest_id = $4::uuid,
+				sent_at = now(), sent_by_subject = $5, updated_at = now()
 			where id = $1 and portfolio_id = $2 and institution_id = $3 and status = 'pregatit'
-			returning id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status,
-				to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
-		`, itemID, recordID, institutionID).Scan(
-			&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status,
-			&item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes,
-		)
+				and (routing_version = 1 or (source_tenant_code=public.current_tenant_code() and source_institution_id=public.current_institution_id()))
+			returning `+portfolioTransferRowColumns+`
+		`, itemID, recordID, institutionID, manifest.ExportManifestID, actorSubject))
 	case "confirm_received":
+		// Version 2 transfers must be accepted from the destination tenant's
+		// inbox endpoint.  This legacy action remains available only for rows
+		// that pre-date tenant-bound routing.
 		receivedOn := time.Now().Format("2006-01-02")
 		receivedBy, actorErr := s.portfolioOpisCheckedBy(r)
 		if actorErr != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_advance_failed"})
 			return
 		}
-		err = s.pool.QueryRow(r.Context(), `
+		item, err = scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 			update education_portfolio_transfers
 			set status = 'receptionat',
 				received_on = coalesce(received_on, $4),
 				received_by = case when trim(coalesce(received_by, '')) = '' then $5 else received_by end,
 				updated_at = now()
-			where id = $1 and portfolio_id = $2 and institution_id = $3 and status = 'trimis'
-			returning id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status,
-				to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
-		`, itemID, recordID, institutionID, receivedOn, receivedBy).Scan(
-			&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status,
-			&item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes,
-		)
+			where id = $1 and portfolio_id = $2 and institution_id = $3 and status = 'trimis' and routing_version = 1
+			returning `+portfolioTransferRowColumns+`
+		`, itemID, recordID, institutionID, receivedOn, receivedBy))
 	case "close_transfer":
-		err = s.pool.QueryRow(r.Context(), `
+		actorSubject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+		item, err = scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 			update education_portfolio_transfers
-			set status = 'inchis', updated_at = now()
+			set status = 'inchis', closed_at = case when routing_version=2 then now() else closed_at end,
+				closed_by_subject = case when routing_version=2 then $4 else closed_by_subject end,
+				updated_at = now()
 			where id = $1 and portfolio_id = $2 and institution_id = $3 and status = 'receptionat'
-			returning id::text, portfolio_id::text, transfer_code, transfer_type, source_institution, destination_institution, status,
-				to_char(handover_on, 'YYYY-MM-DD'), coalesce(to_char(received_on, 'YYYY-MM-DD'), ''), handover_by, received_by, institution_id, notes
-		`, itemID, recordID, institutionID).Scan(
-			&item.ID, &item.PortfolioID, &item.TransferCode, &item.TransferType, &item.SourceInstitution, &item.DestinationInstitution, &item.Status,
-			&item.HandoverOn, &item.ReceivedOn, &item.HandoverBy, &item.ReceivedBy, &item.InstitutionID, &item.Notes,
-		)
+			returning `+portfolioTransferRowColumns+`
+		`, itemID, recordID, institutionID, actorSubject))
 	default:
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_transfer_advance_action"})
 		return
@@ -535,6 +583,152 @@ func (s *Service) AdvancePortfolioTransfer(w http.ResponseWriter, r *http.Reques
 		"advance_action": req.Action,
 	})
 	httpx.JSON(w, http.StatusOK, item)
+}
+
+// PortfolioTransferInbox exposes only sealed packages addressed to the
+// authenticated tenant. Prepared source-side drafts never cross the boundary.
+func (s *Service) PortfolioTransferInbox(w http.ResponseWriter, r *http.Request) {
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
+		"transfer_code":      {},
+		"source_institution": {},
+		"status":             {},
+	}, []string{"transfer_code", "source_institution", "status"})
+	if query.Sort == "" {
+		query.Sort = "sent_at"
+	}
+	clauses := []string{
+		"routing_version=2",
+		"destination_tenant_code=public.current_tenant_code()",
+		"destination_institution_id=public.current_institution_id()",
+		"status in ('trimis','receptionat','inchis')",
+		"withdrawn_at is null",
+	}
+	args := make([]any, 0, 5)
+	for key, value := range query.Filters {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		args = append(args, "%"+value+"%")
+		placeholder := fmt.Sprintf("$%d", len(args))
+		switch key {
+		case "transfer_code":
+			clauses = append(clauses, "transfer_code ilike "+placeholder)
+		case "source_institution":
+			clauses = append(clauses, "source_institution ilike "+placeholder)
+		case "status":
+			clauses = append(clauses, "status ilike "+placeholder)
+		}
+	}
+	whereClause := " where " + strings.Join(clauses, " and ")
+	var total int
+	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_portfolio_transfers"+whereClause, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_inbox_failed"})
+		return
+	}
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`
+		select %s from education_portfolio_transfers
+		%s
+		order by %s %s, sent_at desc, transfer_code
+		limit $%d offset $%d
+	`, portfolioTransferRowColumns, whereClause, portfolioTransferInboxSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_inbox_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioTransferEvent, 0, query.PageSize)
+	for rows.Next() {
+		item, scanErr := scanPortfolioTransfer(rows)
+		if scanErr != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_inbox_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_inbox_scan_failed"})
+		return
+	}
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
+func (s *Service) PortfolioTransferDestinations(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.pool.Query(r.Context(), `
+		select tenant_code, institution_id, display_name, short_name
+		from public.education_portfolio_transfer_destinations()
+	`)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_destinations_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioTransferDestination, 0)
+	for rows.Next() {
+		var item PortfolioTransferDestination
+		if err := rows.Scan(&item.TenantCode, &item.InstitutionID, &item.DisplayName, &item.ShortName); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_destinations_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_destinations_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, items)
+}
+
+func (s *Service) AcceptIntertenantPortfolioTransfer(w http.ResponseWriter, r *http.Request) {
+	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
+	actorSubject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+	if actorSubject == "" {
+		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "portfolio_transfer_actor_required"})
+		return
+	}
+	receivedBy, err := s.portfolioOpisCheckedBy(r)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_accept_failed"})
+		return
+	}
+	item, err := scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
+		update education_portfolio_transfers
+		set status='receptionat', received_on=current_date, received_at=now(),
+			received_by=$2, received_by_subject=$3, updated_at=now()
+		where id=$1::uuid and routing_version=2 and status='trimis'
+			and destination_tenant_code=public.current_tenant_code()
+			and destination_institution_id=public.current_institution_id()
+			and export_manifest_id is not null and withdrawn_at is null
+		returning `+portfolioTransferRowColumns+`
+	`, itemID, receivedBy, actorSubject))
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_portfolio_transfer_inbox_item_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_transfer_accept_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.transfer.receive", "portfolio_transfer", item.ID, "Inter-tenant portfolio transfer accepted by destination institution.", map[string]any{
+		"source_tenant_code": item.SourceTenantCode, "source_institution_id": item.SourceInstitutionID,
+		"destination_tenant_code": item.DestinationTenantCode, "destination_institution_id": item.DestinationInstitutionID,
+		"export_manifest_id": item.ExportManifestID, "transfer_code": item.TransferCode,
+	})
+	httpx.JSON(w, http.StatusOK, item)
+}
+
+func portfolioTransferInboxSortColumn(sort string) string {
+	switch sort {
+	case "transfer_code":
+		return "transfer_code"
+	case "source_institution":
+		return "source_institution"
+	case "status":
+		return "status"
+	default:
+		return "sent_at"
+	}
 }
 
 func (s *Service) syncPortfolioTransferStatus(ctx context.Context, recordID string, institutionID string) error {

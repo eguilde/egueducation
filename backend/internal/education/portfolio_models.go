@@ -215,33 +215,58 @@ type CreatePortfolioChecklistItemRequest struct {
 }
 
 type PortfolioTransferEvent struct {
-	ID                     string `json:"id"`
-	PortfolioID            string `json:"portfolio_id"`
-	TransferCode           string `json:"transfer_code"`
-	TransferType           string `json:"transfer_type"`
-	SourceInstitution      string `json:"source_institution"`
-	DestinationInstitution string `json:"destination_institution"`
-	Status                 string `json:"status"`
-	HandoverOn             string `json:"handover_on"`
-	ReceivedOn             string `json:"received_on"`
-	HandoverBy             string `json:"handover_by"`
-	ReceivedBy             string `json:"received_by"`
-	InstitutionID          string `json:"institution_id"`
-	Notes                  string `json:"notes"`
-	WithdrawnAt            string `json:"withdrawn_at,omitempty"`
-	WithdrawalReason       string `json:"withdrawal_reason,omitempty"`
+	ID                       string `json:"id"`
+	PortfolioID              string `json:"portfolio_id"`
+	TransferCode             string `json:"transfer_code"`
+	TransferType             string `json:"transfer_type"`
+	SourceInstitution        string `json:"source_institution"`
+	DestinationInstitution   string `json:"destination_institution"`
+	Status                   string `json:"status"`
+	HandoverOn               string `json:"handover_on"`
+	ReceivedOn               string `json:"received_on"`
+	HandoverBy               string `json:"handover_by"`
+	ReceivedBy               string `json:"received_by"`
+	InstitutionID            string `json:"institution_id"`
+	Notes                    string `json:"notes"`
+	WithdrawnAt              string `json:"withdrawn_at,omitempty"`
+	WithdrawalReason         string `json:"withdrawal_reason,omitempty"`
+	RoutingVersion           int    `json:"routing_version"`
+	SourceTenantCode         string `json:"source_tenant_code,omitempty"`
+	SourceInstitutionID      string `json:"source_institution_id,omitempty"`
+	DestinationTenantCode    string `json:"destination_tenant_code,omitempty"`
+	DestinationInstitutionID string `json:"destination_institution_id,omitempty"`
+	ExportManifestID         string `json:"export_manifest_id,omitempty"`
+	SentAt                   string `json:"sent_at,omitempty"`
+	SentBySubject            string `json:"sent_by_subject,omitempty"`
+	ReceivedAt               string `json:"received_at,omitempty"`
+	ReceivedBySubject        string `json:"received_by_subject,omitempty"`
+	ClosedAt                 string `json:"closed_at,omitempty"`
+	ClosedBySubject          string `json:"closed_by_subject,omitempty"`
 }
 
-type CreatePortfolioTransferEventRequest struct {
-	TransferType           string `json:"transfer_type"`
-	SourceInstitution      string `json:"source_institution"`
-	DestinationInstitution string `json:"destination_institution"`
-	Status                 string `json:"status"`
-	HandoverOn             string `json:"handover_on"`
-	ReceivedOn             string `json:"received_on"`
-	HandoverBy             string `json:"handover_by"`
-	ReceivedBy             string `json:"received_by"`
-	Notes                  string `json:"notes"`
+type PortfolioTransferDestination struct {
+	TenantCode    string `json:"tenant_code"`
+	InstitutionID string `json:"institution_id"`
+	DisplayName   string `json:"display_name"`
+	ShortName     string `json:"short_name"`
+}
+
+// CreateIntertenantPortfolioTransferRequest contains only source-authored
+// draft metadata. Route labels, status and all evidence provenance are derived
+// by the server from the authenticated tenant and actor.
+type CreateIntertenantPortfolioTransferRequest struct {
+	TransferType          string `json:"transfer_type"`
+	HandoverOn            string `json:"handover_on"`
+	Notes                 string `json:"notes"`
+	DestinationTenantCode string `json:"destination_tenant_code"`
+}
+
+// UpdatePreparedPortfolioTransferRequest is intentionally narrower than the
+// create contract: a prepared transfer cannot be re-routed by a browser.
+type UpdatePreparedPortfolioTransferRequest struct {
+	TransferType string `json:"transfer_type"`
+	HandoverOn   string `json:"handover_on"`
+	Notes        string `json:"notes"`
 }
 
 type PortfolioReviewEvent struct {

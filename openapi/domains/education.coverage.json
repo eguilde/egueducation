@@ -4,7 +4,7 @@
   "scope": {
     "router": "backend/cmd/server/main.go",
     "routePrefix": "/api/education",
-    "operationCount": 304
+    "operationCount": 356
   },
   "sharedContract": {
     "securityScheme": "oidcAuthorizationCode",
@@ -9816,6 +9816,103 @@
       "modelEvidence": "inferred from concrete handler variable/page type"
     },
     {
+      "operationKey": "GET /api/education/portfolio-transfer-destinations",
+      "operationId": "get_api_education_portfolio_transfer_destinations",
+      "handler": "PortfolioTransferDestinations",
+      "source": "backend/internal/education/portfolio_transfer_summary.go:660",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "authenticated source tenant and actor are resolved from the database session; a permission-checked security-definer function returns only active destination routing identifiers and display names",
+      "requiredPermission": "education.portfolios.transfer",
+      "pathParameters": [],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioTransferDestinationList"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "minimal permission-checked active-tenant routing directory; no tenant configuration or user data is disclosed"
+    },
+    {
+      "operationKey": "GET /api/education/portfolio-transfer-inbox",
+      "operationId": "get_api_education_portfolio_transfer_inbox",
+      "handler": "PortfolioTransferInbox",
+      "source": "backend/internal/education/portfolio_transfer_summary.go:593",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "destination tenant and institution derived from authenticated session/token claims; only sent, received, or closed packages addressed to the active institution are visible",
+      "requiredPermission": "education.portfolios.transfer.receive",
+      "pathParameters": [],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.transfer_code",
+        "filter.source_institution",
+        "filter.status"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioTransferEvent"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "destination-scoped server-side page of sealed inter-tenant transfer packages"
+    },
+    {
+      "operationKey": "POST /api/education/portfolio-transfer-inbox/{itemID}/accept",
+      "operationId": "post_api_education_portfolio_transfer_inbox_itemid_accept",
+      "handler": "AcceptIntertenantPortfolioTransfer",
+      "source": "backend/internal/education/portfolio_transfer_summary.go:660",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "destination tenant and institution derived from authenticated session/token claims; receiver identity and receipt time are server authoritative",
+      "requiredPermission": "education.portfolios.transfer.receive",
+      "pathParameters": [
+        "itemID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioTransferEvent"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "destination-only state transition guarded by database routing, RLS and immutable evidence trigger"
+    },
+    {
       "operationKey": "POST /api/education/portfolios/records/{recordID}/transfers",
       "operationId": "post_api_education_portfolios_records_recordid_transfers",
       "handler": "CreatePortfolioTransfer",
@@ -9825,7 +9922,7 @@
         "oidcAuthorizationCode"
       ],
       "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
+      "requiredPermission": "education.portfolios.transfer",
       "pathParameters": [
         "recordID"
       ],
@@ -9833,10 +9930,10 @@
       "requestBody": {
         "required": true,
         "contentType": "application/json",
-        "schema": "CreatePortfolioTransferEventRequest"
+        "schema": "CreateIntertenantPortfolioTransferRequest"
       },
       "success": {
-        "status": 200,
+        "status": 201,
         "contentType": "application/json",
         "schema": "PortfolioTransferEvent"
       },
@@ -9860,7 +9957,7 @@
         "oidcAuthorizationCode"
       ],
       "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
+      "requiredPermission": "education.portfolios.transfer",
       "pathParameters": [
         "recordID",
         "itemID"
@@ -9869,7 +9966,7 @@
       "requestBody": {
         "required": true,
         "contentType": "application/json",
-        "schema": "CreatePortfolioTransferEventRequest"
+        "schema": "UpdatePreparedPortfolioTransferRequest"
       },
       "success": {
         "status": 200,
@@ -9896,7 +9993,7 @@
         "oidcAuthorizationCode"
       ],
       "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
+      "requiredPermission": "education.portfolios.transfer",
       "pathParameters": [
         "recordID",
         "itemID"
@@ -9932,7 +10029,7 @@
         "oidcAuthorizationCode"
       ],
       "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
+      "requiredPermission": "education.portfolios.transfer",
       "pathParameters": [
         "recordID",
         "itemID"
@@ -10029,108 +10126,6 @@
       "operationId": "delete_api_education_portfolios_records_recordid_reviews_itemid",
       "handler": "DeletePortfolioReview",
       "source": "backend/internal/education/governance_portfolio_flows.go:913",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID",
-        "itemID"
-      ],
-      "queryParameters": [],
-      "requestBody": null,
-      "success": {
-        "status": 204,
-        "content": null
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
-      "operationKey": "POST /api/education/portfolios/records/{recordID}/valorifications",
-      "operationId": "post_api_education_portfolios_records_recordid_valorifications",
-      "handler": "CreatePortfolioValorification",
-      "source": "backend/internal/education/portfolio_valorification_flows.go:138",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID"
-      ],
-      "queryParameters": [],
-      "requestBody": {
-        "required": true,
-        "contentType": "application/json",
-        "schema": "CreatePortfolioValorificationEventRequest"
-      },
-      "success": {
-        "status": 200,
-        "contentType": "application/json",
-        "schema": "PortfolioValorificationEvent"
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
-      "operationKey": "PATCH /api/education/portfolios/records/{recordID}/valorifications/{itemID}",
-      "operationId": "patch_api_education_portfolios_records_recordid_valorifications_itemid",
-      "handler": "UpdatePortfolioValorification",
-      "source": "backend/internal/education/portfolio_valorification_flows.go:226",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID",
-        "itemID"
-      ],
-      "queryParameters": [],
-      "requestBody": {
-        "required": true,
-        "contentType": "application/json",
-        "schema": "CreatePortfolioValorificationEventRequest"
-      },
-      "success": {
-        "status": 200,
-        "contentType": "application/json",
-        "schema": "PortfolioValorificationEvent"
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
-      "operationKey": "DELETE /api/education/portfolios/records/{recordID}/valorifications/{itemID}",
-      "operationId": "delete_api_education_portfolios_records_recordid_valorifications_itemid",
-      "handler": "DeletePortfolioValorification",
-      "source": "backend/internal/education/portfolio_valorification_flows.go:319",
       "contractStatus": "detailed",
       "security": [
         "oidcAuthorizationCode"
@@ -10948,10 +10943,109 @@
     },
     {
       "operationKey":"PUT /api/education/portfolios/procedures/{procedureID}/section-rules", "operationId":"put_api_education_portfolios_procedures_procedureid_section_rules", "handler":"ReplacePortfolioProcedureSectionRules", "source":"backend/internal/education/portfolio_procedures.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"institution and tenant are server-derived", "requiredPermission":"education.portfolios.school.manage", "pathParameters":["procedureID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"ReplacePortfolioProcedureSectionRulesRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioProcedureSectionRulesReplaceResponse"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"transactional draft-only replacement with expected_updated_at"
+    },
+    {
+      "operationKey":"GET /api/education/delegations", "operationId":"get_api_education_delegations", "handler":"EducationDelegations", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"tenant and institution are server-derived; directors see the institution ledger while adjuncts see only delegations in which they participate", "requiredPermission":"education.delegations.read", "pathParameters":[], "queryParameters":["page","pageSize","sort","direction","filter.status","filter.permission_code","filter.delegate_user_id","filter.delegate_name"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfEducationDelegation"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-side filtered and sorted delegation ledger protected by FORCE RLS"
+    },
+    {
+      "operationKey":"GET /api/education/delegations/eligible-adjuncts", "operationId":"get_api_education_delegations_eligible_adjuncts", "handler":"EducationDelegationEligibleAdjuncts", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only active director-adjunct memberships in the authenticated tenant are returned", "requiredPermission":"education.delegations.read", "pathParameters":[], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegationEligibleAdjunctList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-authorized principal directory without client-supplied tenant identifiers"
+    },
+    {
+      "operationKey":"GET /api/education/delegations/eligible-permissions", "operationId":"get_api_education_delegations_eligible_permissions", "handler":"EducationDelegationEligiblePermissions", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only education permissions currently held by the authenticated delegator are returned", "requiredPermission":"education.delegations.offer", "pathParameters":[], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegationEligiblePermissionList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-authorized delegable permission directory; delegation-management permissions are excluded"
+    },
+    {
+      "operationKey":"POST /api/education/delegations", "operationId":"post_api_education_delegations", "handler":"OfferEducationDelegation", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"tenant, institution, delegator, offer timestamp and evidence are server-authoritative", "requiredPermission":"education.delegations.offer", "pathParameters":[], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"OfferEducationDelegationRequest"}, "success":{"status":201,"contentType":"application/json","schema":"EducationDelegation"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"strict DTO plus database validation of director authority, adjunct membership and exact resource scope"
+    },
+    {
+      "operationKey":"POST /api/education/delegations/{delegationID}/accept", "operationId":"post_api_education_delegations_delegationid_accept", "handler":"AcceptEducationDelegation", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only the designated active adjunct can accept in the authenticated institution", "requiredPermission":"education.delegations.accept", "pathParameters":["delegationID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegation"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"bodyless server-authoritative transition with immutable acceptance evidence"
+    },
+    {
+      "operationKey":"POST /api/education/delegations/{delegationID}/revoke", "operationId":"post_api_education_delegations_delegationid_revoke", "handler":"RevokeEducationDelegation", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only the active delegating director can revoke; revocation affects authorization immediately", "requiredPermission":"education.delegations.revoke", "pathParameters":["delegationID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegation"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"bodyless request-time revocation that preserves acceptance provenance"
+    },
+    {
+      "operationKey":"POST /api/education/delegations/{delegationID}/expire", "operationId":"post_api_education_delegations_delegationid_expire", "handler":"ExpireEducationDelegation", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only a delegation party can record expiry after the server-validated end date", "requiredPermission":"education.delegations.revoke", "pathParameters":["delegationID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegation"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"bodyless expiry transition with server actor and timestamp provenance"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages", "handler":"PortfolioValorificationPackages", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"portfolio and institution are server-scoped", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID"], "queryParameters":["page","pageSize","sort","direction","filter.scope","filter.status"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioValorificationPackage"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-side page of source-bound evidentiary packages"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages_itemid", "handler":"PortfolioValorificationPackageDetail", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"package must be a child of the requested portfolio in the authenticated institution", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationPackage"}, "errors":[400,401,403,404,422,500], "modelEvidence":"parent-scoped package detail"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages_itemid_documents", "handler":"PortfolioValorificationPackageDocuments", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"evidence list is parent-scoped to portfolio and package", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationPackageDocumentList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"immutable archived-version evidence projection"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-sources", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages_eligible_sources", "handler":"PortfolioValorificationEligibleSources", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only source records bound to the portfolio owner and school year are returned", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID"], "queryParameters":["scope"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationEligibleSourceList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-authorized canonical source picker"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-archive-versions", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages_eligible_archive_versions", "handler":"PortfolioValorificationEligibleArchiveVersions", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only active archive versions with complete provenance in the authenticated institution are returned", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationEligibleArchiveVersionList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"minimal archive evidence picker without storage credentials"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/records/{recordID}/valorification-packages", "operationId":"post_api_education_portfolios_records_recordid_valorification_packages", "handler":"CreatePortfolioValorificationPackage", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"tenant, institution, portfolio owner and creator are server-derived", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"CreatePortfolioValorificationPackageRequest"}, "success":{"status":201,"contentType":"application/json","schema":"PortfolioValorificationPackage"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"strict single-source package creation"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance", "operationId":"post_api_education_portfolios_records_recordid_valorification_packages_itemid_advance", "handler":"AdvancePortfolioValorificationPackage", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"package is parent-scoped; actor and timestamps are server-derived", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"AdvancePortfolioValorificationPackageRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationPackage"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"database-guarded draft-submit-validate-complete lifecycle"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents", "operationId":"post_api_education_portfolios_records_recordid_valorification_packages_itemid_documents", "handler":"AddPortfolioValorificationPackageDocument", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"package and archive version must belong to the authenticated institution and requested portfolio", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"AddPortfolioValorificationPackageDocumentRequest"}, "success":{"status":201,"contentType":"application/json","schema":"PortfolioValorificationPackageDocumentCreateResponse"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"browser supplies only archive IDs; immutable hash and storage provenance are copied by database trigger"
     }
   ],
   "components": {
     "schemas": {
+      "EducationDelegation": {
+        "type":"object", "additionalProperties":false,
+        "required":["id","tenant_code","institution_id","delegator_user_id","delegate_user_id","delegator_name","delegate_name","permission_code","resource_type","resource_id","status","valid_from","valid_until","offered_by_user_id","offered_at","accepted_by_user_id","accepted_at","revoked_by_user_id","revoked_at","expired_by_user_id","expired_at","notes"],
+        "properties":{"id":{"type":"string","format":"uuid"},"tenant_code":{"type":"string"},"institution_id":{"type":"string"},"delegator_user_id":{"type":"string","format":"uuid"},"delegate_user_id":{"type":"string","format":"uuid"},"delegator_name":{"type":"string"},"delegate_name":{"type":"string"},"permission_code":{"type":"string","pattern":"^education\\."},"resource_type":{"type":"string","enum":["institution","portfolio","meeting","decision","regulation","personnel"]},"resource_id":{"type":"string"},"status":{"type":"string","enum":["offered","accepted","revoked","expired"]},"valid_from":{"type":"string","format":"date"},"valid_until":{"type":"string"},"offered_by_user_id":{"type":"string","format":"uuid"},"offered_at":{"type":"string","format":"date-time"},"accepted_by_user_id":{"type":"string"},"accepted_at":{"type":"string"},"revoked_by_user_id":{"type":"string"},"revoked_at":{"type":"string"},"expired_by_user_id":{"type":"string"},"expired_at":{"type":"string"},"notes":{"type":"string"}},
+        "x-go-model":"EducationDelegation", "x-source":"backend/internal/education/education_delegation_handlers.go"
+      },
+      "OfferEducationDelegationRequest": {
+        "type":"object", "additionalProperties":false, "required":["delegate_user_id","permission_code"],
+        "properties":{"delegate_user_id":{"type":"string","format":"uuid"},"permission_code":{"type":"string","pattern":"^education\\."},"resource_type":{"type":"string","enum":["institution","portfolio","meeting","decision","regulation","personnel"],"default":"institution"},"resource_id":{"type":"string","format":"uuid"},"valid_from":{"type":"string","format":"date"},"valid_until":{"type":"string","format":"date"},"notes":{"type":"string"}},
+        "x-go-model":"OfferEducationDelegationRequest", "x-source":"backend/internal/education/education_delegation_handlers.go"
+      },
+      "EducationPageOfEducationDelegation": {
+        "type":"object", "additionalProperties":false, "required":["items","total","page","pageSize"],
+        "properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/EducationDelegation"}},"total":{"type":"integer","minimum":0},"page":{"type":"integer","minimum":1},"pageSize":{"type":"integer","minimum":1,"maximum":100}},
+        "x-derived-from":"httpx.WritePage"
+      },
+      "EducationDelegationEligibleAdjunct": {
+        "type":"object", "additionalProperties":false, "required":["user_id","name","email"],
+        "properties":{"user_id":{"type":"string","format":"uuid"},"name":{"type":"string"},"email":{"type":"string"}},
+        "x-go-model":"EducationDelegationEligibleAdjunct", "x-source":"backend/internal/education/education_delegation_handlers.go"
+      },
+      "EducationDelegationEligibleAdjunctList": {"type":"array","items":{"$ref":"#/components/schemas/EducationDelegationEligibleAdjunct"}},
+      "EducationDelegationEligiblePermissionList": {"type":"array","items":{"type":"string","pattern":"^education\\."}},
+      "PortfolioValorificationPackage": {
+        "type":"object", "additionalProperties":false,
+        "required":["id","tenant_code","institution_id","portfolio_id","scope","status","created_by_subject","created_at"],
+        "properties":{"id":{"type":"string","format":"uuid"},"tenant_code":{"type":"string"},"institution_id":{"type":"string"},"portfolio_id":{"type":"string","format":"uuid"},"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"source_evaluation_id":{"type":"string"},"source_mobility_case_id":{"type":"string"},"source_merit_grant_id":{"type":"string"},"status":{"type":"string","enum":["draft","submitted","validated","completed"]},"created_by_subject":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"submitted_by_subject":{"type":"string"},"submitted_at":{"type":"string"},"validated_by_subject":{"type":"string"},"validated_at":{"type":"string"},"completed_by_subject":{"type":"string"},"completed_at":{"type":"string"}},
+        "x-go-model":"PortfolioValorificationPackage", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
+      },
+      "CreatePortfolioValorificationPackageRequest": {
+        "type":"object", "additionalProperties":false, "required":["scope"],
+        "properties":{"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"source_evaluation_id":{"type":"string","format":"uuid"},"source_mobility_case_id":{"type":"string","format":"uuid"},"source_merit_grant_id":{"type":"string","format":"uuid"}},
+        "x-go-model":"CreatePortfolioValorificationPackageRequest", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
+      },
+      "AdvancePortfolioValorificationPackageRequest": {
+        "type":"object", "additionalProperties":false, "required":["action"], "properties":{"action":{"type":"string","enum":["submit","validate","complete"]}},
+        "x-go-model":"AdvancePortfolioValorificationPackageRequest", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
+      },
+      "AddPortfolioValorificationPackageDocumentRequest": {
+        "type":"object", "additionalProperties":false, "required":["archive_document_id","archive_version_id"], "properties":{"archive_document_id":{"type":"string","format":"uuid"},"archive_version_id":{"type":"string","format":"uuid"}},
+        "x-go-model":"AddPortfolioValorificationPackageDocumentRequest", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
+      },
+      "PortfolioValorificationPackageDocument": {
+        "type":"object", "additionalProperties":false, "required":["id","package_id","archive_document_id","archive_version_id","archive_version_no","archive_source_bucket","archive_source_object_key","archive_sha256","created_by_subject","created_at"],
+        "properties":{"id":{"type":"string","format":"uuid"},"package_id":{"type":"string","format":"uuid"},"archive_document_id":{"type":"string","format":"uuid"},"archive_version_id":{"type":"string","format":"uuid"},"archive_version_no":{"type":"integer","minimum":1},"archive_source_bucket":{"type":"string"},"archive_source_object_key":{"type":"string"},"archive_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},"created_by_subject":{"type":"string"},"created_at":{"type":"string","format":"date-time"}},
+        "x-go-model":"PortfolioValorificationPackageDocument", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
+      },
+      "EducationPageOfPortfolioValorificationPackage": {"type":"object","additionalProperties":false,"required":["items","total","page","pageSize"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioValorificationPackage"}},"total":{"type":"integer","minimum":0},"page":{"type":"integer","minimum":1},"pageSize":{"type":"integer","minimum":1,"maximum":100}},"x-derived-from":"httpx.WritePage"},
+      "PortfolioValorificationPackageDocumentList": {"type":"array","items":{"$ref":"#/components/schemas/PortfolioValorificationPackageDocument"}},
+      "PortfolioValorificationEligibleSource": {"type":"object","additionalProperties":false,"required":["id","scope","label"],"properties":{"id":{"type":"string","format":"uuid"},"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"label":{"type":"string"}},"x-go-model":"PortfolioValorificationEligibleSource","x-source":"backend/internal/education/portfolio_valorification_flows.go"},
+      "PortfolioValorificationEligibleSourceList": {"type":"array","items":{"$ref":"#/components/schemas/PortfolioValorificationEligibleSource"}},
+      "PortfolioValorificationEligibleArchiveVersion": {"type":"object","additionalProperties":false,"required":["archive_document_id","archive_version_id","version_no","title"],"properties":{"archive_document_id":{"type":"string","format":"uuid"},"archive_version_id":{"type":"string","format":"uuid"},"version_no":{"type":"integer","minimum":1},"title":{"type":"string"}},"x-go-model":"PortfolioValorificationEligibleArchiveVersion","x-source":"backend/internal/education/portfolio_valorification_flows.go"},
+      "PortfolioValorificationEligibleArchiveVersionList": {"type":"array","items":{"$ref":"#/components/schemas/PortfolioValorificationEligibleArchiveVersion"}},
+      "PortfolioValorificationPackageDocumentCreateResponse": {"type":"object","additionalProperties":false,"required":["id"],"properties":{"id":{"type":"string","format":"uuid"}}},
       "PortfolioDeclarationTemplate": {"type":"object","additionalProperties":false,"required":["declaration_type","declaration_version","declaration_text","source_ref","effective_from"],"properties":{"declaration_type":{"type":"string","enum":["gdpr_information","authenticity"]},"declaration_version":{"type":"string"},"declaration_text":{"type":"string"},"source_ref":{"type":"string"},"effective_from":{"type":"string","format":"date"}}},
       "PortfolioDeclarationAcknowledgement": {"type":"object","additionalProperties":false,"required":["id","portfolio_id","declaration_type","declaration_version","declaration_text","accepted_at","accepted_by_user_id","attestation_method","attestation_evidence","signature_evidence"],"properties":{"id":{"type":"string","format":"uuid"},"portfolio_id":{"type":"string","format":"uuid"},"declaration_type":{"type":"string","enum":["gdpr_information","authenticity"]},"declaration_version":{"type":"string"},"declaration_text":{"type":"string"},"accepted_at":{"type":"string","format":"date-time"},"accepted_by_user_id":{"type":"string","format":"uuid"},"attestation_method":{"type":"string"},"attestation_evidence":{"type":"object","additionalProperties":true,"x-free-form-property":true},"signature_evidence":{"type":"object","additionalProperties":true,"x-free-form-property":true}}},
       "PortfolioDeclarationEvidenceResponse": {"type":"object","additionalProperties":false,"required":["templates","acknowledgements"],"properties":{"templates":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioDeclarationTemplate"}},"acknowledgements":{"type":"array","items":{"$ref":"#/components/schemas/PortfolioDeclarationAcknowledgement"}}}},
@@ -12754,40 +12848,67 @@
         "x-source": "backend/internal/education/*.go",
         "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
       },
-      "CreatePortfolioTransferEventRequest": {
+      "CreateIntertenantPortfolioTransferRequest": {
         "type": "object",
+        "required": [
+          "transfer_type",
+          "handover_on",
+          "destination_tenant_code"
+        ],
         "properties": {
           "transfer_type": {
-            "type": "string"
-          },
-          "source_institution": {
-            "type": "string"
-          },
-          "destination_institution": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "predare",
+              "primire",
+              "mutare",
+              "detasare"
+            ]
           },
           "handover_on": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
             "type": "string"
           },
-          "received_on": {
+          "destination_tenant_code": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "x-go-model": "CreateIntertenantPortfolioTransferRequest",
+        "x-source": "backend/internal/education/*.go",
+        "x-requiredness": "Required fields mirror CreatePortfolioTransfer handler validation; provenance and route labels are server authoritative."
+      },
+      "UpdatePreparedPortfolioTransferRequest": {
+        "type": "object",
+        "required": [
+          "transfer_type",
+          "handover_on"
+        ],
+        "properties": {
+          "transfer_type": {
+            "type": "string",
+            "enum": [
+              "predare",
+              "primire",
+              "mutare",
+              "detasare"
+            ]
           },
-          "handover_by": {
-            "type": "string"
-          },
-          "received_by": {
-            "type": "string"
+          "handover_on": {
+            "type": "string",
+            "format": "date"
           },
           "notes": {
             "type": "string"
           }
         },
-        "x-go-model": "CreatePortfolioTransferEventRequest",
+        "additionalProperties": false,
+        "x-go-model": "UpdatePreparedPortfolioTransferRequest",
         "x-source": "backend/internal/education/*.go",
-        "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
+        "x-requiredness": "Required fields mirror UpdatePortfolioTransfer handler validation; destination routing cannot be changed after creation."
       },
       "CreatePortfolioValorificationEventRequest": {
         "type": "object",
@@ -16793,11 +16914,80 @@
           },
           "notes": {
             "type": "string"
+          },
+          "routing_version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "source_tenant_code": {
+            "type": "string"
+          },
+          "source_institution_id": {
+            "type": "string"
+          },
+          "destination_tenant_code": {
+            "type": "string"
+          },
+          "destination_institution_id": {
+            "type": "string"
+          },
+          "export_manifest_id": {
+            "type": "string"
+          },
+          "sent_at": {
+            "type": "string"
+          },
+          "sent_by_subject": {
+            "type": "string"
+          },
+          "received_at": {
+            "type": "string"
+          },
+          "received_by_subject": {
+            "type": "string"
+          },
+          "closed_at": {
+            "type": "string"
+          },
+          "closed_by_subject": {
+            "type": "string"
           }
         },
         "x-go-model": "PortfolioTransferEvent",
         "x-source": "backend/internal/education/*.go",
         "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
+      },
+      "PortfolioTransferDestination": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tenant_code",
+          "institution_id",
+          "display_name",
+          "short_name"
+        ],
+        "properties": {
+          "tenant_code": {
+            "type": "string"
+          },
+          "institution_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "short_name": {
+            "type": "string"
+          }
+        },
+        "x-go-model": "PortfolioTransferDestination",
+        "x-source": "backend/internal/education/portfolio_models.go"
+      },
+      "PortfolioTransferDestinationList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/PortfolioTransferDestination"
+        }
       },
       "PortfolioTransferSummary": {
         "type": "object",
@@ -19529,8 +19719,8 @@
     "The generator deterministically imports this domain fragment and uses each operation's handler-backed request and success schema."
   ],
   "validation": {
-    "expectedOperations": 340,
-    "documentedOperations": 340,
+    "expectedOperations": 356,
+    "documentedOperations": 356,
     "missingHandlerSources": [],
     "unknownResponseSchemas": [],
     "allInstitutionScoped": true,
