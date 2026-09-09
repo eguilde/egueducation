@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	authruntime "github.com/eguilde/egueducation/internal/auth"
 	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
 )
@@ -68,7 +69,7 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 			releaseA()
 		}
 	}()
-	requestA := requestWithContext(ctxA)
+	requestA := requestWithContext(ctxA, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
 	attachments, total, err := service.listPortfolioArchiveAttachments(requestA, fixture.institutionA, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil {
 		t.Fatalf("list own portfolio archive attachments in tenant A: %v", err)
@@ -157,7 +158,7 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 
 	ctxB, releaseB := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	defer releaseB()
-	requestB := requestWithContext(ctxB)
+	requestB := requestWithContext(ctxB, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	attachments, total, err = service.listPortfolioArchiveAttachments(requestB, fixture.institutionB, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("tenant B must not enumerate tenant-A archive attachments: total=%d items=%#v err=%v", total, attachments, err)
@@ -398,8 +399,15 @@ func governanceTenantContext(t *testing.T, ctx context.Context, pool *pgxpool.Po
 	return bound, release
 }
 
-func requestWithContext(ctx context.Context) *http.Request {
-	return httptest.NewRequest(http.MethodGet, "http://education.test", nil).WithContext(ctx)
+func requestWithContext(ctx context.Context, tenantCode, institutionID, actorSubject string) *http.Request {
+	requestContext := authruntime.WithSessionContextForIntegration(ctx, authruntime.SessionContext{
+		TenantCode:    tenantCode,
+		InstitutionID: institutionID,
+		User: authruntime.SessionUser{
+			Sub: actorSubject,
+		},
+	})
+	return httptest.NewRequest(http.MethodGet, "http://education.test", nil).WithContext(requestContext)
 }
 func quoteGovernanceIdentifier(value string) string {
 	return `"` + strings.ReplaceAll(value, `"`, `""`) + `"`
