@@ -21,7 +21,7 @@ create unique index if not exists uq_education_portfolios_owner_school_year
 -- A safe best-effort backfill may only link a personnel row in the same
 -- institution and only when the display name has one unambiguous match.
 with candidates as (
-	select ep.id, min(person.id) as personnel_id
+	select ep.id, min(person.id::text)::uuid as personnel_id
 	from education_portfolios ep
 	join education_personnel person
 		on person.institution_id = ep.institution_id
