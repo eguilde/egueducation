@@ -4748,6 +4748,26 @@ export interface paths {
         patch: operations["patch_api_education_portfolios_records_recordid_documents_documentid"];
         trace?: never;
     };
+    "/api/education/portfolios/records/{recordID}/export-manifests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/export-manifests
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_export_manifests"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/records/{recordID}/legal-hold": {
         parameters: {
             query?: never;
@@ -9409,6 +9429,53 @@ export interface components {
             sensitive_data?: boolean;
             source_scope?: string;
         };
+        PortfolioExportManifest: {
+            documents: components["schemas"]["PortfolioExportManifestDocument"][];
+            /** @constant */
+            hash_algorithm: "SHA-256";
+            institution_id: string;
+            manifest_sha256: string;
+            manifest_version: string;
+            portfolio: components["schemas"]["PortfolioExportManifestPortfolio"];
+            tenant_code: string;
+        };
+        PortfolioExportManifestDocument: {
+            /** Format: uuid */
+            archive_document_id: string;
+            /** Format: uuid */
+            archive_version_id: string;
+            /** Format: int32 */
+            archive_version_no: number;
+            /** Format: int32 */
+            chronological_no: number;
+            component_code: string;
+            document_title: string;
+            /** Format: uuid */
+            evidence_record_id: string;
+            evidence_type: string;
+            /** Format: date */
+            issued_on: string;
+            section_code: string;
+            source_bucket: string;
+            source_object_key: string;
+            source_sha256: string;
+        };
+        PortfolioExportManifestPortfolio: {
+            /** Format: uuid */
+            applied_procedure_id?: string;
+            /** Format: uuid */
+            id: string;
+            portfolio_code: string;
+            school_year: string;
+            status: string;
+        };
+        PortfolioExportManifestResponse: {
+            /** Format: uuid */
+            export_manifest_id: string;
+            /** Format: date-time */
+            generated_at: string;
+            manifest: components["schemas"]["PortfolioExportManifest"];
+        };
         PortfolioFiltersResponse: {
             school_years?: string[];
             statuses?: string[];
@@ -10204,6 +10271,10 @@ export interface components {
             record_id?: string;
         };
         Request_post_api_education_portfolios_me_recordid_submit: {
+            format?: string;
+            record_id?: string;
+        };
+        Request_post_api_education_portfolios_records_recordid_export_manifests: {
             format?: string;
             record_id?: string;
         };
@@ -23764,6 +23835,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioDocument"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_export_manifests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_education_portfolios_records_recordid_export_manifests"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioExportManifestResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];
