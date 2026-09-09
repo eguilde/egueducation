@@ -103,6 +103,21 @@ describe("Education API", () => {
     expect(requestAt(fetcher).method).toBe("POST");
   });
 
+  it("sends the affirmative declaration acknowledgement through the generated transport", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      id: "ack-1",
+      declaration_type: "authenticity",
+    }), { headers: { "content-type": "application/json" } }));
+    const api = createEducationApi(fetcher);
+
+    await api.acknowledgeOwnPortfolioDeclaration("portfolio-1", "authenticity");
+
+    const request = requestAt(fetcher);
+    expect(request.method).toBe("POST");
+    expect(request.url).toContain("/api/education/portfolios/me/portfolio-1/declarations/authenticity/acknowledgements");
+    await expect(request.clone().json()).resolves.toEqual({ confirmed: true });
+  });
+
   it("uses only the owner-scoped portfolio contract for teacher self-service", async () => {
     const fetcher = vi.fn().mockImplementation(() => new Response(JSON.stringify({ items: [{ id: "own-1" }], total: 1, page: 1, pageSize: 1 }), { status: 200 }));
     const api = createEducationApi(fetcher);

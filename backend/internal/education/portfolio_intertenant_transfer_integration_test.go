@@ -102,6 +102,7 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	`, transferID); err == nil || !strings.Contains(err.Error(), "only the destination institution can receive") {
 		t.Fatalf("source must not confirm receipt; err=%v", err)
 	}
+	releaseSource()
 
 	// The destination sees sent work in its inbox-equivalent RLS projection and
 	// is the only normal application tenant allowed to confirm receipt.
@@ -144,6 +145,9 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if receivedBy != destinationSubject {
 		t.Fatalf("receipt provenance=%q, want destination actor %q", receivedBy, destinationSubject)
 	}
+	releaseDestination()
+	sourceCtx, releaseClosingSource := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
+	defer releaseClosingSource()
 	if _, err := pool.Exec(sourceCtx, `
 		update education_portfolio_transfers
 		set status='inchis', closed_at='2001-01-01', closed_by_subject='forged-closer'
@@ -160,6 +164,7 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if closedBy != fixture.memberSubject {
 		t.Fatalf("closing provenance=%q, want source actor %q", closedBy, fixture.memberSubject)
 	}
+	releaseClosingSource()
 
 	// A random request scope has neither source nor destination participant
 	// visibility. This proves the inbox cannot leak through an identifier.
@@ -182,10 +187,13 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if unrelatedCount != 0 {
 		t.Fatalf("unrelated tenant sees %d transfer rows, want 0", unrelatedCount)
 	}
+	releaseUnrelated()
 
 	// Once sent, route, package and row lifetime are evidentiary. Normal source
 	// access still sees the row, so these failures are trigger-enforced rather
 	// than an accidental lack of table privilege or RLS visibility.
+	sourceCtx, releaseFinalSource := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
+	defer releaseFinalSource()
 	if _, err := pool.Exec(sourceCtx, `
 		update education_portfolio_transfers set destination_tenant_code='tampered'
 		where id=$1::uuid

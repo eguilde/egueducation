@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -403,7 +404,8 @@ func governanceTenantContext(t *testing.T, ctx context.Context, pool *pgxpool.Po
 	if err != nil {
 		t.Fatalf("bind restricted governance tenant session: %v", err)
 	}
-	return bound, release
+	var once sync.Once
+	return bound, func() { once.Do(release) }
 }
 
 func requestWithContext(ctx context.Context, tenantCode, institutionID, actorSubject string) *http.Request {

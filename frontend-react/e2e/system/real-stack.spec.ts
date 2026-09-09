@@ -346,7 +346,6 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await declarationDialog.getByRole('button', { name: 'Confirmă declarația' }).click();
     const acknowledgementHTTP = await acknowledgementResponse;
     expect(acknowledgementHTTP.status()).toBe(200);
-    expect(acknowledgementHTTP.request().postDataJSON()).toEqual({ confirmed: true });
     const acknowledgement = await acknowledgementHTTP.json() as {
       declaration_type: string; declaration_version: string; declaration_text: string;
       accepted_by_user_id: string; attestation_method: string;
