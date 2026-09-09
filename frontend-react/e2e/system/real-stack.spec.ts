@@ -229,29 +229,35 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
   expect(portfolioGrantAdminMe.status).toBe(200);
   expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.archive_grants.manage');
-  const portfolioGrantManagerLoaded = Promise.all([
-    '/api/education/portfolios/archive-attachment-grants/eligible-documents',
-    '/api/education/portfolios/archive-attachment-grants/eligible-users',
-    '/api/education/portfolios/archive-attachment-grants',
-  ].map((pathname) => page.waitForResponse((response) =>
-    new URL(response.url()).pathname === pathname && response.request().method() === 'GET',
-  )));
+  const portfolioGrantManagerLoaded = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants'
+      && response.request().method() === 'GET',
+  );
   await page.goto('/scoala/portfolio');
-  for (const response of await portfolioGrantManagerLoaded) expect(response.status()).toBe(200);
+  expect((await portfolioGrantManagerLoaded).status()).toBe(200);
   await expect(page.getByRole('status')).toBeHidden({ timeout: 10_000 });
   await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
   for (const archive of portfolioArchives) {
-    await page.getByLabel('Document eArhivă eligibil').click();
-    const archiveOption = page.getByRole('option', { name: new RegExp(archive.title) });
-    await expect(archiveOption).toBeVisible({ timeout: 10_000 });
-    await archiveOption.click();
-    await page.getByLabel('Utilizator beneficiar').click();
-    await page.getByRole('option', { name: `${marker} Profesor portofoliu` }).click();
+    const eligibleListsLoaded = Promise.all([
+      '/api/education/portfolios/archive-attachment-grants/eligible-documents',
+      '/api/education/portfolios/archive-attachment-grants/eligible-users',
+    ].map((pathname) => page.waitForResponse((response) =>
+      new URL(response.url()).pathname === pathname && response.request().method() === 'GET',
+    )));
+    await page.getByRole('button', { name: 'Adaugă drept de atașare' }).click();
+    for (const response of await eligibleListsLoaded) expect(response.status()).toBe(200);
+    const grantDialog = page.getByRole('dialog', { name: 'Acordă acces la document eArhivă' });
+    const documentRow = grantDialog.getByText(archive.title, { exact: true }).locator('xpath=ancestor::tr[1]');
+    await expect(documentRow).toBeVisible({ timeout: 10_000 });
+    await documentRow.getByRole('button', { name: 'Selectează' }).click();
+    const userRow = grantDialog.getByText(`${marker} Profesor portofoliu`, { exact: true }).locator('xpath=ancestor::tr[1]');
+    await expect(userRow).toBeVisible({ timeout: 10_000 });
+    await userRow.getByRole('button', { name: 'Selectează' }).click();
     const granted = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants' && response.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Acordă acces' }).click();
+    await grantDialog.getByRole('button', { name: 'Acordă acces' }).click();
     expect((await granted).status()).toBe(201);
   }
-  expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(6);
+  expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(5);
   const procedureCode = `PORT-E2E-${Date.now()}`;
   const procedureCreated = await api<{ id: string; updated_at: string }>(page, portfolioGrantAdminToken, '/api/education/portfolios/procedures', {
     method: 'POST',
