@@ -484,11 +484,12 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const remediedPortfolio = await api<OwnPortfolio>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}`, {
     method: 'PATCH',
     body: JSON.stringify({
-      school_year: portfolioSchoolYear, section_count: 1, last_updated_on: '2031-09-02',
-      authenticity_declared: true, consent_captured: true, notes: 'Remediat după verificarea instituțională.',
+      school_year: portfolioSchoolYear,
+      last_updated_on: '2031-09-02',
+      notes: 'Remediat după verificarea instituțională.',
     }),
   });
-  expect(remediedPortfolio.status).toBe(200);
+  expect(remediedPortfolio.status, JSON.stringify(remediedPortfolio.body)).toBe(200);
   expect(remediedPortfolio.body.status).toBe('returned');
   expect((await api<OwnPortfolio>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/submit`, { method: 'POST' })).status).toBe(200);
   const verifiedPortfolio = await api<OwnPortfolio>(page, token, `/api/education/portfolios/records/${ownPortfolio.id}/verify`, { method: 'POST' });
