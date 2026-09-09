@@ -141,7 +141,7 @@ func (s *Service) PortfolioOwnRecords(w http.ResponseWriter, r *http.Request) {
 // listPortfolioArchiveAttachments intentionally queries the archive only by
 // active institution and by a current version that has a real stored source.
 // This provides attachment selection without granting generic eArhiva access.
-func (s *Service) listPortfolioArchiveAttachments(r *http.Request, actorID string, query httpx.PageQuery) ([]PortfolioArchiveAttachment, int, error) {
+func (s *Service) listPortfolioArchiveAttachments(r *http.Request, institutionID, actorID string, query httpx.PageQuery) ([]PortfolioArchiveAttachment, int, error) {
 	where := `where document.institution_id = $1
 		and version.institution_id = document.institution_id
 		and version.version_no = document.current_version_no
@@ -155,7 +155,7 @@ func (s *Service) listPortfolioArchiveAttachments(r *http.Request, actorID strin
 				and attachment_grant.archive_document_id = document.id
 				and attachment_grant.grantee_user_id = $2::uuid
 		)`
-	args := []any{s.institutionID(r), actorID}
+	args := []any{institutionID, actorID}
 	if title := strings.TrimSpace(query.Filters["title"]); title != "" {
 		args = append(args, "%"+strings.ToLower(title)+"%")
 		where += fmt.Sprintf(" and lower(document.title) like $%d", len(args))
@@ -213,7 +213,7 @@ func (s *Service) PortfolioOwnArchiveDocuments(w http.ResponseWriter, r *http.Re
 	if query.Sort == "" {
 		query.Sort = "title"
 	}
-	items, total, err := s.listPortfolioArchiveAttachments(r, actorID, query)
+	items, total, err := s.listPortfolioArchiveAttachments(r, s.institutionID(r), actorID, query)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_own_portfolio_archive_documents_failed"})
 		return

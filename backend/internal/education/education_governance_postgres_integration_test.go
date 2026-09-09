@@ -69,14 +69,14 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 		}
 	}()
 	requestA := requestWithContext(ctxA)
-	attachments, total, err := service.listPortfolioArchiveAttachments(requestA, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	attachments, total, err := service.listPortfolioArchiveAttachments(requestA, fixture.institutionA, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil {
 		t.Fatalf("list own portfolio archive attachments in tenant A: %v", err)
 	}
 	if total != 1 || len(attachments) != 1 || attachments[0].ID != storedArchiveID || attachments[0].Title != "Eligible portfolio evidence" || attachments[0].CurrentVersionNo != 1 {
 		t.Fatalf("attachment picker must return only current stored tenant evidence: total=%d items=%#v", total, attachments)
 	}
-	attachments, total, err = service.listPortfolioArchiveAttachments(requestA, fixture.foreignMemberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	attachments, total, err = service.listPortfolioArchiveAttachments(requestA, fixture.institutionA, fixture.foreignMemberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("same-tenant user without explicit attachment grant must see no archive evidence: total=%d items=%#v err=%v", total, attachments, err)
 	}
@@ -158,7 +158,7 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	ctxB, releaseB := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	defer releaseB()
 	requestB := requestWithContext(ctxB)
-	attachments, total, err = service.listPortfolioArchiveAttachments(requestB, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	attachments, total, err = service.listPortfolioArchiveAttachments(requestB, fixture.institutionB, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("tenant B must not enumerate tenant-A archive attachments: total=%d items=%#v err=%v", total, attachments, err)
 	}

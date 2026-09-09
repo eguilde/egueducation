@@ -211,7 +211,12 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
   expect(portfolioGrantAdminMe.status).toBe(200);
   expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.archive_grants.manage');
+  const eligibleDocumentsLoaded = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants/eligible-documents'
+      && response.request().method() === 'GET',
+  );
   await page.goto('/scoala/portfolio');
+  expect((await eligibleDocumentsLoaded).status()).toBe(200);
   await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
   for (const archive of portfolioArchives) {
     await page.getByLabel('Document eArhivă eligibil').click();
