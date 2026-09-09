@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	authruntime "github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
@@ -92,84 +91,51 @@ func (s *Service) rebuildPortfolioOpis(ctx context.Context, recordID string, ins
 		return 0, fmt.Errorf("clear portfolio opis before sync: %w", err)
 	}
 
-	rows, err := tx.Query(ctx, `
-		select
+	// Keep regeneration as one set-based statement. pgx does not permit Exec on
+	// a transaction while a Rows result from the same connection is still open;
+	// the former row-by-row implementation therefore failed with "conn busy" as
+	// soon as a portfolio contained its first document.
+	tag, err := tx.Exec(ctx, `
+		insert into education_portfolio_opis (
+			portfolio_id,
 			section_code,
 			component_code,
-			document_title,
+			entry_title,
 			source_scope,
-			coalesce(file_reference, ''),
-			to_char(issued_on, 'YYYY-MM-DD'),
-			to_char(added_on, 'YYYY-MM-DD')
-		from education_portfolio_documents
-		where portfolio_id = $1::uuid and institution_id = $2
-		order by chronological_index asc, added_on asc, issued_on asc, document_title asc, id asc
-	`, recordID, institutionID)
+			chronological_index,
+			document_reference,
+			included_in_transfer,
+			checked_on,
+			checked_by,
+			institution_id,
+			notes
+		)
+		select
+			document.portfolio_id,
+			document.section_code,
+			document.component_code,
+			btrim(document.document_title) || ' (' || to_char(document.issued_on, 'YYYY-MM-DD') || ')',
+			document.source_scope,
+			row_number() over (
+				order by document.chronological_index asc, document.added_on asc,
+					document.issued_on asc, document.document_title asc, document.id asc
+			)::integer,
+			coalesce(
+				nullif(btrim(document.file_reference), ''),
+				document.section_code || '/' || document.component_code || '/' || document.document_title
+			),
+			document.source_scope = 'portofoliu',
+			document.added_on,
+			$3,
+			document.institution_id,
+			''
+		from education_portfolio_documents document
+		where document.portfolio_id = $1::uuid and document.institution_id = $2
+	`, recordID, institutionID, checkedBy)
 	if err != nil {
-		return 0, fmt.Errorf("load portfolio documents for opis sync: %w", err)
+		return 0, fmt.Errorf("insert portfolio opis entries during sync: %w", err)
 	}
-	defer rows.Close()
-
-	regeneratedEntries := 0
-	for rows.Next() {
-		var sectionCode string
-		var componentCode string
-		var documentTitle string
-		var sourceScope string
-		var fileReference string
-		var issuedOn string
-		var addedOn string
-		if err := rows.Scan(
-			&sectionCode,
-			&componentCode,
-			&documentTitle,
-			&sourceScope,
-			&fileReference,
-			&issuedOn,
-			&addedOn,
-		); err != nil {
-			return 0, fmt.Errorf("scan portfolio document for opis sync: %w", err)
-		}
-
-		regeneratedEntries++
-		documentReference := strings.TrimSpace(fileReference)
-		if documentReference == "" {
-			documentReference = fmt.Sprintf("%s/%s/%s", sectionCode, componentCode, documentTitle)
-		}
-
-		checkedOn := strings.TrimSpace(addedOn)
-		if checkedOn == "" {
-			checkedOn = time.Now().Format("2006-01-02")
-		}
-
-		entryTitle := strings.TrimSpace(documentTitle)
-		if issuedOn != "" {
-			entryTitle = fmt.Sprintf("%s (%s)", entryTitle, issuedOn)
-		}
-
-		if _, err := tx.Exec(ctx, `
-			insert into education_portfolio_opis (
-				portfolio_id,
-				section_code,
-				component_code,
-				entry_title,
-				source_scope,
-				chronological_index,
-				document_reference,
-				included_in_transfer,
-				checked_on,
-				checked_by,
-				institution_id,
-				notes
-			)
-			values ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, '')
-		`, recordID, sectionCode, componentCode, entryTitle, sourceScope, regeneratedEntries, documentReference, sourceScope == "portofoliu", checkedOn, checkedBy, institutionID); err != nil {
-			return 0, fmt.Errorf("insert portfolio opis entry during sync: %w", err)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("iterate portfolio documents for opis sync: %w", err)
-	}
+	regeneratedEntries := int(tag.RowsAffected())
 
 	if err := tx.Commit(ctx); err != nil {
 		return 0, fmt.Errorf("commit portfolio opis sync: %w", err)
