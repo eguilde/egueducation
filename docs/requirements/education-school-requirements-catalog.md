@@ -176,7 +176,7 @@ Auditul inițial de mai sus rămâne fotografia codului înainte de remediere. U
 | CTR-001–CTR-005 | parțial consolidat pentru bounded-context-ul portofoliu propriu | migrare, RLS existent, DTO Go îngust, OpenAPI pentru toate cele 506 operații router (341 Școală), client și validatori React regenerați, erori 403/409/422 |
 | UI-001, UI-002, UI-004, UI-005 | implementat pentru self-service profesor și administrarea granturilor eArhivă | rute dedicate, permisiuni din sesiunea OIDC, componente PrimeReact, documente/checklist/opis/revizuiri, panou director/custode și stări responsive |
 
-Nu sunt declarate finalizate prin această remediere și rămân backlog obligatoriu: uploadul binar autorizat și scanarea fișierelor (restul PRT-007/020, UI-006), versionarea uniformă fără pierderea istoricului (PRT-009), pachetele de valorificare și exportul interoperabil complet (PRT-013/017), transferul cross-tenant complet (PRT-015), delegarea directorului adjunct (SCH-002) și acoperirea E2E reală a tuturor acestor fluxuri. Declarațiile juridice versionate (PRT-010), retenția calculată de la încetarea activității și legal hold (PRT-016), precum și procedura internă versionată (PRT-019) sunt implementate în lotul curent și rămân condiționate de execuția E2E reală în CI.
+Nu sunt declarate finalizate prin această remediere și rămân backlog obligatoriu: metadatele pedagogice complete și controalele uniforme de storage (restul PRT-007/020, UI-006), versionarea uniformă fără pierderea istoricului (PRT-009), pachetele distincte de valorificare (PRT-013), transferul cross-tenant complet (PRT-015), delegarea directorului adjunct (SCH-002) și acoperirea E2E reală a tuturor acestor fluxuri. Exportul probatoriu propriu PRT-017, declarațiile juridice versionate PRT-010, retenția calculată de la încetarea activității și legal hold PRT-016, precum și procedura internă versionată PRT-019 sunt implementate; fluxul critic al portofoliului a trecut E2E real în CI, fără a demonstra încă matricea completă a tuturor rolurilor și domeniilor Școală.
 
 ## 12. Reaudit juridic și tehnic după remedierea fluxului legal
 
@@ -184,17 +184,18 @@ Verdictul din această secțiune este bazat pe cod executabil, contractul genera
 
 | Cerință | Verdict actual | Dovadă executabilă |
 | --- | --- | --- |
-| PRT-001, PRT-002, PRT-004 | implementat, validare reală DB necesară în mediul CI | proprietar și instituție derivate server-side, unicitate, endpointuri `/me`, teste cross-owner/cross-tenant |
+| PRT-001, PRT-002, PRT-004 | implementat și demonstrat în CI pe stiva reală | proprietar și instituție derivate server-side, unicitate, endpointuri `/me`, teste cross-owner/cross-tenant |
 | PRT-005, PRT-006, PRT-019 | implementat pentru structura legală și aplicarea procedurii; UI admin în validare | catalogul final cu 5 secțiuni, procedură versionată draft/approved/published/superseded/withdrawn, reguli obligatorii, `applied_procedure_id`, submit guvernat de procedura aplicată |
 | PRT-008 | implementat pentru actualizarea atomică document–opis | o singură tranzacție DB și test de rollback |
-| PRT-010 | implementat; E2E real trebuie să ruleze cu PostgreSQL | șabloane juridice server-issued versionate, acknowledgement imuabil și idempotent, submit fără booleene controlate de browser |
-| PRT-016 | implementat la nivel DB/API/UI; E2E real trebuie să ruleze cu PostgreSQL | eveniment explicit de încetare, retenție calculată în DB, legal hold și interdicție de hard-delete |
+| PRT-010 | implementat și demonstrat în E2E real cu PostgreSQL | șabloane juridice server-issued versionate, acknowledgement imuabil și idempotent, submit fără booleene controlate de browser |
+| PRT-016 | implementat la nivel DB/API/UI; lifecycle-ul de retenție rămâne fără scenariu browser dedicat | eveniment explicit de încetare, retenție calculată în DB, legal hold și interdicție de hard-delete |
+| PRT-017 | implementat pentru exportul probatoriu propriu | manifest server-issued, versionat și imuabil, hash SHA-256, snapshot de proveniență și control owner-scoped |
 | CTR-003 | acoperit pentru inventarul curent | OpenAPI verifică 506/506 rute, inclusiv 341 operații Școală; clientul React și validatorii sunt regenerați |
 | UI-002, UI-003, UI-005 | consolidat | tabele cu filtrare/sortare/paginare server-side, header și paginator sticky, action column frozen, dialoguri PrimeReact și declarații afișate cu text/versiune |
 
 Blocante care rămân înainte de o declarație de acoperire 100%:
 
-1. PRT-013 și PRT-017: pachete distincte de valorificare și export interoperabil autoritativ cu manifest/hash.
+1. PRT-013: pachete distincte, limitate la scop, pentru valorificare; exportul probatoriu propriu PRT-017 este implementat, dar nu înlocuiește aceste pachete.
 2. PRT-015: transfer complet cross-tenant cu instituție țintă identificată, expediere, recepție și confirmare.
 3. SCH-002: delegarea directorului adjunct limitată pe domeniu și perioadă.
 4. PRT-007, PRT-009 și PRT-020: metadate pedagogice complete, versionare/retragere uniformă și integrarea verificabilă a tuturor controalelor de stocare.

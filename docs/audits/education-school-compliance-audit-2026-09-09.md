@@ -8,12 +8,12 @@ Auditul a verificat codul executabil, migrarile, rutele HTTP, contractul OpenAPI
 
 ## 1. Surse normative si ghiduri verificate
 
-- Legea invatamantului preuniversitar nr. 198/2023, in forma consolidata aplicabila;
-- Ordinul MEC nr. 3.858/2026 si metodologia-cadru privind portofoliul profesional, Monitorul Oficial nr. 392/08.05.2026;
+- [Legea invatamantului preuniversitar nr. 198/2023](https://legislatie.just.ro/Public/DetaliiDocumentAfis/271896), in forma consolidata aplicabila;
+- [Ordinul MEC nr. 3.858/2026 si metodologia-cadru privind portofoliul profesional](https://legislatie.just.ro/Public/DetaliiDocumentAfis/310372), Monitorul Oficial nr. 392/08.05.2026;
 - Anexele Ordinului nr. 3.858/2026: structura-cadru cu cinci sectiuni si modelul declaratiei;
-- Ordinul ME nr. 7.386/2024 privind profilul si standardele profesionale ale cadrului didactic;
-- ROFUIP aprobat prin Ordinul nr. 5.726/2024, cu modificarile ulterioare, inclusiv Ordinul nr. 4.261/2026;
-- Legea nr. 214/2024 privind semnatura electronica, marca temporala si serviciile de incredere;
+- [Ordinul ME nr. 7.386/2024](https://legislatie.just.ro/Public/DetaliiDocument/291176) privind profilul si standardele profesionale ale cadrului didactic;
+- [ROFUIP aprobat prin Ordinul nr. 5.726/2024](https://legislatie.just.ro/Public/DetaliiDocumentAfis/301726), cu modificarile ulterioare, inclusiv [Ordinul nr. 4.261/2026](https://legislatie.just.ro/Public/DetaliiDocumentAfis/312069);
+- [Legea nr. 214/2024](https://legislatie.just.ro/Public/DetaliiDocument/285178) privind semnatura electronica, marca temporala si serviciile de incredere;
 - GDPR, Legea nr. 190/2018 si legislatia arhivistica aplicabila;
 - Ghidul ISJ Timis pentru directorii unitatilor de invatamant 2024-2025, utilizat ca ghid operational si confruntat cu actele consolidate;
 - proiectul metodologiei din martie 2026, folosit numai comparativ; forma finala aprobata prevaleaza.
@@ -32,8 +32,8 @@ Auditul a verificat codul executabil, migrarile, rutele HTTP, contractul OpenAPI
 | Declaratii generale | modele si RLS existente | CRUD existent | UI generic | lipsesc teste dedicate | PARTIAL |
 | Mobilitate | modele si RLS existente | documente, scoruri, apeluri si decizii | wizard si relatii | lipseste cazul complet | PARTIAL |
 | Gradatie de merit | modele si RLS existente | documente, scoruri, apeluri si decizii | wizard si relatii | lipseste cazul complet | PARTIAL |
-| Portofoliul profesorului | proprietar UUID, institutie, unicitate si RLS | endpointuri `/me`, procedura, declaratii, OPIS si lifecycle | workspace dedicat profesorului | unit/integration solide; E2E real DB lipseste local | PARTIAL avansat |
-| RBAC si tenant host-based | tenant/institutie in scope; RLS extins pentru tabelele tardive | middleware si permisiuni pe rute | navigatie si actiuni conditionate de sesiune | nu exista matrice E2E completa pentru toate rolurile | PARTIAL |
+| Portofoliul profesorului | proprietar UUID, institutie, unicitate si RLS | endpointuri `/me`, procedura, declaratii, OPIS si lifecycle | workspace dedicat profesorului | unit/integration si E2E real React-OIDC-API-PostgreSQL trecute in CI | PARTIAL avansat |
+| RBAC si tenant host-based | tenant/institutie in scope; RLS extins pentru tabelele tardive | middleware si permisiuni pe rute | navigatie si actiuni conditionate de sesiune | dovada reala profesor/director/platform admin si refuz cross-user/cross-tenant; matricea tuturor rolurilor ramane incompleta | PARTIAL |
 | Contract DB-API-React | constrangeri si OpenAPI generate | 506/506 rute, 341 Education | adaptoare manuale inca accepta rute dinamice | control de drift existent, dar nu complet tipizat | PARTIAL |
 
 ## 3. Portofoliul profesional - cerinte confirmate in cod
@@ -74,14 +74,17 @@ Acoperite in implementarea curenta:
 ## 5. Dovezi de validare ale lotului curent
 
 - `go test ./...`: trecut;
-- `go test -tags integration ./internal/education`: compilat si trecut; scenariile PostgreSQL dependente de `TEST_DATABASE_URL` trebuie executate in CI;
+- `go test -tags integration ./internal/education`: compilat si trecut local; scenariile PostgreSQL cu rol non-bypass/RLS au trecut in CI;
 - Vitest: 27 fisiere, 112 teste trecute;
 - E2E browser pentru fisierul Education: 3/3 trecute dupa alinierea fixture-urilor la declaratiile server-issued si dialogul de confirmare;
+- E2E sistemic real React -> OIDC -> RBAC -> API -> PostgreSQL/storage: trecut in [GitHub Actions run 34391818214](https://github.com/eguilde/egueducation/actions/runs/34391818214), inclusiv cele cinci sectiuni, OPIS, submit/return/remediere/validate si refuz cross-user/cross-tenant;
 - TypeScript: trecut;
 - build productie React: trecut;
 - politica PrimeReact si culori exclusiv din tema: trecuta;
 - politica de contract frontend: trecuta;
 - OpenAPI: 506/506 operatii router, 506 operationId unice, 341 operatii Education cu schema completa.
+- build-ul imaginilor, promovarea GitOps si verificarea reviziei publice: trecute in [GitHub Actions run 34392098849](https://github.com/eguilde/egueducation/actions/runs/34392098849);
+- canary OIDC de productie PKCE + OTP: trecut in [GitHub Actions run 34392646149](https://github.com/eguilde/egueducation/actions/runs/34392646149).
 
 ## 6. Regula de declarare a conformitatii
 
