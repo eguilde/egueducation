@@ -20,10 +20,12 @@ export default defineConfig({
   testMatch: 'real-stack.spec.ts',
   fullyParallel: false,
   workers: 1,
-  // This proof drives three real OIDC browser sessions, PostgreSQL RLS,
-  // Registratura uploads, a 20-row batch, workflow approval and MinIO outbox
-  // delivery. Keep a bounded timeout that reflects the complete contract.
-  timeout: 300_000,
+  // This proof drives repeated real OIDC browser sessions, the statutory
+  // five-section teacher portfolio workflow, PostgreSQL RLS, Registratura
+  // uploads, a 20-row batch, workflow approval and MinIO outbox delivery.
+  // Keep the run bounded while allowing the full browser/API/database contract
+  // to complete on a cold GitHub-hosted runner.
+  timeout: 900_000,
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
