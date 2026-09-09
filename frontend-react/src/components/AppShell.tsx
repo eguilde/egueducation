@@ -19,12 +19,12 @@ function useDesktopLayout() {
 function NavigationContent({ tenantTitle, onNavigate }: { tenantTitle: string; onNavigate?: () => void }) {
     const { user, session, login, logout, has } = useAuth();
     const location = useLocation();
-    const items = useMemo(() => navigation.filter((item) => (!item.permission || has(item.permission)) && (!item.module || session?.modules.some((module) => module.code === item.module && module.active))), [has, session?.modules]);
+    const items = useMemo(() => user ? navigation.filter((item) => (!item.permission || has(item.permission)) && (!item.module || session?.modules.some((module) => module.code === item.module && module.active))) : [], [has, session?.modules, user]);
     return <div className="flex h-full flex-col gap-4 p-3">
         <Link to="/" className="app-sidebar-brand flex items-center gap-2 px-2 py-1" onClick={onNavigate}><Avatar.Root shape="circle"><Avatar.Fallback>eG</Avatar.Fallback></Avatar.Root><span>{tenantTitle}</span></Link>
-        <nav aria-label="Navigație principală" className="flex-1"><p className="px-2 text-sm">Componente</p><ul className="m-0 flex list-none flex-col gap-1 p-0">
+        {user && items.length > 0 ? <nav aria-label="Navigație principală" className="flex-1"><ul className="m-0 flex list-none flex-col gap-1 p-0">
             {items.map((item) => <li key={item.to}><Link to={item.to} aria-current={location.pathname === item.to ? 'page' : undefined} className={`block rounded px-2 py-2 no-underline ${location.pathname === item.to ? 'active-nav-item' : ''}`} onClick={onNavigate}>{item.label}</Link></li>)}
-        </ul></nav>
+        </ul></nav> : <div className="flex-1" />}
         <div className="flex items-center gap-2 px-2">{user ? <><Link to="/profil" className="app-profile-link flex min-w-0 flex-1 items-center gap-2 no-underline" onClick={onNavigate}><Avatar.Root shape="circle"><Avatar.Fallback>{user.name.slice(0, 1).toUpperCase()}</Avatar.Fallback></Avatar.Root><span className="truncate">{user.name}</span></Link><Button aria-label="Deconectare" title="Deconectare" variant="text" rounded iconOnly onClick={() => void logout()}><SignOut /></Button></> : <Button variant="text" onClick={() => void login()}><User /><span>Autentificare</span></Button>}</div>
     </div>;
 }

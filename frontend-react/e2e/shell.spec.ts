@@ -26,7 +26,9 @@ test('mobile shell opens and closes the left off-canvas navigation from bars con
     await expect(navigation).not.toBeVisible();
     await page.locator('header').getByRole('button', { name: 'Deschide navigația' }).click();
     await expect(navigation).toHaveAttribute('role', 'complementary');
-    await expect(page.getByText('Componente')).toBeVisible();
+    await expect(navigation.getByText('Componente')).toHaveCount(0);
+    await expect(navigation.getByRole('link', { name: 'Acasă' })).toHaveCount(0);
+    await expect(navigation.getByRole('button', { name: 'Autentificare' })).toBeVisible();
     await page.getByRole('button', { name: 'Închide navigația' }).click();
     await expect(navigation).not.toBeVisible();
 });

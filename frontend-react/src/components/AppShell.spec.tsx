@@ -27,6 +27,8 @@ describe('AppShell', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Deschide navigația' }));
         expect(screen.getByRole('button', { name: 'Închide navigația' })).toBeInTheDocument();
         expect(document.getElementById('main-navigation')).toHaveAttribute('role', 'complementary');
+        expect(screen.queryByText('Componente')).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Acasă' })).not.toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Închide navigația' }));
         await waitFor(() => expect(screen.queryByRole('button', { name: 'Închide navigația' })).not.toBeInTheDocument());
         await waitFor(() => expect(document.querySelector('.app-title')).toHaveTextContent('Școala Balotești'));
