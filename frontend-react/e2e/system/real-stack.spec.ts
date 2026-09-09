@@ -211,16 +211,22 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
   expect(portfolioGrantAdminMe.status).toBe(200);
   expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.archive_grants.manage');
-  const eligibleDocumentsLoaded = page.waitForResponse((response) =>
-    new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants/eligible-documents'
-      && response.request().method() === 'GET',
-  );
+  const portfolioGrantManagerLoaded = Promise.all([
+    '/api/education/portfolios/archive-attachment-grants/eligible-documents',
+    '/api/education/portfolios/archive-attachment-grants/eligible-users',
+    '/api/education/portfolios/archive-attachment-grants',
+  ].map((pathname) => page.waitForResponse((response) =>
+    new URL(response.url()).pathname === pathname && response.request().method() === 'GET',
+  )));
   await page.goto('/scoala/portfolio');
-  expect((await eligibleDocumentsLoaded).status()).toBe(200);
+  for (const response of await portfolioGrantManagerLoaded) expect(response.status()).toBe(200);
+  await expect(page.getByRole('status')).toBeHidden({ timeout: 10_000 });
   await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
   for (const archive of portfolioArchives) {
     await page.getByLabel('Document eArhivă eligibil').click();
-    await page.getByRole('option', { name: new RegExp(archive.title) }).click();
+    const archiveOption = page.getByRole('option', { name: new RegExp(archive.title) });
+    await expect(archiveOption).toBeVisible({ timeout: 10_000 });
+    await archiveOption.click();
     await page.getByLabel('Utilizator beneficiar').click();
     await page.getByRole('option', { name: `${marker} Profesor portofoliu` }).click();
     const granted = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants' && response.request().method() === 'POST');

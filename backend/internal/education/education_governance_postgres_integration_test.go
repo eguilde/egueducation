@@ -80,7 +80,7 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("same-tenant user without explicit attachment grant must see no archive evidence: total=%d items=%#v err=%v", total, attachments, err)
 	}
-	eligibleUsers, eligibleTotal, err := service.listPortfolioArchiveEligibleUsers(requestA, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
+	eligibleUsers, eligibleTotal, err := service.listPortfolioArchiveEligibleUsers(requestA, fixture.institutionA, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
 	if err != nil || eligibleTotal != 1 || len(eligibleUsers) != 1 || eligibleUsers[0].ID != fixture.memberUserID {
 		t.Fatalf("eligible users must be limited to active tenant-A memberships: total=%d users=%#v err=%v", eligibleTotal, eligibleUsers, err)
 	}
@@ -162,7 +162,7 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	if err != nil || total != 0 || len(attachments) != 0 {
 		t.Fatalf("tenant B must not enumerate tenant-A archive attachments: total=%d items=%#v err=%v", total, attachments, err)
 	}
-	eligibleUsers, eligibleTotal, err = service.listPortfolioArchiveEligibleUsers(requestB, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
+	eligibleUsers, eligibleTotal, err = service.listPortfolioArchiveEligibleUsers(requestB, fixture.institutionB, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
 	if err != nil || eligibleTotal != 0 || len(eligibleUsers) != 0 {
 		t.Fatalf("tenant B must not enumerate tenant-A grant users: total=%d users=%#v err=%v", eligibleTotal, eligibleUsers, err)
 	}

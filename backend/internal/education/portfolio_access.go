@@ -322,10 +322,10 @@ func (s *Service) PortfolioArchiveEligibleDocuments(w http.ResponseWriter, r *ht
 	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
 }
 
-func (s *Service) listPortfolioArchiveEligibleUsers(r *http.Request, query httpx.PageQuery) ([]EligibleGovernanceUser, int, error) {
+func (s *Service) listPortfolioArchiveEligibleUsers(r *http.Request, institutionID string, query httpx.PageQuery) ([]EligibleGovernanceUser, int, error) {
 	where := `where tenant.institution_id = $1 and tenant.active and membership.active
 		and user_row.status = 'active' and nullif(btrim(user_row.name), '') is not null`
-	args := []any{s.institutionID(r)}
+	args := []any{institutionID}
 	if value := strings.TrimSpace(query.Filters["name"]); value != "" {
 		args = append(args, "%"+strings.ToLower(value)+"%")
 		where += fmt.Sprintf(" and lower(user_row.name) like $%d", len(args))
@@ -336,7 +336,7 @@ func (s *Service) listPortfolioArchiveEligibleUsers(r *http.Request, query httpx
 		return nil, 0, err
 	}
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
-	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`select distinct user_row.id::text, btrim(user_row.name)%s order by btrim(user_row.name) %s, user_row.id limit $%d offset $%d`, base, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`select distinct user_row.id::text, btrim(user_row.name)%s order by btrim(user_row.name) %s, user_row.id::text limit $%d offset $%d`, base, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -359,7 +359,7 @@ func (s *Service) PortfolioArchiveEligibleUsers(w http.ResponseWriter, r *http.R
 	if query.Sort == "" {
 		query.Sort = "name"
 	}
-	items, total, err := s.listPortfolioArchiveEligibleUsers(r, query)
+	items, total, err := s.listPortfolioArchiveEligibleUsers(r, s.institutionID(r), query)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_archive_eligible_users_failed"})
 		return
