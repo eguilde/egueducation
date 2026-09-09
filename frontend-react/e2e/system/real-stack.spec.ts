@@ -238,7 +238,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect((await portfolioGrantManagerLoaded).status()).toBe(200);
   await expect(page.getByLabel('Drepturi de atașare active', { exact: true }).getByRole('status')).toBeHidden({ timeout: 10_000 });
   await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
-  for (const archive of portfolioArchives) {
+  // Exercise the complete React grant dialog once. The remaining statutory
+  // sections use the same authenticated public API so this system proof keeps
+  // both UI coverage and the full five-document RBAC/database contract without
+  // repeating an expensive modal discovery flow four more times.
+  for (const archive of portfolioArchives.slice(0, 1)) {
     const eligibleListsLoaded = Promise.all([
       '/api/education/portfolios/archive-attachment-grants/eligible-documents',
       '/api/education/portfolios/archive-attachment-grants/eligible-users',
@@ -258,6 +262,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await grantDialog.getByRole('button', { name: 'Acordă acces' }).click();
     expect((await granted).status()).toBe(201);
     await expect(grantDialog).toBeHidden();
+  }
+  for (const archive of portfolioArchives.slice(1)) {
+    const granted = await api<{ archive_document_id: string; grantee_user_id: string }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants', {
+      method: 'POST',
+      body: JSON.stringify({ archive_document_id: archive.id, grantee_user_id: approverID }),
+    });
+    expect(granted.status).toBe(201);
+    expect(granted.body).toMatchObject({ archive_document_id: archive.id, grantee_user_id: approverID });
   }
   expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(5);
   const procedureCode = `PORT-E2E-${Date.now()}`;
@@ -324,7 +336,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // authenticity state are intentionally absent from the browser command and
   // are assigned by the own-only backend handler.
   const portfolioDocuments: PortfolioDocument[] = [];
-  for (const archive of portfolioArchives) {
+  // Exercise the complete React evidence dialog once, then use the exact same
+  // authenticated API contract for the other four statutory sections. Every
+  // record remains covered by the OPIS, immutable archive snapshot, audit and
+  // PostgreSQL assertions below.
+  for (const archive of portfolioArchives.slice(0, 1)) {
     await approverPage.getByRole('button', { name: 'Adaugă document' }).click();
     const documentDialog = approverPage.getByRole('dialog', { name: 'Adaugă document în portofoliu' });
     await documentDialog.getByRole('combobox', { name: 'Componentă din catalog' }).click();
@@ -341,6 +357,25 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await added).status()).toBe(201);
     portfolioDocuments.push(await (await added).json() as PortfolioDocument);
+  }
+  for (const archive of portfolioArchives.slice(1)) {
+    const added = await api<PortfolioDocument>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/documents`, {
+      method: 'POST',
+      body: JSON.stringify({
+        section_code: archive.section,
+        component_code: archive.component,
+        document_title: archive.title,
+        evidence_type: 'adeverinta',
+        issued_on: '2031-09-01',
+        added_on: '2031-09-01',
+        chronological_index: archive.index + 1,
+        sensitive_data: false,
+        file_reference: `archive://${archive.id}`,
+        notes: '',
+      }),
+    });
+    expect(added.status).toBe(201);
+    portfolioDocuments.push(added.body);
   }
 
   const opisRegeneratedResponse = approverPage.waitForResponse((response) =>

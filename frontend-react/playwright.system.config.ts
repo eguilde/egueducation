@@ -25,7 +25,7 @@ export default defineConfig({
   // uploads, a 20-row batch, workflow approval and MinIO outbox delivery.
   // Keep the run bounded while allowing the full browser/API/database contract
   // to complete on a cold GitHub-hosted runner.
-  timeout: 900_000,
+  timeout: 600_000,
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',
