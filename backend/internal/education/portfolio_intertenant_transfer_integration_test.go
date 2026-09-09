@@ -81,8 +81,8 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if _, err := pool.Exec(sourceCtx, `
 		update education_portfolio_transfers
 		set status='trimis', export_manifest_id=$1::uuid, sent_at='2001-01-01', sent_by_subject='forged-sender'
-		where id=$3::uuid
-	`, manifestID, fixture.memberSubject, transferID); err != nil {
+		where id=$2::uuid
+	`, manifestID, transferID); err != nil {
 		t.Fatalf("source tenant sends manifest-bound transfer: %v", err)
 	}
 	var sentBy string

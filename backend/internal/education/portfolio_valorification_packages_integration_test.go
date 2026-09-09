@@ -100,7 +100,12 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 
 	actor := fixture.memberSubject
 	sourceCtx, releaseSource := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, actor)
-	defer releaseSource()
+	sourceReleased := false
+	defer func() {
+		if !sourceReleased {
+			releaseSource()
+		}
+	}()
 	pool := appdb.NewSessionPool(it.readerPool)
 	var packageID string
 	if err := pool.QueryRow(sourceCtx, `
@@ -180,6 +185,11 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 		t.Fatalf("package deletion must be rejected; err=%v", err)
 	}
 
+	// The restricted integration pool intentionally has a single connection.
+	// Release the source-tenant session before proving cross-tenant isolation so
+	// the destination context reuses a connection whose session was cleaned up.
+	releaseSource()
+	sourceReleased = true
 	otherCtx, releaseOther := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, "other-tenant-actor")
 	defer releaseOther()
 	var visible int
