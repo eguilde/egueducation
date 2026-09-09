@@ -49,6 +49,7 @@ func TestPortfolioExportManifestIsOwnerScopedAndUsesSnapshotProvenance(t *testin
 	if document.ArchiveVersionNo != 1 || document.SourceBucket != "earhive" || document.SourceObjectKey != "integration/evidence.pdf" || !isSHA256Hex(document.SourceSHA256) {
 		t.Fatalf("manifest must contain snapshot provenance, got %#v", document)
 	}
+	ownerRelease()
 
 	foreignSubject := subjectForUser(t, ctx, adminPool, fixture.foreignMemberUserID)
 	foreignCtx, foreignRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, foreignSubject)

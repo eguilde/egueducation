@@ -120,7 +120,7 @@ func installOpisFailureTrigger(t *testing.T, ctx context.Context, pool *pgxpool.
 	}
 	if _, err := pool.Exec(ctx, `
 		create trigger integration_fail_portfolio_opis_sync
-		before insert on education_portfolio_opis
+		before insert or delete on education_portfolio_opis
 		for each row execute function integration_fail_portfolio_opis_sync()
 	`); err != nil {
 		t.Fatalf("create OPIS failure trigger: %v", err)

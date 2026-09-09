@@ -1012,3 +1012,194 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const afterLogout = await page.request.get('http://127.0.0.1:8080/api/oidc/token');
   expect(afterLogout.status()).toBe(405);
 });
+
+test('real React governance wizard persists UUID-bound meeting and remains tenant isolated', async ({ page, browser }) => {
+  // Establish the authority only through the ordinary OIDC fixture.  The SQL
+  // setup merely assigns the tenant role that the production administrator
+  // would have; the browser still obtains and presents a fresh access token.
+  const directorID = databaseScalar("select id::text from app_users where sub='oidc-browser-fixture-subject'");
+  const secretaryID = databaseScalar("select id::text from app_users where sub='oidc-browser-approver-subject'");
+  const title = `${marker} ședință CA`;
+  const chairName = `${marker} Președinte CA`;
+  const secretaryName = `${marker} Secretar CA`;
+  databaseExec(`
+    update app_users set name='${chairName}' where id='${directorID}';
+    update app_users set name='${secretaryName}' where id='${secretaryID}';
+    update app_memberships set position_code='super_admin'
+    where user_id='${directorID}' and tenant_code='tenant-egueducation';
+    insert into app_user_platform_roles(user_id, role_code)
+    values ('${directorID}', 'platform_super_admin')
+    on conflict (user_id, role_code) do nothing
+  `);
+
+  const directorToken = await authenticated(page);
+  const directorMe = await api<{ permissions: string[] }>(page, directorToken, '/api/me');
+  expect(directorMe.status).toBe(200);
+  expect(directorMe.body.permissions).toContain('education.governance.manage');
+
+  // This is deliberately a real lazy-loaded React wizard and not a direct
+  // fetch: it proves browser interaction -> generated transport -> OIDC/RBAC
+  // middleware -> Go handler -> PostgreSQL persistence.
+  await page.goto('/scoala/governance/ca-wizard');
+  await expect(page.getByRole('heading', { name: 'Ședință CA/CP/CEAC' })).toBeVisible();
+  await page.getByLabel('Titlu').fill(title);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Cvorum').fill('1');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Data').fill('2026-09-10');
+  await page.getByLabel('Locație').fill('Sala profesorală');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByRole('combobox', { name: 'Președinte *' }).click();
+  await page.getByRole('option', { name: chairName, exact: true }).click();
+  await page.getByRole('combobox', { name: 'Secretar *' }).click();
+  await page.getByRole('option', { name: secretaryName, exact: true }).click();
+  await page.getByLabel('Rezumat').fill('Dovadă reală de guvernanță School.');
+
+  const createdResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/education/governance/meetings'
+      && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const createdHTTP = await createdResponse;
+  const requestPayload = createdHTTP.request().postDataJSON() as Record<string, unknown>;
+  expect(createdHTTP.status()).toBe(201);
+  expect(requestPayload).toMatchObject({
+    title,
+    quorum_required: 1,
+    chairperson_user_id: directorID,
+    secretary_user_id: secretaryID,
+  });
+  const createdMeeting = await createdHTTP.json() as { id: string; institution_id: string };
+  expect(createdMeeting.institution_id).toBe('inst-001');
+  expect(createdMeeting.id).toMatch(/^[0-9a-f-]{36}$/i);
+  expect(databaseScalar(`
+    select title || '|' || institution_id || '|' || chairperson_user_id::text || '|' || secretary_user_id::text || '|' || quorum_required::text || '|' || to_char(meeting_date, 'YYYY-MM-DD')
+    from education_meetings where id='${createdMeeting.id}'
+  `)).toBe(`${title}|inst-001|${directorID}|${secretaryID}|1|2026-09-10`);
+  expect(databaseScalar(`
+    select count(*)::text from app_audit_log
+    where action='education.governance.meeting.create' and target_id='${createdMeeting.id}'
+  `)).toBe('1');
+
+  // The vote endpoint deliberately requires a voting membership in addition
+  // to the route-level RBAC grant.  This authenticated setup creates that
+  // authoritative membership so the three child wizards can prove their own
+  // React-to-database command paths.
+  const membership = await api<{ id: string }>(page, directorToken, '/api/education/governance/memberships', {
+    method: 'POST',
+    body: JSON.stringify({
+      school_year: '2026-2027', organism: 'ca', full_name: chairName,
+      app_user_id: directorID, role_name: 'președinte', mandate_from: '2026-09-01',
+      mandate_to: '2027-08-31', voting_right: true, status: 'activ', notes: 'Fixture system E2E.',
+    }),
+  });
+  expect(membership.status).toBe(201);
+
+  // Participant management is rendered by the reusable School relationship
+  // table rather than a dedicated wizard. Select the real persisted meeting,
+  // open its detail action, and create a participant through that PrimeReact
+  // dialog before exercising the specialized child wizards.
+  await page.goto('/scoala/governance');
+  const meetingRow = page.getByText(title, { exact: true }).locator('xpath=ancestor::tr[1]');
+  await expect(meetingRow).toBeVisible();
+  await meetingRow.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
+  await page.getByRole('button', { name: 'Detalii' }).click();
+  await expect(page.getByText('Ședință selectată — operațiuni')).toBeVisible();
+  await page.getByRole('button', { name: 'Adaugă participanți' }).click();
+  const participantDialog = page.getByRole('dialog', { name: 'Adaugă participanți' });
+  await participantDialog.getByLabel('Nume').fill(chairName);
+  await participantDialog.getByLabel('Rol').fill('Director');
+  await participantDialog.getByLabel('Tip membru').fill('presedinte');
+  await participantDialog.getByLabel('Prezență').fill('prezent');
+  await participantDialog.getByLabel('Drept vot').click();
+  await page.getByRole('option', { name: 'Da', exact: true }).click();
+  await participantDialog.getByLabel('Semnătură').click();
+  await page.getByRole('option', { name: 'Da', exact: true }).click();
+  const participantResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/participants`
+      && response.request().method() === 'POST',
+  );
+  await participantDialog.getByRole('button', { name: 'Salvează' }).click();
+  const participantHTTP = await participantResponse;
+  expect(participantHTTP.status()).toBe(201);
+  const participant = await participantHTTP.json() as { id: string; meeting_id: string; voting_right: boolean; signature_present: boolean };
+  expect(participant).toMatchObject({ meeting_id: createdMeeting.id, voting_right: true, signature_present: true });
+
+  await page.goto(`/scoala/governance/votes-wizard?meetingId=${encodeURIComponent(createdMeeting.id)}`);
+  await expect(page.getByRole('heading', { name: 'Vot al ședinței' })).toBeVisible();
+  await page.getByLabel('Subiect').fill(`${marker} aprobare ordine de zi`);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Pentru').fill('1');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Temei legal').fill('ROFUIP');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  const voteResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/votes`
+      && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const voteHTTP = await voteResponse;
+  expect(voteHTTP.status()).toBe(201);
+  const vote = await voteHTTP.json() as { id: string; meeting_id: string; decision_type: string; outcome: string };
+  expect(vote).toMatchObject({ meeting_id: createdMeeting.id, decision_type: 'hotarare', outcome: 'adoptat' });
+
+  await page.goto(`/scoala/governance/minutes-wizard?meetingId=${encodeURIComponent(createdMeeting.id)}`);
+  await expect(page.getByRole('heading', { name: 'Punct de minută' })).toBeVisible();
+  await page.getByLabel('Subiect').fill(`${marker} consemnare`);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Rezumat discuții').fill('Dezbatere consemnată în sistemul real.');
+  await page.getByLabel('Decizie').fill('Se aprobă măsura propusă.');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Responsabil').fill(chairName);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  const minuteResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/minutes`
+      && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const minuteHTTP = await minuteResponse;
+  expect(minuteHTTP.status()).toBe(201);
+  const minute = await minuteHTTP.json() as { id: string; meeting_id: string; follow_up_status: string };
+  expect(minute).toMatchObject({ meeting_id: createdMeeting.id, follow_up_status: 'de_stabilit' });
+
+  await page.goto(`/scoala/governance/resolutions-wizard?meetingId=${encodeURIComponent(createdMeeting.id)}`);
+  await expect(page.getByRole('heading', { name: 'Hotărâre' })).toBeVisible();
+  await page.getByLabel('Vot').fill(vote.id);
+  await page.getByLabel('Titlu').fill(`${marker} hotărâre`);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Data emiterii').fill('2026-09-10');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Semnat de').fill(chairName);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+  const resolutionResponse = page.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/resolutions`
+      && response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const resolutionHTTP = await resolutionResponse;
+  expect(resolutionHTTP.status()).toBe(201);
+  const resolution = await resolutionHTTP.json() as { id: string; meeting_id: string; vote_id: string; publication_status: string };
+  expect(resolution).toMatchObject({ meeting_id: createdMeeting.id, vote_id: vote.id, publication_status: 'intern' });
+  expect(databaseScalar(`
+    select (select count(*) from education_meeting_participants where id='${participant.id}' and meeting_id='${createdMeeting.id}')::text || '|' ||
+           (select count(*) from education_meeting_votes where id='${vote.id}' and meeting_id='${createdMeeting.id}')::text || '|' ||
+           (select count(*) from education_meeting_minutes where id='${minute.id}' and meeting_id='${createdMeeting.id}')::text || '|' ||
+           (select count(*) from education_meeting_resolutions where id='${resolution.id}' and meeting_id='${createdMeeting.id}' and vote_id='${vote.id}')::text
+  `)).toBe('1|1|1|1');
+
+  // A genuine second-host OIDC session must not see or read the tenant-A
+  // meeting.  The SQL assertion uses the non-bypass app role, not a privileged
+  // owner connection, so it also proves the underlying RLS projection.
+  const balotestiContext = await browser.newContext({ baseURL: 'http://localhost:4175' });
+  const balotestiPage = await balotestiContext.newPage();
+  const balotestiToken = await authenticated(balotestiPage, balotestiIdentifier, balotestiOTP, 'http://localhost:4175');
+  const hiddenFromOtherTenant = await api<unknown>(balotestiPage, balotestiToken, `/api/education/governance/meetings/${createdMeeting.id}`);
+  expect(hiddenFromOtherTenant.status).toBe(404);
+  expect(tenantDatabaseScalar(`select count(*)::text from education_meetings where id='${createdMeeting.id}'`, balotestiScope)).toBe('0');
+  await balotestiPage.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(balotestiPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  await balotestiContext.close();
+
+  await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+});

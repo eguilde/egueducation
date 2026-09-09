@@ -85,6 +85,7 @@ func TestPortfolioDeclarationAcknowledgementsAreOwnerBoundAndServerIssued(t *tes
 	if evidence.DeclarationVersion == "" || evidence.DeclarationText == "" || evidence.AttestationMethod != portfolioDeclarationAcknowledgementMethod || evidence.AcceptedByUserID != fixture.memberUserID {
 		t.Fatalf("acknowledgement must preserve server-issued legal evidence, got %#v", evidence)
 	}
+	ownerRelease()
 
 	foreignContext, foreignRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, foreignSubject)
 	defer foreignRelease()

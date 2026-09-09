@@ -483,9 +483,11 @@ const governanceFields: RecordField[] = [
 function GovernanceMeetingsPage({
   api,
   canManage,
+  canManageMeeting,
 }: {
   api: EducationApi;
   canManage: boolean;
+  canManageMeeting: (meetingID: string) => boolean;
 }) {
   const navigate = useNavigate();
   const [editing, setEditing] = useState<{
@@ -723,7 +725,7 @@ function GovernanceMeetingsPage({
       <GovernanceMeetingRelations
         api={api}
         meetingId={selectedMeetingId ?? ""}
-        canManage={canManage}
+        canManage={() => canManage}
         title="Membrii organismelor"
         relations={[
           {
@@ -759,7 +761,7 @@ function GovernanceMeetingsPage({
       <GovernanceMeetingRelations
         api={api}
         meetingId=""
-        canManage={canManage}
+        canManage={() => canManage}
         title="Organisme de guvernanță"
         relations={[
           {
@@ -786,7 +788,7 @@ function GovernanceMeetingsPage({
         <GovernanceMeetingRelations
           api={api}
           meetingId={selectedMeetingId}
-          canManage={canManage}
+          canManage={() => canManageMeeting(selectedMeetingId)}
         />
       )}
       {selectedMeetingId && (
@@ -806,6 +808,12 @@ type RelatedConfig = {
   label: string;
   path: (parentId: string) => string;
   fields: RecordField[];
+  /**
+   * A subresource may deliberately be governed by a narrower permission than
+   * its parent dossier.  Keeping this alongside its endpoint prevents the UI
+   * from offering an action that the backend will reject.
+   */
+  managePermission?: string;
   pdf?: boolean;
   advance?: (parentId: string, itemId: string) => string;
   summary?: (parentId: string, itemId: string) => string;
@@ -902,9 +910,10 @@ const domainRelations: Partial<
   Record<EducationRecordsDomain, RelatedConfig[]>
 > = {
   decisions: [
-    {
-      id: "issuances",
-      label: "Emiteri",
+  {
+    id: "issuances",
+    label: "Emiteri",
+    managePermission: "education.decisions.issuance.manage",
       path: (id) =>
         `/education/decisions/records/${encodeURIComponent(id)}/issuances`,
       fields: [
@@ -917,9 +926,10 @@ const domainRelations: Partial<
         { key: "notes", label: "Note" },
       ],
     },
-    {
-      id: "publication-steps",
-      label: "Pași publicare",
+  {
+    id: "publication-steps",
+    label: "Pași publicare",
+    managePermission: "education.compliance.manage",
       path: (id) =>
         `/education/decisions/records/${encodeURIComponent(id)}/publication-steps`,
       fields: [
@@ -968,9 +978,10 @@ const domainRelations: Partial<
     },
   ],
   committees: [
-    {
-      id: "members",
-      label: "Membri comisie",
+  {
+    id: "members",
+    label: "Membri comisie",
+    managePermission: "education.governance.manage",
       path: (id) =>
         `/education/committees/records/${encodeURIComponent(id)}/members`,
       fields: [
@@ -1040,9 +1051,10 @@ const domainRelations: Partial<
         { key: "notes", label: "Note" },
       ],
     },
-    {
-      id: "file-documents",
-      label: "Documente dosar",
+  {
+    id: "file-documents",
+    label: "Documente dosar",
+    managePermission: "education.personnel.files.manage",
       path: (id) =>
         `/education/personnel/records/${encodeURIComponent(id)}/file-documents`,
       fields: [
@@ -1069,9 +1081,10 @@ const domainRelations: Partial<
         { key: "outcome", label: "Rezultat" },
       ],
     },
-    {
-      id: "access-events",
-      label: "Evenimente acces",
+  {
+    id: "access-events",
+    label: "Evenimente acces",
+    managePermission: "education.personnel.access.manage",
       path: (id) =>
         `/education/personnel/records/${encodeURIComponent(id)}/access-events`,
       fields: [
@@ -1375,9 +1388,10 @@ const domainRelations: Partial<
         { key: "notes", label: "Note" },
       ],
     },
-    {
-      id: "transfers",
-      label: "Transferuri",
+  {
+    id: "transfers",
+    label: "Transferuri",
+    managePermission: "education.portfolios.transfer",
       path: (id) =>
         `/education/portfolios/records/${encodeURIComponent(id)}/transfers`,
       advance: (parentId, itemId) =>
@@ -1419,7 +1433,7 @@ function GovernanceMeetingRelations({
 }: {
   api: EducationApi;
   meetingId: string;
-  canManage: boolean;
+  canManage: (relation: RelatedConfig) => boolean;
   relations?: RelatedConfig[];
   title?: string;
 }) {
@@ -1445,6 +1459,7 @@ function GovernanceMeetingRelations({
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [refresh, setRefresh] = useState(0);
   const filterEffectReady = useRef(false);
+  const relationCanManage = canManage(relation);
   const path = relation.path(meetingId);
   const load = useCallback(async (
     nextPage = 1,
@@ -1529,7 +1544,7 @@ function GovernanceMeetingRelations({
               <div className="flex justify-center p-6">
                 <Spinner />
               </div>
-            ) : page.items.length === 0 && !canManage ? (
+            ) : page.items.length === 0 && !relationCanManage ? (
               <Message.Root severity="info">
                 <Message.Content>
                   <Message.Text>
@@ -1594,7 +1609,7 @@ function GovernanceMeetingRelations({
                       <DataTable.THeadCell frozen alignFrozen="right">
                         <span className="flex items-center justify-between gap-2">
                           <span>Acțiuni</span>
-                          {canManage && (
+                          {relationCanManage && (
                             <Button
                               iconOnly
                               rounded
@@ -1644,7 +1659,7 @@ function GovernanceMeetingRelations({
                                       ),
                                     ),
                                   },
-                                ...(canManage && relation.advance
+                                ...(relationCanManage && relation.advance
                                   ? [{
                                       label: "Avansează",
                                       icon: "pi pi-arrow-right",
@@ -1678,7 +1693,7 @@ function GovernanceMeetingRelations({
                                     ),
                                       }]
                                   : []),
-                                ...(canManage
+                                ...(relationCanManage
                                   ? [{
                                       label: "Editează",
                                       icon: "pi pi-pencil",
@@ -1731,7 +1746,7 @@ function GovernanceMeetingRelations({
                 </div>
               </div>
             )}
-            {!loading && page.items.length === 0 && canManage && (
+            {!loading && page.items.length === 0 && relationCanManage && (
               <Message.Root severity="info">
                 <Message.Content>
                   <Message.Text>
@@ -1957,6 +1972,21 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
 function permissionForDomain(domain: EducationRecordsDomain) {
   return `education.${domain === "merit" ? "gradatii" : domain}.manage`;
 }
+export function relationManagePermission(
+  domain: EducationRecordsDomain,
+  configuredPermission?: string,
+) {
+  return configuredPermission ?? permissionForDomain(domain);
+}
+function delegationResourceTypeForDomain(domain: EducationRecordsDomain) {
+  switch (domain) {
+    case "portfolios": return "portfolio";
+    case "decisions": return "decision";
+    case "regulations": return "regulation";
+    case "personnel": return "personnel";
+    default: return "institution";
+  }
+}
 const domainWizardRoutes: Partial<Record<EducationRecordsDomain, string>> = {
   managerial: "/scoala/governance/managerial-wizard",
   personnel: "/scoala/personnel/wizard",
@@ -2020,6 +2050,7 @@ function DomainRecordsPage({
   area,
   canManage,
   canManageRecord,
+  canManageRelation,
   canVerifyPortfolio = false,
   canVerifyPortfolioRecord,
   canManageSchoolPortfolios = false,
@@ -2038,6 +2069,7 @@ function DomainRecordsPage({
   area: EducationArea;
   canManage: boolean;
   canManageRecord?: (recordID: string) => boolean;
+  canManageRelation?: (relation: RelatedConfig, recordID: string) => boolean;
   canVerifyPortfolio?: boolean;
   canVerifyPortfolioRecord?: (recordID: string) => boolean;
   canManageSchoolPortfolios?: boolean;
@@ -2298,7 +2330,7 @@ function DomainRecordsPage({
         <GovernanceMeetingRelations
           api={api}
           meetingId={selectedRecordId}
-          canManage={canManage}
+          canManage={(relation) => Boolean(canManageRelation?.(relation, selectedRecordId))}
           title={`${area.label} — operațiuni dosar`}
           relations={domainRelations[domain]}
         />
@@ -3143,7 +3175,10 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
       ) : active === "governance" ? (
         <GovernanceMeetingsPage
           api={api}
-          canManage={permissions.includes("education.governance.manage")}
+          canManage={allows("education.governance.manage")}
+          canManageMeeting={(meetingID) =>
+            allows("education.governance.manage", "meeting", meetingID)
+          }
         />
       ) : (
         <>
@@ -3159,10 +3194,15 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
             canManage={allows(permissionForDomain(current.id as EducationRecordsDomain))}
             canManageRecord={(recordID) => allows(
               permissionForDomain(current.id as EducationRecordsDomain),
-              current.id === "portfolios" ? "portfolio" :
-                current.id === "decisions" ? "decision" :
-                  current.id === "regulations" ? "regulation" :
-                    current.id === "personnel" ? "personnel" : "institution",
+              delegationResourceTypeForDomain(current.id as EducationRecordsDomain),
+              recordID,
+            )}
+            canManageRelation={(relation, recordID) => allows(
+              relationManagePermission(
+                current.id as EducationRecordsDomain,
+                relation.managePermission,
+              ),
+              delegationResourceTypeForDomain(current.id as EducationRecordsDomain),
               recordID,
             )}
             canVerifyPortfolio={allows("education.portfolios.verify")}

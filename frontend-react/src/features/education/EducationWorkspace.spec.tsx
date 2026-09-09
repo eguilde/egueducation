@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { EducationListPanel, educationPermissionAllows } from "./EducationWorkspace";
+import { EducationListPanel, educationPermissionAllows, relationManagePermission } from "./EducationWorkspace";
 
 describe("EducationListPanel", () => {
   it("debounces header-row filters and sends them to the server from page one", async () => {
@@ -79,5 +79,21 @@ describe("educationPermissionAllows", () => {
     expect(educationPermissionAllows([], grants, "education.portfolios.school.manage", "portfolio", "portfolio-2")).toBe(false);
     expect(educationPermissionAllows([], grants, "education.portfolios.school.manage")).toBe(false);
     expect(educationPermissionAllows(["education.portfolios.school.manage"], [], "education.portfolios.school.manage", "portfolio", "portfolio-2")).toBe(true);
+  });
+
+  it.each([
+    ["decisions", "education.decisions.issuance.manage"],
+    ["decisions", "education.compliance.manage"],
+    ["committees", "education.governance.manage"],
+    ["personnel", "education.personnel.files.manage"],
+    ["personnel", "education.personnel.access.manage"],
+    ["portfolios", "education.portfolios.transfer"],
+  ] as const)("uses the backend subresource permission %s → %s", (domain, permission) => {
+    expect(relationManagePermission(domain, permission)).toBe(permission);
+  });
+
+  it("keeps the parent domain permission only for relations governed by that domain", () => {
+    expect(relationManagePermission("evaluations")).toBe("education.evaluations.manage");
+    expect(relationManagePermission("merit")).toBe("education.gradatii.manage");
   });
 });

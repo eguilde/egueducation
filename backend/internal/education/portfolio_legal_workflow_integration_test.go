@@ -79,8 +79,7 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	assertHandlerCode(t, missingEvidence, http.StatusUnprocessableEntity, "education_portfolio_submit_incomplete")
 	assertResponseContains(t, missingEvidence, "missing_components")
 
-	archiveDocumentID := seedGovernancePortfolioArchiveAttachments(t, ctx, adminPool, fixture.institutionA, fixture.memberUserID)
-	addRequiredProcedureEvidence(t, service, ownerCtx, fixture, portfolio.ID, archiveDocumentID)
+	addRequiredProcedureEvidence(t, ctx, adminPool, service, ownerCtx, fixture, portfolio.ID)
 
 	accepted := httptest.NewRecorder()
 	service.PortfolioOwnSubmit(accepted, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, "", map[string]string{"recordID": portfolio.ID}))
@@ -93,6 +92,7 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	if portfolio.Status != "submitted" || !portfolio.AuthenticityDeclared || !portfolio.ConsentCaptured {
 		t.Fatalf("submission must derive legal projections from immutable acknowledgements, got %#v", portfolio)
 	}
+	ownerRelease()
 
 	// Ownership and host-derived tenant scope are both part of the command
 	// boundary; a second teacher and a different tenant cannot submit this ID.
@@ -102,12 +102,16 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	foreign := httptest.NewRecorder()
 	service.PortfolioOwnSubmit(foreign, legalWorkflowRequest(foreignCtx, fixture, http.MethodPost, "", map[string]string{"recordID": portfolio.ID}))
 	assertHandlerCode(t, foreign, http.StatusForbidden, "education_portfolio_access_denied")
+	foreignRelease()
 
 	crossTenantCtx, crossTenantRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	defer crossTenantRelease()
 	crossTenant := httptest.NewRecorder()
 	service.PortfolioOwnSubmit(crossTenant, legalWorkflowRequest(crossTenantCtx, governanceAuthorizationFixture{tenantA: fixture.tenantB, institutionA: fixture.institutionB, memberSubject: fixture.memberSubject}, http.MethodPost, "", map[string]string{"recordID": portfolio.ID}))
 	assertHandlerCode(t, crossTenant, http.StatusForbidden, "education_portfolio_access_denied")
+	crossTenantRelease()
+	ownerCtx, finalOwnerRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
+	defer finalOwnerRelease()
 
 	// Retention is produced only by the institution lifecycle command, then a
 	// legal hold is persisted and visible in the returned authoritative record.
@@ -219,13 +223,14 @@ func seedPublishedPortfolioProcedure(t *testing.T, ctx context.Context, pool *pg
 	return procedureID
 }
 
-func addRequiredProcedureEvidence(t *testing.T, service *Service, ctx context.Context, fixture governanceAuthorizationFixture, portfolioID, archiveDocumentID string) {
+func addRequiredProcedureEvidence(t *testing.T, setupCtx context.Context, adminPool *pgxpool.Pool, service *Service, requestCtx context.Context, fixture governanceAuthorizationFixture, portfolioID string) {
 	t.Helper()
 	for index, sectionCode := range []string{"identificare_profesionala", "predare_invatare_evaluare", "activitati_complementare", "managementul_clasei", "evolutie_dezvoltare_profesionala"} {
+		archiveDocumentID := seedGovernancePortfolioArchiveAttachments(t, setupCtx, adminPool, fixture.institutionA, fixture.memberUserID)
 		payload := fmt.Sprintf(`{"section_code":%q,"component_code":"structura_cadru","document_title":%q,"evidence_type":"document","issued_on":"2027-09-01","added_on":"2027-09-02","chronological_index":%d,"sensitive_data":false,"file_reference":%q,"notes":"evidence"}`,
 			sectionCode, "Evidence "+sectionCode, index+1, "archive://"+archiveDocumentID)
 		created := httptest.NewRecorder()
-		service.PortfolioOwnDocumentCreate(created, legalWorkflowRequest(ctx, fixture, http.MethodPost, payload, map[string]string{"recordID": portfolioID}))
+		service.PortfolioOwnDocumentCreate(created, legalWorkflowRequest(requestCtx, fixture, http.MethodPost, payload, map[string]string{"recordID": portfolioID}))
 		if created.Code != http.StatusCreated {
 			t.Fatalf("add required evidence for %s: status=%d body=%s", sectionCode, created.Code, created.Body.String())
 		}

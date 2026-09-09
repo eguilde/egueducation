@@ -132,8 +132,8 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 		update education_portfolio_transfers
 		set status='receptionat', received_at='2001-01-01', received_on='2001-01-01',
 			received_by='forged receiver', received_by_subject='forged-receiver'
-		where id=$2::uuid
-	`, destinationSubject, transferID); err != nil {
+		where id=$1::uuid
+	`, transferID); err != nil {
 		t.Fatalf("destination confirms receipt: %v", err)
 	}
 	var receivedBy string

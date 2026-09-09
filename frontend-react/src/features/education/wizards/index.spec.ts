@@ -22,5 +22,34 @@ describe("education wizard contracts", () => {
     expect(wizardDefinitions.portfolio.permission).toBe("manage");
     expect(wizardDefinitions.personnel.validate({ full_name: "", role_title: "", school_year: "" })).toHaveLength(3);
   });
+  it("uses the exact governance enums accepted by the backend", () => {
+    const field = (definition: "minute" | "vote" | "resolution", key: string) =>
+      wizardDefinitions[definition].fields.find((item) => item.key === key);
+
+    expect(wizardDefinitions.minute.initial.follow_up_status).toBe("de_stabilit");
+    expect(field("minute", "follow_up_status")?.options?.map((item) => item.value)).toEqual([
+      "de_stabilit", "in_urmarire", "realizat", "amanat", "inchis",
+    ]);
+    expect(wizardDefinitions.vote.initial).toMatchObject({
+      decision_type: "hotarare",
+      outcome: "adoptat",
+    });
+    expect(field("vote", "decision_type")?.options?.map((item) => item.value)).toEqual([
+      "hotarare", "aviz", "informare", "delegare", "aprobare",
+    ]);
+    expect(field("vote", "outcome")?.options?.map((item) => item.value)).toEqual([
+      "adoptat", "respins", "amanat",
+    ]);
+    expect(wizardDefinitions.resolution.initial).toMatchObject({
+      publication_status: "intern",
+      anonymization_state: "nu_este_necesara",
+    });
+    expect(field("resolution", "publication_status")?.options?.map((item) => item.value)).toEqual([
+      "intern", "publicat", "pregatit_publicare",
+    ]);
+    expect(field("resolution", "anonymization_state")?.options?.map((item) => item.value)).toEqual([
+      "necesara", "finalizata", "nu_este_necesara",
+    ]);
+  });
 });
 
