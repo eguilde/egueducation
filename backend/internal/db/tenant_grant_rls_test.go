@@ -40,6 +40,26 @@ func TestTenantGrantRLSMigrationContract(t *testing.T) {
 	}
 }
 
+func TestCurrentTenantDirectoryPolicyIsReadOnly(t *testing.T) {
+	contents, err := migrationFiles.ReadFile("migrations/0099_current_tenant_directory_read.sql")
+	if err != nil {
+		t.Fatalf("read current-tenant directory migration: %v", err)
+	}
+	text := strings.ToLower(string(contents))
+	for _, required := range []string{
+		"create policy tenant_current_read",
+		"for select",
+		"code = public.current_tenant_code()",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("current-tenant directory migration is missing %q", required)
+		}
+	}
+	if strings.Contains(text, "for all") || strings.Contains(text, "with check") {
+		t.Fatal("current-tenant directory policy must never authorize tenant writes")
+	}
+}
+
 // TestTenantGrantRLSIntegration proves the enforcement boundary with a real
 // NOINHERIT/NOBYPASSRLS application role. It uses one physical connection so a
 // failed cleanup of app.tenant_id would deterministically leak grants into the
