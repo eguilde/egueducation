@@ -378,6 +378,13 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     portfolioDocuments.push(added.body);
   }
 
+  // The four API-created records intentionally bypass local React state. Reload
+  // the authenticated workspace from the server before exercising the OPIS and
+  // submit controls, then prove that the UI recognizes a complete portfolio.
+  await approverPage.reload();
+  await expect(approverPage.getByRole('region', { name: 'Portofoliul meu profesional' })).toBeVisible();
+  await expect(approverPage.getByRole('button', { name: 'Regenerare opis' })).toBeEnabled();
+
   const opisRegeneratedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/opis/regenerate` && response.request().method() === 'POST',
   );
@@ -389,6 +396,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(ownOpis.body.total).toBe(5);
   expect(ownOpis.body.items.map((item) => item.document_reference).sort()).toEqual(portfolioArchives.map((archive) => `archive://${archive.id}`).sort());
 
+  await expect(approverPage.getByRole('button', { name: 'Trimite spre verificare' })).toBeEnabled();
   const portfolioSubmittedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/submit` && response.request().method() === 'POST',
   );
