@@ -21,6 +21,7 @@ import { Tag } from "@primereact/ui/tag";
 import { useAuth } from "../../auth/AuthProvider";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { visibleEducationAreas } from "./catalog";
+import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
 import type {
   EducationApi,
   DirectorCockpit,
@@ -1786,10 +1787,14 @@ function DomainRecordsPage({
   api,
   area,
   canManage,
+  canVerifyPortfolio = false,
+  canManageSchoolPortfolios = false,
 }: {
   api: EducationApi;
   area: EducationArea;
   canManage: boolean;
+  canVerifyPortfolio?: boolean;
+  canManageSchoolPortfolios?: boolean;
 }) {
   const navigate = useNavigate();
   const domain = area.id as EducationRecordsDomain;
@@ -1992,11 +1997,12 @@ function DomainRecordsPage({
           })
         }
       />
-      {selectedRecordId && domain === "portfolios" && canManage && (
-        <div>
+      {selectedRecordId && domain === "portfolios" && (canManage || canManageSchoolPortfolios || canVerifyPortfolio) && (
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outlined"
             severity="secondary"
+            disabled={!canManage && !canManageSchoolPortfolios}
             onClick={() =>
               void api
                 .command(
@@ -2008,6 +2014,29 @@ function DomainRecordsPage({
           >
             Regenerare opis
           </Button>
+          {(canManage || canManageSchoolPortfolios) && (
+            <Button
+              variant="outlined"
+              severity="warn"
+              disabled={String(detail?.status ?? "") !== "submitted"}
+              onClick={() => void action(async () => {
+                await api.command(`/education/portfolios/records/${encodeURIComponent(selectedRecordId)}/return`);
+              })}
+            >
+              Solicită completări
+            </Button>
+          )}
+          {(canManage || canVerifyPortfolio) && (
+            <Button
+              severity="success"
+              disabled={String(detail?.status ?? "") !== "submitted"}
+              onClick={() => void action(async () => {
+                await api.command(`/education/portfolios/records/${encodeURIComponent(selectedRecordId)}/verify`);
+              })}
+            >
+              Validează portofoliul
+            </Button>
+          )}
         </div>
       )}
       {selectedRecordId && domainRelations[domain] && (
@@ -2853,13 +2882,20 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           canManage={permissions.includes("education.governance.manage")}
         />
       ) : (
-        <DomainRecordsPage
-          api={api}
-          area={current}
-          canManage={permissions.includes(
-            permissionForDomain(current.id as EducationRecordsDomain),
+        <>
+          {active === "portfolios" && permissions.includes("education.portfolios.archive_grants.manage") && (
+            <PortfolioArchiveGrantManager api={api} />
           )}
-        />
+          <DomainRecordsPage
+            api={api}
+            area={current}
+            canManage={permissions.includes(
+              permissionForDomain(current.id as EducationRecordsDomain),
+            )}
+            canVerifyPortfolio={permissions.includes("education.portfolios.verify")}
+            canManageSchoolPortfolios={permissions.includes("education.portfolios.school.manage")}
+          />
+        </>
       )}
     </section>
   );

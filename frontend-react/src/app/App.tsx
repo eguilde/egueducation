@@ -43,6 +43,11 @@ const EducationWorkspace = lazy(() =>
     default: module.EducationWorkspace,
   })),
 );
+const TeacherPortfolioWorkspace = lazy(() =>
+  import("../features/education/TeacherPortfolioWorkspace").then((module) => ({
+    default: module.TeacherPortfolioWorkspace,
+  })),
+);
 const ProfileWorkspace = lazy(() =>
   import("../features/profile/ProfileWorkspace").then((module) => ({
     default: module.ProfileWorkspace,
@@ -144,6 +149,8 @@ const schoolReadPermissions = [
   "education.mobility.read",
   "education.gradatii.read",
   "education.portfolios.read",
+  "education.portfolios.school.read",
+  "education.portfolios.read_own",
   "education.compliance.read",
 ] as const;
 
@@ -181,6 +188,21 @@ function SchoolRoute({
   return (
     <SchoolAccess permissions={permissions}>
       {deferred(<EducationWorkspace />)}
+    </SchoolAccess>
+  );
+}
+
+function TeacherPortfolioRoute() {
+  const { apiFetch, has } = useAuth();
+  const api = useMemo(() => createEducationApi(apiFetch), [apiFetch]);
+  return (
+    <SchoolAccess permissions={["education.portfolios.read_own"]}>
+      {deferred(
+        <TeacherPortfolioWorkspace
+          api={api}
+          canManageOwn={has("education.portfolios.manage_own")}
+        />,
+      )}
     </SchoolAccess>
   );
 }
@@ -370,9 +392,7 @@ export function App() {
               />
               <Route
                 path="scoala/teacher"
-                element={
-                  <SchoolRoute permissions={["education.portfolios.read"]} />
-                }
+                element={deferred(<TeacherPortfolioRoute />)}
               />
               <Route
                 path="scoala/governance"
@@ -494,19 +514,17 @@ export function App() {
               <Route
                 path="scoala/portfolio"
                 element={
-                  <SchoolRoute permissions={["education.portfolios.read"]} />
+                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
                 }
               />
               <Route
                 path="scoala/portfolio/me"
-                element={
-                  <SchoolRoute permissions={["education.portfolios.read"]} />
-                }
+                element={deferred(<TeacherPortfolioRoute />)}
               />
               <Route
                 path="scoala/portfolio/workflow"
                 element={
-                  <SchoolRoute permissions={["education.portfolios.read"]} />
+                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
                 }
               />
               <Route

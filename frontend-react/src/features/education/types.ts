@@ -1,3 +1,5 @@
+import type { components } from "../../api/generated";
+
 export interface EducationModule {
   code: string;
   active: boolean;
@@ -46,10 +48,7 @@ export interface GovernanceDashboard {
 export interface DirectorCockpit {
   [key: string]: unknown;
 }
-export interface EligibleGovernanceUser {
-  id: string;
-  name: string;
-}
+export type EligibleGovernanceUser = components["schemas"]["EligibleGovernanceUser"];
 
 /**
  * Most Education domains intentionally expose their own record schema.  Keeping
@@ -71,6 +70,32 @@ export type EducationPdfRecordsDomain =
 export interface EducationRecordInput {
   [key: string]: string | number | boolean | undefined;
 }
+
+/**
+ * Deliberately narrow self-service contract for a teacher's professional
+ * portfolio.  Identity, tenancy, custody and lifecycle ownership are never
+ * client supplied: the active authenticated principal is authoritative.
+ */
+type GeneratedOwnPortfolioInput = components["schemas"]["OwnPortfolioRequest"];
+export type OwnPortfolioInput = Required<Pick<GeneratedOwnPortfolioInput,
+  "school_year" | "section_count" | "last_updated_on" | "authenticity_declared" | "consent_captured" | "notes"
+>>;
+
+type GeneratedPortfolio = components["schemas"]["PortfolioRecord"];
+export type OwnPortfolio = OwnPortfolioInput & Required<Pick<GeneratedPortfolio,
+  "id" | "portfolio_code" | "owner_name" | "owner_role" | "status" | "transfer_status"
+>>;
+
+export type PortfolioOpisRegeneration = components["schemas"]["EducationRegeneratePortfolioOpisResponse"];
+
+type GeneratedOwnPortfolioDocumentInput = components["schemas"]["OwnPortfolioDocumentRequest"];
+export type OwnPortfolioDocumentInput = Required<Pick<GeneratedOwnPortfolioDocumentInput,
+  "section_code" | "component_code" | "document_title" | "evidence_type" |
+  "issued_on" | "added_on" | "chronological_index" | "sensitive_data" | "file_reference" | "notes"
+>>;
+export type OwnPortfolioArchiveDocument = components["schemas"]["PortfolioArchiveAttachment"];
+export type PortfolioAttachmentGrant = components["schemas"]["PortfolioArchiveAttachmentGrant"];
+export type CreatePortfolioAttachmentGrant = components["schemas"]["CreatePortfolioArchiveAttachmentGrantRequest"];
 
 export interface EducationApi {
   governanceDashboard(): Promise<GovernanceDashboard>;
@@ -116,6 +141,21 @@ export interface EducationApi {
   exportFile(format: "pdf" | "csv"): Promise<Blob>;
   metadata(path: string): Promise<Record<string, unknown>>;
   command(path: string): Promise<void>;
+  ownPortfolios(): Promise<EducationPage<OwnPortfolio>>;
+  ownPortfolio(id: string): Promise<OwnPortfolio>;
+  createOwnPortfolio(input: OwnPortfolioInput): Promise<OwnPortfolio>;
+  updateOwnPortfolio(id: string, input: OwnPortfolioInput): Promise<OwnPortfolio>;
+  submitOwnPortfolio(id: string): Promise<OwnPortfolio>;
+  ownPortfolioRelated(id: string, resource: "documents" | "checklist" | "opis" | "reviews"): Promise<EducationPage<EducationRecord>>;
+  regenerateOwnPortfolioOpis(id: string): Promise<PortfolioOpisRegeneration>;
+  createOwnPortfolioDocument(id: string, input: OwnPortfolioDocumentInput): Promise<EducationRecord>;
+  deleteOwnPortfolioDocument(portfolioID: string, documentID: string): Promise<void>;
+  ownPortfolioArchiveDocuments(): Promise<EducationPage<OwnPortfolioArchiveDocument>>;
+  attachmentGrants(): Promise<EducationPage<PortfolioAttachmentGrant>>;
+  eligibleAttachmentDocuments(): Promise<EducationPage<OwnPortfolioArchiveDocument>>;
+  eligibleAttachmentUsers(): Promise<EducationPage<EligibleGovernanceUser>>;
+  createAttachmentGrant(input: CreatePortfolioAttachmentGrant): Promise<PortfolioAttachmentGrant>;
+  deleteAttachmentGrant(id: string): Promise<void>;
 }
 
 export interface EducationListQuery {

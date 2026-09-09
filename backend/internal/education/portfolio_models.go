@@ -3,6 +3,8 @@ package education
 type PortfolioRecord struct {
 	ID                   string `json:"id"`
 	PortfolioCode        string `json:"portfolio_code"`
+	OwnerUserID          string `json:"owner_user_id,omitempty"`
+	OwnerPersonnelID     string `json:"owner_personnel_id,omitempty"`
 	OwnerName            string `json:"owner_name"`
 	OwnerRole            string `json:"owner_role"`
 	SchoolYear           string `json:"school_year"`
@@ -36,6 +38,10 @@ type PortfolioStats struct {
 }
 
 type CreatePortfolioRecordRequest struct {
+	// OwnerUserID is accepted only for an institution administrator. Own-portfolio
+	// endpoints ignore it and derive the immutable owner from the session.
+	OwnerUserID          string `json:"owner_user_id,omitempty"`
+	OwnerPersonnelID     string `json:"owner_personnel_id,omitempty"`
 	OwnerName            string `json:"owner_name"`
 	OwnerRole            string `json:"owner_role"`
 	SchoolYear           string `json:"school_year"`
@@ -47,6 +53,17 @@ type CreatePortfolioRecordRequest struct {
 	AuthenticityDeclared bool   `json:"authenticity_declared"`
 	ConsentCaptured      bool   `json:"consent_captured"`
 	Custodian            string `json:"custodian"`
+	Notes                string `json:"notes"`
+}
+
+// OwnPortfolioRequest is the public command contract for a portfolio owner.
+// Identity, lifecycle, custody, transfer and retention are server-controlled.
+type OwnPortfolioRequest struct {
+	SchoolYear           string `json:"school_year"`
+	SectionCount         int    `json:"section_count"`
+	LastUpdatedOn        string `json:"last_updated_on"`
+	AuthenticityDeclared bool   `json:"authenticity_declared"`
+	ConsentCaptured      bool   `json:"consent_captured"`
 	Notes                string `json:"notes"`
 }
 
@@ -108,6 +125,45 @@ type CreatePortfolioDocumentRequest struct {
 	AuthenticityStatus string `json:"authenticity_status"`
 	FileReference      string `json:"file_reference"`
 	Notes              string `json:"notes"`
+}
+
+// OwnPortfolioDocumentRequest excludes institution-controlled authenticity
+// and provenance fields. Own-document handlers set those values server-side.
+type OwnPortfolioDocumentRequest struct {
+	SectionCode        string `json:"section_code"`
+	ComponentCode      string `json:"component_code"`
+	DocumentTitle      string `json:"document_title"`
+	EvidenceType       string `json:"evidence_type"`
+	IssuedOn           string `json:"issued_on"`
+	AddedOn            string `json:"added_on"`
+	ChronologicalIndex int    `json:"chronological_index"`
+	SensitiveData      bool   `json:"sensitive_data"`
+	FileReference      string `json:"file_reference"`
+	Notes              string `json:"notes"`
+}
+
+// PortfolioArchiveAttachment is the deliberately minimal eArhiva projection
+// exposed to a portfolio owner when choosing existing evidence. It never
+// exposes storage paths, metadata, OCR text, or archive workflow state.
+type PortfolioArchiveAttachment struct {
+	ID               string `json:"id"`
+	Title            string `json:"title"`
+	CurrentVersionNo int    `json:"current_version_no"`
+}
+
+type PortfolioArchiveAttachmentGrant struct {
+	ID                string `json:"id"`
+	ArchiveDocumentID string `json:"archive_document_id"`
+	DocumentTitle     string `json:"document_title"`
+	GranteeUserID     string `json:"grantee_user_id"`
+	GranteeName       string `json:"grantee_name"`
+	GrantedByUserID   string `json:"granted_by_user_id,omitempty"`
+	CreatedAt         string `json:"created_at"`
+}
+
+type CreatePortfolioArchiveAttachmentGrantRequest struct {
+	ArchiveDocumentID string `json:"archive_document_id"`
+	GranteeUserID     string `json:"grantee_user_id"`
 }
 
 type PortfolioChecklistItem struct {

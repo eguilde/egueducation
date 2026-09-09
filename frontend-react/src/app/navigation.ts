@@ -5,5 +5,6 @@ export const navigation: NavItem[] = [
   { label: 'Flux documente', icon: 'pi pi-send', to: '/flux-documente', permission: 'workflow.read', module: 'workflow' },
   { label: 'eArhivă', icon: 'pi pi-folder-open', to: '/earchiva', permission: 'earchiva.read' },
   { label: 'Școală', icon: 'pi pi-building-columns', to: '/scoala', permission: 'education.read', module: 'education' },
+  { label: 'Portofoliul meu', icon: 'pi pi-folder', to: '/scoala/portfolio/me', permission: 'education.portfolios.read_own', module: 'education' },
   { label: 'Administrare', icon: 'pi pi-cog', to: '/administrare', permission: 'admin.read' }
 ];

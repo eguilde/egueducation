@@ -8,6 +8,13 @@ import type {
   EducationRecord,
   EducationRecordInput,
   EducationRecordsDomain,
+  EligibleGovernanceUser,
+  OwnPortfolio,
+  OwnPortfolioInput,
+  OwnPortfolioDocumentInput,
+  OwnPortfolioArchiveDocument,
+  PortfolioAttachmentGrant,
+  PortfolioOpisRegeneration,
 } from "./types";
 import { createOpenApiTransport } from "../../api/client";
 
@@ -125,5 +132,20 @@ export function createEducationApi(
     },
     metadata: (path) => request<Record<string, unknown>>(path),
     command: (path) => request<void>(path, { method: "POST" }),
+    ownPortfolios: async () => toPage(await request<OwnPortfolio[] | EducationPage<OwnPortfolio>>("/education/portfolios/me")),
+    ownPortfolio: (id) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}`),
+    createOwnPortfolio: (input) => request<OwnPortfolio>("/education/portfolios/me", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    updateOwnPortfolio: (id, input) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    submitOwnPortfolio: (id) => request<OwnPortfolio>(`/education/portfolios/me/${encodeURIComponent(id)}/submit`, { method: "POST" }),
+    ownPortfolioRelated: async (id, resource) => toPage(await request<EducationRecord[] | EducationPage<EducationRecord>>(`/education/portfolios/me/${encodeURIComponent(id)}/${resource}`)),
+    regenerateOwnPortfolioOpis: (id) => request<PortfolioOpisRegeneration>(`/education/portfolios/me/${encodeURIComponent(id)}/opis/regenerate`, { method: "POST" }),
+    createOwnPortfolioDocument: (id, input) => request<EducationRecord>(`/education/portfolios/me/${encodeURIComponent(id)}/documents`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    deleteOwnPortfolioDocument: (portfolioID, documentID) => request<void>(`/education/portfolios/me/${encodeURIComponent(portfolioID)}/documents/${encodeURIComponent(documentID)}`, { method: "DELETE" }),
+    ownPortfolioArchiveDocuments: async () => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>("/education/portfolios/me/archive-documents?page=1&pageSize=25&sort=title&direction=asc")),
+    attachmentGrants: async () => toPage(await request<PortfolioAttachmentGrant[] | EducationPage<PortfolioAttachmentGrant>>("/education/portfolios/archive-attachment-grants?page=1&pageSize=50")),
+    eligibleAttachmentDocuments: async () => toPage(await request<OwnPortfolioArchiveDocument[] | EducationPage<OwnPortfolioArchiveDocument>>("/education/portfolios/archive-attachment-grants/eligible-documents?page=1&pageSize=50&sort=title&direction=asc")),
+    eligibleAttachmentUsers: async () => toPage(await request<EligibleGovernanceUser[] | EducationPage<EligibleGovernanceUser>>("/education/portfolios/archive-attachment-grants/eligible-users?page=1&pageSize=100&sort=name&direction=asc")),
+    createAttachmentGrant: (input) => request<PortfolioAttachmentGrant>("/education/portfolios/archive-attachment-grants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }),
+    deleteAttachmentGrant: (id) => request<void>(`/education/portfolios/archive-attachment-grants/${encodeURIComponent(id)}`, { method: "DELETE" }),
   };
 }

@@ -15,7 +15,7 @@ const meeting = {
   secretary_user_id: "user-secretary",
 };
 
-async function authenticatedSchool(page: Page) {
+async function authenticatedSchool(page: Page, sessionOverride?: Record<string, unknown>) {
   await page.route("**/api/oidc/.well-known/openid-configuration", (route) =>
     route.fulfill({
       contentType: "application/json",
@@ -45,7 +45,7 @@ async function authenticatedSchool(page: Page) {
   await page.route("**/api/me", (route) =>
     route.fulfill({
       contentType: "application/json",
-      body: JSON.stringify({
+      body: JSON.stringify(sessionOverride ?? {
         user: {
           id: "11111111-1111-4111-8111-111111111111",
           sub: "school-subject",
@@ -134,7 +134,8 @@ async function authenticatedSchool(page: Page) {
     });
   });
   await page.goto("/");
-  await expect(page.getByText("Director Test")).toBeVisible();
+  const expectedName = String((sessionOverride?.user as { name?: string } | undefined)?.name ?? "Director Test");
+  await expect(page.getByText(expectedName)).toBeVisible();
 }
 
 test("school governance uses server pagination, sorting and column filters", async ({ page }) => {
@@ -181,4 +182,27 @@ test("school exposes the Angular-equivalent governance wizard with immutable use
   await page.locator('[role="option"]').filter({ hasText: "Secretar Test" }).last().click();
   await page.getByRole("button", { name: "Continuă" }).click();
   await expect(page.getByRole("button", { name: "Salvează" })).toBeVisible();
+});
+
+// Mocked browser UX coverage only. The real authorization and database flow is
+// exercised separately by system tests; this test proves that the React route
+// never falls back to an institution-wide `/records/{id}` endpoint for a teacher.
+test("mocked teacher portfolio UX stays on owner-scoped contracts", async ({ page }) => {
+  await authenticatedSchool(page, {
+    user: { id: "22222222-2222-4222-8222-222222222222", sub: "teacher-subject", name: "Profesor Test", email: "teacher@example.test", email_verified: true, phone_number: "", phone_number_verified: false, preferred_otp_channel: "sms", locale: "ro", roles: ["profesor"] },
+    tenant_code: "tenant-test", institution_id: "inst-test", institution_name: "Școala Test", platform_roles: [], authz_version: 1,
+    permissions: ["education.read", "education.portfolios.read_own", "education.portfolios.manage_own"], modules: [{ code: "education", active: true }], authentication: ["sms"], gdpr_capabilities: [],
+  });
+  const portfolio = { id: "own-portfolio", portfolio_code: "PORT-CD-1", owner_name: "Profesor Test", owner_role: "Profesor", school_year: "2026-2027", status: "draft", section_count: 2, last_updated_on: "2026-09-01", authenticity_declared: true, consent_captured: true, notes: "" };
+  await page.route("**/api/education/portfolios/me/own-portfolio/opis/regenerate", (route) => route.fulfill({ status: 204 }));
+  await page.route("**/api/education/portfolios/me/own-portfolio/submit", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ ...portfolio, status: "submitted" }) }));
+  await page.route("**/api/education/portfolios/me/own-portfolio/{documents,checklist,opis,reviews}", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [], total: 0, page: 1, pageSize: 1 }) }));
+  await page.route("**/api/education/portfolios/me/own-portfolio", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify(portfolio) }));
+  await page.route("**/api/education/portfolios/me", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ items: [portfolio], total: 1, page: 1, pageSize: 1 }) }));
+  await page.goto("/scoala/portfolio/me");
+  await expect(page.getByRole("region", { name: "Portofoliul meu profesional" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Portofoliul meu profesional" }).getByText("Profesor Test")).toBeVisible();
+  const ownSubmit = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/education/portfolios/me/own-portfolio/submit"));
+  await page.getByRole("button", { name: "Trimite spre verificare" }).click();
+  expect(new URL((await ownSubmit).url()).pathname).toContain("/portfolios/me/");
 });

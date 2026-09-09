@@ -5,7 +5,7 @@ import type { EducationArea, EducationModule } from "./types";
  * families recorded in the Education OpenAPI catalog, not an optimistic UI menu.
  */
 export const educationAreas: EducationArea[] = [
-  { id: "overview", label: "Panou de control", icon: "pi pi-chart-bar", permissions: ["education.read", "education.governance.read", "education.managerial.read", "education.portfolios.read", "education.evaluations.read", "education.personnel.read", "education.compliance.read"], description: "Indicatori și situația operațională a instituției." },
+  { id: "overview", label: "Panou de control", icon: "pi pi-chart-bar", permissions: ["education.read", "education.governance.read", "education.managerial.read", "education.portfolios.read", "education.portfolios.school.read", "education.portfolios.read_own", "education.evaluations.read", "education.personnel.read", "education.compliance.read"], description: "Indicatori și situația operațională a instituției." },
   { id: "governance", label: "Guvernanță", icon: "pi pi-users", permissions: ["education.governance.read"], description: "Ședințe, organisme, membri, voturi și hotărâri." },
   { id: "decisions", label: "Decizii", icon: "pi pi-file-edit", permissions: ["education.decisions.read"], description: "Decizii, emitere și pași de publicare." },
   { id: "managerial", label: "Management", icon: "pi pi-briefcase", permissions: ["education.managerial.read"], description: "Dosare manageriale și fluxuri aferente." },
@@ -16,7 +16,7 @@ export const educationAreas: EducationArea[] = [
   { id: "declarations", label: "Declarații", icon: "pi pi-verified", permissions: ["education.declarations.read"], description: "Declarații de interese și conformitate." },
   { id: "mobility", label: "Mobilitate", icon: "pi pi-arrow-right-arrow-left", permissions: ["education.mobility.read"], description: "Mobilitate, punctaje, contestații și decizii." },
   { id: "merit", label: "Gradații de merit", icon: "pi pi-trophy", permissions: ["education.gradatii.read"], description: "Dosare, criterii, punctaje și contestații." },
-  { id: "portfolios", label: "Portofolii", icon: "pi pi-folder", permissions: ["education.portfolios.read"], description: "Portofolii, opis, custodie și transfer." },
+  { id: "portfolios", label: "Portofolii", icon: "pi pi-folder", permissions: ["education.portfolios.school.read", "education.portfolios.read", "education.portfolios.read_own"], description: "Portofolii, opis, custodie și transfer." },
   { id: "compliance", label: "Conformitate", icon: "pi pi-shield", permissions: ["education.compliance.read"], description: "Publicări și cerințe de conformitate." },
 ];
 

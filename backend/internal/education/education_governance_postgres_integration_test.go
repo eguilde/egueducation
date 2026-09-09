@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	appdb "github.com/eguilde/egueducation/internal/db"
+	"github.com/eguilde/egueducation/internal/httpx"
 )
 
 // TestGovernanceImmutableActorIdentityIntegration uses a database created only
@@ -36,6 +37,28 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	}
 	grantGovernanceIntegrationAccess(t, ctx, adminPool, it.roleName)
 	fixture := seedGovernanceAuthorizationFixture(t, ctx, adminPool)
+	// Migration 0098 rejects any newly-created ownerless portfolio and accepts
+	// an explicit identity binding only when that user belongs to the same
+	// tenant/institution. This is the database backstop for the admin create
+	// command, independent of a caller's JSON payload.
+	_, err := adminPool.Exec(ctx, `
+		insert into education_portfolios (
+			portfolio_code, owner_name, owner_role, school_year, status, section_count,
+			last_updated_on, retention_until, transfer_status, institution_id
+		) values ('IT-PORT-OWNERLESS', 'Invalid', 'Profesor', '2030-2031', 'draft', 0, current_date, current_date + 365, 'none', $1)
+	`, fixture.institutionA)
+	if err == nil {
+		t.Fatal("new ownerless portfolio must be rejected by the database trigger")
+	}
+	if _, err := adminPool.Exec(ctx, `
+		insert into education_portfolios (
+			portfolio_code, owner_user_id, owner_name, owner_role, school_year, status, section_count,
+			last_updated_on, retention_until, transfer_status, institution_id
+		) values ('IT-PORT-OWNER-BOUND', $1::uuid, 'Governance Integration Member', 'Profesor', '2030-2031', 'draft', 0, current_date, current_date + 365, 'none', $2)
+	`, fixture.memberUserID, fixture.institutionA); err != nil {
+		t.Fatalf("new explicitly owner-bound portfolio must be accepted: %v", err)
+	}
+	storedArchiveID := seedGovernancePortfolioArchiveAttachments(t, ctx, adminPool, fixture.institutionA, fixture.memberUserID)
 	service := NewService(appdb.NewSessionPool(it.readerPool))
 
 	ctxA, releaseA := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
@@ -46,12 +69,36 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 		}
 	}()
 	requestA := requestWithContext(ctxA)
+	attachments, total, err := service.listPortfolioArchiveAttachments(requestA, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	if err != nil {
+		t.Fatalf("list own portfolio archive attachments in tenant A: %v", err)
+	}
+	if total != 1 || len(attachments) != 1 || attachments[0].ID != storedArchiveID || attachments[0].Title != "Eligible portfolio evidence" || attachments[0].CurrentVersionNo != 1 {
+		t.Fatalf("attachment picker must return only current stored tenant evidence: total=%d items=%#v", total, attachments)
+	}
+	attachments, total, err = service.listPortfolioArchiveAttachments(requestA, fixture.foreignMemberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	if err != nil || total != 0 || len(attachments) != 0 {
+		t.Fatalf("same-tenant user without explicit attachment grant must see no archive evidence: total=%d items=%#v err=%v", total, attachments, err)
+	}
+	eligibleUsers, eligibleTotal, err := service.listPortfolioArchiveEligibleUsers(requestA, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
+	if err != nil || eligibleTotal != 1 || len(eligibleUsers) != 1 || eligibleUsers[0].ID != fixture.memberUserID {
+		t.Fatalf("eligible users must be limited to active tenant-A memberships: total=%d users=%#v err=%v", eligibleTotal, eligibleUsers, err)
+	}
 	actorID, err := service.currentActorUserID(requestA, fixture.memberSubject)
 	if err != nil {
 		t.Fatalf("resolve actor UUID in own tenant: %v", err)
 	}
 	if actorID != fixture.memberUserID || actorID == fixture.memberSubject {
 		t.Fatalf("subject %q resolved to %q, want immutable UUID %q", fixture.memberSubject, actorID, fixture.memberUserID)
+	}
+	// A portfolio owned by the same immutable user is accessible through the
+	// own-portfolio policy. The following checks exercise the real RLS-bound
+	// query rather than a handler-only permission shortcut.
+	if _, allowed, err := service.requireOwnPortfolio(requestA, fixture.portfolioID, portfolioReadOwnPermission); err != nil || !allowed {
+		t.Fatalf("owner must read own portfolio: allowed=%t err=%v", allowed, err)
+	}
+	if _, allowed, err := service.requireOwnPortfolio(requestA, fixture.foreignPortfolioID, portfolioReadOwnPermission); err != nil || allowed {
+		t.Fatalf("teacher must not read another teacher portfolio: allowed=%t err=%v", allowed, err)
 	}
 	allowed, err := service.currentSubjectHasPermission(requestA, fixture.memberSubject, "education.governance.meeting.vote")
 	if err != nil || !allowed {
@@ -111,12 +158,23 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	ctxB, releaseB := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, fixture.memberSubject)
 	defer releaseB()
 	requestB := requestWithContext(ctxB)
+	attachments, total, err = service.listPortfolioArchiveAttachments(requestB, fixture.memberUserID, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "title", Direction: "asc"})
+	if err != nil || total != 0 || len(attachments) != 0 {
+		t.Fatalf("tenant B must not enumerate tenant-A archive attachments: total=%d items=%#v err=%v", total, attachments, err)
+	}
+	eligibleUsers, eligibleTotal, err = service.listPortfolioArchiveEligibleUsers(requestB, httpx.PageQuery{Page: 1, PageSize: 25, Sort: "name", Direction: "asc", Filters: map[string]string{"name": "Governance Integration"}})
+	if err != nil || eligibleTotal != 0 || len(eligibleUsers) != 0 {
+		t.Fatalf("tenant B must not enumerate tenant-A grant users: total=%d users=%#v err=%v", eligibleTotal, eligibleUsers, err)
+	}
 	foreignActorID, err := service.currentActorUserID(requestB, fixture.memberSubject)
 	if err != nil {
 		t.Fatalf("resolve cross-tenant actor: %v", err)
 	}
 	if foreignActorID != "" {
 		t.Fatalf("tenant B resolved tenant-A-only subject to %q", foreignActorID)
+	}
+	if _, allowed, err := service.requireOwnPortfolio(requestB, fixture.portfolioID, portfolioReadOwnPermission); err != nil || allowed {
+		t.Fatalf("tenant B must not access tenant-A portfolio: allowed=%t err=%v", allowed, err)
 	}
 	allowed, err = service.currentSubjectHasPermission(requestB, fixture.memberSubject, "education.governance.meeting.vote")
 	if err != nil || allowed {
@@ -223,7 +281,10 @@ type governanceAuthorizationFixture struct {
 	tenantA, institutionA       string
 	tenantB, institutionB       string
 	memberSubject, memberUserID string
+	foreignMemberUserID         string
 	meetingAID                  string
+	portfolioID                 string
+	foreignPortfolioID          string
 }
 
 func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool *pgxpool.Pool) governanceAuthorizationFixture {
@@ -232,7 +293,11 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	const tenantB, institutionB = "tenant-balotesti", "inst-balotesti"
 	memberID := uuid.NewString()
 	memberSubject := "governance-member-" + uuid.NewString()
+	foreignMemberID := uuid.NewString()
+	foreignMemberSubject := "governance-foreign-member-" + uuid.NewString()
 	meetingID := uuid.NewString()
+	portfolioID := uuid.NewString()
+	foreignPortfolioID := uuid.NewString()
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin governance authorization fixture: %v", err)
@@ -250,11 +315,23 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	if _, err := tx.Exec(ctx, `insert into app_user_identities(user_id, identity_type, normalized_value, display_value, is_primary) values ($1::uuid, 'phone', '+40000000000', '+40000000000', true)`, memberID); err != nil {
 		t.Fatalf("seed primary phone identity for governance user: %v", err)
 	}
+	if _, err := tx.Exec(ctx, `insert into app_users(id, sub, name, email, phone_number, locale, status) values ($1::uuid, $2, 'Other Integration Member', $3, '+40000000001', 'ro', 'active')`, foreignMemberID, foreignMemberSubject, foreignMemberSubject+"@example.test"); err != nil {
+		t.Fatalf("seed foreign UUID-bound user: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `insert into app_user_identities(user_id, identity_type, normalized_value, display_value, is_primary) values ($1::uuid, 'phone', '+40000000001', '+40000000001', true)`, foreignMemberID); err != nil {
+		t.Fatalf("seed foreign primary phone identity: %v", err)
+	}
 	if _, err := tx.Exec(ctx, `insert into app_memberships(user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date) values ($1::uuid, $2, 'profesor', 'unit-root', 'Governance Integration School', true, true, current_date)`, memberID, tenantA); err != nil {
 		t.Fatalf("seed tenant-A membership: %v", err)
 	}
+	if _, err := tx.Exec(ctx, `insert into app_memberships(user_id, tenant_code, position_code, org_unit_code, organization_name, is_primary, active, start_date) values ($1::uuid, $2, 'profesor', 'unit-root', 'Governance Integration School', true, true, current_date)`, foreignMemberID, tenantA); err != nil {
+		t.Fatalf("seed foreign tenant-A membership: %v", err)
+	}
 	if _, err := tx.Exec(ctx, `insert into app_user_permissions(user_id, permission_code, tenant_code) values ($1::uuid, 'education.governance.meeting.vote', $2)`, memberID, tenantA); err != nil {
 		t.Fatalf("seed tenant-A contextual permission: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `insert into education_portfolios (id, portfolio_code, owner_user_id, owner_name, owner_role, school_year, status, section_count, last_updated_on, retention_until, transfer_status, institution_id) values ($1::uuid, 'IT-PORT-OWNER', $2::uuid, 'Governance Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $3), ($4::uuid, 'IT-PORT-FOREIGN', $5::uuid, 'Other Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $3)`, portfolioID, memberID, institutionA, foreignPortfolioID, foreignMemberID); err != nil {
+		t.Fatalf("seed identity-bound professional portfolios: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `insert into education_meetings (id, school_year, organism, title, meeting_type, status, quorum_required, participants_count, meeting_date, institution_id, chairperson, secretary_name, summary) values ($1::uuid, '2026-2027', 'ca', 'Integration meeting', 'ordinary', 'scheduled', 1, 1, current_date, $2, 'Legacy Chair', 'Legacy Secretary', 'RLS fixture')`, meetingID, institutionA); err != nil {
 		t.Fatalf("seed tenant-A governance meeting: %v", err)
@@ -265,7 +342,51 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit governance authorization fixture: %v", err)
 	}
-	return governanceAuthorizationFixture{tenantA, institutionA, tenantB, institutionB, memberSubject, memberID, meetingID}
+	return governanceAuthorizationFixture{tenantA: tenantA, institutionA: institutionA, tenantB: tenantB, institutionB: institutionB, memberSubject: memberSubject, memberUserID: memberID, foreignMemberUserID: foreignMemberID, meetingAID: meetingID, portfolioID: portfolioID, foreignPortfolioID: foreignPortfolioID}
+}
+
+func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context, pool *pgxpool.Pool, institutionID, granteeUserID string) string {
+	t.Helper()
+	storedID := uuid.NewString()
+	noVersionID := uuid.NewString()
+	noStorageID := uuid.NewString()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin archive attachment fixture: %v", err)
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin','true',true), set_config('app.institution_id',$1,true)`, institutionID); err != nil {
+		t.Fatalf("bind archive attachment fixture session: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		insert into archive_documents (id, institution_id, title, original_file_name, mime_type, source_kind, status, current_version_no)
+		values
+			($1::uuid, $4, 'Eligible portfolio evidence', 'eligible.pdf', 'application/pdf', 'upload', 'ready', 1),
+			($2::uuid, $4, 'No version', 'no-version.pdf', 'application/pdf', 'upload', 'ready', 1),
+			($3::uuid, $4, 'No stored source', 'no-storage.pdf', 'application/pdf', 'upload', 'ready', 1)
+	`, storedID, noVersionID, noStorageID, institutionID); err != nil {
+		t.Fatalf("seed archive attachment documents: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		insert into archive_document_versions (
+			document_id, institution_id, version_no, mime_type, title, bucket_name, object_key, hash_sha256, status,
+			source_bucket, source_object_key, source_sha256
+		) values
+			($1::uuid, $3, 1, 'application/pdf', 'Eligible portfolio evidence', 'archive', 'evidence.pdf', 'hash-evidence', 'active', 'archive', 'evidence.pdf', 'hash-evidence'),
+			($2::uuid, $3, 1, 'application/pdf', 'No stored source', '', '', 'hash-empty', 'active', '', '', 'hash-empty')
+		`, storedID, noStorageID, institutionID); err != nil {
+		t.Fatalf("seed archive attachment versions: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		insert into education_portfolio_archive_attachment_grants (institution_id, archive_document_id, grantee_user_id)
+		values ($1, $2::uuid, $3::uuid)
+	`, institutionID, storedID, granteeUserID); err != nil {
+		t.Fatalf("grant only eligible archive attachment: %v", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit archive attachment fixture: %v", err)
+	}
+	return storedID
 }
 
 func governanceTenantContext(t *testing.T, ctx context.Context, pool *pgxpool.Pool, tenantID, institutionID, actorSubject string) (context.Context, func()) {

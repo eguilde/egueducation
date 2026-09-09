@@ -1,5 +1,7 @@
 # Trasabilitate scope - PDF-uri vs cerinte explicite vs extensii
 
+> **Document istoric, revizuit la 2026-09-09.** Separarea surselor rămâne utilă, dar statusurile de implementare de aici nu mai sunt autoritative. Forma finală a Ordinului nr. 3.858/2026 înlocuiește proiectul analizat inițial, iar sursa curentă de cerințe și acceptanță este [catalogul canonic de cerințe Școală](requirements/education-school-requirements-catalog.md).
+
 Data: 2026-06-24
 
 Acest document separa explicit cele trei surse de scope care au fost amestecate in iteratiile anterioare:

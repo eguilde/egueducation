@@ -13,6 +13,15 @@ const marker = `SYSTEM-E2E-${process.env.GITHUB_RUN_ID ?? 'local'}-${Date.now()}
 type TokenResponse = { access_token: string };
 type CreatedDocument = components['schemas']['RegistraturaDocument'];
 type AdminUser = { id: string; name: string; phone: string; phone_verified: boolean };
+type OwnPortfolio = {
+  id: string;
+  status: string;
+  school_year: string;
+  owner_name: string;
+  owner_user_id?: string;
+  institution_id?: string;
+};
+type PortfolioDocument = { id: string; portfolio_id: string; document_title: string; institution_id: string };
 
 type TenantScope = { code: string; institutionID: string };
 
@@ -117,17 +126,27 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // global identity projections are promoted.
   expect(databaseScalar("select phone_number_verified::text from app_users where sub='oidc-browser-fixture-subject'"))
     .toBe('false');
-  // The primary automated actor deliberately has every authority required by
-  // the production E2E suite. Platform authority remains an explicit global
-  // assignment and is loaded into the OIDC token; it is never inferred from a
-  // tenant administrator role.
+  // Start the primary fixture as a second ordinary teacher. This gives the
+  // portfolio proof two independent same-school teachers before the fixture is
+  // promoted to the platform administrator required by the remainder of this
+  // broad system test. The browser still completes the normal OIDC/OTP flow;
+  // no authorization header or database-only identity bypass is used.
   const platformAdminID = databaseScalar("select id::text from app_users where sub='oidc-browser-fixture-subject'");
   databaseExec(`
-    insert into app_user_platform_roles(user_id, role_code)
-    values ('${platformAdminID}', 'platform_super_admin')
-    on conflict (user_id, role_code) do nothing
+    delete from app_user_platform_roles where user_id='${platformAdminID}';
+    update app_memberships set position_code='profesor'
+    where user_id='${platformAdminID}' and tenant_code='tenant-egueducation';
+    delete from app_user_roles where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'
   `);
-  const token = await authenticated(page);
+  let unrelatedTeacherToken = await authenticated(page);
+  const unrelatedTeacherMe = await api<{ user: { roles: string[] }; platform_roles: string[]; permissions: string[] }>(page, unrelatedTeacherToken, '/api/me');
+  expect(unrelatedTeacherMe.status).toBe(200);
+  expect(unrelatedTeacherMe.body.user.roles).toContain('profesor');
+  expect(unrelatedTeacherMe.body.platform_roles).not.toContain('platform_super_admin');
+  expect(unrelatedTeacherMe.body.permissions).toEqual(expect.arrayContaining([
+    'education.portfolios.read_own',
+    'education.portfolios.manage_own',
+  ]));
 
   // The second server instance has provisioned an independent fixture in the
   // same tenant. Demote it from the all-powerful fixture position before it
@@ -141,13 +160,187 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   `);
   const approverContext = await browser.newContext({ baseURL: 'http://localhost:4174' });
   const approverPage = await approverContext.newPage();
-  const approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
+  let approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
   const approverMe = await api<{ tenant_code: string; user: { roles: string[] }; platform_roles: string[]; permissions: string[] }>(approverPage, approverToken, '/api/me');
   expect(approverMe.status).toBe(200);
   expect(approverMe.body.tenant_code).toBe('tenant-egueducation');
   expect(approverMe.body.user.roles).toContain('profesor');
   expect(approverMe.body.platform_roles).not.toContain('platform_super_admin');
   expect(approverMe.body.permissions).not.toContain('workflow.manage');
+  expect(approverMe.body.permissions).toEqual(expect.arrayContaining([
+    'education.portfolios.read_own',
+    'education.portfolios.manage_own',
+  ]));
+
+  // The submitted portfolio must cover precisely the statutory catalog. The
+  // assertion deliberately rejects both an omitted component and an extra
+  // legacy component, rather than merely counting six rows.
+  const portfolioSchoolYear = '2031-2032';
+  const requiredPortfolioComponents = [
+    ['identificare', 'cv'], ['identificare', 'date_identificare'],
+    ['identificare', 'studii'], ['cariera', 'contracte_incadrare'],
+    ['declaratii', 'autenticitate'], ['declaratii', 'consimtamant'],
+  ] as const;
+  expect(databaseScalar(`select coalesce(string_agg(section_code || '/' || component_code, ',' order by sort_order, section_code, component_code), '') from education_portfolio_sections where active and required`))
+    .toBe(requiredPortfolioComponents.map(([section, component]) => `${section}/${component}`).join(','));
+
+  // Seed six independent ready archive documents with active, stored source
+  // versions. Each one is granted separately by the administrator through the
+  // React control below; the seventh remains same-tenant but intentionally
+  // ungranted to prove the access boundary.
+  const portfolioArchives = requiredPortfolioComponents.map(([section, component], index) => ({
+    section, component, index, id: databaseScalar('select gen_random_uuid()::text'),
+    title: `${marker} ${section}-${component}`, hash: String(index + 1).repeat(64),
+  }));
+  const ungrantedArchiveID = databaseScalar('select gen_random_uuid()::text');
+  const seedArchive = ({ id, title, hash, index }: { id: string; title: string; hash: string; index: number }) => databaseExec(`
+    insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
+    values ('${id}','inst-001','${title}','${index}.pdf','application/pdf','upload','ready','system-e2e','${marker}/${index}.pdf','system-e2e','${marker}/${index}.pdf',1,'oidc-browser-fixture-subject');
+    insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,source_bucket,source_object_key,source_sha256,status,text_status)
+    values ('${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}','system-e2e','${marker}/${index}.pdf','${hash}','active','processed')
+  `);
+  portfolioArchives.forEach(seedArchive);
+  seedArchive({ id: ungrantedArchiveID, title: `${marker} negrantat`, hash: 'f'.repeat(64), index: 99 });
+
+  // Elevate only long enough to operate the administrator UI, then demote and
+  // perform a fresh teacher authorization-code exchange before self-service.
+  await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  databaseExec(`update app_users set name='${marker} Profesor portofoliu' where id='${approverID}'; update app_memberships set position_code='super_admin' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; insert into app_user_platform_roles(user_id, role_code) values ('${platformAdminID}', 'platform_super_admin') on conflict (user_id, role_code) do nothing`);
+  const portfolioGrantAdminToken = await authenticated(page);
+  const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
+  expect(portfolioGrantAdminMe.status).toBe(200);
+  expect(portfolioGrantAdminMe.body.permissions).toContain('education.portfolios.archive_grants.manage');
+  await page.goto('/scoala/portfolio');
+  await expect(page.getByText('Acces documente eArhivă pentru portofolii')).toBeVisible();
+  for (const archive of portfolioArchives) {
+    await page.getByLabel('Document eArhivă eligibil').click();
+    await page.getByRole('option', { name: new RegExp(archive.title) }).click();
+    await page.getByLabel('Utilizator beneficiar').click();
+    await page.getByRole('option', { name: `${marker} Profesor portofoliu` }).click();
+    const granted = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/portfolios/archive-attachment-grants' && response.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Acordă acces' }).click();
+    expect((await granted).status()).toBe(201);
+  }
+  expect((await api<{ total: number }>(page, portfolioGrantAdminToken, '/api/education/portfolios/archive-attachment-grants?page=1&pageSize=50')).body.total).toBeGreaterThanOrEqual(6);
+  databaseExec(`delete from app_user_platform_roles where user_id='${platformAdminID}'; update app_memberships set position_code='profesor' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'`);
+  await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  unrelatedTeacherToken = await authenticated(page);
+  await approverPage.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(approverPage.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  approverToken = await authenticated(approverPage, approverIdentifier, approverOTP, 'http://localhost:4174');
+
+  // Teacher B creates and submits through the own-only React workspace.
+  await approverPage.goto('/scoala/portfolio/me');
+  await expect(approverPage.getByRole('region', { name: 'Portofoliul meu profesional' })).toBeVisible();
+  await expect(approverPage.getByText('Nu există încă un portofoliu profesional pentru contul dvs.')).toBeVisible();
+  await approverPage.getByRole('button', { name: 'Portofoliu nou' }).click();
+  const portfolioDialog = approverPage.getByRole('dialog', { name: 'Portofoliu profesional' });
+  await portfolioDialog.getByLabel('An școlar *').fill(portfolioSchoolYear);
+  await portfolioDialog.getByLabel('Declarație de autenticitate').click();
+  await portfolioDialog.getByLabel('Acord prelucrare date').click();
+  const portfolioCreatedResponse = approverPage.waitForResponse((response) =>
+    new URL(response.url()).pathname === '/api/education/portfolios/me' && response.request().method() === 'POST',
+  );
+  await portfolioDialog.getByRole('button', { name: 'Salvează ciorna' }).click();
+  const createdPortfolioHTTP = await portfolioCreatedResponse;
+  expect(createdPortfolioHTTP.status()).toBe(201);
+  const ownPortfolio = await createdPortfolioHTTP.json() as OwnPortfolio;
+  expect(ownPortfolio).toMatchObject({ school_year: portfolioSchoolYear, status: 'draft', institution_id: 'inst-001' });
+  await expect(approverPage.getByText('Ciorna a fost creată.')).toBeVisible();
+
+  // A genuine same-tenant archive record is still forbidden until explicitly
+  // granted to this immutable teacher identity.
+  const ungrantedReference = await api<unknown>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/documents`, {
+    method: 'POST',
+    body: JSON.stringify({ section_code: 'identificare', component_code: 'cv', document_title: 'referință neautorizată', evidence_type: 'adeverinta', issued_on: '2031-09-01', added_on: '2031-09-01', chronological_index: 1, sensitive_data: false, file_reference: `archive://${ungrantedArchiveID}`, notes: '' }),
+  });
+  expect(ungrantedReference.status).toBe(403);
+
+  // The document is added through the self-service React form. Provenance and
+  // authenticity state are intentionally absent from the browser command and
+  // are assigned by the own-only backend handler.
+  const portfolioDocuments: PortfolioDocument[] = [];
+  for (const archive of portfolioArchives) {
+    await approverPage.getByRole('button', { name: 'Adaugă document' }).click();
+    const documentDialog = approverPage.getByRole('dialog', { name: 'Adaugă document în portofoliu' });
+    await documentDialog.getByLabel('Secțiune *').fill(archive.section);
+    await documentDialog.getByLabel('Componentă *').fill(archive.component);
+    await documentDialog.getByLabel('Titlu *').fill(archive.title);
+    await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
+    await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
+    await documentDialog.getByLabel('Data adăugării *').fill('2031-09-01');
+    await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
+    await documentDialog.getByRole('option', { name: new RegExp(archive.id) }).click();
+    const added = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents` && response.request().method() === 'POST');
+    await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
+    expect((await added).status()).toBe(201);
+    portfolioDocuments.push(await (await added).json() as PortfolioDocument);
+  }
+
+  const opisRegeneratedResponse = approverPage.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/opis/regenerate` && response.request().method() === 'POST',
+  );
+  await approverPage.getByRole('button', { name: 'Regenerează opisul' }).click();
+  expect((await opisRegeneratedResponse).status()).toBe(200);
+  await expect(approverPage.getByText('Opisul a fost regenerat.')).toBeVisible();
+  const ownOpis = await api<{ items: Array<{ document_reference: string }>; total: number }>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/opis`);
+  expect(ownOpis.status).toBe(200);
+  expect(ownOpis.body.total).toBe(6);
+  expect(ownOpis.body.items.map((item) => item.document_reference).sort()).toEqual(portfolioArchives.map((archive) => `archive://${archive.id}`).sort());
+
+  const portfolioSubmittedResponse = approverPage.waitForResponse((response) =>
+    new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/submit` && response.request().method() === 'POST',
+  );
+  await approverPage.getByRole('button', { name: 'Trimite spre verificare' }).click();
+  expect((await portfolioSubmittedResponse).status()).toBe(200);
+  await expect(approverPage.getByText('Portofoliul a fost trimis spre verificare.')).toBeVisible();
+
+  // Teacher A has exactly the same own-only grants, but a different immutable
+  // subject. Its `/me/{id}` route must never reveal or mutate teacher B's
+  // portfolio. The direct call is made from the real first teacher browser.
+  const crossTeacherRead = await api<unknown>(page, unrelatedTeacherToken, `/api/education/portfolios/me/${ownPortfolio.id}`);
+  expect(crossTeacherRead.status).toBe(403);
+  const crossTeacherSubmit = await api<unknown>(page, unrelatedTeacherToken, `/api/education/portfolios/me/${ownPortfolio.id}/submit`, { method: 'POST' });
+  expect(crossTeacherSubmit.status).toBe(403);
+
+  expect(databaseScalar(`
+    select owner_user_id::text || '|' || institution_id || '|' || school_year || '|' || status
+    from education_portfolios where id='${ownPortfolio.id}'
+  `)).toBe(`${approverID}|inst-001|${portfolioSchoolYear}|submitted`);
+  expect(databaseScalar(`
+    select count(*)::text from education_portfolio_documents
+    where portfolio_id='${ownPortfolio.id}' and institution_id='inst-001'
+      and source_scope='portofoliu'
+  `)).toBe('6');
+  expect(databaseScalar(`
+    select count(*)::text from education_portfolio_opis
+    where portfolio_id='${ownPortfolio.id}' and institution_id='inst-001'
+  `)).toBe('6');
+  expect(databaseScalar(`select count(*)::text from education_portfolio_documents evidence join archive_document_versions version on version.id=evidence.archive_version_id where evidence.portfolio_id='${ownPortfolio.id}' and evidence.archive_version_no=version.version_no and evidence.archive_sha256=version.source_sha256 and evidence.archive_source_bucket=version.source_bucket and evidence.archive_source_object_key=version.source_object_key`)).toBe('6');
+  expect(databaseScalar(`
+    select count(*)::text from app_audit_log
+    where target_id='${ownPortfolio.id}'
+      and action in ('education.portfolios.own.create','education.portfolios.opis.regenerate','education.portfolios.submit')
+      and actor_subject='oidc-browser-approver-subject'
+  `)).toBe('3');
+  expect(databaseScalar(`select count(*)::text from app_audit_log where action='education.portfolios.document.create' and actor_subject='oidc-browser-approver-subject' and target_id = any(array[${portfolioDocuments.map((document) => `'${document.id}'`).join(',')}])`)).toBe('6');
+
+  // Restore the primary fixture to the explicit platform authority required by
+  // the existing administration, Registratură and passkey portions below.
+  // The fresh authorization-code exchange proves the post-change token rather
+  // than reusing the earlier teacher token.
+  await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  databaseExec(`
+    update app_memberships set position_code='super_admin'
+    where user_id='${platformAdminID}' and tenant_code='tenant-egueducation';
+    insert into app_user_platform_roles(user_id, role_code)
+    values ('${platformAdminID}', 'platform_super_admin')
+    on conflict (user_id, role_code) do nothing
+  `);
+  const token = await authenticated(page);
 
   const me = await api<{ tenant_code: string; platform_roles: string[]; permissions: string[]; authz_version: number; user: { phone_number_verified: boolean } }>(page, token, '/api/me');
   expect(me.status).toBe(200);
@@ -166,6 +359,32 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
       and l.action='identity.phone.enrollment_verified'
       and l.status='success'
   `)).toBe('1');
+
+  // The institution-authorized reviewer returns the submitted portfolio. The
+  // owner remedies it through the own-only contract, resubmits, and the
+  // reviewer verifies it. This proves the role/state split on the real stack.
+  const returnedPortfolio = await api<OwnPortfolio>(page, token, `/api/education/portfolios/records/${ownPortfolio.id}/return`, { method: 'POST' });
+  expect(returnedPortfolio.status).toBe(200);
+  expect(returnedPortfolio.body.status).toBe('returned');
+  const remediedPortfolio = await api<OwnPortfolio>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      school_year: portfolioSchoolYear, section_count: 1, last_updated_on: '2031-09-02',
+      authenticity_declared: true, consent_captured: true, notes: 'Remediat după verificarea instituțională.',
+    }),
+  });
+  expect(remediedPortfolio.status).toBe(200);
+  expect(remediedPortfolio.body.status).toBe('returned');
+  expect((await api<OwnPortfolio>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/submit`, { method: 'POST' })).status).toBe(200);
+  const verifiedPortfolio = await api<OwnPortfolio>(page, token, `/api/education/portfolios/records/${ownPortfolio.id}/verify`, { method: 'POST' });
+  expect(verifiedPortfolio.status).toBe(200);
+  expect(verifiedPortfolio.body.status).toBe('validated');
+  expect(databaseScalar(`select status from education_portfolios where id='${ownPortfolio.id}'`)).toBe('validated');
+  expect(databaseScalar(`
+    select count(*)::text from app_audit_log
+    where target_id='${ownPortfolio.id}'
+      and action in ('education.portfolios.returned','education.portfolios.validated')
+  `)).toBe('2');
 
   await page.goto('/administrare');
   await expect(page.getByRole('heading', { name: /Administrare/ })).toBeVisible();
@@ -542,6 +761,12 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(balotestiMe.status).toBe(200);
   expect(balotestiMe.body).toMatchObject({ tenant_code: 'tenant-balotesti', institution_id: 'inst-balotesti' });
   expect(balotestiMe.body.permissions).toContain('registratura.manage');
+  // The tenant-B principal is authenticated normally but cannot discover the
+  // tenant-A teacher portfolio through its own-only endpoint. This assertion
+  // is deliberately made before the general cross-host token replay checks.
+  const crossTenantPortfolio = await api<unknown>(balotestiPage, balotestiToken, `/api/education/portfolios/me/${ownPortfolio.id}`);
+  expect(crossTenantPortfolio.status).toBe(403);
+  expect(databaseScalar(`select count(*)::text from education_portfolios where id='${ownPortfolio.id}'`, balotestiScope)).toBe('0');
   const balotestiRegistries = await api<Array<{ id: number }>>(balotestiPage, balotestiToken, '/api/registratura/registre');
   expect(balotestiRegistries.status).toBe(200);
   const balotestiDocument = await api<CreatedDocument>(balotestiPage, balotestiToken, '/api/registratura/documents', {

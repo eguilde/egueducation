@@ -3248,13 +3248,14 @@
   },
   "POST /api/education/portfolios/records/{recordID}/opis/regenerate": {
     "summary": "Create or execute Regenerate Portfolio Opis",
-    "description": "Tenant- and institution-scoped Education operation. Handler: RegeneratePortfolioOpis. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.",
+    "description": "Tenant- and institution-scoped Education operation. Handler: RegeneratePortfolioOpis. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server accepts this bodyless command when the caller has education.portfolios.school.manage or the legacy education.portfolios.manage permission.",
     "tags": [
       "Scoala",
       "Portfolios"
     ],
     "status": "detailed",
     "institutionContext": false,
+    "requestBody": false,
     "responseSchema": "EducationRegeneratePortfolioOpisResponse"
   },
   "POST /api/education/portfolios/records/{recordID}/opis": {
@@ -3443,5 +3444,17 @@
     "status": "detailed",
     "institutionContext": false,
     "responseSchema": "NoContent"
+  },
+  "POST /api/education/portfolios/me/{recordID}/opis/regenerate": {
+    "summary": "Regenerate the authenticated teacher's portfolio opis",
+    "description": "Regenerates the dated opis from the authenticated teacher's current portfolio evidence. The owner and institution are derived from the OIDC session; this is a bodyless command protected by education.portfolios.manage_own.",
+    "tags": [
+      "Scoala",
+      "Portfolios"
+    ],
+    "status": "detailed",
+    "institutionContext": false,
+    "requestBody": false,
+    "responseSchema": "EducationRegeneratePortfolioOpisResponse"
   }
 }

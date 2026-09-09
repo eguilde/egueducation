@@ -110,4 +110,57 @@ describe("Education API", () => {
     expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/p1/opis/regenerate");
     expect(requestAt(fetcher).method).toBe("POST");
   });
+
+  it("uses only the owner-scoped portfolio contract for teacher self-service", async () => {
+    const fetcher = vi.fn().mockImplementation(() => new Response(JSON.stringify({ items: [{ id: "own-1" }], total: 1, page: 1, pageSize: 1 }), { status: 200 }));
+    const api = createEducationApi(fetcher);
+    await api.ownPortfolios();
+    await api.ownPortfolio("own-1");
+    await api.createOwnPortfolio({ school_year: "2026-2027", section_count: 1, last_updated_on: "2026-09-01", authenticity_declared: true, consent_captured: true, notes: "" });
+    await api.updateOwnPortfolio("own-1", { school_year: "2026-2027", section_count: 2, last_updated_on: "2026-09-02", authenticity_declared: true, consent_captured: true, notes: "actualizat" });
+    await api.submitOwnPortfolio("own-1");
+    await api.ownPortfolioRelated("own-1", "opis");
+    await api.regenerateOwnPortfolioOpis("own-1");
+    await api.createOwnPortfolioDocument("own-1", { section_code: "S1", component_code: "C1", document_title: "Planificare", evidence_type: "document", issued_on: "2026-09-01", added_on: "2026-09-01", chronological_index: 1, sensitive_data: false, file_reference: "archive://document-1", notes: "" });
+    await api.deleteOwnPortfolioDocument("own-1", "document-1");
+    await api.ownPortfolioArchiveDocuments();
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/me");
+    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/portfolios/me/own-1");
+    expect(requestAt(fetcher, 2).method).toBe("POST");
+    expect(requestAt(fetcher, 3).method).toBe("PATCH");
+    expect(new URL(urlAt(fetcher, 4)).pathname).toBe("/api/education/portfolios/me/own-1/submit");
+    expect(new URL(urlAt(fetcher, 5)).pathname).toBe("/api/education/portfolios/me/own-1/opis");
+    expect(new URL(urlAt(fetcher, 6)).pathname).toBe("/api/education/portfolios/me/own-1/opis/regenerate");
+    expect(requestAt(fetcher, 6).method).toBe("POST");
+    expect(new URL(urlAt(fetcher, 7)).pathname).toBe("/api/education/portfolios/me/own-1/documents");
+    expect(requestAt(fetcher, 7).method).toBe("POST");
+    expect(new URL(urlAt(fetcher, 8)).pathname).toBe("/api/education/portfolios/me/own-1/documents/document-1");
+    expect(requestAt(fetcher, 8).method).toBe("DELETE");
+    expect(new URL(urlAt(fetcher, 9)).pathname).toBe("/api/education/portfolios/me/archive-documents");
+    expect(urlAt(fetcher, 9)).toContain("sort=title");
+    expect(fetcher.mock.calls.map((call) => String(call[0])).join(" ")).not.toContain("/records/own-1");
+  });
+
+  it("uses the dedicated tenant-scoped archive grant administration contracts", async () => {
+    const fetcher = vi.fn().mockImplementation((request: Request) => Promise.resolve(
+      request.method === "DELETE"
+        ? new Response(null, { status: 204 })
+        : new Response(
+          JSON.stringify({ items: [], total: 0, page: 1, pageSize: 50 }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+    ));
+    const api = createEducationApi(fetcher);
+    await api.attachmentGrants();
+    await api.eligibleAttachmentDocuments();
+    await api.eligibleAttachmentUsers();
+    await api.createAttachmentGrant({ archive_document_id: "11111111-1111-4111-8111-111111111111", grantee_user_id: "22222222-2222-4222-8222-222222222222" });
+    await api.deleteAttachmentGrant("33333333-3333-4333-8333-333333333333");
+    expect(new URL(urlAt(fetcher, 0)).pathname).toBe("/api/education/portfolios/archive-attachment-grants");
+    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/portfolios/archive-attachment-grants/eligible-documents");
+    expect(new URL(urlAt(fetcher, 2)).pathname).toBe("/api/education/portfolios/archive-attachment-grants/eligible-users");
+    expect(requestAt(fetcher, 3).method).toBe("POST");
+    await expect(requestAt(fetcher, 3).clone().json()).resolves.toEqual({ archive_document_id: "11111111-1111-4111-8111-111111111111", grantee_user_id: "22222222-2222-4222-8222-222222222222" });
+    expect(requestAt(fetcher, 4).method).toBe("DELETE");
+  });
 });

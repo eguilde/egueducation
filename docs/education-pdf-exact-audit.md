@@ -1,4 +1,6 @@
-# Audit exact pe scope-ul celor 2 PDF-uri
+# Audit exact pe scope-ul PDF-urilor — document istoric
+
+> **Depășit la 2026-09-09.** Acest audit descrie în principal vechiul frontend Angular și marchează unele fluxuri drept livrate fără dovadă în frontendul React ori în RBAC-ul backend. Pentru dezvoltare și acceptanță se folosește exclusiv [catalogul canonic de cerințe Școală](requirements/education-school-requirements-catalog.md). Afirmațiile de status de mai jos se păstrează numai pentru istoricul proiectului.
 
 Data: 2026-06-24
 

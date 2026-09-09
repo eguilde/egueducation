@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/eguilde/egueducation/internal/audit"
@@ -2184,6 +2185,8 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.OwnerUserID = strings.TrimSpace(req.OwnerUserID)
+	req.OwnerPersonnelID = strings.TrimSpace(req.OwnerPersonnelID)
 	req.OwnerName = strings.TrimSpace(req.OwnerName)
 	req.OwnerRole = strings.TrimSpace(req.OwnerRole)
 	req.SchoolYear = strings.TrimSpace(req.SchoolYear)
@@ -2194,13 +2197,30 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	req.Custodian = strings.TrimSpace(req.Custodian)
 	req.Notes = strings.TrimSpace(req.Notes)
 
-	if req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.RetentionUntil == "" || req.TransferStatus == "" {
+	if req.OwnerUserID == "" || req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.RetentionUntil == "" || req.TransferStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_fields"})
 		return
 	}
-	if !contains([]string{"draft", "submitted", "validated", "transferred", "archived"}, req.Status) ||
+	if _, err := uuid.Parse(req.OwnerUserID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_user"})
+		return
+	}
+	if req.OwnerPersonnelID != "" {
+		if _, err := uuid.Parse(req.OwnerPersonnelID); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_personnel"})
+			return
+		}
+	}
+	if !contains([]string{"draft", "submitted", "returned", "validated", "transferred", "archived"}, req.Status) ||
 		!contains([]string{"none", "prepared", "sent", "received"}, req.TransferStatus) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_fields"})
+		return
+	}
+	// Institution-level creation is a draft command only. Lifecycle state,
+	// declarations and completeness are established by the dedicated owner and
+	// reviewer commands, never by a generic CRUD payload.
+	if req.Status != "draft" || req.TransferStatus != "none" || req.SectionCount != 0 || req.AuthenticityDeclared || req.ConsentCaptured {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_create_must_be_draft"})
 		return
 	}
 	if req.SectionCount < 0 {
@@ -2219,9 +2239,11 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	portfolioCode := fmt.Sprintf("PORT-CD-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
 
 	var item PortfolioRecord
-	err := s.pool.QueryRow(r.Context(), `
+	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolios (
 			portfolio_code,
+			owner_user_id,
+			owner_personnel_id,
 			owner_name,
 			owner_role,
 			school_year,
@@ -2235,25 +2257,11 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 			custodian,
 			institution_id,
 			notes
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-		returning
-			id::text,
-			portfolio_code,
-			owner_name,
-			owner_role,
-			school_year,
-			status,
-			section_count,
-			to_char(last_updated_on, 'YYYY-MM-DD'),
-			to_char(retention_until, 'YYYY-MM-DD'),
-			transfer_status,
-			authenticity_declared,
-			consent_captured,
-			custodian,
-			institution_id,
-			notes
-	`,
+		) values ($1,$2::uuid,nullif($3, '')::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+		returning `+portfolioRecordColumns,
 		portfolioCode,
+		req.OwnerUserID,
+		req.OwnerPersonnelID,
 		req.OwnerName,
 		req.OwnerRole,
 		req.SchoolYear,
@@ -2267,23 +2275,7 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		req.Custodian,
 		institutionID,
 		req.Notes,
-	).Scan(
-		&item.ID,
-		&item.PortfolioCode,
-		&item.OwnerName,
-		&item.OwnerRole,
-		&item.SchoolYear,
-		&item.Status,
-		&item.SectionCount,
-		&item.LastUpdatedOn,
-		&item.RetentionUntil,
-		&item.TransferStatus,
-		&item.AuthenticityDeclared,
-		&item.ConsentCaptured,
-		&item.Custodian,
-		&item.InstitutionID,
-		&item.Notes,
-	)
+	), &item)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_create_failed"})
 		return
@@ -4031,6 +4023,8 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.OwnerUserID = strings.TrimSpace(req.OwnerUserID)
+	req.OwnerPersonnelID = strings.TrimSpace(req.OwnerPersonnelID)
 	req.OwnerName = strings.TrimSpace(req.OwnerName)
 	req.OwnerRole = strings.TrimSpace(req.OwnerRole)
 	req.SchoolYear = strings.TrimSpace(req.SchoolYear)
@@ -4045,9 +4039,47 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_fields"})
 		return
 	}
-	if !contains([]string{"draft", "submitted", "validated", "transferred", "archived"}, req.Status) ||
+	if req.OwnerUserID != "" {
+		if _, err := uuid.Parse(req.OwnerUserID); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_user"})
+			return
+		}
+	}
+	if req.OwnerPersonnelID != "" {
+		if _, err := uuid.Parse(req.OwnerPersonnelID); err != nil {
+			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_personnel"})
+			return
+		}
+	}
+	if !contains([]string{"draft", "submitted", "returned", "validated", "transferred", "archived"}, req.Status) ||
 		!contains([]string{"none", "prepared", "sent", "received"}, req.TransferStatus) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_fields"})
+		return
+	}
+	if req.Status != "draft" && req.Status != "returned" {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_lifecycle_requires_command"})
+		return
+	}
+	var currentStatus, currentTransferStatus string
+	var currentSectionCount int
+	var currentAuthenticityDeclared, currentConsentCaptured bool
+	if err := s.pool.QueryRow(r.Context(), `
+		select status, transfer_status, section_count, authenticity_declared, consent_captured
+		from education_portfolios where id = $1::uuid and institution_id = $2
+	`, recordID, institutionID).Scan(&currentStatus, &currentTransferStatus, &currentSectionCount, &currentAuthenticityDeclared, &currentConsentCaptured); errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "portfolio_not_found")
+		return
+	} else if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_state_load_failed"})
+		return
+	}
+	if req.Status != currentStatus {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_lifecycle_requires_command"})
+		return
+	}
+	if req.TransferStatus != currentTransferStatus || req.SectionCount != currentSectionCount ||
+		req.AuthenticityDeclared != currentAuthenticityDeclared || req.ConsentCaptured != currentConsentCaptured {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_workflow_fields_immutable"})
 		return
 	}
 	if req.SectionCount < 0 {
@@ -4062,75 +4094,62 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_retention"})
 		return
 	}
+	// Ownership is immutable. Admin clients may echo it for optimistic-concurrency
+	// checks, but an update can never silently reassign a professional portfolio.
+	if req.OwnerUserID != "" || req.OwnerPersonnelID != "" {
+		var currentOwnerUserID, currentOwnerPersonnelID string
+		err := s.pool.QueryRow(r.Context(), `
+			select coalesce(owner_user_id::text, ''), coalesce(owner_personnel_id::text, '')
+			from education_portfolios where id = $1::uuid and institution_id = $2
+		`, recordID, institutionID).Scan(&currentOwnerUserID, &currentOwnerPersonnelID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			writeEducationNotFound(w, "portfolio_not_found")
+			return
+		}
+		if err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_owner_load_failed"})
+			return
+		}
+		if (req.OwnerUserID != "" && req.OwnerUserID != currentOwnerUserID) ||
+			(req.OwnerPersonnelID != "" && req.OwnerPersonnelID != currentOwnerPersonnelID) {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_owner_immutable"})
+			return
+		}
+	}
 
 	var item PortfolioRecord
-	err := s.pool.QueryRow(r.Context(), `
+	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		update education_portfolios
 		set
 			owner_name = $1,
 			owner_role = $2,
 			school_year = $3,
-			status = $4,
-			section_count = $5,
-			last_updated_on = $6,
-			retention_until = $7,
-			transfer_status = $8,
-			authenticity_declared = $9,
-			consent_captured = $10,
-			custodian = $11,
-			notes = $12,
+			last_updated_on = $4,
+			retention_until = $5,
+			custodian = $6,
+			notes = $7,
 			updated_at = now()
-		where id = $13::uuid and institution_id = $14
-		returning
-			id::text,
-			portfolio_code,
-			owner_name,
-			owner_role,
-			school_year,
-			status,
-			section_count,
-			to_char(last_updated_on, 'YYYY-MM-DD'),
-			to_char(retention_until, 'YYYY-MM-DD'),
-			transfer_status,
-			authenticity_declared,
-			consent_captured,
-			custodian,
-			institution_id,
-			notes
-	`,
+		where id = $8::uuid and institution_id = $9
+			and status = $10 and transfer_status = $11 and section_count = $12
+			and authenticity_declared = $13 and consent_captured = $14
+		returning `+portfolioRecordColumns,
 		req.OwnerName,
 		req.OwnerRole,
 		req.SchoolYear,
-		req.Status,
-		req.SectionCount,
 		req.LastUpdatedOn,
 		req.RetentionUntil,
-		req.TransferStatus,
-		req.AuthenticityDeclared,
-		req.ConsentCaptured,
 		req.Custodian,
 		req.Notes,
 		recordID,
 		institutionID,
-	).Scan(
-		&item.ID,
-		&item.PortfolioCode,
-		&item.OwnerName,
-		&item.OwnerRole,
-		&item.SchoolYear,
-		&item.Status,
-		&item.SectionCount,
-		&item.LastUpdatedOn,
-		&item.RetentionUntil,
-		&item.TransferStatus,
-		&item.AuthenticityDeclared,
-		&item.ConsentCaptured,
-		&item.Custodian,
-		&item.InstitutionID,
-		&item.Notes,
-	)
+		currentStatus,
+		currentTransferStatus,
+		currentSectionCount,
+		currentAuthenticityDeclared,
+		currentConsentCaptured,
+	), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeEducationNotFound(w, "portfolio_not_found")
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_concurrent_state_changed"})
 		return
 	}
 	if err != nil {

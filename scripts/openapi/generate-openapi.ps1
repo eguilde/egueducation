@@ -44,6 +44,7 @@ function New-ClosedRequestSchema([string]$operationKey) {
 		'POST /api/registratura/documents'='backend/internal/registratura/models.go|CreateDocumentRequest'; 'PATCH /api/registratura/documents/{documentID}'='backend/internal/registratura/models.go|UpdateDocumentRequest'; 'POST /api/registratura/documents/batch'='backend/internal/registratura/models.go|BatchCreateDocumentsRequest'; 'POST /api/registratura/documents/export-pdf'='backend/internal/registratura/models.go|ExportDocumentsRequest'; 'POST /api/registratura/documents/{documentID}/versions'='backend/internal/registratura/models.go|CreateDocumentVersionRequest'; 'POST /api/registratura/documents/{documentID}/attachments'='backend/internal/registratura/models.go|CreateDocumentAttachmentRequest'; 'POST /api/registratura/registre'='backend/internal/registratura/models.go|CreateRegistruRequest'; 'PATCH /api/registratura/registre/{id}'='backend/internal/registratura/models.go|UpdateRegistruRequest'; 'POST /api/registratura/parties'='backend/internal/registratura/models.go|CreatePartyRequest'; 'PATCH /api/registratura/parties/{id}'='backend/internal/registratura/models.go|UpdatePartyRequest'; 'POST /api/registratura/admin/departments'='backend/internal/registratura/structure.go|departmentRequest'; 'PATCH /api/registratura/admin/departments/{id}'='backend/internal/registratura/structure.go|departmentRequest'; 'POST /api/registratura/admin/organizations'='backend/internal/registratura/structure.go|organizationRequest'; 'PATCH /api/registratura/admin/organizations/{id}'='backend/internal/registratura/structure.go|organizationRequest'; 'PUT /api/registratura/admin/users/{id}/assignments'='backend/internal/registratura/structure.go|assignmentRequest'; 'POST /api/registratura/admin/registries'='backend/internal/registratura/structure.go|adminRegistryRequest'; 'PATCH /api/registratura/admin/registries/{id}'='backend/internal/registratura/structure.go|adminRegistryRequest'; 'POST /api/registratura/document-links'='backend/internal/registratura/models.go|CreateDocumentLinkRequest'
 		'POST /api/gdpr/retention-policies'='backend/internal/gdpr/models.go|CreateRetentionPolicyRequest'; 'POST /api/gdpr/subject-requests'='backend/internal/gdpr/models.go|CreateSubjectRequestRequest'; 'POST /api/gdpr/exports'='backend/internal/gdpr/models.go|CreateSubjectExportRequest'; 'POST /api/gdpr/publication-reviews'='backend/internal/gdpr/models.go|CreatePublicationReviewRequest'
 		'POST /api/earchiva/classification-reviews/{reviewID}/approve'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationApprovalRequest'; 'POST /api/earchiva/classification-reviews/{reviewID}/correct'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationCorrectionRequest'
+		'POST /api/education/portfolios/me'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'PATCH /api/education/portfolios/me/{recordID}'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'POST /api/education/portfolios/me/{recordID}/documents'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'
 	}
 	if ($dtoMap.ContainsKey($operationKey)) {
 		$parts=$dtoMap[$operationKey].Split('|'); $previousGo111Module=$env:GO111MODULE; $env:GO111MODULE='off'; $json=& go run ./scripts/openapi/go-schema-helper -- $parts[0] $parts[1]; $env:GO111MODULE=$previousGo111Module
@@ -284,6 +285,10 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     $isPublic = $path -in $publicPaths -or $path -in @('/health', '/readyz', '/healthz', '/logout')
     $override = $overrides[$key]
     $coverage = $domainCoverage[$key]
+	# A coverage catalogue is itself a complete, handler-backed contract.  New
+	# covered operations do not need a duplicate global override merely to carry
+	# their concrete schema and authorization metadata into the generator.
+	if ($coverage -and -not $override) { $override = [ordered]@{} }
     $matchingRules = @($domainRules | Where-Object { $path -match $_.match })
     if ($matchingRules.Count -gt 1) { throw "Multiple domain rules match '$key'" }
     $domainRule = if ($matchingRules.Count -eq 1) { $matchingRules[0] } else { $null }
@@ -307,6 +312,7 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     }
 
     if ($coverage) {
+		$override.status = [string]$coverage.contractStatus
         $override.requiredPermission = $coverage.requiredPermission
         $override.pathParameters = @($coverage.pathParameters)
         $override.queryParameters = @($coverage.queryParameters)
@@ -408,6 +414,9 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if ($key -eq 'POST /api/eudi-wallet/activate') { $hasRequestBody = $false }
     if ($method -in @('post', 'put', 'patch') -and $hasRequestBody) {
         $requestSchema = if ($override -and $override.requestSchema) { [string]$override.requestSchema } elseif ($isDetailedFamily) { "$family`Request" } else { 'Mutation' }
+		if ($key -in @('POST /api/education/portfolios/me', 'PATCH /api/education/portfolios/me/{recordID}', 'POST /api/education/portfolios/me/{recordID}/documents', 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}') -and -not $common.components.schemas.Contains($requestSchema)) {
+			$common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key
+		}
         if ($requestSchema -in @('IdentityRequest', 'AdminCommand', 'GdprCommand', 'Mutation', 'RegistraturaRequest')) {
             $requestSchema = "Request_$($operation.operationId)"
             if (-not $common.components.schemas.Contains($requestSchema)) { $common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key }
