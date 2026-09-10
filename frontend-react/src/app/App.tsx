@@ -456,7 +456,7 @@ export function App() {
               <Route path="scoala/decisions" element={<SchoolRoute permissions={["education.decisions.read"]} />} />
               <Route path="scoala/managerial" element={<SchoolRoute permissions={["education.managerial.read"]} />} />
               <Route path="scoala/regulations" element={<SchoolRoute permissions={["education.regulations.read"]} />} />
-              <Route path="scoala/committees" element={<SchoolRoute permissions={["education.committees.read"]} />} />
+              <Route path="scoala/committees" element={<SchoolRoute permissions={["education.governance.read"]} />} />
               <Route path="scoala/evaluations" element={<SchoolRoute permissions={["education.evaluations.read"]} />} />
               <Route path="scoala/declarations" element={<SchoolRoute permissions={["education.declarations.read"]} />} />
               <Route path="scoala/mobility" element={<SchoolRoute permissions={["education.mobility.read"]} />} />

@@ -312,6 +312,7 @@ describe("educationPermissionAllows", () => {
   });
 
   it("keeps the parent domain permission only for relations governed by that domain", () => {
+    expect(relationManagePermission("committees")).toBe("education.governance.manage");
     expect(relationManagePermission("evaluations")).toBe("education.evaluations.manage");
     expect(relationManagePermission("merit")).toBe("education.gradatii.manage");
   });

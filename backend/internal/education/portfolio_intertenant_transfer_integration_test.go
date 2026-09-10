@@ -92,6 +92,24 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if createdByHandler.SourceTenantCode != fixture.tenantA || createdByHandler.SourceInstitutionID != fixture.institutionA || createdByHandler.DestinationTenantCode != fixture.tenantB || createdByHandler.DestinationInstitutionID != fixture.institutionB || createdByHandler.RoutingVersion != 2 {
 		t.Fatalf("handler-created transfer has invalid route: %#v", createdByHandler)
 	}
+	advanceRequest := httptest.NewRequest(http.MethodPost, "http://education.test", strings.NewReader(`{"action":"mark_sent"}`)).WithContext(requestWithContext(sourceCtx, fixture.tenantA, fixture.institutionA, fixture.memberSubject).Context())
+	advanceRequest = withChiParams(advanceRequest, map[string]string{"recordID": fixture.portfolioID, "itemID": createdByHandler.ID})
+	advanceResponse := httptest.NewRecorder()
+	service.AdvancePortfolioTransfer(advanceResponse, advanceRequest)
+	if advanceResponse.Code != http.StatusUnprocessableEntity || !strings.Contains(advanceResponse.Body.String(), "education_portfolio_export_provenance_incomplete") {
+		t.Fatalf("transfer without immutable archive provenance must fail closed: status=%d body=%s", advanceResponse.Code, advanceResponse.Body.String())
+	}
+	var rejectedTransferState string
+	if err := pool.QueryRow(sourceCtx, `
+		select status || '|' || (export_manifest_id is null)::text
+		from education_portfolio_transfers
+		where id=$1::uuid and institution_id=$2
+	`, createdByHandler.ID, fixture.institutionA).Scan(&rejectedTransferState); err != nil {
+		t.Fatalf("load rejected transfer state: %v", err)
+	}
+	if rejectedTransferState != "pregatit|true" {
+		t.Fatalf("rejected transfer mutated state: got %q, want pregatit|true", rejectedTransferState)
+	}
 
 	invalidRequest := httptest.NewRequest(http.MethodPost, "http://education.test", strings.NewReader(`{
 		"transfer_type":"mutare",

@@ -10,7 +10,7 @@ export const educationAreas: EducationArea[] = [
   { id: "decisions", label: "Decizii", icon: "pi pi-file-edit", permissions: ["education.decisions.read"], description: "Decizii, emitere și pași de publicare." },
   { id: "managerial", label: "Management", icon: "pi pi-briefcase", permissions: ["education.managerial.read"], description: "Dosare manageriale și fluxuri aferente." },
   { id: "regulations", label: "Regulamente", icon: "pi pi-book", permissions: ["education.regulations.read"], description: "Regulamente, versiuni și aprobare." },
-  { id: "committees", label: "Comisii", icon: "pi pi-sitemap", permissions: ["education.committees.read"], description: "Comisii și membri." },
+  { id: "committees", label: "Comisii", icon: "pi pi-sitemap", permissions: ["education.governance.read"], description: "Comisii și membri." },
   { id: "personnel", label: "Personal", icon: "pi pi-id-card", permissions: ["education.personnel.read", "education.personnel.files.read", "education.personnel.access.read"], description: "Dosare, funcții, acces și situații disciplinare." },
   { id: "evaluations", label: "Evaluări", icon: "pi pi-check-square", permissions: ["education.evaluations.read"], description: "Evaluări, criterii, contestații și rezultate." },
   { id: "declarations", label: "Declarații", icon: "pi pi-verified", permissions: ["education.declarations.read"], description: "Declarații de interese și conformitate." },

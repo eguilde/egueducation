@@ -34,20 +34,9 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  // Select.List virtualizes long lists. Keyboard selection uses the component's
-  // documented listbox contract and avoids clicking an option that is replaced
-  // during its scroll/reposition animation.
-  const position = Number(await option.getAttribute('aria-posinset'));
-  if (Number.isInteger(position) && position > 0) {
-    await listbox.focus();
-    await listbox.press('Home');
-    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
-    await listbox.press('Enter');
-    await expect(listbox).toBeHidden();
-    return;
-  }
   await option.scrollIntoViewIfNeeded();
   await option.click();
+  await expect(listbox).toBeHidden();
 }
 
 async function searchAndSelectGovernanceUser(page: Page, label: string, name: string): Promise<void> {
@@ -1274,7 +1263,19 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
 
   await page.goto(`/scoala/governance/resolutions-wizard?meetingId=${encodeURIComponent(createdMeeting.id)}`);
   await expect(page.getByRole('heading', { name: 'Hotărâre' })).toBeVisible();
-  await page.getByLabel('Vot').fill(vote.id);
+  const voteSubject = `${marker} aprobare ordine de zi`;
+  const filteredVotes = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return response.request().method() === 'GET'
+      && url.pathname === `/api/education/governance/meetings/${createdMeeting.id}/votes`
+      && url.searchParams.get('filter.subject_title') === voteSubject;
+  });
+  await page.getByRole('textbox', { name: 'Caută Vot *', exact: true }).fill(voteSubject);
+  expect((await filteredVotes).status()).toBe(200);
+  const voteSelect = page.getByRole('combobox', { name: 'Vot *', exact: true });
+  await expect(voteSelect).toBeEnabled();
+  await voteSelect.click();
+  await selectOpenOption(page, new RegExp(voteSubject));
   await page.getByLabel('Titlu').fill(`${marker} hotărâre`);
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Data emiterii').fill('2026-09-10');
@@ -1492,11 +1493,13 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await evidenceDialog.getByLabel('Caută versiune eArhivă').fill(archiveTitle);
   await evidenceDialog.getByLabel('Versiune eArhivă *').click();
   await selectOpenOption(page, `${archiveTitle} · v1`);
+  await expect(evidenceDialog.getByRole('combobox', { name: 'Versiune eArhivă *' })).toContainText(`${archiveTitle} · v1`);
   await evidenceDialog.getByLabel('Subiect certificat').fill('E2E signer');
   await evidenceDialog.getByLabel('Emitent certificat').fill('E2E issuer');
   await evidenceDialog.getByLabel('Serie certificat').fill(suffix);
   await evidenceDialog.getByLabel('Certificat valabil de la').fill('2026-01-01T00:00');
   await evidenceDialog.getByLabel('Certificat valabil până la').fill('2027-01-01T00:00');
+  await expect(evidenceDialog.getByRole('button', { name: 'Înregistrează dovada' })).toBeEnabled();
   const evidenceCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/signatures' && response.request().method() === 'POST');
   await evidenceDialog.getByRole('button', { name: 'Înregistrează dovada' }).click();
   const evidenceHTTP = await evidenceCreated;

@@ -3,7 +3,7 @@ import { visibleEducationAreas } from "./catalog";
 
 describe("Education navigation catalog", () => {
   it("shows only domains permitted to the user", () => {
-    expect(visibleEducationAreas(["education.governance.read", "education.portfolios.read"], [{ code: "education", active: true }]).map((area) => area.id)).toEqual(["overview", "governance", "portfolios"]);
+    expect(visibleEducationAreas(["education.governance.read", "education.portfolios.read"], [{ code: "education", active: true }]).map((area) => area.id)).toEqual(["overview", "governance", "committees", "portfolios"]);
   });
 
   it("hides all domains when the education module is explicitly disabled", () => {

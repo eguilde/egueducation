@@ -22,17 +22,9 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  const position = Number(await option.getAttribute('aria-posinset'));
-  if (Number.isInteger(position) && position > 0) {
-    await listbox.focus();
-    await listbox.press('Home');
-    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
-    await listbox.press('Enter');
-    await expect(listbox).toBeHidden();
-    return;
-  }
   await option.scrollIntoViewIfNeeded();
   await option.click();
+  await expect(listbox).toBeHidden();
 }
 
 /** Exercise the wizard's server-side selector before opening its Select. */

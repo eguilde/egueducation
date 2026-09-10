@@ -2098,6 +2098,7 @@ export const domainListCapabilities: Record<
   },
 };
 function permissionForDomain(domain: EducationRecordsDomain) {
+  if (domain === "committees") return "education.governance.manage";
   return `education.${domain === "merit" ? "gradatii" : domain}.manage`;
 }
 export function relationManagePermission(

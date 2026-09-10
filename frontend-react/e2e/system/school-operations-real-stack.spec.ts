@@ -24,17 +24,9 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  const position = Number(await option.getAttribute('aria-posinset'));
-  if (Number.isInteger(position) && position > 0) {
-    await listbox.focus();
-    await listbox.press('Home');
-    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
-    await listbox.press('Enter');
-    await expect(listbox).toBeHidden();
-    return;
-  }
   await option.scrollIntoViewIfNeeded();
   await option.click();
+  await expect(listbox).toBeHidden();
 }
 
 /** Query the paginated owner selector before selecting the server-returned option. */
@@ -532,9 +524,9 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   expect(sql(`select status || '|' || authenticity_declared::text || '|' || consent_captured::text from education_portfolios where id='${portfolio.id}'`)).toBe('submitted|true|true');
   await page.goto('/scoala/portfolios');
   await openReactRootDetails(page, `${marker} Proprietar`);
-  // The transfer is tenant-addressed (not a browser-supplied institution ID),
-  // and its first transition must produce a provenance error until evidence is
-  // complete. This proves the lifecycle cannot be shortcut by a client.
+  // The transfer is tenant-addressed (not a browser-supplied institution ID).
+  // The submitted portfolio already has complete immutable eArhivă provenance,
+  // so sending must seal a server-generated export manifest and succeed.
   await expect(page.getByText('Expediere inter-tenant')).toBeVisible();
   await page.getByLabel('Inițiază transfer').click();
   const transferDialog = page.getByRole('dialog');
@@ -549,9 +541,13 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   expect(transferResponse.status()).toBe(201);
   const transfer = await transferResponse.json() as RecordWithID;
   expect(transfer.status).toBe('pregatit');
-  const rejectedSend = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/transfers/${transfer.id}/advance` && response.request().method() === 'POST');
+  const sentResponse = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/transfers/${transfer.id}/advance` && response.request().method() === 'POST');
   await page.getByLabel(`Marchează trimis ${String(transfer.transfer_code)}`).click();
-  expect((await rejectedSend).status()).toBe(422);
+  const sentHTTP = await sentResponse;
+  expect(sentHTTP.status()).toBe(200);
+  expect(await sentHTTP.json()).toMatchObject({ id: transfer.id, status: 'trimis' });
+  expect(sql(`select status || '|' || (export_manifest_id is not null)::text from education_portfolio_transfers where id='${transfer.id}'`)).toBe('trimis|true');
+  expect(sql(`select count(*)::text from app_audit_log where action='education.portfolios.transfer.advance' and target_id='${transfer.id}'`)).toBe('1');
 
   // A ready eArhiva version is storage/OCR fixture state, not a user-facing
   // School operation; its setup remains intentionally outside the UI proof.
