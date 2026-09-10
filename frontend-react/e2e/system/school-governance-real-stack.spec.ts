@@ -22,8 +22,26 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  await option.scrollIntoViewIfNeeded();
-  await option.click();
+  const box = await option.boundingBox();
+  const listboxBox = await listbox.boundingBox();
+  const viewport = page.viewportSize();
+  const isInViewport = Boolean(box && listboxBox && viewport
+    && box.x >= listboxBox.x && box.x + box.width <= listboxBox.x + listboxBox.width
+    && box.y >= listboxBox.y && box.y + box.height <= listboxBox.y + listboxBox.height
+    && box.y >= 0 && box.y + box.height <= viewport.height);
+  if (isInViewport) {
+    await option.click();
+  } else {
+    const position = Number(await option.getAttribute('aria-posinset'));
+    const listboxID = await listbox.getAttribute('id');
+    if (!Number.isInteger(position) || position < 1 || !listboxID) throw new Error(`Cannot keyboard-select option ${String(name)}`);
+    const trigger = page.locator(`[role="combobox"][aria-controls="${listboxID}"]`);
+    await expect(trigger).toBeVisible();
+    await trigger.focus();
+    await trigger.press('Home');
+    for (let index = 1; index < position; index += 1) await trigger.press('ArrowDown');
+    await trigger.press('Enter');
+  }
   await expect(listbox).toBeHidden();
 }
 
@@ -134,6 +152,10 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   await expect(row).toBeVisible();
   await row.getByLabel('Acțiuni înregistrare').click();
   await clickOpenPopoverAction(page, 'Detalii');
+  const details = page.locator('[role="dialog"]:visible').last();
+  await expect(details).toBeVisible();
+  await details.getByRole('button', { name: 'Închide' }).click();
+  await expect(details).toBeHidden();
 }
 
 async function createRelatedThroughReact(

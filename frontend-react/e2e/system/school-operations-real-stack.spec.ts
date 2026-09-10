@@ -24,8 +24,26 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  await option.scrollIntoViewIfNeeded();
-  await option.click();
+  const box = await option.boundingBox();
+  const listboxBox = await listbox.boundingBox();
+  const viewport = page.viewportSize();
+  const isInViewport = Boolean(box && listboxBox && viewport
+    && box.x >= listboxBox.x && box.x + box.width <= listboxBox.x + listboxBox.width
+    && box.y >= listboxBox.y && box.y + box.height <= listboxBox.y + listboxBox.height
+    && box.y >= 0 && box.y + box.height <= viewport.height);
+  if (isInViewport) {
+    await option.click();
+  } else {
+    const position = Number(await option.getAttribute('aria-posinset'));
+    const listboxID = await listbox.getAttribute('id');
+    if (!Number.isInteger(position) || position < 1 || !listboxID) throw new Error(`Cannot keyboard-select option ${String(name)}`);
+    const trigger = page.locator(`[role="combobox"][aria-controls="${listboxID}"]`);
+    await expect(trigger).toBeVisible();
+    await trigger.focus();
+    await trigger.press('Home');
+    for (let index = 1; index < position; index += 1) await trigger.press('ArrowDown');
+    await trigger.press('Enter');
+  }
   await expect(listbox).toBeHidden();
 }
 
@@ -551,8 +569,9 @@ test('React creates portfolio relations and drives transfer/valorification lifec
 
   // A ready eArhiva version is storage/OCR fixture state, not a user-facing
   // School operation; its setup remains intentionally outside the UI proof.
-  const archiveDocumentID = sql(`insert into archive_documents (institution_id,title,original_file_name,mime_type,source_kind,source_system,external_reference,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,created_by) values ('inst-001','${marker} dovadă arhivă','${marker}.pdf','application/pdf','upload','e2e','${marker}','ready','earhive','e2e/${marker}.pdf','earhive','e2e/${marker}.pdf','e2e') returning id::text`);
-  const archiveVersionID = sql(`insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,status,source_bucket,source_object_key,source_sha256,source_size_bytes,text_status) values ('${archiveDocumentID}','inst-001',1,'application/pdf','${marker} dovadă arhivă','earhive','e2e/${marker}.pdf','${'a'.repeat(64)}',128,'active','earhive','e2e/${marker}.pdf','${'a'.repeat(64)}',128,'processed') returning id::text`);
+  const archiveTitle = `${marker} dovadă arhivă`;
+  const archiveDocumentID = sql(`insert into archive_documents (institution_id,title,original_file_name,mime_type,source_kind,source_system,external_reference,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,created_by) values ('inst-001','${archiveTitle}','${marker}.pdf','application/pdf','upload','e2e','${marker}','ready','earhive','e2e/${marker}.pdf','earhive','e2e/${marker}.pdf','e2e') returning id::text`);
+  const archiveVersionID = sql(`insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,status,source_bucket,source_object_key,source_sha256,source_size_bytes,text_status) values ('${archiveDocumentID}','inst-001',1,'application/pdf','${archiveTitle}','earhive','e2e/${marker}.pdf','${'a'.repeat(64)}',128,'active','earhive','e2e/${marker}.pdf','${'a'.repeat(64)}',128,'processed') returning id::text`);
   await expect(page.getByText('Pachete de valorificare')).toBeVisible();
   await page.getByLabel('Adaugă pachet').click();
   const packageDialog = page.getByRole('dialog');
@@ -567,7 +586,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   const packageItem = await packageResponse.json() as RecordWithID;
   await expect(packageDialog.getByLabel('Versiune eArhivă')).toBeVisible();
   await packageDialog.getByLabel('Versiune eArhivă').click();
-  await selectOpenOption(page, new RegExp(marker));
+  await selectOpenOption(page, `${archiveTitle} · versiunea 1`);
   const packageEvidence = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/valorification-packages/${packageItem.id}/documents` && response.request().method() === 'POST');
   await packageDialog.getByRole('button', { name: 'Atașează versiunea' }).click();
   expect((await packageEvidence).status()).toBe(201);

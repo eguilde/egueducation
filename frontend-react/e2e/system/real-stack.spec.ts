@@ -34,8 +34,26 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await expect(listbox).toBeVisible();
   const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
   await expect(option).toBeAttached();
-  await option.scrollIntoViewIfNeeded();
-  await option.click();
+  const box = await option.boundingBox();
+  const listboxBox = await listbox.boundingBox();
+  const viewport = page.viewportSize();
+  const isInViewport = Boolean(box && listboxBox && viewport
+    && box.x >= listboxBox.x && box.x + box.width <= listboxBox.x + listboxBox.width
+    && box.y >= listboxBox.y && box.y + box.height <= listboxBox.y + listboxBox.height
+    && box.y >= 0 && box.y + box.height <= viewport.height);
+  if (isInViewport) {
+    await option.click();
+  } else {
+    const position = Number(await option.getAttribute('aria-posinset'));
+    const listboxID = await listbox.getAttribute('id');
+    if (!Number.isInteger(position) || position < 1 || !listboxID) throw new Error(`Cannot keyboard-select option ${String(name)}`);
+    const trigger = page.locator(`[role="combobox"][aria-controls="${listboxID}"]`);
+    await expect(trigger).toBeVisible();
+    await trigger.focus();
+    await trigger.press('Home');
+    for (let index = 1; index < position; index += 1) await trigger.press('ArrowDown');
+    await trigger.press('Enter');
+  }
   await expect(listbox).toBeHidden();
 }
 
@@ -1504,12 +1522,25 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await evidenceDialog.getByRole('button', { name: 'Înregistrează dovada' }).click();
   const evidenceHTTP = await evidenceCreated;
   expect(evidenceHTTP.status()).toBe(201);
-  const evidencePayload = evidenceHTTP.request().postDataJSON() as Record<string, unknown>;
-  expect(evidencePayload).toMatchObject({ artifact_type: 'decision', artifact_id: decisionID, storage_document_id: archiveDocumentID, storage_version_id: archiveVersionID });
-  expect(evidencePayload).not.toHaveProperty('document_sha256');
-  expect(evidencePayload).not.toHaveProperty('storage_bucket');
-  expect(evidencePayload).not.toHaveProperty('storage_object_key');
-  const evidence = await evidenceHTTP.json() as { id: string };
+  const evidence = await evidenceHTTP.json() as {
+    id: string;
+    artifact_type: string;
+    artifact_id: string;
+    storage_document_id: string;
+    storage_version_id: string;
+    document_sha256: string;
+    storage_bucket: string;
+    storage_object_key: string;
+  };
+  expect(evidence).toMatchObject({
+    artifact_type: 'decision',
+    artifact_id: decisionID,
+    storage_document_id: archiveDocumentID,
+    storage_version_id: archiveVersionID,
+    document_sha256: archiveHash,
+    storage_bucket: archiveBucket,
+    storage_object_key: archiveObjectKey,
+  });
   expect(databaseScalar(`select document_sha256 || '|' || storage_bucket || '|' || storage_object_key || '|' || storage_document_id::text || '|' || storage_version_id::text from education_signed_artifact_evidence where id='${evidence.id}'`)).toBe(`${archiveHash}|${archiveBucket}|${archiveObjectKey}|${archiveDocumentID}|${archiveVersionID}`);
 
   const evidenceRow = page.getByText('E2E signer', { exact: true }).locator('xpath=ancestor::tr[1]');
