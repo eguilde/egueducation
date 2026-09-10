@@ -16,6 +16,13 @@ type Scope = { tenant: string; institution: string };
 const school: Scope = { tenant: 'tenant-egueducation', institution: 'inst-001' };
 const balotesti: Scope = { tenant: 'tenant-balotesti', institution: 'inst-balotesti' };
 
+/** Scope a Select option to the currently open PrimeReact portal. */
+async function selectOpenOption(page: Page, name: string | RegExp): Promise<void> {
+  const listbox = page.locator('[role="listbox"]:visible').last();
+  await expect(listbox).toBeVisible();
+  await listbox.getByRole('option', { name, exact: typeof name === 'string' }).click();
+}
+
 const hasRealStack = Boolean(process.env.TEST_DATABASE_URL && process.env.DATABASE_URL);
 test.skip(!hasRealStack, 'Real-stack school governance requires TEST_DATABASE_URL and DATABASE_URL; it never substitutes mocks.');
 
@@ -157,9 +164,9 @@ test('director delegation is accepted, immediately usable in React/API, and revo
   await page.getByRole('button', { name: 'Oferă delegare' }).click();
   const dialog = page.getByRole('dialog', { name: 'Oferă delegare educațională' });
   await dialog.getByRole('combobox', { name: 'Director adjunct' }).click();
-  await page.getByRole('option', { name: new RegExp(actors.adjunctName) }).click();
+  await selectOpenOption(page, new RegExp(actors.adjunctName));
   await dialog.getByRole('combobox', { name: 'Drept delegat' }).click();
-  await page.getByRole('option', { name: 'education.governance.manage', exact: true }).click();
+  await selectOpenOption(page, 'education.governance.manage');
   const offeredResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/education/delegations' && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Oferă delegarea' }).click();
   const offeredHTTP = await offeredResponse;
@@ -221,9 +228,9 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Locație').fill('Sala profesorală');
   await page.getByRole('combobox', { name: 'Președinte *' }).click();
-  await page.getByRole('option', { name: actors.directorName, exact: true }).click();
+  await selectOpenOption(page, actors.directorName);
   await page.getByRole('combobox', { name: 'Secretar *' }).click();
-  await page.getByRole('option', { name: actors.adjunctName, exact: true }).click();
+  await selectOpenOption(page, actors.adjunctName);
   const createdResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/education/governance/meetings' && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click();
   const meetingHTTP = await createdResponse; expect(meetingHTTP.status()).toBe(201);
@@ -238,7 +245,7 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await membershipDialog.getByLabel('An școlar').fill('2026-2027');
   await membershipDialog.getByLabel('Organism').fill('ca');
   await membershipDialog.getByLabel('Utilizator').click();
-  await page.getByRole('option', { name: actors.directorName, exact: true }).click();
+  await selectOpenOption(page, actors.directorName);
   await membershipDialog.getByLabel('Rol').fill('președinte');
   await membershipDialog.getByLabel('Mandat de la').fill('2026-09-01');
   await membershipDialog.getByLabel('Mandat până la').fill('2027-08-31');

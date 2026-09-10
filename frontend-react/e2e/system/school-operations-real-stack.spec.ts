@@ -18,6 +18,26 @@ type RecordWithID = { id: string; [key: string]: unknown };
 const egueducation: Scope = { code: 'tenant-egueducation', institutionID: 'inst-001' };
 const balotesti: Scope = { code: 'tenant-balotesti', institutionID: 'inst-balotesti' };
 
+/** Scope a Select option to the currently open PrimeReact portal. */
+async function selectOpenOption(page: Page, name: string): Promise<void> {
+  const listbox = page.locator('[role="listbox"]:visible').last();
+  await expect(listbox).toBeVisible();
+  await listbox.getByRole('option', { name, exact: true }).click();
+}
+
+async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
+  for (const [label, value] of Object.entries(values)) {
+    const control = page.getByLabel(label, { exact: true });
+    if (!(await control.count()) || !(await control.first().isVisible())) continue;
+    if ((await control.first().getAttribute('role')) === 'combobox') {
+      await control.first().click();
+      await selectOpenOption(page, value);
+    } else {
+      await control.first().fill(value);
+    }
+  }
+}
+
 function requireSystemEnvironment(): void {
   for (const name of ['TEST_DATABASE_URL', 'DATABASE_URL']) {
     if (!process.env[name]) throw new Error(`${name} is required: this is a non-mocked browser → OIDC → Go → PostgreSQL system suite.`);
@@ -97,7 +117,7 @@ async function pdf(page: Page, token: string, path: string): Promise<{ status: n
   }, { token, path });
 }
 
-/** Use the actual React root-record dialog; this is deliberately not a fetch helper. */
+/** Use the actual React root-record dialog or configured wizard; never bypass the UI with fetch. */
 async function createRootThroughReact(
   page: Page,
   route: string,
@@ -106,12 +126,24 @@ async function createRootThroughReact(
 ): Promise<RecordWithID> {
   await page.goto(route);
   await expect(page.getByLabel('Adaugă înregistrare')).toBeVisible();
+  const created = page.waitForResponse((response) => new URL(response.url()).pathname === endpoint && response.request().method() === 'POST');
   await page.getByLabel('Adaugă înregistrare').click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog).toBeVisible();
-  for (const [label, value] of Object.entries(values)) await dialog.getByLabel(label).fill(value);
-  const created = page.waitForResponse((response) => new URL(response.url()).pathname === endpoint && response.request().method() === 'POST');
-  await dialog.getByRole('button', { name: 'Salvează' }).click();
+  if (await dialog.isVisible({ timeout: 750 }).catch(() => false)) {
+    for (const [label, value] of Object.entries(values)) await dialog.getByLabel(label, { exact: true }).fill(value);
+    await dialog.getByRole('button', { name: 'Salvează' }).click();
+  } else {
+    await expect(page).toHaveURL(/(?:\/|-)wizard(?:\?.*)?$/);
+    for (;;) {
+      await fillVisibleWizardFields(page, values);
+      const save = page.getByRole('button', { name: 'Salvează', exact: true });
+      if (await save.isVisible()) {
+        await save.click();
+        break;
+      }
+      await page.getByRole('button', { name: 'Continuă', exact: true }).click();
+    }
+  }
   const response = await created;
   expect(response.status()).toBe(201);
   return await response.json() as RecordWithID;
@@ -208,7 +240,7 @@ test('React creates the managerial/regulation roots; API contract persists child
 
   const dossierTitle = `${marker} dosar managerial`;
   const dossier = await createRootThroughReact(page, '/scoala/managerial', '/api/education/managerial/records', {
-    'An școlar': '2026-2027', 'Tip dosar': 'annual_plan', Titlu: dossierTitle, Stare: 'draft', Responsabil: 'Director E2E', Termen: '2026-12-20', Rezumat: marker,
+    'An școlar': '2026-2027', 'Tip dosar': 'director_portfolio', Titlu: dossierTitle, Stare: 'draft', Responsabil: 'Director E2E', Termen: '2026-12-20', Rezumat: marker,
   });
   await openReactRootDetails(page, dossierTitle);
   const document = await createManagerialChildThroughReact(page, 'Adaugă documente dosar', `/api/education/managerial/records/${dossier.id}/documents`, {
@@ -253,7 +285,7 @@ test('React creates mobility/merit roots and every operational child; DB verifie
   const adminToken = await authenticate(page, administratorIdentifier, administratorOTP, 'http://localhost:4173');
   const mobilityName = `${marker} Profesor mobilitate`;
   const mobility = await createRootThroughReact(page, '/scoala/mobility', '/api/education/mobility/records', {
-    'Cod angajat': `MOB-${marker.slice(-8)}`, 'Nume complet': mobilityName, 'An școlar': '2026-2027', 'Tip mobilitate': 'transfer', Etapă: 'review', Stare: 'pending', 'Unitate sursă': 'Școala sursă', 'Unitate destinație': 'Școala destinație', 'Depus la': '2026-09-10', 'Analizat de': 'Director E2E', Note: marker,
+    'Cod angajat': `MOB-${marker.slice(-8)}`, Nume: mobilityName, 'An școlar': '2026-2027', 'Tip solicitare': 'transfer', Etapă: 'review', Status: 'pending', 'Unitate sursă': 'Școala sursă', Destinație: 'Școala destinație', 'Depus la': '2026-09-10', 'Analizat de': 'Director E2E', Note: marker,
   });
   await openReactRootDetails(page, mobilityName);
   const mobilityDocument = await createManagerialChildThroughReact(page, 'Adaugă document', `/api/education/mobility/records/${mobility.id}/documents`, {
@@ -283,7 +315,7 @@ test('React creates mobility/merit roots and every operational child; DB verifie
 
   const meritName = `${marker} Profesor merit`;
   const merit = await createRootThroughReact(page, '/scoala/merit', '/api/education/gradatii/records', {
-    'Nume complet': meritName, Funcție: 'Profesor', 'An școlar': '2026-2027', Categorie: 'predare', Stare: 'approved', Punctaj: '95', Comisie: 'Comisie E2E', 'Data deciziei': '2026-09-10', Note: marker,
+    Nume: meritName, Funcție: 'Profesor', 'An școlar': '2026-2027', Categorie: 'predare', Status: 'approved', Punctaj: '95', Comisie: 'Comisie E2E', 'Data deciziei': '2026-09-10', Note: marker,
   });
   await openReactRootDetails(page, meritName);
   const meritDocument = await createManagerialChildThroughReact(page, 'Adaugă document', `/api/education/gradatii/records/${merit.id}/documents`, {
@@ -370,7 +402,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   // The valorification source is an ordinary School mobility case, so create
   // it through the same PrimeReact root dialog used by the operator.
   const mobilitySource = await createRootThroughReact(page, '/scoala/mobility', '/api/education/mobility/records', {
-    'Cod angajat': `PORT-${suffix}`, 'Nume complet': `${marker} Proprietar`, 'An școlar': '2026-2027', 'Tip mobilitate': 'transfer', Etapă: 'review', Stare: 'pending', 'Unitate sursă': 'Școala E2E', 'Unitate destinație': 'Școala Balotești', 'Depus la': '2026-09-10', 'Analizat de': 'Director E2E', Note: marker,
+    'Cod angajat': `PORT-${suffix}`, Nume: `${marker} Proprietar`, 'An școlar': '2026-2027', 'Tip solicitare': 'transfer', Etapă: 'review', Status: 'pending', 'Unitate sursă': 'Școala E2E', Destinație: 'Școala Balotești', 'Depus la': '2026-09-10', 'Analizat de': 'Director E2E', Note: marker,
   });
   // These ready archive documents model the external eArhivă storage/OCR
   // precondition only.  Every School-side authorization and portfolio action

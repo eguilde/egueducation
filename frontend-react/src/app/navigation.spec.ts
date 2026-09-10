@@ -32,6 +32,13 @@ describe("school role cockpit navigation", () => {
           "education.signatures.validate",
         ],
       }),
+      expect.objectContaining({
+        to: "/scoala/portfolios",
+        permissions: [
+          "education.portfolios.school.read",
+          "education.portfolios.read",
+        ],
+      }),
     ]));
   });
 });

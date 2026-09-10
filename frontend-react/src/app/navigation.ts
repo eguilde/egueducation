@@ -12,6 +12,7 @@ export const navigation: NavItem[] = [
   { label: 'Inspector', icon: 'pi pi-shield', to: '/scoala/inspector', permission: 'education.cockpit.inspector.read', module: 'education' },
   { label: 'Rapoarte școlare', icon: 'pi pi-chart-bar', to: '/scoala/reports', permissions: ['education.portfolios.school.read', 'education.portfolios.read', 'education.evaluations.read', 'education.governance.read', 'education.personnel.files.read', 'education.compliance.read'], module: 'education' },
   { label: 'Semnături și dovezi', icon: 'pi pi-verified', to: '/scoala/signatures', permissions: ['education.signatures.read', 'education.signatures.manage', 'education.signatures.validate'], module: 'education' },
+  { label: 'Portofolii instituționale', icon: 'pi pi-folder-open', to: '/scoala/portfolios', permissions: ['education.portfolios.school.read', 'education.portfolios.read'], module: 'education' },
   { label: 'Portofoliul meu', icon: 'pi pi-folder', to: '/scoala/portfolio/me', permission: 'education.portfolios.read_own', module: 'education' },
   { label: 'Resurse delegate', icon: 'pi pi-share-alt', to: '/scoala/resurse-delegate', module: 'education', delegatedEducation: true },
   { label: 'Administrare', icon: 'pi pi-cog', to: '/administrare', permission: 'admin.read' }

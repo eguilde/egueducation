@@ -5,7 +5,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "../auth/AuthProvider";
 import { AppShell } from "../components/AppShell";
 import { AppThemeProvider } from "../components/ThemeMenu";
@@ -270,6 +270,7 @@ function SchoolSignaturesRoute() { const { apiFetch, canEducation } = useAuth();
 type EducationWizardComponent = ComponentType<{
   adapter: import("../features/education/wizards").EducationWizardAdapter;
   canManage: boolean;
+  onSaved?: (value: unknown) => void;
 }>;
 
 function SchoolWizardRoute({
@@ -280,11 +281,22 @@ function SchoolWizardRoute({
   Wizard: EducationWizardComponent;
 }) {
   const { apiFetch } = useAuth();
+  const navigate = useNavigate();
   const client = useMemo(() => createContractClient(apiFetch), [apiFetch]);
   const adapter = useMemo(() => createSchoolWizardApi(client), [client]);
+  const returnTo = ({
+    "education.governance.manage": "/scoala/governance",
+    "education.managerial.manage": "/scoala/managerial",
+    "education.personnel.manage": "/scoala/personnel",
+    "education.evaluations.manage": "/scoala/evaluations",
+    "education.declarations.manage": "/scoala/declarations",
+    "education.mobility.manage": "/scoala/mobility",
+    "education.gradatii.manage": "/scoala/merit",
+    "education.portfolios.manage": "/scoala/portfolios",
+  } as Record<string, string>)[permission] ?? "/scoala";
   return (
     <SchoolAccess permissions={[permission]}>
-      {deferred(<Wizard adapter={adapter} canManage />)}
+      {deferred(<Wizard adapter={adapter} canManage onSaved={() => navigate(returnTo, { replace: true })} />)}
     </SchoolAccess>
   );
 }
@@ -568,6 +580,12 @@ export function App() {
                     permission="education.gradatii.manage"
                     Wizard={MeritWizard}
                   />
+                }
+              />
+              <Route
+                path="scoala/portfolios"
+                element={
+                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
                 }
               />
               <Route

@@ -94,6 +94,19 @@ func (s *Service) requireOwnPortfolio(r *http.Request, recordID string, permissi
 	if err != nil || !allowed {
 		return "", allowed, err
 	}
+	// Resolve tenant ownership before evaluating the actor's personnel setup.
+	// Otherwise a cross-tenant identifier can disclose that the current actor
+	// is missing an institution-local personnel association through a 422.
+	var scopedRecordExists bool
+	err = s.pool.QueryRow(r.Context(), `
+		select exists(
+			select 1 from education_portfolios
+			where id = $1::uuid and institution_id = $2
+		)
+	`, recordID, s.institutionID(r)).Scan(&scopedRecordExists)
+	if err != nil || !scopedRecordExists {
+		return actorID, false, err
+	}
 	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
 	if err != nil {
 		return "", false, err

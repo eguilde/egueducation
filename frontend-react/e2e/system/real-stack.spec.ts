@@ -28,6 +28,13 @@ type TenantScope = { code: string; institutionID: string };
 const egueducationScope: TenantScope = { code: 'tenant-egueducation', institutionID: 'inst-001' };
 const balotestiScope: TenantScope = { code: 'tenant-balotesti', institutionID: 'inst-balotesti' };
 
+/** Scope a Select option to the currently open PrimeReact portal. */
+async function selectOpenOption(page: Page, name: string | RegExp): Promise<void> {
+  const listbox = page.locator('[role="listbox"]:visible').last();
+  await expect(listbox).toBeVisible();
+  await listbox.getByRole('option', { name, exact: typeof name === 'string' }).click();
+}
+
 function databaseScalar(sql: string, scope: TenantScope = egueducationScope): string {
   const databaseURL = process.env.TEST_DATABASE_URL;
   if (!databaseURL) throw new Error('TEST_DATABASE_URL is required for the non-mocked system E2E suite.');
@@ -1073,9 +1080,9 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Locație').fill('Sala profesorală');
   await page.getByRole('combobox', { name: 'Președinte *' }).click();
-  await page.getByRole('option', { name: chairName, exact: true }).click();
+  await selectOpenOption(page, chairName);
   await page.getByRole('combobox', { name: 'Secretar *' }).click();
-  await page.getByRole('option', { name: secretaryName, exact: true }).click();
+  await selectOpenOption(page, secretaryName);
   await page.getByLabel('Rezumat').fill('Dovadă reală de guvernanță School.');
 
   const createdResponse = page.waitForResponse((response) =>
