@@ -46,7 +46,7 @@ func (s *Service) EligibleGovernanceUsers(w http.ResponseWriter, r *http.Request
 		return
 	}
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
-	rows, err := s.pool.Query(r.Context(), `select distinct u.id::text, u.name `+where+` order by lower(u.name) `+query.Direction+`, u.id limit $`+strconv.Itoa(len(args)-1)+` offset $`+strconv.Itoa(len(args)), args...)
+	rows, err := s.pool.Query(r.Context(), `select u.id::text, u.name `+where+` group by u.id, u.name order by lower(u.name) `+query.Direction+`, u.id limit $`+strconv.Itoa(len(args)-1)+` offset $`+strconv.Itoa(len(args)), args...)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_eligible_users_failed"})
 		return
@@ -81,8 +81,7 @@ func (s *Service) EligiblePortfolioOwners(w http.ResponseWriter, r *http.Request
 		query.Sort = "display_name"
 	}
 	where := ` from education_personnel person
-		where person.tenant_code = public.current_tenant_code()
-		and person.institution_id = $1
+		where person.institution_id = $1
 		and person.status = 'active'
 		and person.app_user_id is not null
 		and public.education_membership_is_eligible(person.app_user_id, public.current_tenant_code(), $1, null)`

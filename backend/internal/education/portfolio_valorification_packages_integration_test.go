@@ -27,19 +27,14 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 	grantGovernanceIntegrationAccess(t, ctx, admin, it.roleName)
 	fixture := seedGovernanceAuthorizationFixture(t, ctx, admin)
 
-	var personnelID, foreignPersonnelID, evaluationID, foreignEvaluationID, wrongYearEvaluationID, mobilityID, meritID, archiveDocumentID, archiveVersionID, purgedArchiveDocumentID, purgedArchiveVersionID string
-	if err := admin.QueryRow(ctx, `
-		insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,institution_id)
-		values ('PER-VALPKG-001','Governance Integration Member','Profesor','titular','active','finalized','none','2026-2027',$1)
-		returning id::text`, fixture.institutionA).Scan(&personnelID); err != nil {
-		t.Fatalf("seed authoritative portfolio personnel: %v", err)
-	}
-	if _, err := admin.Exec(ctx, `update education_portfolios set owner_personnel_id=$1::uuid where id=$2::uuid`, personnelID, fixture.portfolioID); err != nil {
-		t.Fatalf("bind portfolio to authoritative personnel: %v", err)
-	}
+	var foreignPersonnelID, evaluationID, foreignEvaluationID, wrongYearEvaluationID, mobilityID, meritID, archiveDocumentID, archiveVersionID, purgedArchiveDocumentID, purgedArchiveVersionID string
+	// The shared governance fixture already binds this portfolio to the
+	// member's canonical personnel identity. Reusing it proves source matching
+	// against the same durable account/personnel relation used by production.
+	personnelID := fixture.memberPersonnelID
 	if err := admin.QueryRow(ctx, `
 		insert into education_evaluations (evaluation_code,employee_code,personnel_id,full_name,role_title,school_year,status,institution_id)
-		values ('VALPKG-EVAL-001','PER-VALPKG-001',$2::uuid,'Governance Integration Member','Profesor','2026-2027','draft',$1)
+		values ('VALPKG-EVAL-001','PER-GOV-OWNER',$2::uuid,'Governance Integration Member','Profesor','2026-2027','draft',$1)
 		returning id::text`, fixture.institutionA, personnelID).Scan(&evaluationID); err != nil {
 		t.Fatalf("seed authoritative evaluation source: %v", err)
 	}
@@ -57,13 +52,13 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 	}
 	if err := admin.QueryRow(ctx, `
 		insert into education_evaluations (evaluation_code,employee_code,personnel_id,full_name,role_title,school_year,status,institution_id)
-		values ('VALPKG-EVAL-YEAR','PER-VALPKG-001',$2::uuid,'Governance Integration Member','Profesor','2025-2026','approved',$1)
+		values ('VALPKG-EVAL-YEAR','PER-GOV-OWNER',$2::uuid,'Governance Integration Member','Profesor','2025-2026','approved',$1)
 		returning id::text`, fixture.institutionA, personnelID).Scan(&wrongYearEvaluationID); err != nil {
 		t.Fatalf("seed wrong-year evaluation source: %v", err)
 	}
 	if err := admin.QueryRow(ctx, `
 		insert into education_mobility_cases (case_code,employee_code,personnel_id,full_name,school_year,request_type,stage,status,submitted_on,institution_id)
-		values ('VALPKG-MOB-001','PER-VALPKG-001',$2::uuid,'Governance Integration Member','2026-2027','transfer','approved','approved',current_date,$1)
+		values ('VALPKG-MOB-001','PER-GOV-OWNER',$2::uuid,'Governance Integration Member','2026-2027','transfer','approved','approved',current_date,$1)
 		returning id::text`, fixture.institutionA, personnelID).Scan(&mobilityID); err != nil {
 		t.Fatalf("seed canonical mobility source: %v", err)
 	}

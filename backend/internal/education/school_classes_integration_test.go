@@ -35,13 +35,18 @@ func TestSchoolClassesNOBYPASSRLS(t *testing.T) {
 	assignedClass, unassignedClass, pastClass, futureClass := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
 	currentStudent, expiredStudent, futureStudent := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
+	seedArgs := []any{assignedClass, unassignedClass, pastClass, futureClass, currentStudent, expiredStudent, futureStudent, transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent, fixture.tenantA, fixture.institutionA, fixture.memberPersonnelID, fixture.memberUserID}
 	if _, err := admin.Exec(ctx, `
 		insert into education_school_classes(id,tenant_code,institution_id,class_code,class_name,school_year,grade_level)
 		values
 			($1::uuid,$12,$13,'CLS-ASSIGNED','IV A','2026-2027','IV'),
 			($2::uuid,$12,$13,'CLS-UNASSIGNED','IV B','2026-2027','IV'),
 			($3::uuid,$12,$13,'CLS-PAST','IV C','2026-2027','IV'),
-			($4::uuid,$12,$13,'CLS-FUTURE','IV D','2026-2027','IV');
+			($4::uuid,$12,$13,'CLS-FUTURE','IV D','2026-2027','IV')
+	`, seedArgs...); err != nil {
+		t.Fatalf("seed school class fixture: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into education_students(id,tenant_code,institution_id,student_code,first_name,last_name,status) values
 			($5::uuid,$12,$13,'STU-CURRENT','Ana','Current','active'),
 			($6::uuid,$12,$13,'STU-EXPIRED','Bela','Expired','active'),
@@ -49,7 +54,11 @@ func TestSchoolClassesNOBYPASSRLS(t *testing.T) {
 			($8::uuid,$12,$13,'STU-TRANSFERRED','Dan','Transferred','active'),
 			($9::uuid,$12,$13,'STU-WITHDRAWN','Eva','Withdrawn','active'),
 			($10::uuid,$12,$13,'STU-PUPIL-WITHDRAWN','Fia','PupilWithdrawn','withdrawn'),
-			($11::uuid,$12,$13,'STU-UNASSIGNED','Gheorghe','Unassigned','active');
+			($11::uuid,$12,$13,'STU-UNASSIGNED','Gheorghe','Unassigned','active')
+	`, seedArgs...); err != nil {
+		t.Fatalf("seed student fixture: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into education_student_enrolments(tenant_code,institution_id,student_id,class_id,enrolled_from,enrolled_until,status) values
 			($12,$13,$5::uuid,$1::uuid,current_date,null,'active'),
 			($12,$13,$6::uuid,$1::uuid,current_date-10,current_date-1,'active'),
@@ -57,13 +66,17 @@ func TestSchoolClassesNOBYPASSRLS(t *testing.T) {
 			($12,$13,$8::uuid,$1::uuid,current_date,null,'transferred'),
 			($12,$13,$9::uuid,$1::uuid,current_date,null,'withdrawn'),
 			($12,$13,$10::uuid,$1::uuid,current_date,null,'active'),
-			($12,$13,$11::uuid,$2::uuid,current_date,null,'active');
+			($12,$13,$11::uuid,$2::uuid,current_date,null,'active')
+	`, seedArgs...); err != nil {
+		t.Fatalf("seed enrolment fixture: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into education_class_homeroom_assignments(tenant_code,institution_id,class_id,personnel_id,app_user_id,assigned_from,assigned_until) values
 			($12,$13,$1::uuid,$14::uuid,$15::uuid,current_date,null),
 			($12,$13,$3::uuid,$14::uuid,$15::uuid,current_date-10,current_date-1),
 			($12,$13,$4::uuid,$14::uuid,$15::uuid,current_date+1,null)
-	`, assignedClass, unassignedClass, pastClass, futureClass, currentStudent, expiredStudent, futureStudent, transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent, fixture.tenantA, fixture.institutionA, fixture.memberPersonnelID, fixture.memberUserID); err != nil {
-		t.Fatalf("seed class/student/homeroom fixture: %v", err)
+	`, seedArgs...); err != nil {
+		t.Fatalf("seed homeroom fixture: %v", err)
 	}
 
 	pool := appdb.NewSessionPool(it.readerPool)

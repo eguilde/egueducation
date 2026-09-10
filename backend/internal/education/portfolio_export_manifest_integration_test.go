@@ -83,7 +83,6 @@ func grantPortfolioExportOwnPermissions(t *testing.T, ctx context.Context, pool 
 
 func seedPortfolioExportableEvidence(t *testing.T, ctx context.Context, pool *pgxpool.Pool, fixture governanceAuthorizationFixture) {
 	t.Helper()
-	archiveDocumentID := seedGovernancePortfolioArchiveAttachments(t, ctx, pool, fixture.institutionA, fixture.memberUserID)
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin export evidence fixture: %v", err)
@@ -93,12 +92,18 @@ func seedPortfolioExportableEvidence(t *testing.T, ctx context.Context, pool *pg
 		t.Fatalf("bind export evidence fixture: %v", err)
 	}
 	const sourceHash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-	if _, err = tx.Exec(ctx, `update archive_document_versions set source_bucket='earhive',source_object_key='integration/evidence.pdf',source_sha256=$2,hash_sha256=$2 where document_id=$1::uuid and version_no=1`, archiveDocumentID, sourceHash); err != nil {
-		t.Fatalf("seed archive snapshot hash: %v", err)
+	var archiveDocumentID, versionID string
+	if err = tx.QueryRow(ctx, `
+		insert into archive_documents (institution_id,title,original_file_name,mime_type,source_kind,status,current_version_no)
+		values ($1,'Export manifest evidence','integration-evidence.pdf','application/pdf','upload','ready',1)
+		returning id::text`, fixture.institutionA).Scan(&archiveDocumentID); err != nil {
+		t.Fatalf("seed archive evidence document: %v", err)
 	}
-	var versionID string
-	if err = tx.QueryRow(ctx, `select id::text from archive_document_versions where document_id=$1::uuid and version_no=1`, archiveDocumentID).Scan(&versionID); err != nil {
-		t.Fatalf("load archive version fixture: %v", err)
+	if err = tx.QueryRow(ctx, `
+		insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,status,source_bucket,source_object_key,source_sha256)
+		values ($1::uuid,$2,1,'application/pdf','Export manifest evidence','earhive','integration/evidence.pdf',$3,'active','earhive','integration/evidence.pdf',$3)
+		returning id::text`, archiveDocumentID, fixture.institutionA, sourceHash).Scan(&versionID); err != nil {
+		t.Fatalf("seed immutable archive version fixture: %v", err)
 	}
 	if _, err = tx.Exec(ctx, `insert into education_portfolio_documents (portfolio_id,section_code,component_code,document_title,source_scope,evidence_type,issued_on,added_on,chronological_index,sensitive_data,authenticity_status,file_reference,institution_id,archive_document_id,archive_version_id,archive_version_no,archive_source_bucket,archive_source_object_key,archive_sha256) values ($1::uuid,'identificare_profesionala','structura_cadru','Dovadă export','portofoliu','document',current_date,current_date,1,false,'declarat','archive://' || $2::text,$3,$2::uuid,$4::uuid,1,'earhive','integration/evidence.pdf',$5)`, fixture.portfolioID, archiveDocumentID, fixture.institutionA, versionID, sourceHash); err != nil {
 		t.Fatalf("seed snapshotted portfolio evidence: %v", err)

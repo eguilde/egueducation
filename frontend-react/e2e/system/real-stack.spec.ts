@@ -199,6 +199,17 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // assertion deliberately rejects both an omitted section and an extra
   // legacy section, rather than merely counting five rows.
   const portfolioSchoolYear = '2031-2032';
+
+  // The self-service portfolio workflow resolves ownership through the
+  // canonical personnel relation, never a display name. Establish that
+  // relation before the teacher creates a portfolio below.
+  const approverPersonnelCode = `PORT-APPROVER-${marker.slice(-12).replace(/[^A-Za-z0-9]/g, 'X')}`;
+  databaseExec(`
+    insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
+    values ('${approverPersonnelCode}','${marker} Profesor portofoliu','Profesor','titular','active','draft','none','${portfolioSchoolYear}','Învățământ gimnazial','+40100000888','${approverPersonnelCode.toLowerCase()}@example.test',true,'inst-001','Canonical E2E portfolio owner.','${approverID}')
+    on conflict (institution_id,app_user_id) where app_user_id is not null do update
+      set employee_code=excluded.employee_code,full_name=excluded.full_name,role_title=excluded.role_title,employment_type=excluded.employment_type,status=excluded.status,evaluation_status=excluded.evaluation_status,mobility_stage=excluded.mobility_stage,school_year=excluded.school_year,assigned_unit=excluded.assigned_unit,has_portfolio=excluded.has_portfolio
+  `);
   const requiredPortfolioComponents = [
     ['identificare_profesionala', 'structura_cadru'],
     ['predare_invatare_evaluare', 'structura_cadru'],
@@ -1284,8 +1295,8 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
     where user_id='${assignedTeacherID}' and tenant_code='tenant-egueducation';
     delete from app_user_roles where user_id='${assignedTeacherID}' and tenant_code='tenant-egueducation';
     delete from app_user_platform_roles where user_id='${assignedTeacherID}';
-    insert into education_personnel (tenant_code,employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
-    values ('tenant-egueducation','${teacherCode}','${teacherName}','Profesor diriginte','titular','active','draft','none','2026-2027','Învățământ gimnazial','+40100000999','diriginte-${suffix}@example.test',false,'inst-001','Fixture E2E pentru acces restrâns.','${assignedTeacherID}')
+    insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
+    values ('${teacherCode}','${teacherName}','Profesor diriginte','titular','active','draft','none','2026-2027','Învățământ gimnazial','+40100000999','diriginte-${suffix}@example.test',false,'inst-001','Fixture E2E pentru acces restrâns.','${assignedTeacherID}')
     on conflict (institution_id,app_user_id) where app_user_id is not null do update
       set employee_code=excluded.employee_code,full_name=excluded.full_name,role_title=excluded.role_title,employment_type=excluded.employment_type,status=excluded.status,evaluation_status=excluded.evaluation_status,mobility_stage=excluded.mobility_stage,school_year=excluded.school_year,assigned_unit=excluded.assigned_unit,app_user_id=excluded.app_user_id
   `);

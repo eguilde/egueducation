@@ -80,13 +80,21 @@ func seedAtomicSignedArtifactSource(t *testing.T, ctx context.Context, admin *pg
 	const sourceSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	if _, err := admin.Exec(ctx, `
 		insert into education_decisions(id,decision_code,school_year,organism,title,status,publication_status,decision_date,institution_id)
-		values($1::uuid,$2,'2026-2027','ca','Atomic signature evidence','approved','internal',current_date,$3);
+		values($1::uuid,$2,'2026-2027','ca','Atomic signature evidence','approved','internal',current_date,$3)
+	`, artifactID, "DEC-ATOMIC-"+strings.ReplaceAll(artifactID[:8], "-", ""), institutionID); err != nil {
+		t.Fatalf("seed signed-artifact decision: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into archive_documents(id,institution_id,title,original_file_name,mime_type,source_kind,status,current_version_no)
-		values($4::uuid,$3,'Atomic signed source','atomic.pdf','application/pdf','upload','ready',1);
+		values($1::uuid,$2,'Atomic signed source','atomic.pdf','application/pdf','upload','ready',1)
+	`, documentID, institutionID); err != nil {
+		t.Fatalf("seed signed-artifact document: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into archive_document_versions(id,document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,status,source_bucket,source_object_key,source_sha256)
-		values($5::uuid,$4::uuid,$3,1,'application/pdf','Atomic signed source','earhive','atomic.pdf',$6,'active','earhive','atomic.pdf',$6)
-	`, artifactID, "DEC-ATOMIC-"+strings.ReplaceAll(artifactID[:8], "-", ""), institutionID, documentID, versionID, sourceSHA256); err != nil {
-		t.Fatalf("seed signed-artifact atomic source: %v", err)
+		values($1::uuid,$2::uuid,$3,1,'application/pdf','Atomic signed source','earhive','atomic.pdf',$4,'active','earhive','atomic.pdf',$4)
+	`, versionID, documentID, institutionID, sourceSHA256); err != nil {
+		t.Fatalf("seed signed-artifact version: %v", err)
 	}
 	return artifactID, documentID, versionID
 }
@@ -127,10 +135,14 @@ func installSignedArtifactValidationFailureTrigger(t *testing.T, ctx context.Con
 	t.Helper()
 	if _, err := admin.Exec(ctx, `
 		create or replace function integration_fail_signed_validation()
-		returns trigger language plpgsql as $$ begin raise exception 'forced signed validation failure'; end; $$;
-		drop trigger if exists integration_fail_signed_validation on education_signed_artifact_validations;
-		create trigger integration_fail_signed_validation before insert on education_signed_artifact_validations for each row execute function integration_fail_signed_validation();
+		returns trigger language plpgsql as $$ begin raise exception 'forced signed validation failure'; end; $$
 	`); err != nil {
+		t.Fatalf("install signed validation failure function: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `drop trigger if exists integration_fail_signed_validation on education_signed_artifact_validations`); err != nil {
+		t.Fatalf("drop prior signed validation failure trigger: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `create trigger integration_fail_signed_validation before insert on education_signed_artifact_validations for each row execute function integration_fail_signed_validation()`); err != nil {
 		t.Fatalf("install signed validation failure trigger: %v", err)
 	}
 }
@@ -146,10 +158,14 @@ func installSignedArtifactAuditFailureTrigger(t *testing.T, ctx context.Context,
 	t.Helper()
 	if _, err := admin.Exec(ctx, `
 		create or replace function integration_fail_signed_audit()
-		returns trigger language plpgsql as $$ begin raise exception 'forced signed audit failure'; end; $$;
-		drop trigger if exists integration_fail_signed_audit on app_audit_log;
-		create trigger integration_fail_signed_audit before insert on app_audit_log for each row execute function integration_fail_signed_audit();
+		returns trigger language plpgsql as $$ begin raise exception 'forced signed audit failure'; end; $$
 	`); err != nil {
+		t.Fatalf("install signed audit failure function: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `drop trigger if exists integration_fail_signed_audit on app_audit_log`); err != nil {
+		t.Fatalf("drop prior signed audit failure trigger: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `create trigger integration_fail_signed_audit before insert on app_audit_log for each row execute function integration_fail_signed_audit()`); err != nil {
 		t.Fatalf("install signed audit failure trigger: %v", err)
 	}
 	t.Cleanup(func() { dropSignedArtifactAuditFailureTrigger(t, ctx, admin) })

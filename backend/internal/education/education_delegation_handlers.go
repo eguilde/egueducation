@@ -160,7 +160,7 @@ func (s *Service) EducationDelegations(w http.ResponseWriter, r *http.Request) {
 
 func (s *Service) EducationDelegationEligibleAdjuncts(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.pool.Query(r.Context(), `
-		select distinct user_account.id::text, user_account.name, user_account.email
+		select user_account.id::text, user_account.name, user_account.email
 		from app_memberships membership
 		join app_users user_account on user_account.id=membership.user_id
 		where membership.tenant_code=public.current_tenant_code()
@@ -168,6 +168,7 @@ func (s *Service) EducationDelegationEligibleAdjuncts(w http.ResponseWriter, r *
 			and membership.position_code='director_adjunct' and membership.active
 			and membership.start_date<=current_date
 			and (membership.end_date is null or membership.end_date>=current_date)
+		group by user_account.id, user_account.name, user_account.email
 		order by user_account.name, user_account.id
 	`)
 	if err != nil {
