@@ -115,4 +115,46 @@ func TestSchoolClassesNOBYPASSRLS(t *testing.T) {
 	if _, err := admin.Exec(ctx, `insert into education_class_homeroom_assignments(tenant_code,institution_id,class_id,personnel_id,app_user_id,assigned_from) values($1,$2,$3::uuid,$4::uuid,$5::uuid,current_date)`, fixture.tenantA, fixture.institutionA, unassignedClass, fixture.foreignPersonnelID, fixture.memberUserID); err == nil || !strings.Contains(err.Error(), "canonical") {
 		t.Fatalf("spoofed personnel/user homeroom pair must be rejected, err=%v", err)
 	}
+
+	// Exercise every operation handled by the shared trigger. Ordinary updates
+	// and deletes remain valid, while tenant/institution identity is immutable
+	// even for the migration owner used to seed these integration fixtures.
+	if _, err := admin.Exec(ctx, `update education_school_classes set class_name='IV A actualizata' where id=$1::uuid`, assignedClass); err != nil {
+		t.Fatalf("update school class in place: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `update education_students set first_name='Ana-Maria' where id=$1::uuid`, currentStudent); err != nil {
+		t.Fatalf("update student in place: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `update education_student_enrolments set enrolled_until=current_date where student_id=$1::uuid`, currentStudent); err != nil {
+		t.Fatalf("update enrolment in place: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `update education_class_homeroom_assignments set assigned_until=current_date where class_id=$1::uuid and assigned_until is null`, assignedClass); err != nil {
+		t.Fatalf("update homeroom assignment in place: %v", err)
+	}
+	for _, mutation := range []struct {
+		name      string
+		statement string
+		id        string
+	}{
+		{"school class", `update education_school_classes set tenant_code=$2,institution_id=$3 where id=$1::uuid`, assignedClass},
+		{"student", `update education_students set tenant_code=$2,institution_id=$3 where id=$1::uuid`, currentStudent},
+		{"enrolment", `update education_student_enrolments set tenant_code=$2,institution_id=$3 where student_id=$1::uuid`, currentStudent},
+		{"homeroom assignment", `update education_class_homeroom_assignments set tenant_code=$2,institution_id=$3 where class_id=$1::uuid`, assignedClass},
+	} {
+		if _, err := admin.Exec(ctx, mutation.statement, mutation.id, fixture.tenantB, fixture.institutionB); err == nil || !strings.Contains(err.Error(), "immutable") {
+			t.Fatalf("%s cross-scope update must be rejected, err=%v", mutation.name, err)
+		}
+	}
+	if _, err := admin.Exec(ctx, `delete from education_student_enrolments where student_id=$1::uuid`, futureStudent); err != nil {
+		t.Fatalf("delete enrolment: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `delete from education_students where id=$1::uuid`, futureStudent); err != nil {
+		t.Fatalf("delete student without enrolments: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `delete from education_class_homeroom_assignments where class_id=$1::uuid`, futureClass); err != nil {
+		t.Fatalf("delete homeroom assignment: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `delete from education_school_classes where id=$1::uuid`, futureClass); err != nil {
+		t.Fatalf("delete class without dependents: %v", err)
+	}
 }
