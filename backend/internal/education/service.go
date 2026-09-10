@@ -22,6 +22,12 @@ type Service struct {
 	pool *appdb.SessionPool
 }
 
+const (
+	governanceMeetingAuditCreate = "education.governance.meeting.create"
+	governanceMeetingAuditUpdate = "education.governance.meeting.update"
+	governanceMeetingAuditDelete = "education.governance.meeting.delete"
+)
+
 func NewService(pool *appdb.SessionPool) *Service {
 	return &Service{pool: pool}
 }
@@ -400,7 +406,7 @@ func (s *Service) CreateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.logAudit(r, "education.governance.create", "governance_meeting", item.ID, "Governance meeting created.", map[string]any{
+	s.logAudit(r, governanceMeetingAuditCreate, "governance_meeting", item.ID, "Governance meeting created.", map[string]any{
 		"school_year":        item.SchoolYear,
 		"organism":           item.Organism,
 		"title":              item.Title,
@@ -3121,7 +3127,7 @@ func (s *Service) UpdateGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.logAudit(r, "education.governance.update", "governance_meeting", item.ID, "Governance meeting updated.", map[string]any{
+	s.logAudit(r, governanceMeetingAuditUpdate, "governance_meeting", item.ID, "Governance meeting updated.", map[string]any{
 		"school_year":        item.SchoolYear,
 		"organism":           item.Organism,
 		"title":              item.Title,
@@ -3154,7 +3160,7 @@ func (s *Service) DeleteGovernanceMeeting(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.logAudit(r, "education.governance.delete", "governance_meeting", meetingID, "Governance meeting deleted.", nil)
+	s.logAudit(r, governanceMeetingAuditDelete, "governance_meeting", meetingID, "Governance meeting deleted.", nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 

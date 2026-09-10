@@ -598,7 +598,7 @@ export function createEducationApi(fetcher: AuthenticatedFetcher, apiBase = "/ap
  return {
   async governanceDashboard(): Promise<GovernanceDashboard> { return unwrap(client.GET("/api/education/dashboard")); },
   async directorCockpit(): Promise<DirectorCockpit> { return unwrap(client.GET("/api/education/director/cockpit")); },
-  async eligibleGovernanceUsers(): Promise<EligibleGovernanceUser[]> { return (await unwrap(client.GET("/api/education/governance/eligible-users"))).items; },
+  async eligibleGovernanceUsers(input = {}): Promise<EligibleGovernanceUser[]> { return (await unwrap(client.GET("/api/education/governance/eligible-users", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 100, sort: "name", direction: "asc", "filter.name": input.q?.trim() || undefined } } }))).items; },
   async governanceMeetings(input = {}): Promise<EducationPage<GovernanceMeeting>> { return unwrap(client.GET("/api/education/governance/meetings", { params: { query: query(input) }, headers: { Accept: "application/json" } })); },
   async governanceMeetingDetail(id: string): Promise<GovernanceMeeting> { return unwrap(client.GET("/api/education/governance/meetings/{meetingID}", { params: { path: { meetingID: id } } })); },
   async saveGovernanceMeeting(input: GovernanceMeetingInput, id?: string): Promise<GovernanceMeeting> {

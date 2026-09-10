@@ -301,6 +301,14 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   const membershipDialog = page.getByRole('dialog');
   await membershipDialog.getByLabel('An școlar').fill('2026-2027');
   await membershipDialog.getByLabel('Organism').fill('ca');
+  const eligibleMemberResponse = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    return candidate.request().method() === 'GET'
+      && url.pathname === '/api/education/governance/eligible-users'
+      && url.searchParams.get('filter.name') === actors.directorName;
+  });
+  await membershipDialog.getByLabel('Caută Utilizator').fill(actors.directorName);
+  expect((await eligibleMemberResponse).status()).toBe(200);
   await membershipDialog.getByLabel('Utilizator').click();
   await selectOpenOption(page, actors.directorName);
   await membershipDialog.getByLabel('Rol').fill('președinte');

@@ -88,6 +88,30 @@ describe("Education API", () => {
     expect(result).toMatchObject({ items: { governance: [{ id: "t1" }], portfolios: [{ id: "t2" }] } });
   });
 
+  it("sends eligible-governance-user search and paging through the generated query contract", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      items: [{ id: "user-1", name: "Director Test" }],
+      total: 1,
+      page: 1,
+      pageSize: 100,
+    }), { headers: { "content-type": "application/json" } }));
+
+    const users = await createEducationApi(fetcher).eligibleGovernanceUsers({
+      q: "Director Test",
+      page: 1,
+      pageSize: 100,
+    });
+
+    expect(users).toEqual([{ id: "user-1", name: "Director Test" }]);
+    const url = new URL(urlAt(fetcher));
+    expect(url.pathname).toBe("/api/education/governance/eligible-users");
+    expect(url.searchParams.get("filter.name")).toBe("Director Test");
+    expect(url.searchParams.get("page")).toBe("1");
+    expect(url.searchParams.get("pageSize")).toBe("100");
+    expect(url.searchParams.get("sort")).toBe("name");
+    expect(url.searchParams.get("direction")).toBe("asc");
+  });
+
   it("uses literal generated routes for governance related lists and keeps bodies catalogue read-only", async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), { headers: { "content-type": "application/json" } })));
     const api = createEducationApi(fetcher);

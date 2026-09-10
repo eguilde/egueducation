@@ -50,6 +50,14 @@ func TestSchoolAssignmentOptionPlansRemainTenantAndInstitutionScoped(t *testing.
 			t.Errorf("teacher plan missing canonical active identity condition %q", required)
 		}
 	}
+	if strings.Contains(teachers.fromWhere, "person.tenant_code") {
+		t.Fatalf("teacher plan must not reference absent education_personnel.tenant_code: %s", teachers.fromWhere)
+	}
+	for _, required := range []string{"join app_tenants tenant on tenant.institution_id = person.institution_id", "tenant.code = public.current_tenant_code()"} {
+		if !strings.Contains(teachers.fromWhere, required) {
+			t.Errorf("teacher plan missing tenant-to-institution scope condition %q", required)
+		}
+	}
 }
 
 func TestSchoolAssignmentStudentOptionsUseGivenNameThenFamilyName(t *testing.T) {

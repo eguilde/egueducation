@@ -141,7 +141,10 @@ async function authenticated(page: Page, identifier = fixtureIdentifier, otp = f
   // or when the page is on another origin/route.
   const currentURL = page.url();
   if (currentURL === 'about:blank' || new URL(currentURL).origin !== expectedOrigin || new URL(currentURL).pathname !== '/') {
-    await page.goto(expectedOrigin + '/');
+    // The SPA is already usable after DOM content loads.  Waiting for the
+    // browser's `load` event after OIDC logout can be held by an in-flight
+    // refresh request despite the landing page being rendered.
+    await page.goto(expectedOrigin + '/', { waitUntil: 'domcontentloaded' });
   }
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);

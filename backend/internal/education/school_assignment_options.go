@@ -78,7 +78,8 @@ func schoolAssignmentOptionsPlan(kind string) (schoolAssignmentOptionPlan, error
 		return schoolAssignmentOptionPlan{
 			selectColumns: `'teachers', '', '', person.id::text, person.app_user_id::text, person.employee_code, person.full_name`,
 			fromWhere: `from education_personnel person
-				where person.tenant_code = public.current_tenant_code()
+				join app_tenants tenant on tenant.institution_id = person.institution_id
+				where tenant.code = public.current_tenant_code()
 				and person.institution_id = $1 and person.status = 'active'
 				and person.employment_type in ('titular','suplinitor','plata_cu_ora')
 				and person.app_user_id is not null

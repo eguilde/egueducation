@@ -45,9 +45,9 @@ async function searchAndSelectPortfolioOwner(page: Page, query: string, optionNa
       && url.pathname === '/api/education/portfolios/eligible-owners'
       && url.searchParams.get('filter.display_name') === query;
   });
-  await page.getByLabel('Caută Titular', { exact: true }).fill(query);
+  await page.getByLabel('Caută Titular *', { exact: true }).fill(query);
   expect((await response).status()).toBe(200);
-  const trigger = page.getByRole('combobox', { name: 'Titular', exact: true });
+  const trigger = page.getByRole('combobox', { name: 'Titular *', exact: true });
   await expect(trigger).toBeEnabled();
   await trigger.click();
   await selectOpenOption(page, optionName);
@@ -194,6 +194,10 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   await expect(row).toBeVisible();
   await row.getByLabel('Acțiuni înregistrare').click();
   await clickOpenPopoverAction(page, 'Detalii');
+  const details = page.getByRole('dialog');
+  await expect(details).toBeVisible();
+  await details.getByRole('button', { name: 'Închide', exact: true }).click();
+  await expect(details).toBeHidden();
 }
 
 async function createManagerialChildThroughReact(

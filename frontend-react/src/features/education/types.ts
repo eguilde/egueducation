@@ -334,7 +334,7 @@ export type PortfolioEvidenceManifestResponse = components["schemas"]["Portfolio
 export interface EducationApi {
   governanceDashboard(): Promise<GovernanceDashboard>;
   directorCockpit(): Promise<DirectorCockpit>;
-  eligibleGovernanceUsers(): Promise<EligibleGovernanceUser[]>;
+  eligibleGovernanceUsers(input?: { q?: string; page?: number; pageSize?: number }): Promise<EligibleGovernanceUser[]>;
   governanceMeetings(
     input?: EducationListQuery,
   ): Promise<EducationPage<GovernanceMeeting>>;

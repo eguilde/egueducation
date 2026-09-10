@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { EducationListPanel, domainListCapabilities, domainWizardRoutes, educationPermissionAllows, relationManagePermission } from "./EducationWorkspace";
+import { EducationListPanel, domainListCapabilities, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, relationManagePermission } from "./EducationWorkspace";
 
 describe("EducationListPanel", () => {
   it("debounces header-row filters and sends them to the server from page one", async () => {
@@ -180,6 +180,18 @@ describe("domainListCapabilities", () => {
 });
 
 describe("educationPermissionAllows", () => {
+  it("projects manage to read only inside the same education permission family", () => {
+    expect(effectiveEducationPermissions(["education.governance.manage"])).toContain(
+      "education.governance.read",
+    );
+    expect(effectiveEducationPermissions(["education.governance.manage"])).not.toContain(
+      "education.personnel.read",
+    );
+    expect(effectiveEducationPermissions(["admin.users.manage"])).not.toContain(
+      "education.governance.read",
+    );
+  });
+
   it("makes accepted request-time delegations usable without broadening resource scope", () => {
     const grants = [{
       permission_code: "education.portfolios.school.manage",
@@ -191,6 +203,8 @@ describe("educationPermissionAllows", () => {
     expect(educationPermissionAllows([], grants, "education.portfolios.school.manage", "portfolio", "portfolio-2")).toBe(false);
     expect(educationPermissionAllows([], grants, "education.portfolios.school.manage")).toBe(false);
     expect(educationPermissionAllows(["education.portfolios.school.manage"], [], "education.portfolios.school.manage", "portfolio", "portfolio-2")).toBe(true);
+    expect(educationPermissionAllows(["education.governance.manage"], [], "education.governance.read")).toBe(true);
+    expect(educationPermissionAllows([], [{ permission_code: "education.governance.manage", resource_type: "institution", resource_id: "inst-1" }], "education.governance.read")).toBe(true);
   });
 
   it.each([

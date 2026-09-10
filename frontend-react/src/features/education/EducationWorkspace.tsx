@@ -21,10 +21,14 @@ import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
 import { Tag } from "@primereact/ui/tag";
-import { useAuth, type EducationDelegationGrant } from "../../auth/AuthProvider";
+import {
+  educationPermissionImplies,
+  useAuth,
+  type EducationDelegationGrant,
+} from "../../auth/AuthProvider";
 import type { ContractClient } from "../../api/client";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
-import { visibleEducationAreas } from "./catalog";
+import { educationAreas, visibleEducationAreas } from "./catalog";
 import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
 import {
   createEducationDelegationApi,
@@ -81,13 +85,25 @@ export function educationPermissionAllows(
   resourceType = "institution",
   resourceID?: string,
 ) {
-  if (directPermissions.includes(permission)) return true;
+  if (directPermissions.some((granted) => educationPermissionImplies(granted, permission))) return true;
   return activeDelegations.some((item) =>
-    item.permission_code === permission &&
+    educationPermissionImplies(item.permission_code, permission) &&
     (resourceType === "institution"
       ? item.resource_type === "institution"
       : item.resource_type === resourceType && Boolean(resourceID) && item.resource_id === resourceID),
   );
+}
+
+export function effectiveEducationPermissions(
+  grantedPermissions: readonly string[],
+): string[] {
+  const navigationPermissions = educationAreas.flatMap((area) => area.permissions);
+  return [...new Set([
+    ...grantedPermissions,
+    ...navigationPermissions.filter((requested) =>
+      grantedPermissions.some((granted) => educationPermissionImplies(granted, requested)),
+    ),
+  ])];
 }
 
 const procedureView = (item: import("./types").PortfolioProcedure): ProcedureView => ({
@@ -551,14 +567,20 @@ function GovernanceMeetingsPage({
   const [eligibleUsers, setEligibleUsers] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [eligibleUserQuery, setEligibleUserQuery] = useState("");
   useEffect(() => {
-    void api
-      .eligibleGovernanceUsers()
-      .then(setEligibleUsers)
+    let current = true;
+    const timer = window.setTimeout(() => void api
+      .eligibleGovernanceUsers({ q: eligibleUserQuery, page: 1, pageSize: 100 })
+      .then((items) => current && setEligibleUsers(items))
       .catch(() =>
-        setError("Utilizatorii eligibili nu au putut fi încărcați."),
-      );
-  }, [api]);
+        current && setError("Utilizatorii eligibili nu au putut fi încărcați."),
+      ), 250);
+    return () => {
+      current = false;
+      window.clearTimeout(timer);
+    };
+  }, [api, eligibleUserQuery]);
   const meetingFields = useMemo(
     () =>
       governanceFields.map((field) =>
@@ -787,6 +809,11 @@ function GovernanceMeetingsPage({
                 key: "app_user_id",
                 label: "Utilizator",
                 kind: "select",
+                search: {
+                  label: "Caută Utilizator",
+                  value: eligibleUserQuery,
+                  onChange: setEligibleUserQuery,
+                },
                 options: eligibleUsers.map((user) => ({
                   value: user.id,
                   label: user.name,
@@ -1785,6 +1812,12 @@ type RecordField = {
   label: string;
   kind?: "text" | "date" | "number" | "boolean" | "select";
   options?: Array<{ label: string; value: string }>;
+  /** Optional server-side search control for a remotely populated Select. */
+  search?: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+  };
   /** Server-generated/list-only values are visible but never editable. */
   form?: boolean;
 };
@@ -2589,8 +2622,17 @@ function RecordFormDialog({
             <Dialog.Content>
               <div className="flex flex-col gap-3">
                 {fields.filter((field) => field.form !== false).map((field) => (
-                  <label className="flex flex-col gap-1" key={field.key}>
+                  <div className="flex flex-col gap-1" key={field.key}>
                     <span>{field.label}</span>
+                    {field.kind === "select" && field.search && (
+                      <InputText
+                        aria-label={field.search.label}
+                        value={field.search.value}
+                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                          field.search?.onChange(event.target.value)
+                        }
+                      />
+                    )}
                     {field.kind === "boolean" || field.kind === "select" ? (
                       <Select.Root
                         value={
@@ -2640,7 +2682,7 @@ function RecordFormDialog({
                         }
                       />
                     )}
-                  </label>
+                  </div>
                 ))}
               </div>
             </Dialog.Content>
@@ -3155,13 +3197,20 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
   // subject. Do not re-create this decision from the paginated delegation
   // ledger or browser time.
   const activeDelegations = props.permissions ? [] : auth.educationGrants;
-  const permissions = useMemo(
-    () => [...new Set([...directPermissions, ...activeDelegations.filter((item) => item.resource_type === "institution").map((item) => item.permission_code)])],
-    [activeDelegations, directPermissions],
-  );
+  const permissions = useMemo(() => {
+    const granted = [...new Set([...directPermissions, ...activeDelegations.filter((item) => item.resource_type === "institution").map((item) => item.permission_code)])];
+    return effectiveEducationPermissions(granted);
+  }, [activeDelegations, directPermissions]);
   const allows = useCallback((permission: string, resourceType = "institution", resourceID?: string) => {
-    if (directPermissions.includes(permission)) return true;
-    if (props.permissions) return false;
+    if (props.permissions) {
+      return educationPermissionAllows(
+        directPermissions,
+        [],
+        permission,
+        resourceType,
+        resourceID,
+      );
+    }
     return resourceType === "institution"
       ? auth.canEducation(permission)
       : auth.canEducation(permission, { resourceType: resourceType as Exclude<typeof activeDelegations[number]["resource_type"], "institution">, resourceId: resourceID ?? "" });
