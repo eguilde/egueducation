@@ -258,6 +258,31 @@ describe("School detail relations", () => {
       ?.fields.find((field) => field.key === "criterion_category");
     expect(evaluationCategory?.kind).toBeUndefined();
   });
+
+  it("binds committee member enums to PrimeReact selects that match the API contract", () => {
+    const committeeFields = domainRelations.committees
+      ?.find((relation) => relation.resource === "committee-members")
+      ?.fields;
+
+    expect(committeeFields?.find((field) => field.key === "member_type")).toMatchObject({
+      kind: "select",
+      options: [
+        { label: "Președinte", value: "presedinte" },
+        { label: "Secretar", value: "secretar" },
+        { label: "Membru", value: "membru" },
+        { label: "Observator", value: "observator" },
+        { label: "Invitat", value: "invitat" },
+      ],
+    });
+    expect(committeeFields?.find((field) => field.key === "status")).toMatchObject({
+      kind: "select",
+      options: [
+        { label: "Activ", value: "active" },
+        { label: "Inactiv", value: "inactive" },
+        { label: "Înlocuit", value: "replaced" },
+      ],
+    });
+  });
 });
 
 describe("domainListCapabilities", () => {

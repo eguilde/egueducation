@@ -1068,11 +1068,31 @@ export const domainRelations: Partial<
       fields: [
         { key: "full_name", label: "Nume complet" },
         { key: "role_name", label: "Rol" },
-        { key: "member_type", label: "Tip" },
+        {
+          key: "member_type",
+          label: "Tip",
+          kind: "select",
+          options: [
+            { value: "presedinte", label: "Președinte" },
+            { value: "secretar", label: "Secretar" },
+            { value: "membru", label: "Membru" },
+            { value: "observator", label: "Observator" },
+            { value: "invitat", label: "Invitat" },
+          ],
+        },
         { key: "appointed_on", label: "Numit la", kind: "date" },
         { key: "released_on", label: "Eliberat la", kind: "date" },
         { key: "voting_right", label: "Drept vot", kind: "boolean" },
-        { key: "status", label: "Stare" },
+        {
+          key: "status",
+          label: "Stare",
+          kind: "select",
+          options: [
+            { value: "active", label: "Activ" },
+            { value: "inactive", label: "Inactiv" },
+            { value: "replaced", label: "Înlocuit" },
+          ],
+        },
         { key: "notes", label: "Note" },
       ],
     },

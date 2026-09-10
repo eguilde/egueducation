@@ -449,6 +449,16 @@ foreach ($forbiddenField in @('document_sha256','storage_bucket','storage_object
 
 $valorificationPurposes = @('licentiere','debut','definitivat','grad_ii','grad_i','evaluare_profesionala','mobilitate','dezvoltare_profesionala','inspectie_scolara','evaluare_externa_calitate','gradatie_merit','distinctie_premiu')
 
+$committeeMemberRequest = $specData.components.schemas.CreateCommitteeMemberRequest
+$committeeMemberTypes = @('presedinte','secretar','membru','observator','invitat')
+$committeeMemberStatuses = @('active','inactive','replaced')
+if ((Compare-Object @($committeeMemberRequest.properties.member_type.enum | Sort-Object) @($committeeMemberTypes | Sort-Object)) -or
+    (Compare-Object @($committeeMemberRequest.properties.status.enum | Sort-Object) @($committeeMemberStatuses | Sort-Object)) -or
+    $committeeMemberRequest.properties.appointed_on.format -ne 'date' -or
+    $committeeMemberRequest.properties.released_on.format -ne 'date') {
+    throw 'Committee member request must publish the handler enum and date contracts.'
+}
+
 $managerialDocumentRequest = $specData.components.schemas.CreateManagerialDocumentRequest
 $managerialCategories = @('diagnoza','prognoza','evidenta','planificare','raport','anexa','hotarare','procedura')
 $managerialStatuses = @('draft','in_review','approved','published','archived')

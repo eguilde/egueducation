@@ -429,6 +429,13 @@ foreach ($schemaName in @($common.components.schemas.Keys)) {
 # Handler-enforced finite values and conditional requirements are part of the
 # public database-to-frontend contract, not knowledge that callers should have
 # to recover from a late 400 response.
+$committeeMemberSchema = $common.components.schemas['CreateCommitteeMemberRequest']
+if ($committeeMemberSchema) {
+    $committeeMemberSchema.properties.member_type.enum = @('presedinte','secretar','membru','observator','invitat')
+    $committeeMemberSchema.properties.status.enum = @('active','inactive','replaced')
+    $committeeMemberSchema.properties.appointed_on.format = 'date'
+    $committeeMemberSchema.properties.released_on.format = 'date'
+}
 $managerialDocumentSchema = $common.components.schemas['CreateManagerialDocumentRequest']
 if ($managerialDocumentSchema) {
     $managerialDocumentSchema.properties.document_category.enum = @('diagnoza','prognoza','evidenta','planificare','raport','anexa','hotarare','procedura')

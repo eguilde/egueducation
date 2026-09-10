@@ -215,7 +215,16 @@ function governanceBody(resource: Exclude<GovernanceRelatedResource, "governance
     case "decision-publication-steps": return { step_order: requiredNumber(input, "step_order"), step_type: requiredText(input, "step_type"), status: requiredText(input, "status"), responsible_name: requiredText(input, "responsible_name"), due_on: requiredText(input, "due_on"), completed_on: optionalText(input, "completed_on"), notes: optionalText(input, "notes"), publication_channel: optionalText(input, "publication_channel"), publication_reference: optionalText(input, "publication_reference") } satisfies components["schemas"]["CreateDecisionPublicationStepRequest"];
     case "regulation-versions": return { version_label: requiredText(input, "version_label"), version_status: requiredText(input, "version_status"), prepared_by: requiredText(input, "prepared_by"), effective_from: requiredText(input, "effective_from"), change_summary: requiredText(input, "change_summary"), approved_on: optionalText(input, "approved_on"), file_reference: optionalText(input, "file_reference"), notes: optionalText(input, "notes"), published_on: optionalText(input, "published_on") } satisfies components["schemas"]["CreateRegulationVersionRequest"];
     case "regulation-workflow": return { phase_order: requiredNumber(input, "phase_order"), phase_type: requiredText(input, "phase_type"), audience: requiredText(input, "audience"), started_on: requiredText(input, "started_on"), due_on: requiredText(input, "due_on"), status: requiredText(input, "status"), completed_on: optionalText(input, "completed_on"), decision_reference: optionalText(input, "decision_reference"), feedback_count: optionalNumber(input, "feedback_count"), notes: optionalText(input, "notes") } satisfies components["schemas"]["CreateRegulationWorkflowStepRequest"];
-    case "committee-members": return { full_name: requiredText(input, "full_name"), role_name: requiredText(input, "role_name"), member_type: requiredText(input, "member_type"), status: requiredText(input, "status"), appointed_on: requiredText(input, "appointed_on"), notes: optionalText(input, "notes"), released_on: optionalText(input, "released_on"), voting_right: optionalBoolean(input, "voting_right") } satisfies components["schemas"]["CreateCommitteeMemberRequest"];
+    case "committee-members": return {
+      full_name: requiredText(input, "full_name"),
+      role_name: requiredText(input, "role_name"),
+      member_type: requiredEnum(input, "member_type", committeeMemberTypes),
+      status: requiredEnum(input, "status", committeeMemberStatuses),
+      appointed_on: requiredText(input, "appointed_on"),
+      notes: optionalText(input, "notes"),
+      released_on: optionalText(input, "released_on"),
+      voting_right: optionalBoolean(input, "voting_right"),
+    } satisfies components["schemas"]["CreateCommitteeMemberRequest"];
     case "managerial-documents": return managerialDocumentBody(input);
     case "managerial-workflow": return { stage_order: requiredNumber(input, "stage_order"), stage_type: requiredText(input, "stage_type"), status: requiredText(input, "status"), assigned_to: requiredText(input, "assigned_to"), due_on: requiredText(input, "due_on"), completed_on: optionalText(input, "completed_on"), decision_reference: optionalText(input, "decision_reference"), outcome_note: optionalText(input, "outcome_note"), requires_signature: optionalBoolean(input, "requires_signature") } satisfies components["schemas"]["CreateManagerialWorkflowStepRequest"];
   }
@@ -283,6 +292,8 @@ const requiredText = (input: EducationRecordInput, key: string): string => {
 };
 const managerialDocumentCategories = ["diagnoza", "prognoza", "evidenta", "planificare", "raport", "anexa", "hotarare", "procedura"] as const;
 const managerialDocumentStatuses = ["draft", "in_review", "approved", "published", "archived"] as const;
+const committeeMemberTypes = ["presedinte", "secretar", "membru", "observator", "invitat"] as const;
+const committeeMemberStatuses = ["active", "inactive", "replaced"] as const;
 const meritScoreCategories = ["performanta", "impact", "dezvoltare", "management", "incluziune"] as const;
 const meritScoreStages = ["autoevaluare", "evaluare_comisie", "validare_finala"] as const;
 const requiredEnum = <T extends readonly string[]>(input: EducationRecordInput, key: string, allowed: T): T[number] => {

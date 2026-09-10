@@ -167,7 +167,15 @@ async function createRelatedThroughReact(
   await page.getByLabel(addLabel).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  for (const [label, value] of Object.entries(values)) await dialog.getByLabel(label).fill(value);
+  for (const [label, value] of Object.entries(values)) {
+    const control = dialog.getByLabel(label, { exact: true });
+    if ((await control.getAttribute('role')) === 'combobox') {
+      await control.click();
+      await selectOpenOption(page, value);
+    } else {
+      await control.fill(value);
+    }
+  }
   const created = page.waitForResponse(response => new URL(response.url()).pathname === endpoint && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Salvează' }).click();
   const response = await created;
@@ -391,7 +399,7 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   const committeeTitle = `${marker} CE`;
   const committee = await createRootThroughReact(page, '/scoala/committees', '/api/education/committees/records', { 'An școlar': '2026-2027', Tip: 'evaluare_personal_didactic', 'Denumire comisie': committeeTitle, Stare: 'active', 'Începe la': '2026-09-01' });
   await openReactRootDetails(page, committeeTitle);
-  const member = await createRelatedThroughReact(page, 'Adaugă membri comisie', `/api/education/committees/records/${committee.id}/members`, { 'Nume complet': actors.directorName, Rol: 'Președinte', Tip: 'cadru_didactic', Stare: 'active', 'Numit la': '2026-09-01' });
+  const member = await createRelatedThroughReact(page, 'Adaugă membri comisie', `/api/education/committees/records/${committee.id}/members`, { 'Nume complet': actors.directorName, Rol: 'Președinte', Tip: 'Președinte', Stare: 'Activ', 'Numit la': '2026-09-01' });
   expect(member.id).toEqual(expect.any(String));
   const completeness = await request<{ complete: boolean; active_members?: string[] }>(page, token, `/api/education/committees/records/${committee.id}/completeness-summary`);
   expect(completeness.status).toBe(200); expect(completeness.body.active_members).toContain(actors.directorName);

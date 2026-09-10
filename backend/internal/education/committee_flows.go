@@ -346,6 +346,11 @@ func (s *Service) CreateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_status"})
 		return
 	}
+	appointedOn, err := parseRequiredEducationDate(req.AppointedOn)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_appointed_on"})
+		return
+	}
 	releasedOn, err := parseOptionalEducationDate(req.ReleasedOn)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_released_on"})
@@ -361,7 +366,7 @@ func (s *Service) CreateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 		where committee.id = $1 and committee.institution_id = $9
 		returning id::text, committee_id::text, full_name, role_name, member_type, voting_right, status,
 			to_char(appointed_on, 'YYYY-MM-DD'), coalesce(to_char(released_on, 'YYYY-MM-DD'), ''), institution_id, notes
-	`, recordID, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, req.AppointedOn, releasedOn, s.institutionID(r), req.Notes).Scan(
+	`, recordID, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, appointedOn, releasedOn, s.institutionID(r), req.Notes).Scan(
 		&item.ID, &item.CommitteeID, &item.FullName, &item.RoleName, &item.MemberType, &item.VotingRight, &item.Status, &item.AppointedOn, &item.ReleasedOn, &item.InstitutionID, &item.Notes,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -396,6 +401,11 @@ func (s *Service) UpdateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_status"})
 		return
 	}
+	appointedOn, err := parseRequiredEducationDate(req.AppointedOn)
+	if err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_appointed_on"})
+		return
+	}
 	releasedOn, err := parseOptionalEducationDate(req.ReleasedOn)
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_member_released_on"})
@@ -410,7 +420,7 @@ func (s *Service) UpdateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 			and committee.id = member.committee_id and committee.institution_id = member.institution_id
 		returning member.id::text, member.committee_id::text, member.full_name, member.role_name, member.member_type, member.voting_right, member.status,
 			to_char(member.appointed_on, 'YYYY-MM-DD'), coalesce(to_char(member.released_on, 'YYYY-MM-DD'), ''), member.institution_id, member.notes
-	`, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, req.AppointedOn, releasedOn, req.Notes, itemID, recordID, s.institutionID(r)).Scan(
+	`, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, appointedOn, releasedOn, req.Notes, itemID, recordID, s.institutionID(r)).Scan(
 		&item.ID, &item.CommitteeID, &item.FullName, &item.RoleName, &item.MemberType, &item.VotingRight, &item.Status, &item.AppointedOn, &item.ReleasedOn, &item.InstitutionID, &item.Notes,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {

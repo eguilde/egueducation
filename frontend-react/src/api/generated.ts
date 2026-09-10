@@ -8014,13 +8014,17 @@ export interface components {
             title: string;
         };
         CreateCommitteeMemberRequest: {
+            /** Format: date */
             appointed_on: string;
             full_name: string;
-            member_type: string;
+            /** @enum {string} */
+            member_type: "presedinte" | "secretar" | "membru" | "observator" | "invitat";
             notes?: string;
+            /** Format: date */
             released_on?: string;
             role_name: string;
-            status: string;
+            /** @enum {string} */
+            status: "active" | "inactive" | "replaced";
             voting_right?: boolean;
         };
         CreateCommitteeRecordRequest: {
