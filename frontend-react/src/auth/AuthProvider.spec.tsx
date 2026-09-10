@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./oidc-client', () => ({
@@ -72,6 +72,15 @@ function ApiFetchProbe() {
         },
         body: new Blob(['multipart-body'])
     }))}>Upload test</button>;
+}
+
+function BackgroundAuthorizationRefreshProbe() {
+    const auth = useAuth();
+    return <div>
+        <button type="button" disabled={!auth.authorizationReady} onClick={() => void auth.refreshEducationAuthorization()}>Refresh authorization</button>
+        {auth.authorizationReady && <input aria-label="Persistent workspace state" defaultValue="kept" />}
+        <output aria-label="Resource grants">{`${auth.canEducation('education.portfolios.school.manage', { resourceType: 'portfolio', resourceId: 'portfolio-1' })}:${auth.canEducation('education.portfolios.school.manage', { resourceType: 'portfolio', resourceId: 'portfolio-2' })}`}</output>
+    </div>;
 }
 
 describe('AuthProvider', () => {
@@ -167,6 +176,60 @@ describe('AuthProvider', () => {
         // The final state arrives after both /api/me and the evaluated grant
         // snapshot; no route/navigation consumer receives an optimistic grant.
         await waitFor(() => expect(screen.getByText('true:true:true:true:false')).toBeInTheDocument());
+    });
+
+    it('keeps the evaluated snapshot mounted while background authorization refreshes', async () => {
+        let resolveRefresh!: (response: Response) => void;
+        vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(jsonResponse(session))
+            .mockResolvedValueOnce(jsonResponse(activeGrants))
+            .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveRefresh = resolve; }));
+
+        render(<AuthProvider><BackgroundAuthorizationRefreshProbe /></AuthProvider>);
+        const refresh = await screen.findByRole('button', { name: 'Refresh authorization' });
+        await waitFor(() => expect(refresh).toBeEnabled());
+        fireEvent.change(screen.getByLabelText('Persistent workspace state'), { target: { value: 'operator draft' } });
+        fireEvent.click(refresh);
+
+        // A pending background request must not trip route guards or remount
+        // the workspace containing the operator's in-progress state.
+        expect(screen.getByLabelText('Persistent workspace state')).toHaveValue('operator draft');
+        resolveRefresh(jsonResponse(activeGrants));
+        await waitFor(() => expect(screen.getByLabelText('Persistent workspace state')).toHaveValue('operator draft'));
+    });
+
+    it('never lets an older overlapping refresh restore stale grants', async () => {
+        let resolveOlder!: (response: Response) => void;
+        let resolveNewest!: (response: Response) => void;
+        vi.spyOn(globalThis, 'fetch')
+            .mockResolvedValueOnce(jsonResponse(session))
+            .mockResolvedValueOnce(jsonResponse(activeGrants))
+            .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveOlder = resolve; }))
+            .mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveNewest = resolve; }));
+
+        render(<AuthProvider><BackgroundAuthorizationRefreshProbe /></AuthProvider>);
+        const refresh = await screen.findByRole('button', { name: 'Refresh authorization' });
+        await waitFor(() => expect(refresh).toBeEnabled());
+        fireEvent.click(refresh);
+        fireEvent.click(refresh);
+
+        await act(async () => {
+            resolveNewest(jsonResponse({
+                ...activeGrants,
+                revision: '3',
+                grants: [{ permission_code: 'education.portfolios.school.manage', resource_type: 'portfolio', resource_id: 'portfolio-2' }]
+            }));
+        });
+        await waitFor(() => expect(screen.getByLabelText('Resource grants')).toHaveTextContent('false:true'));
+
+        await act(async () => {
+            resolveOlder(jsonResponse({
+                ...activeGrants,
+                revision: '2',
+                grants: [{ permission_code: 'education.portfolios.school.manage', resource_type: 'portfolio', resource_id: 'portfolio-1' }]
+            }));
+        });
+        expect(screen.getByLabelText('Resource grants')).toHaveTextContent('false:true');
     });
 
     it('fails closed for malformed or cross-tenant grants without removing direct permissions', async () => {

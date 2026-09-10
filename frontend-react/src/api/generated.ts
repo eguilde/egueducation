@@ -8217,17 +8217,22 @@ export interface components {
             submitted_on: string;
         };
         CreateMeritCriterionScoreRequest: {
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Score awarded by the panel. When supplied, it MUST be less than or equal to max_score.
+             */
             awarded_score?: number;
             contested?: boolean;
-            criterion_category: string;
+            /** @enum {string} */
+            criterion_category: "performanta" | "impact" | "dezvoltare" | "management" | "incluziune";
             criterion_code: string;
             criterion_label: string;
             evidence_reference?: string;
             /** Format: double */
             max_score: number;
             notes?: string;
-            panel_stage: string;
+            /** @enum {string} */
+            panel_stage: "autoevaluare" | "evaluare_comisie" | "validare_finala";
             reviewer_name?: string;
         };
         CreateMeritDocumentRequest: {

@@ -462,6 +462,21 @@ if ((Compare-Object @($managerialDocumentRequest.properties.document_category.en
     throw 'Managerial document request must publish the handler enum/date contract and conditional approval-date requirement.'
 }
 
+$meritScoreRequest = $specData.components.schemas.CreateMeritCriterionScoreRequest
+$meritCategories = @('performanta','impact','dezvoltare','management','incluziune')
+$meritStages = @('autoevaluare','evaluare_comisie','validare_finala')
+$meritCrossFieldRules = @($meritScoreRequest.'x-cross-field-constraints')
+if ((Compare-Object @($meritScoreRequest.properties.criterion_category.enum | Sort-Object) @($meritCategories | Sort-Object)) -or
+    (Compare-Object @($meritScoreRequest.properties.panel_stage.enum | Sort-Object) @($meritStages | Sort-Object)) -or
+    $meritScoreRequest.properties.max_score.exclusiveMinimum -ne 0 -or
+    $meritScoreRequest.properties.awarded_score.minimum -ne 0 -or
+    $meritScoreRequest.properties.awarded_score.description -notmatch 'less than or equal to max_score' -or
+    $meritCrossFieldRules.Count -ne 1 -or
+    $meritCrossFieldRules[0].rule -ne 'awarded_score_lte_max_score' -or
+    $meritCrossFieldRules[0].expression -ne 'awarded_score <= max_score') {
+    throw 'Merit criterion score request must publish the handler enum, numeric-boundary and awarded-score cross-field contracts.'
+}
+
 foreach ($schemaName in @('PortfolioValorificationPackage','CreatePortfolioValorificationPackageRequest')) {
     $schema = $specData.components.schemas[$schemaName]
     $actualPurposes = @($schema.properties.purpose.enum)

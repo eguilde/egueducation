@@ -106,7 +106,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const [tokens, setTokens] = useState<Tokens | null>(null);
     const tokensRef = useRef<Tokens | null>(null);
     const sessionRef = useRef<SessionContext | null>(null);
-    const clearAuthorization = useCallback(() => { setEducationGrants([]); setAuthorizationReady(true); }, []);
+    const authorizationRefreshGenerationRef = useRef(0);
+    const clearAuthorization = useCallback(() => {
+        // Invalidate every in-flight refresh before clearing the evaluated
+        // snapshot so an older response cannot restore revoked grants.
+        authorizationRefreshGenerationRef.current += 1;
+        setEducationGrants([]);
+        setAuthorizationReady(true);
+    }, []);
 
     const apply = useCallback(async (next: Tokens) => {
         const validatedSession = await loadMe(next.accessToken);
@@ -128,14 +135,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const activeTokens = tokensRef.current;
         const currentSession = sessionRef.current;
         if (!activeTokens || !currentSession) { clearAuthorization(); return; }
-        setAuthorizationReady(false);
+        const generation = ++authorizationRefreshGenerationRef.current;
+        // This is a background revalidation after the initial authorization
+        // snapshot has loaded. Keep the current evaluated snapshot available
+        // while the replacement is fetched: route guards must not unmount the
+        // active workspace (and discard unsaved UI state) every 15 seconds.
+        // The API remains authoritative for every request and the new snapshot
+        // replaces the old one atomically below.
         try {
             const grants = await loadActiveEducationGrants(activeTokens.accessToken, currentSession);
-            if (sessionRef.current === currentSession) setEducationGrants(grants);
+            if (sessionRef.current === currentSession && authorizationRefreshGenerationRef.current === generation) setEducationGrants(grants);
         } catch {
-            if (sessionRef.current === currentSession) setEducationGrants([]);
+            if (sessionRef.current === currentSession && authorizationRefreshGenerationRef.current === generation) setEducationGrants([]);
         } finally {
-            if (sessionRef.current === currentSession) setAuthorizationReady(true);
+            if (sessionRef.current === currentSession && authorizationRefreshGenerationRef.current === generation) setAuthorizationReady(true);
         }
     }, [clearAuthorization]);
 

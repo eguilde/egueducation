@@ -1224,7 +1224,18 @@ const domainRelations: Partial<
       resource: "evaluation-criteria",
       fields: [
         { key: "criterion_code", label: "Cod criteriu", form: false },
-        { key: "criterion_category", label: "Categorie" },
+        {
+          key: "criterion_category",
+          label: "Categorie",
+          kind: "select",
+          options: [
+            { label: "Performanță", value: "performanta" },
+            { label: "Impact", value: "impact" },
+            { label: "Dezvoltare", value: "dezvoltare" },
+            { label: "Management", value: "management" },
+            { label: "Incluziune", value: "incluziune" },
+          ],
+        },
         { key: "criterion_label", label: "Criteriu" },
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "self_score", label: "Autoevaluare", kind: "number" },
@@ -1395,7 +1406,16 @@ const domainRelations: Partial<
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "awarded_score", label: "Acordat", kind: "number" },
         { key: "reviewer_name", label: "Evaluator" },
-        { key: "panel_stage", label: "Etapă comisie" },
+        {
+          key: "panel_stage",
+          label: "Etapă comisie",
+          kind: "select",
+          options: [
+            { label: "Autoevaluare", value: "autoevaluare" },
+            { label: "Evaluare comisie", value: "evaluare_comisie" },
+            { label: "Validare finală", value: "validare_finala" },
+          ],
+        },
         { key: "contested", label: "Contestat", kind: "boolean" },
         { key: "evidence_reference", label: "Referință dovezi" },
         { key: "notes", label: "Note" },
@@ -1479,7 +1499,12 @@ function GovernanceMeetingRelations({
   relations?: RelatedConfig[];
   title?: string;
 }) {
-  const [relation, setRelation] = useState(relations[0]);
+  // Keep only the stable key in local state. Relation definitions are rebuilt
+  // by the parent when async selector data changes; storing the whole object
+  // would freeze fields such as `search.loading` and `options` at their first
+  // render, leaving a successfully loaded Select permanently disabled.
+  const [relationID, setRelationID] = useState(relations[0].id);
+  const relation = relations.find((item) => item.id === relationID) ?? relations[0];
   const [page, setPage] = useState<EducationPage<EducationRecord>>({
     items: [],
     total: 0,
@@ -1565,7 +1590,7 @@ function GovernanceMeetingRelations({
                   variant={item.id === relation.id ? undefined : "outlined"}
                   severity={item.id === relation.id ? undefined : "secondary"}
                   onClick={() => {
-                    setRelation(item);
+                    setRelationID(item.id);
                     setFilters({});
                     setSort({});
                     setPageNumber(1);

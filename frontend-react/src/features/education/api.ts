@@ -283,6 +283,8 @@ const requiredText = (input: EducationRecordInput, key: string): string => {
 };
 const managerialDocumentCategories = ["diagnoza", "prognoza", "evidenta", "planificare", "raport", "anexa", "hotarare", "procedura"] as const;
 const managerialDocumentStatuses = ["draft", "in_review", "approved", "published", "archived"] as const;
+const meritScoreCategories = ["performanta", "impact", "dezvoltare", "management", "incluziune"] as const;
+const meritScoreStages = ["autoevaluare", "evaluare_comisie", "validare_finala"] as const;
 const requiredEnum = <T extends readonly string[]>(input: EducationRecordInput, key: string, allowed: T): T[number] => {
   const value = requiredText(input, key);
   if (!allowed.includes(value)) throw new Error(`education_enum_${key}`);
@@ -494,10 +496,15 @@ function mobilityMeritBody(resource: MobilityMeritRelatedResource, input: Educat
       document_title: requiredText(input, "document_title"), document_type: requiredText(input, "document_type"), registered_on: requiredText(input, "registered_on"), validation_status: requiredText(input, "validation_status"),
       mandatory: optionalBoolean(input, "mandatory"), notes: optionalText(input, "notes"), submitted_by: optionalText(input, "submitted_by"),
     } satisfies components["schemas"]["CreateMeritDocumentRequest"];
-    case "merit-scores": return {
-      criterion_category: requiredText(input, "criterion_category"), criterion_code: requiredText(input, "criterion_code"), criterion_label: requiredText(input, "criterion_label"), max_score: requiredNumber(input, "max_score"), panel_stage: requiredText(input, "panel_stage"),
-      awarded_score: optionalNumber(input, "awarded_score"), contested: optionalBoolean(input, "contested"), evidence_reference: optionalText(input, "evidence_reference"), notes: optionalText(input, "notes"), reviewer_name: optionalText(input, "reviewer_name"),
-    } satisfies components["schemas"]["CreateMeritCriterionScoreRequest"];
+    case "merit-scores": {
+      const maxScore = requiredNumber(input, "max_score");
+      const awardedScore = optionalNumber(input, "awarded_score");
+      if (awardedScore !== undefined && awardedScore > maxScore) throw new Error("education_merit_awarded_score_exceeds_max_score");
+      return {
+        criterion_category: requiredEnum(input, "criterion_category", meritScoreCategories), criterion_code: requiredText(input, "criterion_code"), criterion_label: requiredText(input, "criterion_label"), max_score: maxScore, panel_stage: requiredEnum(input, "panel_stage", meritScoreStages),
+        awarded_score: awardedScore, contested: optionalBoolean(input, "contested"), evidence_reference: optionalText(input, "evidence_reference"), notes: optionalText(input, "notes"), reviewer_name: optionalText(input, "reviewer_name"),
+      } satisfies components["schemas"]["CreateMeritCriterionScoreRequest"];
+    }
     case "merit-appeals": return {
       grounds: requiredText(input, "grounds"), status: requiredText(input, "status"), submitted_by: requiredText(input, "submitted_by"), submitted_on: requiredText(input, "submitted_on"),
       decision_summary: optionalText(input, "decision_summary"), notes: optionalText(input, "notes"), resolved_on: optionalText(input, "resolved_on"),

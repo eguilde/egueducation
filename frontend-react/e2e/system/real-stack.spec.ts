@@ -1460,7 +1460,7 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const exported = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/csv') && response.request().method() === 'GET');
   await page.getByRole('button', { name: 'Exportă CSV' }).click();
   expect((await exported).status()).toBe(200);
-  expect(databaseScalar("select count(*)::text from app_audit_log where action='education.reports.export.csv' and tenant_code='tenant-egueducation'")).not.toBe('0');
+  expect(databaseScalar("select count(*)::text from app_audit_log where action='education.reports.export.csv' and institution_id='inst-001' and status='success' and target_type='school_report'")).not.toBe('0');
 
   // A ready/active archive version is the only provenance supplied to the
   // submit API.  Browser-controlled hash, bucket and object key are forbidden;

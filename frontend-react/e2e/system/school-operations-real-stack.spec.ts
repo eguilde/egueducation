@@ -299,6 +299,7 @@ test('React creates the managerial/regulation roots; API contract persists child
   const document = await createManagerialChildThroughReact(page, 'Adaugă documente dosar', `/api/education/managerial/records/${dossier.id}/documents`, {
     Categorie: 'hotarare', Titlu: `${marker} document managerial`, Stare: 'approved', Versiune: 'v1', 'Înregistrat la': '2026-09-10', 'Aprobat la': '2026-09-10', Responsabil: 'Director E2E', Note: marker,
   });
+  await page.getByRole('button', { name: 'Pași flux', exact: true }).click();
   const workflow = await createManagerialChildThroughReact(page, 'Adaugă pași flux', `/api/education/managerial/records/${dossier.id}/workflow`, {
     Ordine: '1', Etapă: 'avizare_cp', Stare: 'completed', Alocat: 'Director E2E', Termen: '2026-09-11', 'Finalizat la': '2026-09-11', Rezultat: marker,
   });
@@ -376,7 +377,7 @@ test('React creates mobility/merit roots and every operational child; DB verifie
   });
   await page.getByRole('button', { name: 'Punctaje', exact: true }).click();
   const meritScore = await createManagerialChildThroughReact(page, 'Adaugă punctaje', `/api/education/gradatii/records/${merit.id}/scores`, {
-    'Cod criteriu': 'G-01', Criteriu: 'Rezultate', Categorie: 'profesional', Maxim: '100', Acordat: '95', Evaluator: 'Director E2E', 'Etapă comisie': 'evaluare', 'Referință dovezi': marker, Note: marker,
+    'Cod criteriu': 'G-01', Criteriu: 'Rezultate', Categorie: 'Performanță', Maxim: '100', Acordat: '95', Evaluator: 'Director E2E', 'Etapă comisie': 'Evaluare comisie', 'Referință dovezi': marker, Note: marker,
   });
   await page.getByRole('button', { name: 'Contestații', exact: true }).click();
   const meritAppeal = await createManagerialChildThroughReact(page, 'Adaugă contestații', `/api/education/gradatii/records/${merit.id}/appeals`, {
@@ -501,6 +502,16 @@ test('React creates portfolio relations and drives transfer/valorification lifec
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await documentAdded).status()).toBe(201);
   }
+  // The generic institutional CRUD proof above intentionally created one
+  // unsnapshotted draft reference. Remove it through the owner's UI so the
+  // subsequent submission proves the server's immutable archive-snapshot
+  // readiness rule rather than bypassing it in SQL.
+  const deletedDraftDocument = page.waitForResponse((response) =>
+    response.request().method() === 'DELETE'
+    && new URL(response.url()).pathname === `/api/education/portfolios/me/${portfolio.id}/documents/${document.id}`);
+  await page.getByRole('button', { name: `Șterge ${marker} document portofoliu` }).click();
+  await page.getByRole('dialog', { name: 'Elimină documentul?' }).getByRole('button', { name: 'Confirmă eliminarea' }).click();
+  expect((await deletedDraftDocument).status()).toBe(204);
   for (let declarationIndex = 0; declarationIndex < 2; declarationIndex += 1) {
     await page.getByRole('button', { name: 'Citește și confirmă' }).first().click();
     const declarationDialog = page.getByRole('dialog');

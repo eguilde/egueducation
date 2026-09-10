@@ -203,7 +203,7 @@ describe("Education API", () => {
       { resource: "mobility-final-decisions", filter: "decision_code", path: "/api/education/mobility/records/mobility-1/final-decisions", input: { approved_on: "2026-09-01", decision_type: "transfer", effective_from: "2026-09-02", outcome: "approved", panel_name: "Comisie", decision_code: "server-owned" } },
       { resource: "mobility-result-issues", filter: "issue_code", path: "/api/education/mobility/records/mobility-1/result-issues", input: { delivery_channel: "email", delivery_status: "sent", document_type: "result", issued_on: "2026-09-01", recipient_name: "Ana", issue_code: "server-owned" } },
       { resource: "merit-documents", filter: "document_code", path: "/api/education/gradatii/records/merit-1/documents", input: { document_title: "Dosar", document_type: "dossier", registered_on: "2026-09-01", validation_status: "accepted", document_code: "server-owned" } },
-      { resource: "merit-scores", filter: "criterion_code", path: "/api/education/gradatii/records/merit-1/scores", input: { criterion_category: "results", criterion_code: "C1", criterion_label: "Rezultate", max_score: 10, panel_stage: "evaluation", criterion_score_id: "server-owned" } },
+      { resource: "merit-scores", filter: "criterion_code", path: "/api/education/gradatii/records/merit-1/scores", input: { criterion_category: "performanta", criterion_code: "C1", criterion_label: "Rezultate", max_score: 10, panel_stage: "evaluare_comisie", criterion_score_id: "server-owned" } },
       { resource: "merit-appeals", filter: "appeal_code", path: "/api/education/gradatii/records/merit-1/appeals", input: { grounds: "motiv", status: "submitted", submitted_by: "Ana", submitted_on: "2026-09-01", appeal_code: "server-owned" } },
       { resource: "merit-final-decisions", filter: "decision_code", path: "/api/education/gradatii/records/merit-1/final-decisions", input: { approved_on: "2026-09-01", decision_stage: "final", effective_from: "2026-09-02", outcome: "approved", panel_name: "Comisie", decision_code: "server-owned" } },
       { resource: "merit-result-issues", filter: "issue_code", path: "/api/education/gradatii/records/merit-1/result-issues", input: { delivery_channel: "email", delivery_status: "sent", document_type: "result", issued_on: "2026-09-01", recipient_name: "Ana", issue_code: "server-owned" } },
@@ -246,6 +246,9 @@ describe("Education API", () => {
       expect(request.headers.get("accept")).toBe("application/pdf");
       expect(new URL(request.url).pathname).toMatch(/\/(appeals|final-decisions|result-issues)\/item-1\/pdf$/);
     });
+    await expect(api.saveRelated("merit-scores", "merit-1", { criterion_category: "results", criterion_code: "C2", criterion_label: "Invalid", max_score: 10, panel_stage: "evaluare_comisie" })).rejects.toThrow("education_enum_criterion_category");
+    await expect(api.saveRelated("merit-scores", "merit-1", { criterion_category: "performanta", criterion_code: "C2", criterion_label: "Invalid", max_score: 10, panel_stage: "evaluation" })).rejects.toThrow("education_enum_panel_stage");
+    await expect(api.saveRelated("merit-scores", "merit-1", { criterion_category: "performanta", criterion_code: "C2", criterion_label: "Invalid", max_score: 10, awarded_score: 11, panel_stage: "evaluare_comisie" })).rejects.toThrow("education_merit_awarded_score_exceeds_max_score");
   });
 
   it("uses named Portfolio document transport with its sole documented filter", async () => {

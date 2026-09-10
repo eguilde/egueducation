@@ -444,6 +444,21 @@ if ($managerialDocumentSchema) {
         }
     )
 }
+$meritScoreSchema = $common.components.schemas['CreateMeritCriterionScoreRequest']
+if ($meritScoreSchema) {
+    $meritScoreSchema.properties.criterion_category.enum = @('performanta','impact','dezvoltare','management','incluziune')
+    $meritScoreSchema.properties.panel_stage.enum = @('autoevaluare','evaluare_comisie','validare_finala')
+    $meritScoreSchema.properties.max_score.exclusiveMinimum = 0
+    $meritScoreSchema.properties.awarded_score.minimum = 0
+    $meritScoreSchema.properties.awarded_score.description = 'Score awarded by the panel. When supplied, it MUST be less than or equal to max_score.'
+    $meritScoreSchema['x-cross-field-constraints'] = @(
+        [ordered]@{
+            rule = 'awarded_score_lte_max_score'
+            expression = 'awarded_score <= max_score'
+            message = 'awarded_score must not exceed max_score when supplied'
+        }
+    )
+}
 # These compatibility envelopes must not leak into any generated operation.
 # Per-operation response schemas are installed below from handler DTOs.
 foreach($compatibilitySchema in @('IdentityResponse','RegistraturaResponse','WorkflowResponse','ArchiveResponse','AdminListResponse','GdprListResponse','Page')) { [void]$common.components.schemas.Remove($compatibilitySchema) }
