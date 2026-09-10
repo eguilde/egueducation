@@ -71,12 +71,14 @@ $$;
 revoke all on function public.education_classes_actor_owns_current_homeroom(uuid) from public;
 grant execute on function public.education_classes_actor_owns_current_homeroom(uuid) to public;
 
-do $$ declare target text; begin
-	foreach target in array array['education_school_classes','education_students','education_student_enrolments','education_class_homeroom_assignments'] loop
-		execute format('drop policy if exists education_classes_read on public.%I', target);
-		execute format('drop policy if exists education_classes_manage on public.%I', target);
-	end loop;
-end $$;
+drop policy if exists education_classes_read on public.education_school_classes;
+drop policy if exists education_classes_manage on public.education_school_classes;
+drop policy if exists education_students_read on public.education_students;
+drop policy if exists education_students_manage on public.education_students;
+drop policy if exists education_student_enrolments_read on public.education_student_enrolments;
+drop policy if exists education_student_enrolments_manage on public.education_student_enrolments;
+drop policy if exists education_homeroom_assignments_read on public.education_class_homeroom_assignments;
+drop policy if exists education_homeroom_assignments_manage on public.education_class_homeroom_assignments;
 
 create policy education_classes_read on education_school_classes for select using (
 	public.can_bypass_tenant_rls() or (tenant_code = public.current_tenant_code() and institution_id = public.current_institution_id() and (
@@ -129,4 +131,3 @@ create policy education_homeroom_assignments_manage on education_class_homeroom_
 ) with check (
 	public.can_bypass_tenant_rls() or (tenant_code = public.current_tenant_code() and institution_id = public.current_institution_id() and public.education_classes_actor_has_permission('education.classes.manage'))
 );
-
