@@ -500,10 +500,10 @@ export const wizardDefinitions: Record<WizardKind, WizardDefinition> = {
         label: "Tip",
         type: "select",
         options: opt([
+          "interests",
+          "assets",
+          "gdpr",
           "authenticity",
-          "consent",
-          "conflict_of_interest",
-          "certificate",
         ]),
       },
       {

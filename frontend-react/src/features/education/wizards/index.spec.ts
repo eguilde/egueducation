@@ -77,6 +77,14 @@ describe("education wizard contracts", () => {
     ]);
   });
 
+  it("uses the exact personnel declaration taxonomy accepted by the backend", () => {
+    const declarationType = wizardDefinitions.declaration.fields.find((item) => item.key === "declaration_type");
+    expect(wizardDefinitions.declaration.initial.declaration_type).toBe("authenticity");
+    expect(declarationType?.options?.map((item) => item.value)).toEqual([
+      "interests", "assets", "gdpr", "authenticity",
+    ]);
+  });
+
   it("uses a literal generated personnel operation and DTO", async () => {
     const mock = contractClient();
     await createSchoolWizardApi(mock.contract).create("personnel", {

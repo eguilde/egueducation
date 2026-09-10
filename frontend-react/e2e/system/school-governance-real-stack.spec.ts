@@ -148,6 +148,71 @@ async function createRootThroughReact(
   return response.json() as Promise<RecordWithID>;
 }
 
+async function createEvaluationThroughWizard(
+  page: Page,
+  employeeCode: string,
+  fullName: string,
+  evaluatorName: string,
+): Promise<RecordWithID> {
+  await page.goto('/scoala/evaluations');
+  await page.getByLabel('Adaugă înregistrare').click();
+  await expect(page).toHaveURL(/\/scoala\/personnel\/evaluations-wizard$/);
+
+  await page.getByLabel('Cod angajat').fill(employeeCode);
+  await page.getByLabel('Nume').fill(fullName);
+  await page.getByLabel('Funcție').fill('Profesor');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  await page.getByLabel('An școlar').fill('2026-2027');
+  await page.getByRole('combobox', { name: 'Status' }).click();
+  await selectOpenOption(page, 'draft');
+  await page.getByLabel('Punctaj').fill('75');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  await page.getByLabel('Evaluator').fill(evaluatorName);
+  await page.getByLabel('Rezumat').fill(marker);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  const created = page.waitForResponse(response => new URL(response.url()).pathname === '/api/education/evaluations/records' && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  await expect(page).toHaveURL(/\/scoala\/evaluations$/);
+  return response.json() as Promise<RecordWithID>;
+}
+
+async function createDeclarationThroughWizard(
+  page: Page,
+  employeeCode: string,
+  fullName: string,
+): Promise<RecordWithID> {
+  await page.goto('/scoala/declarations');
+  await page.getByLabel('Adaugă înregistrare').click();
+  await expect(page).toHaveURL(/\/scoala\/personnel\/declarations-wizard$/);
+
+  await page.getByLabel('Cod angajat').fill(employeeCode);
+  await page.getByLabel('Nume').fill(fullName);
+  await page.getByRole('combobox', { name: 'Tip' }).click();
+  await selectOpenOption(page, 'authenticity');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  await page.getByRole('combobox', { name: 'Status' }).click();
+  await selectOpenOption(page, 'draft');
+  await page.getByLabel('An școlar').fill('2026-2027');
+  await page.getByLabel('Depus la').fill('2026-09-10');
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  await page.getByLabel('Rezumat').fill(marker);
+  await page.getByRole('button', { name: 'Continuă' }).click();
+
+  const created = page.waitForResponse(response => new URL(response.url()).pathname === '/api/education/declarations/records' && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvează' }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  await expect(page).toHaveURL(/\/scoala\/declarations$/);
+  return response.json() as Promise<RecordWithID>;
+}
+
 async function openReactRootDetails(page: Page, exactTitle: string): Promise<void> {
   const row = page.getByText(exactTitle, { exact: true }).locator('xpath=ancestor::tr[1]');
   await expect(row).toBeVisible();
@@ -409,16 +474,18 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   expect(completeness.body.membership.chairperson_covered).toBe(true);
 
   const employeeCode = `E2E-${Date.now()}`;
-  const evaluation = await createRootThroughReact(page, '/scoala/evaluations', '/api/education/evaluations/records', { 'Cod angajat': employeeCode, 'Nume complet': actors.adjunctName, Funcție: 'Profesor', 'An școlar': '2026-2027', Stare: 'draft', Punctaj: '75', Rezumat: marker });
-  const declaration = await createRootThroughReact(page, '/scoala/declarations', '/api/education/declarations/records', { 'Cod angajat': employeeCode, 'Nume complet': actors.adjunctName, Tip: 'interese', 'An școlar': '2026-2027', Stare: 'draft', 'Depus la': '2026-09-10', Rezumat: marker });
-  expect(sql(`select count(*)::text from education_evaluations where id='${evaluation.id}'`)).toBe('1');
-  expect(sql(`select count(*)::text from education_declarations where id='${declaration.id}'`)).toBe('1');
+  const evaluation = await createEvaluationThroughWizard(page, employeeCode, actors.adjunctName, actors.directorName);
+  const declaration = await createDeclarationThroughWizard(page, employeeCode, actors.adjunctName);
+  expect(sql(`select count(*)::text from education_evaluations where id='${evaluation.id}' and institution_id='${school.institution}' and employee_code='${employeeCode}' and full_name='${actors.adjunctName}' and role_title='Profesor' and school_year='2026-2027' and status='draft' and score=75 and evaluator_name='${actors.directorName}' and summary='${marker}'`)).toBe('1');
+  expect(sql(`select count(*)::text from education_declarations where id='${declaration.id}' and institution_id='${school.institution}' and employee_code='${employeeCode}' and full_name='${actors.adjunctName}' and declaration_type='authenticity' and status='draft' and school_year='2026-2027' and submitted_on='2026-09-10'::date and valid_until is null and summary='${marker}'`)).toBe('1');
+  expect(sql(`select count(*)::text from app_audit_log where target_id='${evaluation.id}' and action='education.evaluations.create'`)).toBe('1');
+  expect(sql(`select count(*)::text from app_audit_log where target_id='${declaration.id}' and action='education.declarations.create'`)).toBe('1');
 
   // An ordinary adjunct receives neither evaluation nor declaration management.
   const restricted = await browser.newContext({ baseURL: 'http://localhost:4174' }); const restrictedPage = await restricted.newPage(); const restrictedToken = await login(restrictedPage, adjunct, 'http://localhost:4174');
   const evaluationPayload = { employee_code: employeeCode, full_name: actors.adjunctName, role_title: 'Profesor', school_year: '2026-2027', status: 'draft' };
   expect((await request<unknown>(restrictedPage, restrictedToken, '/api/education/evaluations/records', { method: 'POST', body: JSON.stringify(evaluationPayload) })).status).toBe(403);
-  expect((await request<unknown>(restrictedPage, restrictedToken, '/api/education/declarations/records', { method: 'POST', body: JSON.stringify({ employee_code: employeeCode, full_name: actors.adjunctName, declaration_type: 'interese', school_year: '2026-2027', status: 'draft', submitted_on: '2026-09-10' }) })).status).toBe(403);
+  expect((await request<unknown>(restrictedPage, restrictedToken, '/api/education/declarations/records', { method: 'POST', body: JSON.stringify({ employee_code: employeeCode, full_name: actors.adjunctName, declaration_type: 'authenticity', school_year: '2026-2027', status: 'draft', submitted_on: '2026-09-10' }) })).status).toBe(403);
   const isolated = await browser.newContext({ baseURL: 'http://localhost:4175' }); const isolatedPage = await isolated.newPage(); const isolatedToken = await login(isolatedPage, otherTenant, 'http://localhost:4175');
   expect((await request<unknown>(isolatedPage, isolatedToken, `/api/education/committees/records/${committee.id}`)).status).toBe(404);
   expect(sql(`select count(*)::text from education_committees where id='${committee.id}'`, balotesti, false)).toBe('0');
