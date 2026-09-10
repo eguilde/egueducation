@@ -647,9 +647,10 @@ func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		select source.code, source.institution_id, source.display_name,
 			destination.institution_id, destination.display_name
 		from app_tenants source
-		join app_tenants destination on destination.code=$2 and destination.active
+		join public.education_portfolio_transfer_destinations() destination
+			on destination.tenant_code=$2
 		where source.code=public.current_tenant_code() and source.institution_id=$1 and source.active
-			and destination.code<>source.code and destination.institution_id<>source.institution_id
+			and destination.tenant_code<>source.code and destination.institution_id<>source.institution_id
 	`, s.institutionID(r), req.DestinationTenantCode).Scan(
 		&sourceTenantCode, &sourceInstitutionID, &sourceInstitution,
 		&destinationInstitutionID, &destinationInstitution,

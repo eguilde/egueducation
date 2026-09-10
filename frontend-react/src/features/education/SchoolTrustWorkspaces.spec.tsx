@@ -60,6 +60,7 @@ describe("School trust workspaces", () => {
   it("submits signature evidence using server-selected artifact and archive provenance", async () => {
     const client = signatureClient();
     render(<PrimeReactProvider><SignedArtifactEvidenceWorkspace client={client} canManage canValidate /></PrimeReactProvider>);
+    expect(screen.getByRole("heading", { name: "Semnături și dovezi digitale", level: 1 })).toBeInTheDocument();
     await screen.findByText("CN=Test");
     fireEvent.click(screen.getByRole("button", { name: "Înregistrează dovadă" }));
     const dialog = await screen.findByRole("dialog");

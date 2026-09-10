@@ -1256,11 +1256,11 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await page.goto(`/scoala/governance/minutes-wizard?meetingId=${encodeURIComponent(createdMeeting.id)}`);
   await expect(page.getByRole('heading', { name: 'Punct de minută' })).toBeVisible();
   await page.getByLabel('Subiect').fill(`${marker} consemnare`);
-  await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Rezumat discuții').fill('Dezbatere consemnată în sistemul real.');
-  await page.getByLabel('Decizie').fill('Se aprobă măsura propusă.');
   await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Decizie').fill('Se aprobă măsura propusă.');
   await page.getByLabel('Responsabil').fill(chairName);
+  await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByRole('button', { name: 'Continuă' }).click();
   const minuteResponse = page.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/minutes`

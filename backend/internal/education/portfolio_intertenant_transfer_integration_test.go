@@ -4,6 +4,9 @@ package education
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -61,6 +64,45 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	}
 	if destinationDirectoryCount != 1 {
 		t.Fatalf("transfer destination directory contains %d matching destination rows, want 1", destinationDirectoryCount)
+	}
+	if _, err := pool.Exec(sourceCtx, `
+		update education_portfolios
+		set status='submitted'
+		where id=$1::uuid and institution_id=$2
+	`, fixture.portfolioID, fixture.institutionA); err != nil {
+		t.Fatalf("submit portfolio for handler transfer proof: %v", err)
+	}
+	service := NewService(pool)
+	createRequest := httptest.NewRequest(http.MethodPost, "http://education.test", strings.NewReader(`{
+		"transfer_type":"mutare",
+		"handover_on":"2026-09-11",
+		"notes":"handler integration",
+		"destination_tenant_code":"tenant-balotesti"
+	}`)).WithContext(requestWithContext(sourceCtx, fixture.tenantA, fixture.institutionA, fixture.memberSubject).Context())
+	createRequest = withChiParams(createRequest, map[string]string{"recordID": fixture.portfolioID})
+	createResponse := httptest.NewRecorder()
+	service.CreatePortfolioTransfer(createResponse, createRequest)
+	if createResponse.Code != http.StatusCreated {
+		t.Fatalf("create transfer through restricted handler: status=%d body=%s", createResponse.Code, createResponse.Body.String())
+	}
+	var createdByHandler PortfolioTransferEvent
+	if err := json.Unmarshal(createResponse.Body.Bytes(), &createdByHandler); err != nil {
+		t.Fatalf("decode handler-created transfer: %v", err)
+	}
+	if createdByHandler.SourceTenantCode != fixture.tenantA || createdByHandler.SourceInstitutionID != fixture.institutionA || createdByHandler.DestinationTenantCode != fixture.tenantB || createdByHandler.DestinationInstitutionID != fixture.institutionB || createdByHandler.RoutingVersion != 2 {
+		t.Fatalf("handler-created transfer has invalid route: %#v", createdByHandler)
+	}
+
+	invalidRequest := httptest.NewRequest(http.MethodPost, "http://education.test", strings.NewReader(`{
+		"transfer_type":"mutare",
+		"handover_on":"2026-09-11",
+		"destination_tenant_code":"tenant-necunoscut"
+	}`)).WithContext(requestWithContext(sourceCtx, fixture.tenantA, fixture.institutionA, fixture.memberSubject).Context())
+	invalidRequest = withChiParams(invalidRequest, map[string]string{"recordID": fixture.portfolioID})
+	invalidResponse := httptest.NewRecorder()
+	service.CreatePortfolioTransfer(invalidResponse, invalidRequest)
+	if invalidResponse.Code != http.StatusUnprocessableEntity || !strings.Contains(invalidResponse.Body.String(), "portfolio_transfer_destination_invalid") {
+		t.Fatalf("unknown destination must fail closed: status=%d body=%s", invalidResponse.Code, invalidResponse.Body.String())
 	}
 	if err := pool.QueryRow(sourceCtx, `
 		insert into education_portfolio_transfers (

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { EducationListPanel, RecordFormDialog, SchoolRowActionMenu, domainListCapabilities, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, hasDomainRelations, relationManagePermission } from "./EducationWorkspace";
+import { EducationListPanel, RecordFormDialog, SchoolRowActionMenu, domainListCapabilities, domainRelations, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, hasDomainRelations, relationManagePermission } from "./EducationWorkspace";
 
 describe("School overlay lifecycle", () => {
   it("closes the action popover before invoking an action that may mount a dialog", async () => {
@@ -239,6 +239,24 @@ describe("School detail relations", () => {
   it("does not mount the generic relation workspace for a portfolio with dedicated relations", () => {
     expect(hasDomainRelations("portfolios")).toBe(false);
     expect(hasDomainRelations("managerial")).toBe(true);
+  });
+
+  it("binds merit score enums to PrimeReact selects without constraining evaluation criteria", () => {
+    const meritCategory = domainRelations.merit
+      ?.find((relation) => relation.resource === "merit-scores")
+      ?.fields.find((field) => field.key === "criterion_category");
+    expect(meritCategory).toMatchObject({
+      kind: "select",
+      options: expect.arrayContaining([
+        { label: "Performanță", value: "performanta" },
+        { label: "Incluziune", value: "incluziune" },
+      ]),
+    });
+
+    const evaluationCategory = domainRelations.evaluations
+      ?.find((relation) => relation.resource === "evaluation-criteria")
+      ?.fields.find((field) => field.key === "criterion_category");
+    expect(evaluationCategory?.kind).toBeUndefined();
   });
 });
 

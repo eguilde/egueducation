@@ -985,7 +985,7 @@ const meetingRelations: RelatedConfig[] = [
     ],
   },
 ];
-const domainRelations: Partial<
+export const domainRelations: Partial<
   Record<EducationRecordsDomain, RelatedConfig[]>
 > = {
   decisions: [
@@ -1224,18 +1224,7 @@ const domainRelations: Partial<
       resource: "evaluation-criteria",
       fields: [
         { key: "criterion_code", label: "Cod criteriu", form: false },
-        {
-          key: "criterion_category",
-          label: "Categorie",
-          kind: "select",
-          options: [
-            { label: "Performanță", value: "performanta" },
-            { label: "Impact", value: "impact" },
-            { label: "Dezvoltare", value: "dezvoltare" },
-            { label: "Management", value: "management" },
-            { label: "Incluziune", value: "incluziune" },
-          ],
-        },
+        { key: "criterion_category", label: "Categorie" },
         { key: "criterion_label", label: "Criteriu" },
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "self_score", label: "Autoevaluare", kind: "number" },
@@ -1402,7 +1391,18 @@ const domainRelations: Partial<
       fields: [
         { key: "criterion_code", label: "Cod criteriu" },
         { key: "criterion_label", label: "Criteriu" },
-        { key: "criterion_category", label: "Categorie" },
+        {
+          key: "criterion_category",
+          label: "Categorie",
+          kind: "select",
+          options: [
+            { label: "Performanță", value: "performanta" },
+            { label: "Impact", value: "impact" },
+            { label: "Dezvoltare", value: "dezvoltare" },
+            { label: "Management", value: "management" },
+            { label: "Incluziune", value: "incluziune" },
+          ],
+        },
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "awarded_score", label: "Acordat", kind: "number" },
         { key: "reviewer_name", label: "Evaluator" },

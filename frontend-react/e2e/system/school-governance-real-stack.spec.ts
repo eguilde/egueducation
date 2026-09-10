@@ -349,6 +349,9 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await page.getByRole('button', { name: 'Salvează' }).click(); const voteHTTP = await voteCreated; expect(voteHTTP.status()).toBe(201);
   const vote = await voteHTTP.json() as { id: string };
   await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await clickOpenPopoverAction(page, 'Detalii');
+  await expect(meetingDetails).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(meetingDetails).toBeHidden();
   await page.getByRole('button', { name: 'Ghid minută' }).click();
   await page.getByLabel('Subiect').fill(`${marker} minută`);
   await page.getByLabel('Rezumat discuții').fill('Discuție consemnată.');
@@ -359,7 +362,11 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await page.getByRole('button', { name: 'Continuă' }).click();
   const minuteCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/minutes`) && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click(); expect((await minuteCreated).status()).toBe(201);
-  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await clickOpenPopoverAction(page, 'Detalii'); await page.getByRole('button', { name: 'Ghid hotărâre' }).click();
+  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await clickOpenPopoverAction(page, 'Detalii');
+  await expect(meetingDetails).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(meetingDetails).toBeHidden();
+  await page.getByRole('button', { name: 'Ghid hotărâre' }).click();
   await page.getByRole('combobox', { name: 'Vot' }).click(); await selectOpenOption(page, new RegExp(`${marker} vot`));
   await page.getByLabel('Titlu').fill(`${marker} hotărâre`); await page.getByRole('button', { name: 'Continuă' }).click(); await page.getByLabel('Data emiterii').fill('2026-09-10'); await page.getByRole('button', { name: 'Continuă' }).click(); await page.getByLabel('Semnat de').fill(actors.directorName); await page.getByRole('button', { name: 'Continuă' }).click();
   const resolutionCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/resolutions`) && response.request().method() === 'POST');
