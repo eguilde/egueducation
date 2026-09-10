@@ -448,6 +448,20 @@ foreach ($forbiddenField in @('document_sha256','storage_bucket','storage_object
 }
 
 $valorificationPurposes = @('licentiere','debut','definitivat','grad_ii','grad_i','evaluare_profesionala','mobilitate','dezvoltare_profesionala','inspectie_scolara','evaluare_externa_calitate','gradatie_merit','distinctie_premiu')
+
+$managerialDocumentRequest = $specData.components.schemas.CreateManagerialDocumentRequest
+$managerialCategories = @('diagnoza','prognoza','evidenta','planificare','raport','anexa','hotarare','procedura')
+$managerialStatuses = @('draft','in_review','approved','published','archived')
+if ((Compare-Object @($managerialDocumentRequest.properties.document_category.enum | Sort-Object) @($managerialCategories | Sort-Object)) -or
+    (Compare-Object @($managerialDocumentRequest.properties.document_status.enum | Sort-Object) @($managerialStatuses | Sort-Object)) -or
+    $managerialDocumentRequest.properties.registered_on.format -ne 'date' -or
+    $managerialDocumentRequest.properties.approved_on.format -ne 'date' -or
+    $managerialDocumentRequest.properties.registered_on.minLength -ne 1 -or
+    $managerialDocumentRequest.properties.approved_on.minLength -ne 1 -or
+    $managerialDocumentRequest.allOf[0].then.required -notcontains 'approved_on') {
+    throw 'Managerial document request must publish the handler enum/date contract and conditional approval-date requirement.'
+}
+
 foreach ($schemaName in @('PortfolioValorificationPackage','CreatePortfolioValorificationPackageRequest')) {
     $schema = $specData.components.schemas[$schemaName]
     $actualPurposes = @($schema.properties.purpose.enum)

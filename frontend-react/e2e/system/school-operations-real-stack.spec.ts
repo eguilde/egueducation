@@ -62,11 +62,7 @@ async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name, exact: true });
   await expect(action).toBeVisible();
-  // PrimeReact positions the portalled menu while it opens. Keyboard activation
-  // is the equivalent accessible user interaction and avoids a mouse click on
-  // a moving overlay that can be remounted by the table refresh.
-  await action.focus();
-  await action.press('Enter');
+  await action.click();
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
@@ -213,7 +209,15 @@ async function createManagerialChildThroughReact(
   await page.getByLabel(addLabel).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  for (const [label, value] of Object.entries(values)) await dialog.getByLabel(label).fill(value);
+  for (const [label, value] of Object.entries(values)) {
+    const control = dialog.getByLabel(label, { exact: true });
+    if ((await control.getAttribute('role')) === 'combobox') {
+      await control.click();
+      await selectOpenOption(page, value);
+    } else {
+      await control.fill(value);
+    }
+  }
   const created = page.waitForResponse((response) => new URL(response.url()).pathname === endpoint && response.request().method() === 'POST');
   await dialog.getByRole('button', { name: 'Salvează' }).click();
   const response = await created;
@@ -292,7 +296,7 @@ test('React creates the managerial/regulation roots; API contract persists child
   });
   await openReactRootDetails(page, dossierTitle);
   const document = await createManagerialChildThroughReact(page, 'Adaugă documente dosar', `/api/education/managerial/records/${dossier.id}/documents`, {
-    Categorie: 'decizie', Titlu: `${marker} document managerial`, Stare: 'approved', Versiune: 'v1', 'Înregistrat la': '2026-09-10', Responsabil: 'Director E2E', Note: marker,
+    Categorie: 'hotarare', Titlu: `${marker} document managerial`, Stare: 'approved', Versiune: 'v1', 'Înregistrat la': '2026-09-10', 'Aprobat la': '2026-09-10', Responsabil: 'Director E2E', Note: marker,
   });
   const workflow = await createManagerialChildThroughReact(page, 'Adaugă pași flux', `/api/education/managerial/records/${dossier.id}/workflow`, {
     Ordine: '1', Etapă: 'avizare_cp', Stare: 'completed', Alocat: 'Director E2E', Termen: '2026-09-11', 'Finalizat la': '2026-09-11', Rezultat: marker,

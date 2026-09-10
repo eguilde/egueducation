@@ -425,6 +425,25 @@ foreach ($schemaName in @($common.components.schemas.Keys)) {
     if ($required.Count -gt 0) { $schema.required = $required }
     [void]$schema.Remove('x-requiredness')
 }
+
+# Handler-enforced finite values and conditional requirements are part of the
+# public database-to-frontend contract, not knowledge that callers should have
+# to recover from a late 400 response.
+$managerialDocumentSchema = $common.components.schemas['CreateManagerialDocumentRequest']
+if ($managerialDocumentSchema) {
+    $managerialDocumentSchema.properties.document_category.enum = @('diagnoza','prognoza','evidenta','planificare','raport','anexa','hotarare','procedura')
+    $managerialDocumentSchema.properties.document_status.enum = @('draft','in_review','approved','published','archived')
+    $managerialDocumentSchema.properties.registered_on.format = 'date'
+    $managerialDocumentSchema.properties.registered_on.minLength = 1
+    $managerialDocumentSchema.properties.approved_on.format = 'date'
+    $managerialDocumentSchema.properties.approved_on.minLength = 1
+    $managerialDocumentSchema.allOf = @(
+        [ordered]@{
+            'if' = [ordered]@{ properties = [ordered]@{ document_status = [ordered]@{ enum = @('approved','published','archived') } }; required = @('document_status') }
+            then = [ordered]@{ required = @('approved_on') }
+        }
+    )
+}
 # These compatibility envelopes must not leak into any generated operation.
 # Per-operation response schemas are installed below from handler DTOs.
 foreach($compatibilitySchema in @('IdentityResponse','RegistraturaResponse','WorkflowResponse','ArchiveResponse','AdminListResponse','GdprListResponse','Page')) { [void]$common.components.schemas.Remove($compatibilitySchema) }

@@ -150,7 +150,7 @@ type SchoolRowAction = {
 };
 
 /** A compact, accessible action menu shared by School registry tables. */
-function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
+export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
   const [open, setOpen] = useState(false);
 
   const selectAction = (action: SchoolRowAction) => {
@@ -158,7 +158,10 @@ function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
     // or refreshes the table. Keeping both mounted lets focus management race
     // the row re-render and can leave the action button detached mid-click.
     setOpen(false);
-    action.onSelect();
+    // Let the originating pointer/focus event and Popover teardown complete
+    // before a selected action mounts another portalled overlay. Otherwise the
+    // Popover's outside-interaction cleanup also dismisses the new Dialog.
+    window.requestAnimationFrame(action.onSelect);
   };
 
   return (
@@ -568,14 +571,17 @@ function GovernanceMeetingsPage({
     Array<{ id: string; name: string }>
   >([]);
   const [eligibleUserQuery, setEligibleUserQuery] = useState("");
+  const [eligibleUsersLoading, setEligibleUsersLoading] = useState(true);
   useEffect(() => {
     let current = true;
+    setEligibleUsersLoading(true);
     const timer = window.setTimeout(() => void api
       .eligibleGovernanceUsers({ q: eligibleUserQuery, page: 1, pageSize: 100 })
       .then((items) => current && setEligibleUsers(items))
       .catch(() =>
         current && setError("Utilizatorii eligibili nu au putut fi încărcați."),
-      ), 250);
+      )
+      .finally(() => current && setEligibleUsersLoading(false)), 250);
     return () => {
       current = false;
       window.clearTimeout(timer);
@@ -813,6 +819,7 @@ function GovernanceMeetingsPage({
                   label: "Caută Utilizator",
                   value: eligibleUserQuery,
                   onChange: setEligibleUserQuery,
+                  loading: eligibleUsersLoading,
                 },
                 options: eligibleUsers.map((user) => ({
                   value: user.id,
@@ -1077,14 +1084,29 @@ const domainRelations: Partial<
       resource: "managerial-documents",
       pdf: true,
       fields: [
-        { key: "document_category", label: "Categorie" },
+        {
+          key: "document_category",
+          label: "Categorie",
+          kind: "select",
+          options: ["diagnoza", "prognoza", "evidenta", "planificare", "raport", "anexa", "hotarare", "procedura"].map((value) => ({ value, label: value })),
+        },
         { key: "title", label: "Titlu" },
-        { key: "document_status", label: "Stare" },
+        {
+          key: "document_status",
+          label: "Stare",
+          kind: "select",
+          options: ["draft", "in_review", "approved", "published", "archived"].map((value) => ({ value, label: value })),
+        },
         { key: "version_label", label: "Versiune" },
         { key: "mandatory", label: "Obligatoriu", kind: "boolean" },
         { key: "publication_required", label: "Publicare", kind: "boolean" },
         { key: "registered_on", label: "Înregistrat la", kind: "date" },
-        { key: "approved_on", label: "Aprobat la", kind: "date" },
+        {
+          key: "approved_on",
+          label: "Aprobat la",
+          kind: "date",
+          required: (input) => ["approved", "published", "archived"].includes(String(input.document_status ?? "")),
+        },
         { key: "owner_name", label: "Responsabil" },
         { key: "file_reference", label: "Referință fișier" },
         { key: "notes", label: "Note" },
@@ -1439,6 +1461,10 @@ const domainRelations: Partial<
   // query allow-list and lifecycle policy.
   portfolios: [],
 };
+
+export function hasDomainRelations(domain: EducationRecordsDomain): boolean {
+  return Boolean(domainRelations[domain]?.length);
+}
 
 function GovernanceMeetingRelations({
   api,
@@ -1817,10 +1843,23 @@ type RecordField = {
     label: string;
     value: string;
     onChange: (value: string) => void;
+    loading?: boolean;
   };
+  /** Static or state-dependent client requirement mirrored from the API contract. */
+  required?: boolean | ((input: EducationRecordInput) => boolean);
   /** Server-generated/list-only values are visible but never editable. */
   form?: boolean;
 };
+
+function isRecordFieldRequired(field: RecordField, input: EducationRecordInput = {}): boolean {
+  return typeof field.required === "function" ? field.required(input) : Boolean(field.required);
+}
+
+function isRecordFieldMissing(field: RecordField, input: EducationRecordInput = {}): boolean {
+  if (!isRecordFieldRequired(field, input)) return false;
+  const value = input[field.key];
+  return value === undefined || value === null || (typeof value === "string" && !value.trim());
+}
 const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
   decisions: [
     { key: "school_year", label: "An școlar" },
@@ -2422,13 +2461,13 @@ function DomainRecordsPage({
         }
       />
       <Dialog.Root open={Boolean(portfolioLifecycle)} onOpenChange={(event: { value?: boolean }) => !event.value && setPortfolioLifecycle(undefined)}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>{portfolioLifecycle?.kind === "cessation" ? "Înregistrează încetarea activității" : portfolioLifecycle?.active ? "Aplică blocare juridică" : "Ridică blocarea juridică"}</Dialog.Title><Dialog.Close aria-label="Închide operația de ciclu de viață" /></Dialog.Header><Dialog.Content>{portfolioLifecycle && <div className="flex flex-col gap-3">{portfolioLifecycle.kind === "cessation" && <label className="flex flex-col gap-1"><span>Data încetării *</span><InputText type="date" value={portfolioLifecycle.date} onChange={(event: ChangeEvent<HTMLInputElement>) => setPortfolioLifecycle((current) => current ? { ...current, date: event.target.value } : current)} /></label>}{portfolioLifecycle.kind === "legal_hold" && <label className="flex items-center gap-2"><Checkbox.Root checked={portfolioLifecycle.active} disabled><Checkbox.Box><Checkbox.Indicator /></Checkbox.Box></Checkbox.Root><span>{portfolioLifecycle.active ? "Blocarea juridică va fi activată." : "Blocarea juridică va fi ridicată."}</span></label>}<label className="flex flex-col gap-1"><span>Motiv {portfolioLifecycle.kind === "cessation" || portfolioLifecycle.active ? "*" : ""}</span><Textarea value={portfolioLifecycle.reason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setPortfolioLifecycle((current) => current ? { ...current, reason: event.target.value } : current)} /></label></div>}</Dialog.Content><Dialog.Footer><div className="flex justify-end gap-2"><Button variant="outlined" severity="secondary" onClick={() => setPortfolioLifecycle(undefined)}>Renunță</Button><Button disabled={!portfolioLifecycle || (portfolioLifecycle.kind === "cessation" && (!portfolioLifecycle.date || !portfolioLifecycle.reason.trim())) || (portfolioLifecycle.kind === "legal_hold" && portfolioLifecycle.active && !portfolioLifecycle.reason.trim())} onClick={() => portfolioLifecycle && void action(async () => { if (portfolioLifecycle.kind === "cessation") await api.recordPortfolioCessation(portfolioLifecycle.record.id, { activity_ceased_on: portfolioLifecycle.date, reason: portfolioLifecycle.reason }); else await api.setPortfolioLegalHold(portfolioLifecycle.record.id, { active: portfolioLifecycle.active, reason: portfolioLifecycle.reason }); setPortfolioLifecycle(undefined); })}>Confirmă</Button></div></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>
-      {selectedRecordId && domainRelations[domain] && (
+      {selectedRecordId && hasDomainRelations(domain) && (
         <GovernanceMeetingRelations
           api={api}
           meetingId={selectedRecordId}
           canManage={(relation) => Boolean(canManageRelation?.(relation, selectedRecordId))}
           title={`${area.label} — operațiuni dosar`}
-          relations={domainRelations[domain]}
+          relations={domainRelations[domain] ?? []}
         />
       )}
       {domain === "portfolios" && selectedRecordId && (
@@ -2581,7 +2620,7 @@ function EducationMetadata({
   );
 }
 
-function RecordFormDialog({
+export function RecordFormDialog({
   open,
   title,
   fields,
@@ -2596,6 +2635,7 @@ function RecordFormDialog({
   onChange: (input: EducationRecordInput) => void;
   onSave: () => void;
 }) {
+  const saveDisabled = Boolean(open && fields.some((field) => field.form !== false && isRecordFieldMissing(field, open.input)));
   const set = (field: RecordField, raw: string) =>
     onChange({
       ...(open?.input ?? {}),
@@ -2623,7 +2663,7 @@ function RecordFormDialog({
               <div className="flex flex-col gap-3">
                 {fields.filter((field) => field.form !== false).map((field) => (
                   <div className="flex flex-col gap-1" key={field.key}>
-                    <span>{field.label}</span>
+                    <span>{field.label}{isRecordFieldRequired(field, open?.input) ? " *" : ""}</span>
                     {field.kind === "select" && field.search && (
                       <InputText
                         aria-label={field.search.label}
@@ -2635,6 +2675,7 @@ function RecordFormDialog({
                     )}
                     {field.kind === "boolean" || field.kind === "select" ? (
                       <Select.Root
+                        disabled={field.search?.loading}
                         value={
                           field.kind === "boolean"
                             ? String(Boolean(open?.input[field.key]))
@@ -2654,7 +2695,7 @@ function RecordFormDialog({
                           set(field, String(event.value))
                         }
                       >
-                        <Select.Trigger aria-label={field.label}>
+                        <Select.Trigger aria-label={field.label} aria-required={isRecordFieldRequired(field, open?.input)}>
                           <Select.Value />
                           <Select.Indicator />
                         </Select.Trigger>
@@ -2669,6 +2710,7 @@ function RecordFormDialog({
                     ) : (
                       <InputText
                         aria-label={field.label}
+                        required={isRecordFieldRequired(field, open?.input)}
                         type={
                           field.kind === "date"
                             ? "date"
@@ -2695,7 +2737,7 @@ function RecordFormDialog({
                 >
                   Renunță
                 </Button>
-                <Button onClick={onSave}>Salvează</Button>
+                <Button disabled={saveDisabled} onClick={onSave}>Salvează</Button>
               </div>
             </Dialog.Footer>
           </Dialog.Popup>

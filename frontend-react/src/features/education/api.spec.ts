@@ -135,7 +135,7 @@ describe("Education API", () => {
     await api.saveRelated("meeting-participants", "meeting-1", { full_name: "Ana Pop", role_name: "Profesor", member_type: "membru", attendance_status: "prezent", voting_right: true, signature_present: false, id: "server-owned" });
     await api.saveRelated("regulation-versions", "regulation-1", { version_label: "1.0", version_status: "draft", prepared_by: "Director", effective_from: "2026-09-15", change_summary: "Actualizare anuală", approved_on: "2026-09-10", record_id: "server-owned" });
     await api.saveRelated("regulation-workflow", "regulation-1", { phase_order: 1, phase_type: "consultare", audience: "personal", started_on: "2026-09-01", due_on: "2026-09-10", status: "open", feedback_count: 2, assigned_to: "server-owned", outcome_note: "server-owned" });
-    await api.saveRelated("managerial-documents", "dossier-1", { document_category: "plan", title: "Plan managerial", document_status: "draft", version_label: "v1", registered_on: "2026-09-01", mandatory: true, document_code: "server-owned" });
+    await api.saveRelated("managerial-documents", "dossier-1", { document_category: "planificare", title: "Plan managerial", document_status: "draft", version_label: "v1", registered_on: "2026-09-01", mandatory: true, document_code: "server-owned" });
 
     const participantList = new URL(urlAt(fetcher, 0));
     expect(participantList.searchParams.get("filter.full_name")).toBe("Ana");
@@ -145,7 +145,9 @@ describe("Education API", () => {
     await expect(requestAt(fetcher, 1).clone().json()).resolves.toEqual({ full_name: "Ana Pop", role_name: "Profesor", member_type: "membru", attendance_status: "prezent", voting_right: true, signature_present: false });
     await expect(requestAt(fetcher, 2).clone().json()).resolves.toEqual({ version_label: "1.0", version_status: "draft", prepared_by: "Director", effective_from: "2026-09-15", change_summary: "Actualizare anuală", approved_on: "2026-09-10" });
     await expect(requestAt(fetcher, 3).clone().json()).resolves.toEqual({ phase_order: 1, phase_type: "consultare", audience: "personal", started_on: "2026-09-01", due_on: "2026-09-10", status: "open", feedback_count: 2 });
-    await expect(requestAt(fetcher, 4).clone().json()).resolves.toEqual({ document_category: "plan", title: "Plan managerial", document_status: "draft", version_label: "v1", registered_on: "2026-09-01", mandatory: true });
+    await expect(requestAt(fetcher, 4).clone().json()).resolves.toEqual({ document_category: "planificare", title: "Plan managerial", document_status: "draft", version_label: "v1", registered_on: "2026-09-01", mandatory: true });
+    await expect(api.saveRelated("managerial-documents", "dossier-1", { document_category: "plan", title: "Invalid", document_status: "draft", version_label: "v1", registered_on: "2026-09-01" })).rejects.toThrow("education_enum_document_category");
+    await expect(api.saveRelated("managerial-documents", "dossier-1", { document_category: "hotarare", title: "Fără aprobare", document_status: "approved", version_label: "v1", registered_on: "2026-09-01" })).rejects.toThrow("education_required_approved_on");
   });
 
   it("uses literal generated personnel and evaluation routes with allow-listed bodies", async () => {

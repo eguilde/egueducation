@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
 import { PortfolioRelationsPanel } from "./EducationWorkspace";
@@ -82,7 +82,8 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
     fireEvent.click(await screen.findByRole("button", { name: "Șterge" }));
     expect(managing.deletePortfolioDocument).not.toHaveBeenCalled();
-    fireEvent.click(screen.getAllByRole("button", { name: "Șterge" }).at(-1)!);
+    const confirmation = await screen.findByRole("dialog", { name: "Confirmă ștergerea" });
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Șterge" }));
     await waitFor(() => expect(managing.deletePortfolioDocument).toHaveBeenCalledWith("portfolio-1", "doc-1"));
   });
 

@@ -25,6 +25,11 @@ if (!globalThis.ResizeObserver) {
   };
 }
 
+if (!window.requestAnimationFrame) {
+  window.requestAnimationFrame = (callback: FrameRequestCallback) =>
+    window.setTimeout(() => callback(performance.now()), 0);
+}
+
 // oauth4webapi uses the current typed-array Base64 API. JSDOM's realm can lag
 // the Node/browser runtime, so provide the standards-compatible test polyfill.
 if (!(Uint8Array.prototype as Uint8Array & { toBase64?: unknown }).toBase64) {

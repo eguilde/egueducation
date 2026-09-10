@@ -1,7 +1,75 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { EducationListPanel, domainListCapabilities, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, relationManagePermission } from "./EducationWorkspace";
+import { EducationListPanel, RecordFormDialog, SchoolRowActionMenu, domainListCapabilities, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, hasDomainRelations, relationManagePermission } from "./EducationWorkspace";
+
+describe("School overlay lifecycle", () => {
+  it("closes the action popover before invoking an action that may mount a dialog", async () => {
+    const onSelect = vi.fn();
+    render(
+      <PrimeReactProvider>
+        <SchoolRowActionMenu actions={[{ label: "Detalii", icon: "pi pi-eye", onSelect }]} />
+      </PrimeReactProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Acțiuni înregistrare" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+    expect(onSelect).not.toHaveBeenCalled();
+    await waitFor(() => expect(onSelect).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("keeps a remote Select disabled until its server options are ready", () => {
+    const common = {
+      open: { input: { app_user_id: "" } },
+      title: "Adaugă membru",
+      onClose: vi.fn(),
+      onChange: vi.fn(),
+      onSave: vi.fn(),
+    };
+    const { rerender } = render(
+      <PrimeReactProvider>
+        <RecordFormDialog
+          {...common}
+          fields={[{ key: "app_user_id", label: "Utilizator", kind: "select", options: [], search: { label: "Caută Utilizator", value: "Ana", onChange: vi.fn(), loading: true } }]}
+        />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByRole("combobox", { name: "Utilizator" })).toBeDisabled();
+
+    rerender(
+      <PrimeReactProvider>
+        <RecordFormDialog
+          {...common}
+          fields={[{ key: "app_user_id", label: "Utilizator", kind: "select", options: [{ label: "Ana Pop", value: "user-1" }], search: { label: "Caută Utilizator", value: "Ana", onChange: vi.fn(), loading: false } }]}
+        />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByRole("combobox", { name: "Utilizator" })).toBeEnabled();
+  });
+
+  it("enforces a conditional contract requirement before submitting", () => {
+    const fields = [
+      { key: "document_status", label: "Stare", kind: "select" as const, options: [{ label: "Aprobat", value: "approved" }] },
+      { key: "approved_on", label: "Aprobat la", kind: "date" as const, required: (input: Record<string, unknown>) => input.document_status === "approved" },
+    ];
+    const common = { title: "Document", fields, onClose: vi.fn(), onChange: vi.fn(), onSave: vi.fn() };
+    const { rerender } = render(
+      <PrimeReactProvider>
+        <RecordFormDialog {...common} open={{ input: { document_status: "approved", approved_on: "" } }} />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByLabelText("Aprobat la")).toBeRequired();
+    expect(screen.getByRole("button", { name: "Salvează" })).toBeDisabled();
+
+    rerender(
+      <PrimeReactProvider>
+        <RecordFormDialog {...common} open={{ input: { document_status: "approved", approved_on: "2026-09-10" } }} />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Salvează" })).toBeEnabled();
+  });
+});
 
 describe("EducationListPanel", () => {
   it("debounces header-row filters and sends them to the server from page one", async () => {
@@ -164,6 +232,13 @@ describe("EducationListPanel", () => {
 describe("School create routes", () => {
   it("routes portfolio creation through the canonical owner selector wizard", () => {
     expect(domainWizardRoutes.portfolios).toBe("/scoala/portfolio/wizard");
+  });
+});
+
+describe("School detail relations", () => {
+  it("does not mount the generic relation workspace for a portfolio with dedicated relations", () => {
+    expect(hasDomainRelations("portfolios")).toBe(false);
+    expect(hasDomainRelations("managerial")).toBe(true);
   });
 });
 

@@ -216,7 +216,7 @@ function governanceBody(resource: Exclude<GovernanceRelatedResource, "governance
     case "regulation-versions": return { version_label: requiredText(input, "version_label"), version_status: requiredText(input, "version_status"), prepared_by: requiredText(input, "prepared_by"), effective_from: requiredText(input, "effective_from"), change_summary: requiredText(input, "change_summary"), approved_on: optionalText(input, "approved_on"), file_reference: optionalText(input, "file_reference"), notes: optionalText(input, "notes"), published_on: optionalText(input, "published_on") } satisfies components["schemas"]["CreateRegulationVersionRequest"];
     case "regulation-workflow": return { phase_order: requiredNumber(input, "phase_order"), phase_type: requiredText(input, "phase_type"), audience: requiredText(input, "audience"), started_on: requiredText(input, "started_on"), due_on: requiredText(input, "due_on"), status: requiredText(input, "status"), completed_on: optionalText(input, "completed_on"), decision_reference: optionalText(input, "decision_reference"), feedback_count: optionalNumber(input, "feedback_count"), notes: optionalText(input, "notes") } satisfies components["schemas"]["CreateRegulationWorkflowStepRequest"];
     case "committee-members": return { full_name: requiredText(input, "full_name"), role_name: requiredText(input, "role_name"), member_type: requiredText(input, "member_type"), status: requiredText(input, "status"), appointed_on: requiredText(input, "appointed_on"), notes: optionalText(input, "notes"), released_on: optionalText(input, "released_on"), voting_right: optionalBoolean(input, "voting_right") } satisfies components["schemas"]["CreateCommitteeMemberRequest"];
-    case "managerial-documents": return { document_category: requiredText(input, "document_category"), title: requiredText(input, "title"), document_status: requiredText(input, "document_status"), version_label: requiredText(input, "version_label"), registered_on: requiredText(input, "registered_on"), approved_on: optionalText(input, "approved_on"), file_reference: optionalText(input, "file_reference"), mandatory: optionalBoolean(input, "mandatory"), notes: optionalText(input, "notes"), owner_name: optionalText(input, "owner_name"), publication_required: optionalBoolean(input, "publication_required") } satisfies components["schemas"]["CreateManagerialDocumentRequest"];
+    case "managerial-documents": return managerialDocumentBody(input);
     case "managerial-workflow": return { stage_order: requiredNumber(input, "stage_order"), stage_type: requiredText(input, "stage_type"), status: requiredText(input, "status"), assigned_to: requiredText(input, "assigned_to"), due_on: requiredText(input, "due_on"), completed_on: optionalText(input, "completed_on"), decision_reference: optionalText(input, "decision_reference"), outcome_note: optionalText(input, "outcome_note"), requires_signature: optionalBoolean(input, "requires_signature") } satisfies components["schemas"]["CreateManagerialWorkflowStepRequest"];
   }
 }
@@ -281,6 +281,33 @@ const requiredText = (input: EducationRecordInput, key: string): string => {
   if (typeof value !== "string" || !value.trim()) throw new Error(`education_required_${key}`);
   return value.trim();
 };
+const managerialDocumentCategories = ["diagnoza", "prognoza", "evidenta", "planificare", "raport", "anexa", "hotarare", "procedura"] as const;
+const managerialDocumentStatuses = ["draft", "in_review", "approved", "published", "archived"] as const;
+const requiredEnum = <T extends readonly string[]>(input: EducationRecordInput, key: string, allowed: T): T[number] => {
+  const value = requiredText(input, key);
+  if (!allowed.includes(value)) throw new Error(`education_enum_${key}`);
+  return value as T[number];
+};
+function managerialDocumentBody(input: EducationRecordInput): components["schemas"]["CreateManagerialDocumentRequest"] {
+  const documentStatus = requiredEnum(input, "document_status", managerialDocumentStatuses);
+  const approvedOn = optionalText(input, "approved_on");
+  if (["approved", "published", "archived"].includes(documentStatus) && !approvedOn) {
+    throw new Error("education_required_approved_on");
+  }
+  return {
+    document_category: requiredEnum(input, "document_category", managerialDocumentCategories),
+    title: requiredText(input, "title"),
+    document_status: documentStatus,
+    version_label: requiredText(input, "version_label"),
+    registered_on: requiredText(input, "registered_on"),
+    approved_on: approvedOn,
+    file_reference: optionalText(input, "file_reference"),
+    mandatory: optionalBoolean(input, "mandatory"),
+    notes: optionalText(input, "notes"),
+    owner_name: optionalText(input, "owner_name"),
+    publication_required: optionalBoolean(input, "publication_required"),
+  };
+}
 const optionalText = (input: EducationRecordInput, key: string): string | undefined => {
   const value = input[key];
   return typeof value === "string" && value.trim() ? value.trim() : undefined;

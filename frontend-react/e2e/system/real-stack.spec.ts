@@ -140,13 +140,16 @@ async function authenticated(page: Page, identifier = fixtureIdentifier, otp = f
   // waiting until the suite-wide timeout, so navigate only for a fresh context
   // or when the page is on another origin/route.
   const currentURL = page.url();
-  if (currentURL === 'about:blank' || new URL(currentURL).origin !== expectedOrigin || new URL(currentURL).pathname !== '/') {
+  const landingLogin = page.getByRole('button', { name: 'Autentificare' }).last();
+  const landingAlreadyReady = currentURL !== 'about:blank' && await landingLogin.isVisible().catch(() => false);
+  if (!landingAlreadyReady && (currentURL === 'about:blank' || new URL(currentURL).origin !== expectedOrigin || new URL(currentURL).pathname !== '/')) {
     // The SPA is already usable after DOM content loads.  Waiting for the
     // browser's `load` event after OIDC logout can be held by an in-flight
     // refresh request despite the landing page being rendered.
     await page.goto(expectedOrigin + '/', { waitUntil: 'domcontentloaded' });
   }
-  await page.getByRole('button', { name: 'Autentificare' }).last().click();
+  await expect(landingLogin).toBeVisible();
+  await landingLogin.click();
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);
   await page.getByRole('button', { name: /SMS/ }).click();
   await page.getByLabel('Utilizator, email sau numar de telefon').fill(identifier);
@@ -1433,7 +1436,7 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   expect((await api<unknown>(assignedPage, assignedToken, `/api/education/classes/${hiddenClass.body.id}`)).status).toBe(404);
   expect((await api<unknown>(assignedPage, assignedToken, `/api/education/students/${hiddenStudent.body.id}`)).status).toBe(404);
   await assignedPage.goto('/scoala/clase');
-  await expect(assignedPage.getByRole('tabpanel', { name: 'Diriginți' }).getByText(className, { exact: true })).toBeVisible();
+  await expect(assignedPage.getByRole('tabpanel', { name: 'Clase', exact: true }).getByText(className, { exact: true })).toBeVisible();
   await expect(assignedPage.getByText(`IX ascunsă ${suffix}`, { exact: true })).toHaveCount(0);
   await assignedPage.getByRole('tab', { name: 'Elevi' }).click();
   await expect(assignedPage.getByText('E2E', { exact: true })).toBeVisible();

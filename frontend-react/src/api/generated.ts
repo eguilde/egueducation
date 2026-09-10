@@ -8169,18 +8169,22 @@ export interface components {
             transfer_type: "predare" | "primire" | "mutare" | "detasare";
         };
         CreateManagerialDocumentRequest: {
+            /** Format: date */
             approved_on?: string;
-            document_category: string;
-            document_status: string;
+            /** @enum {string} */
+            document_category: "diagnoza" | "prognoza" | "evidenta" | "planificare" | "raport" | "anexa" | "hotarare" | "procedura";
+            /** @enum {string} */
+            document_status: "draft" | "in_review" | "approved" | "published" | "archived";
             file_reference?: string;
             mandatory?: boolean;
             notes?: string;
             owner_name?: string;
             publication_required?: boolean;
+            /** Format: date */
             registered_on: string;
             title: string;
             version_label: string;
-        };
+        } & unknown;
         CreateManagerialDossierRequest: {
             dossier_type: string;
             due_on: string;
