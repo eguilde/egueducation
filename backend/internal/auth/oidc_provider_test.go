@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
@@ -164,6 +165,38 @@ func TestRefreshCookieBridgeNeverSubstitutesTokenAtRFC7009Revoke(t *testing.T) {
 	}
 	if receivedToken != "cookie" {
 		t.Fatalf("RFC 7009 token was rewritten to %q; revocation must receive the submitted token only", receivedToken)
+	}
+}
+
+func TestRefreshCookieBridgeRejectsMissingBrowserSessionBeforeProvider(t *testing.T) {
+	called := false
+	handler := wrapRefreshTokenCookie(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusOK)
+	}), &config.Config{})
+	request := httptest.NewRequest(http.MethodPost, "/token", strings.NewReader(url.Values{
+		"grant_type": {"refresh_token"}, "refresh_token": {"cookie"}, "client_id": {"first-party-spa"},
+	}.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if called {
+		t.Fatal("missing browser refresh session was forwarded to the OIDC provider")
+	}
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", recorder.Code)
+	}
+	if recorder.Header().Get("Cache-Control") != "no-store" {
+		t.Fatalf("Cache-Control = %q, want no-store", recorder.Header().Get("Cache-Control"))
+	}
+	var payload map[string]string
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode OAuth error: %v", err)
+	}
+	if payload["error"] != "invalid_grant" {
+		t.Fatalf("error = %q, want invalid_grant", payload["error"])
 	}
 }
 

@@ -19,10 +19,28 @@ const egueducation: Scope = { code: 'tenant-egueducation', institutionID: 'inst-
 const balotesti: Scope = { code: 'tenant-balotesti', institutionID: 'inst-balotesti' };
 
 /** Scope a Select option to the currently open PrimeReact portal. */
-async function selectOpenOption(page: Page, name: string): Promise<void> {
+async function selectOpenOption(page: Page, name: string | RegExp): Promise<void> {
   const listbox = page.locator('[role="listbox"]:visible').last();
   await expect(listbox).toBeVisible();
-  await listbox.getByRole('option', { name, exact: true }).click();
+  const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
+  await expect(option).toBeAttached();
+  const position = Number(await option.getAttribute('aria-posinset'));
+  if (Number.isInteger(position) && position > 0) {
+    await listbox.focus();
+    await listbox.press('Home');
+    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
+    await listbox.press('Enter');
+    await expect(listbox).toBeHidden();
+    return;
+  }
+  await option.scrollIntoViewIfNeeded();
+  await option.click();
+}
+
+async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
+  const menu = page.locator('[role="menu"]:visible').last();
+  await expect(menu).toBeVisible();
+  await menu.getByRole('button', { name, exact: true }).click();
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
@@ -153,7 +171,7 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   const row = page.getByText(exactTitle, { exact: true }).locator('xpath=ancestor::tr[1]');
   await expect(row).toBeVisible();
   await row.getByLabel('Acțiuni înregistrare').click();
-  await page.getByRole('button', { name: 'Detalii' }).click();
+  await clickOpenPopoverAction(page, 'Detalii');
 }
 
 async function createManagerialChildThroughReact(
@@ -219,7 +237,7 @@ async function publishPortfolioProcedureThroughReact(page: Page): Promise<void> 
   await details.getByRole('textbox').last().fill(`${marker}-publicare`);
   await details.getByRole('button', { name: 'Publică' }).last().click();
   expect((await published).status()).toBe(200);
-  await expect(details.getByText('published', { exact: true })).toBeVisible();
+  await expect(details.getByLabel('Stare procedură')).toHaveText('published');
   await details.getByRole('button', { name: 'Închide' }).click();
 }
 
@@ -357,7 +375,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   await page.getByRole('button', { name: 'Adaugă înregistrare' }).click();
   await expect(page).toHaveURL(/\/scoala\/portfolio\/wizard$/);
   await page.getByRole('combobox', { name: 'Titular' }).click();
-  await page.getByRole('option', { name: `${marker} Proprietar · Profesor`, exact: true }).click();
+  await selectOpenOption(page, `${marker} Proprietar · Profesor`);
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Actualizat la').fill('2026-09-10');
   await page.getByLabel('Custode').fill('Școala E2E');
@@ -437,14 +455,14 @@ test('React creates portfolio relations and drives transfer/valorification lifec
     await page.getByRole('button', { name: 'Adaugă document' }).click();
     const documentDialog = page.getByRole('dialog', { name: 'Adaugă document în portofoliu' });
     await documentDialog.getByRole('combobox', { name: 'Componentă din catalog' }).click();
-    await page.getByRole('option', { name: new RegExp(`^${archive.section} ·`) }).click();
+    await selectOpenOption(page, new RegExp(`^${archive.section} ·`));
     await documentDialog.getByLabel('Titlu *').fill(archive.title);
     await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
     await documentDialog.getByLabel('Data emiterii *').fill('2026-09-10');
     await documentDialog.getByLabel('Data adăugării *').fill('2026-09-10');
     await documentDialog.getByLabel('Index cronologic').fill(String(index + 1));
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
-    await page.getByRole('option', { name: new RegExp(archive.documentID) }).click();
+    await selectOpenOption(page, new RegExp(archive.documentID));
     const documentAdded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${portfolio.id}/documents` && response.request().method() === 'POST');
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await documentAdded).status()).toBe(201);
@@ -477,7 +495,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   const transferDialog = page.getByRole('dialog');
   await transferDialog.getByLabel('Tenant destinație').click();
   const destinationLabel = sql("select coalesce(nullif(short_name,''), display_name) from app_tenants where code='tenant-balotesti'");
-  await page.getByRole('option', { name: destinationLabel, exact: true }).click();
+  await selectOpenOption(page, destinationLabel);
   await transferDialog.locator('input[type="date"]').fill('2026-09-20');
   await transferDialog.locator('input[type="text"]').fill(marker);
   const transferCreated = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/transfers` && response.request().method() === 'POST');
@@ -498,9 +516,9 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   await page.getByLabel('Adaugă pachet').click();
   const packageDialog = page.getByRole('dialog');
   await packageDialog.getByLabel('Domeniu valorificare').click();
-  await page.getByRole('option', { name: 'Mobilitate', exact: true }).click();
+  await selectOpenOption(page, 'Mobilitate');
   await packageDialog.getByLabel('Sursă eligibilă').click();
-  await page.getByRole('option', { name: new RegExp(marker) }).click();
+  await selectOpenOption(page, new RegExp(marker));
   const packageCreated = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/valorification-packages` && response.request().method() === 'POST');
   await packageDialog.getByRole('button', { name: 'Continuă' }).click();
   const packageResponse = await packageCreated;
@@ -508,7 +526,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   const packageItem = await packageResponse.json() as RecordWithID;
   await expect(packageDialog.getByLabel('Versiune eArhivă')).toBeVisible();
   await packageDialog.getByLabel('Versiune eArhivă').click();
-  await page.getByRole('option', { name: new RegExp(marker) }).click();
+  await selectOpenOption(page, new RegExp(marker));
   const packageEvidence = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolio.id}/valorification-packages/${packageItem.id}/documents` && response.request().method() === 'POST');
   await packageDialog.getByRole('button', { name: 'Atașează versiunea' }).click();
   expect((await packageEvidence).status()).toBe(201);

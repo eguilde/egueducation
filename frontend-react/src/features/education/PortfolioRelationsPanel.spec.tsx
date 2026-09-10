@@ -86,6 +86,24 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     await waitFor(() => expect(managing.deletePortfolioDocument).toHaveBeenCalledWith("portfolio-1", "doc-1"));
   });
 
+  it("closes the row action overlay before opening record details", async () => {
+    const api = apiMock();
+    vi.mocked(api.portfolioDocuments).mockResolvedValue({ items: [{
+      id: "doc-1", portfolio_id: "portfolio-1", institution_id: "institution-1",
+      document_title: "Plan", evidence_type: "plan", section_code: "I", component_code: "I.1",
+      source_scope: "portofoliu", authenticity_status: "declared", issued_on: "2026-09-01",
+      added_on: "2026-09-02", chronological_index: 1, file_reference: "archive://doc-1",
+      sensitive_data: false, notes: "",
+    }], total: 1, page: 1, pageSize: 20 });
+    renderPanel(api);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+
+    expect(await screen.findByRole("dialog", { name: "Documente" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+  });
+
   it.each([
     ["Documente", "Titlu", "portfolioDocuments", "document_title"],
     ["Checklist", "Cerință", "portfolioChecklist", "requirement_label"],

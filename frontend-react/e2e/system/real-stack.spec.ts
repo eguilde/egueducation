@@ -32,7 +32,28 @@ const balotestiScope: TenantScope = { code: 'tenant-balotesti', institutionID: '
 async function selectOpenOption(page: Page, name: string | RegExp): Promise<void> {
   const listbox = page.locator('[role="listbox"]:visible').last();
   await expect(listbox).toBeVisible();
-  await listbox.getByRole('option', { name, exact: typeof name === 'string' }).click();
+  const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
+  await expect(option).toBeAttached();
+  // Select.List virtualizes long lists. Keyboard selection uses the component's
+  // documented listbox contract and avoids clicking an option that is replaced
+  // during its scroll/reposition animation.
+  const position = Number(await option.getAttribute('aria-posinset'));
+  if (Number.isInteger(position) && position > 0) {
+    await listbox.focus();
+    await listbox.press('Home');
+    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
+    await listbox.press('Enter');
+    await expect(listbox).toBeHidden();
+    return;
+  }
+  await option.scrollIntoViewIfNeeded();
+  await option.click();
+}
+
+async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
+  const menu = page.locator('[role="menu"]:visible').last();
+  await expect(menu).toBeVisible();
+  await menu.getByRole('button', { name, exact: true }).click();
 }
 
 function databaseScalar(sql: string, scope: TenantScope = egueducationScope): string {
@@ -413,15 +434,13 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await approverPage.getByRole('button', { name: 'Adaugă document' }).click();
     const documentDialog = approverPage.getByRole('dialog', { name: 'Adaugă document în portofoliu' });
     await documentDialog.getByRole('combobox', { name: 'Componentă din catalog' }).click();
-    await approverPage.getByRole('option', { name: new RegExp(archive.section) }).click();
+    await selectOpenOption(approverPage, new RegExp(archive.section));
     await documentDialog.getByLabel('Titlu *').fill(archive.title);
     await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
     await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
     await documentDialog.getByLabel('Data adăugării *').fill('2031-09-01');
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
-    const authorizedArchiveOption = approverPage.getByRole('option', { name: new RegExp(archive.id) });
-    await expect(authorizedArchiveOption).toBeVisible({ timeout: 10_000 });
-    await authorizedArchiveOption.click();
+    await selectOpenOption(approverPage, new RegExp(archive.id));
     const added = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents` && response.request().method() === 'POST');
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await added).status()).toBe(201);
@@ -579,7 +598,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await userDialog.getByLabel('Nume').fill(marker);
   await userDialog.getByLabel('Telefon (SMS)').fill(managedPhone);
   await userDialog.getByLabel('Verificare telefon').click();
-  await page.getByRole('option', { name: 'Telefon verificat' }).click();
+  await selectOpenOption(page, 'Telefon verificat');
   const userCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/users' && response.request().method() === 'POST');
   await userDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await userCreated).status()).toBe(201);
@@ -599,9 +618,9 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await membershipDialog.getByLabel('Organizație').fill('EguEducation');
   await membershipDialog.getByLabel('Dată început').fill('2026-01-01');
   await membershipDialog.getByText('Principală: nu').click();
-  await page.getByRole('option', { name: 'Principală: da' }).click();
+  await selectOpenOption(page, 'Principală: da');
   await membershipDialog.getByText('Activă: nu').click();
-  await page.getByRole('option', { name: 'Activă: da' }).click();
+  await selectOpenOption(page, 'Activă: da');
   const membershipCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/memberships' && response.request().method() === 'POST');
   await membershipDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await membershipCreated).status()).toBe(201);
@@ -612,7 +631,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await permissionDialog.getByLabel('Cod rol').fill('registrator');
   await permissionDialog.getByLabel('Cod permisiune').fill('registratura.read');
   await permissionDialog.getByText('Atribuit: nu').click();
-  await page.getByRole('option', { name: 'Atribuit: da' }).click();
+  await selectOpenOption(page, 'Atribuit: da');
   const permissionAssigned = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/role-permissions' && response.request().method() === 'POST');
   await permissionDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await permissionAssigned).status()).toBe(201);
@@ -625,7 +644,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await workflowPermissionDialog.getByLabel('Cod rol').fill('workflow_admin');
   await workflowPermissionDialog.getByLabel('Cod permisiune').fill('workflow.manage');
   await workflowPermissionDialog.getByText('Atribuit: nu').click();
-  await page.getByRole('option', { name: 'Atribuit: da' }).click();
+  await selectOpenOption(page, 'Atribuit: da');
   const workflowPermissionAssigned = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/role-permissions' && response.request().method() === 'POST');
   await workflowPermissionDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await workflowPermissionAssigned).status()).toBe(201);
@@ -636,7 +655,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await workflowRoleDialog.getByLabel('ID utilizator').fill(approverID);
   await workflowRoleDialog.getByLabel('Cod rol').fill('workflow_admin');
   await workflowRoleDialog.getByText('Atribuit: nu').click();
-  await page.getByRole('option', { name: 'Atribuit: da' }).click();
+  await selectOpenOption(page, 'Atribuit: da');
   const workflowRoleAssigned = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/role-assignments' && response.request().method() === 'POST');
   await workflowRoleDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await workflowRoleAssigned).status()).toBe(201);
@@ -646,7 +665,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await roleDialog.getByLabel('ID utilizator').fill(approverID);
   await roleDialog.getByLabel('Cod rol').fill('registrator');
   await roleDialog.getByText('Atribuit: nu').click();
-  await page.getByRole('option', { name: 'Atribuit: da' }).click();
+  await selectOpenOption(page, 'Atribuit: da');
   const roleAssigned = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/admin/role-assignments' && response.request().method() === 'POST');
   await roleDialog.getByRole('button', { name: 'Salvează' }).click();
   expect((await roleAssigned).status()).toBe(201);
@@ -1084,6 +1103,9 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await page.getByRole('combobox', { name: 'Secretar *' }).click();
   await selectOpenOption(page, secretaryName);
   await page.getByLabel('Rezumat').fill('Dovadă reală de guvernanță School.');
+  await page.getByRole('button', { name: 'Continuă', exact: true }).click();
+  await expect(page.getByText('4. Creare', { exact: true })).toHaveClass(/font-semibold/);
+  await expect(page.getByRole('button', { name: 'Salvează', exact: true })).toBeVisible();
 
   const createdResponse = page.waitForResponse((response) =>
     new URL(response.url()).pathname === '/api/education/governance/meetings'
@@ -1133,7 +1155,7 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   const meetingRow = page.getByText(title, { exact: true }).locator('xpath=ancestor::tr[1]');
   await expect(meetingRow).toBeVisible();
   await meetingRow.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
-  await page.getByRole('button', { name: 'Detalii' }).click();
+  await clickOpenPopoverAction(page, 'Detalii');
   await expect(page.getByText('Ședință selectată — operațiuni')).toBeVisible();
   await page.getByRole('button', { name: 'Adaugă participanți' }).click();
   const participantDialog = page.getByRole('dialog', { name: 'Adaugă participanți' });
@@ -1142,9 +1164,9 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await participantDialog.getByLabel('Tip membru').fill('presedinte');
   await participantDialog.getByLabel('Prezență').fill('prezent');
   await participantDialog.getByLabel('Drept vot').click();
-  await page.getByRole('option', { name: 'Da', exact: true }).click();
+  await selectOpenOption(page, 'Da');
   await participantDialog.getByLabel('Semnătură').click();
-  await page.getByRole('option', { name: 'Da', exact: true }).click();
+  await selectOpenOption(page, 'Da');
   const participantResponse = page.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/governance/meetings/${createdMeeting.id}/participants`
       && response.request().method() === 'POST',
@@ -1270,9 +1292,9 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await page.getByRole('tab', { name: 'Elevi' }).click();
   await page.getByRole('button', { name: 'Adaugă elev' }).click();
   const studentDialog = page.getByRole('dialog', { name: 'Adaugă elev' });
-  await studentDialog.locator('label').filter({ hasText: 'Cod *' }).locator('input').fill(`ST-${suffix}`);
-  await studentDialog.locator('label').filter({ hasText: 'Nume *' }).locator('input').fill('E2E');
-  await studentDialog.locator('label').filter({ hasText: 'Prenume *' }).locator('input').fill('Elev');
+  await studentDialog.getByRole('textbox', { name: 'Cod *', exact: true }).fill(`ST-${suffix}`);
+  await studentDialog.getByRole('textbox', { name: 'Nume *', exact: true }).fill('E2E');
+  await studentDialog.getByRole('textbox', { name: 'Prenume *', exact: true }).fill('Elev');
   const studentCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/students' && response.request().method() === 'POST');
   await studentDialog.getByRole('button', { name: 'Salvează' }).click();
   const studentHTTP = await studentCreated;
@@ -1284,10 +1306,10 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const enrolmentDialog = page.getByRole('dialog', { name: 'Adaugă înscriere' });
   await enrolmentDialog.getByLabel('Caută elev').fill(student.student_code);
   await enrolmentDialog.getByLabel('Selectează elevul').click();
-  await page.getByRole('option', { name: `Elev E2E (${student.student_code})`, exact: true }).click();
+  await selectOpenOption(page, `Elev E2E (${student.student_code})`);
   await enrolmentDialog.getByLabel('Caută clasă').fill(classCode);
   await enrolmentDialog.getByLabel('Selectează clasa').click();
-  await page.getByRole('option', { name: `${className} (${classCode})`, exact: true }).click();
+  await selectOpenOption(page, `${className} (${classCode})`);
   await enrolmentDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-09-01');
   const enrolmentCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/class-enrolments' && response.request().method() === 'POST');
   await enrolmentDialog.getByRole('button', { name: 'Salvează' }).click();
@@ -1321,10 +1343,10 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const homeroomDialog = page.getByRole('dialog', { name: 'Atribuie diriginte' });
   await homeroomDialog.getByLabel('Caută clasă').fill(classCode);
   await homeroomDialog.getByLabel('Selectează clasa').click();
-  await page.getByRole('option', { name: `${className} (${classCode})`, exact: true }).click();
+  await selectOpenOption(page, `${className} (${classCode})`);
   await homeroomDialog.getByLabel('Caută profesor').fill(teacherCode);
   await homeroomDialog.getByLabel('Selectează profesorul').click();
-  await page.getByRole('option', { name: `${teacherName} (${teacherCode})`, exact: true }).click();
+  await selectOpenOption(page, `${teacherName} (${teacherCode})`);
   await homeroomDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-01-01');
   const homeroomCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/homeroom-assignments' && response.request().method() === 'POST');
   await homeroomDialog.getByRole('button', { name: 'Salvează' }).click();
@@ -1416,10 +1438,10 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await expect(evidenceDialog.getByText('Hash-ul și locația de stocare sunt preluate și validate exclusiv de server.')).toBeVisible();
   await evidenceDialog.getByLabel('Caută artefact').fill(decisionCode);
   await evidenceDialog.getByLabel('Artefact eligibil *').click();
-  await page.getByRole('option', { name: new RegExp(decisionCode) }).click();
+  await selectOpenOption(page, new RegExp(decisionCode));
   await evidenceDialog.getByLabel('Caută versiune eArhivă').fill(archiveTitle);
   await evidenceDialog.getByLabel('Versiune eArhivă *').click();
-  await page.getByRole('option', { name: `${archiveTitle} · v1`, exact: true }).click();
+  await selectOpenOption(page, `${archiveTitle} · v1`);
   await evidenceDialog.getByLabel('Subiect certificat').fill('E2E signer');
   await evidenceDialog.getByLabel('Emitent certificat').fill('E2E issuer');
   await evidenceDialog.getByLabel('Serie certificat').fill(suffix);

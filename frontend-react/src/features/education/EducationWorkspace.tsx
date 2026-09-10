@@ -135,8 +135,23 @@ type SchoolRowAction = {
 
 /** A compact, accessible action menu shared by School registry tables. */
 function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
+  const [open, setOpen] = useState(false);
+
+  const selectAction = (action: SchoolRowAction) => {
+    // Close the portalled overlay before the selected action mounts a dialog
+    // or refreshes the table. Keeping both mounted lets focus management race
+    // the row re-render and can leave the action button detached mid-click.
+    setOpen(false);
+    action.onSelect();
+  };
+
   return (
-    <Popover.Root>
+    <Popover.Root
+      open={open}
+      onOpenChange={(event: { value?: boolean }) =>
+        setOpen(Boolean(event.value))
+      }
+    >
       <Popover.Trigger
         as={Button}
         iconOnly
@@ -162,7 +177,7 @@ function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
                     disabled={action.disabled}
                     aria-label={action.label}
                     title={action.label}
-                    onClick={action.onSelect}
+                    onClick={() => selectAction(action)}
                   >
                     <i className={action.icon} aria-hidden="true" />
                     {action.label}

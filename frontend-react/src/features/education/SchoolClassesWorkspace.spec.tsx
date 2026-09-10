@@ -23,6 +23,7 @@ describe("SchoolClassesWorkspace", () => {
     const actions=await screen.findByRole("button",{name:"Acțiuni pentru homeroom-1"}); fireEvent.pointerDown(actions); fireEvent.click(actions);
     fireEvent.click(await screen.findByRole("button",{name:"Editează"}));
     const dialog=await screen.findByRole("dialog",{name:/Editează Diriginți/});
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
     fireEvent.click(within(dialog).getByRole("button",{name:"Salvează"}));
     await waitFor(()=>expect(client.homerooms.update).toHaveBeenCalledWith("homeroom-1",{
       class_id:"class-1", personnel_id:"personnel-1", app_user_id:"user-1", assigned_from:"2026-09-01", assigned_until:"",

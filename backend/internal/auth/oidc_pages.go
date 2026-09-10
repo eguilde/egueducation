@@ -50,6 +50,17 @@ func wrapRefreshTokenCookie(next http.Handler, cfg *config.Config) http.Handler 
 				if cookie, err := r.Cookie("egueducation_rt"); err == nil && cookie.Value != "" {
 					r.Form.Set("refresh_token", cookie.Value)
 					r.PostForm.Set("refresh_token", cookie.Value)
+				} else if value == "cookie" {
+					// The SPA probes for an HttpOnly refresh session on startup. A
+					// first-time visitor has no cookie, so return the normal OAuth
+					// unauthenticated result without forwarding a fake token to the
+					// provider or logging it as an internal provider failure.
+					w.Header().Set("Content-Type", "application/json; charset=utf-8")
+					w.Header().Set("Cache-Control", "no-store")
+					w.Header().Set("Pragma", "no-cache")
+					w.WriteHeader(http.StatusBadRequest)
+					_, _ = io.WriteString(w, `{"error":"invalid_grant","error_description":"refresh session unavailable"}`)
+					return
 				}
 			}
 		}

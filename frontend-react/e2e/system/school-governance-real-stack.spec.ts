@@ -20,7 +20,25 @@ const balotesti: Scope = { tenant: 'tenant-balotesti', institution: 'inst-balote
 async function selectOpenOption(page: Page, name: string | RegExp): Promise<void> {
   const listbox = page.locator('[role="listbox"]:visible').last();
   await expect(listbox).toBeVisible();
-  await listbox.getByRole('option', { name, exact: typeof name === 'string' }).click();
+  const option = listbox.getByRole('option', { name, exact: typeof name === 'string' });
+  await expect(option).toBeAttached();
+  const position = Number(await option.getAttribute('aria-posinset'));
+  if (Number.isInteger(position) && position > 0) {
+    await listbox.focus();
+    await listbox.press('Home');
+    for (let index = 1; index < position; index += 1) await listbox.press('ArrowDown');
+    await listbox.press('Enter');
+    await expect(listbox).toBeHidden();
+    return;
+  }
+  await option.scrollIntoViewIfNeeded();
+  await option.click();
+}
+
+async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
+  const menu = page.locator('[role="menu"]:visible').last();
+  await expect(menu).toBeVisible();
+  await menu.getByRole('button', { name, exact: true }).click();
 }
 
 const hasRealStack = Boolean(process.env.TEST_DATABASE_URL && process.env.DATABASE_URL);
@@ -104,7 +122,7 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   const row = page.getByText(exactTitle, { exact: true }).locator('xpath=ancestor::tr[1]');
   await expect(row).toBeVisible();
   await row.getByLabel('Acțiuni înregistrare').click();
-  await page.getByRole('button', { name: 'Detalii' }).click();
+  await clickOpenPopoverAction(page, 'Detalii');
 }
 
 async function createRelatedThroughReact(
@@ -231,6 +249,9 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await selectOpenOption(page, actors.directorName);
   await page.getByRole('combobox', { name: 'Secretar *' }).click();
   await selectOpenOption(page, actors.adjunctName);
+  await page.getByRole('button', { name: 'Continuă', exact: true }).click();
+  await expect(page.getByText('4. Creare', { exact: true })).toHaveClass(/font-semibold/);
+  await expect(page.getByRole('button', { name: 'Salvează', exact: true })).toBeVisible();
   const createdResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/education/governance/meetings' && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click();
   const meetingHTTP = await createdResponse; expect(meetingHTTP.status()).toBe(201);
@@ -256,14 +277,14 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await page.goto('/scoala/governance');
   const row = page.getByText(title, { exact: true }).locator('xpath=ancestor::tr[1]');
   await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
-  await page.getByRole('button', { name: 'Detalii' }).click();
+  await clickOpenPopoverAction(page, 'Detalii');
   await page.getByRole('button', { name: 'Adaugă participanți' }).click();
   const participant = page.getByRole('dialog', { name: 'Adaugă participanți' });
   await participant.getByLabel('Nume').fill(actors.directorName);
   await participant.getByLabel('Rol').fill('Director');
   await participant.getByLabel('Tip membru').fill('presedinte');
   await participant.getByLabel('Prezență').fill('prezent');
-  await participant.getByLabel('Drept vot').click(); await page.getByRole('option', { name: 'Da', exact: true }).click();
+  await participant.getByLabel('Drept vot').click(); await selectOpenOption(page, 'Da');
   const participantCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/participants`) && response.request().method() === 'POST');
   await participant.getByRole('button', { name: 'Salvează' }).click(); expect((await participantCreated).status()).toBe(201);
 
@@ -277,15 +298,15 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   const voteCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/votes`) && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click(); const voteHTTP = await voteCreated; expect(voteHTTP.status()).toBe(201);
   const vote = await voteHTTP.json() as { id: string };
-  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await page.getByRole('button', { name: 'Detalii' }).click();
+  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await clickOpenPopoverAction(page, 'Detalii');
   await page.getByRole('button', { name: 'Ghid minută' }).click();
   await page.getByLabel('Subiect').fill(`${marker} minută`); await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Rezumat discuții').fill('Discuție consemnată.'); await page.getByLabel('Decizie').fill('Aprobat.'); await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Responsabil').fill(actors.directorName); await page.getByRole('button', { name: 'Continuă' }).click();
   const minuteCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/minutes`) && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click(); expect((await minuteCreated).status()).toBe(201);
-  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await page.getByRole('button', { name: 'Detalii' }).click(); await page.getByRole('button', { name: 'Ghid hotărâre' }).click();
-  await page.getByRole('combobox', { name: 'Vot' }).click(); await page.getByRole('option', { name: new RegExp(`${marker} vot`) }).click();
+  await page.goto('/scoala/governance'); await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click(); await clickOpenPopoverAction(page, 'Detalii'); await page.getByRole('button', { name: 'Ghid hotărâre' }).click();
+  await page.getByRole('combobox', { name: 'Vot' }).click(); await selectOpenOption(page, new RegExp(`${marker} vot`));
   await page.getByLabel('Titlu').fill(`${marker} hotărâre`); await page.getByRole('button', { name: 'Continuă' }).click(); await page.getByLabel('Data emiterii').fill('2026-09-10'); await page.getByRole('button', { name: 'Continuă' }).click(); await page.getByLabel('Semnat de').fill(actors.directorName); await page.getByRole('button', { name: 'Continuă' }).click();
   const resolutionCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith(`/meetings/${meeting.id}/resolutions`) && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click(); expect((await resolutionCreated).status()).toBe(201);
