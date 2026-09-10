@@ -1211,7 +1211,7 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await meetingRow.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
   await clickOpenPopoverAction(page, 'Detalii');
   await expect(page.getByText('Ședință selectată — operațiuni')).toBeVisible();
-  const meetingDetails = page.getByRole('dialog', { name: 'Ședință de guvernanță', exact: true });
+  const meetingDetails = page.getByRole('dialog', { name: /^Ședință de guvernanță(?:\s|$)/ });
   await expect(meetingDetails).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(meetingDetails).toBeHidden();

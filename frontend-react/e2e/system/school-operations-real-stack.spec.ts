@@ -62,7 +62,8 @@ async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name, exact: true });
   await expect(action).toBeVisible();
-  await action.click();
+  await action.focus();
+  await action.press('Enter');
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
@@ -445,8 +446,8 @@ test('React creates portfolio relations and drives transfer/valorification lifec
     'Etapă *': 'verificare_secretariat', 'Rezultat *': 'acceptat', 'Evaluator *': 'Director E2E', 'Data revizuirii *': '2026-09-10', 'Scor conformitate': '100', 'Documente lipsă': '0', Observații: marker,
   });
   expect(sql(`select count(*)::text from education_portfolio_documents where id='${document.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
-  expect(sql(`select count(*)::text from education_portfolio_opis_entries where id='${opis.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
-  expect(sql(`select count(*)::text from education_portfolio_custody_events where id='${custody.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
+  expect(sql(`select count(*)::text from education_portfolio_opis where id='${opis.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
+  expect(sql(`select count(*)::text from education_portfolio_custody where id='${custody.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
   expect(sql(`select count(*)::text from education_portfolio_reviews where id='${review.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
   expect(sql(`select count(*)::text from education_portfolio_checklist where id='${checklist.id}' and portfolio_id='${portfolio.id}'`)).toBe('1');
 

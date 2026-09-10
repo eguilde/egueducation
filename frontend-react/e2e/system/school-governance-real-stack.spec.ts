@@ -309,7 +309,9 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   });
   await membershipDialog.getByLabel('Caută Utilizator').fill(actors.directorName);
   expect((await eligibleMemberResponse).status()).toBe(200);
-  await membershipDialog.getByRole('combobox', { name: 'Utilizator', exact: true }).click();
+  const eligibleMemberSelect = membershipDialog.getByRole('combobox', { name: 'Utilizator', exact: true });
+  await expect(eligibleMemberSelect).toBeEnabled();
+  await eligibleMemberSelect.click();
   await selectOpenOption(page, actors.directorName);
   await membershipDialog.getByLabel('Rol').fill('președinte');
   await membershipDialog.getByLabel('Mandat de la').fill('2026-09-01');
@@ -322,7 +324,7 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   const row = page.getByText(title, { exact: true }).locator('xpath=ancestor::tr[1]');
   await row.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
   await clickOpenPopoverAction(page, 'Detalii');
-  const meetingDetails = page.getByRole('dialog', { name: 'Ședință de guvernanță', exact: true });
+  const meetingDetails = page.getByRole('dialog', { name: /^Ședință de guvernanță(?:\s|$)/ });
   await expect(meetingDetails).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(meetingDetails).toBeHidden();

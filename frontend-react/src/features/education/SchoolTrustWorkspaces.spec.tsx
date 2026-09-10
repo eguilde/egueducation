@@ -36,6 +36,7 @@ describe("School trust workspaces", () => {
   it("loads, filters, sorts and paginates a report through literal server contracts", async () => {
     const client = reportClient();
     render(<PrimeReactProvider><SchoolReportsWorkspace client={client} canExport={false} /></PrimeReactProvider>);
+    expect(screen.getByRole("heading", { name: "Rapoarte școlare", level: 1 })).toBeInTheDocument();
     expect(await screen.findByText("Ana Pop")).toBeInTheDocument();
     expect(client.GET).toHaveBeenCalledWith("/api/education/reports");
     expect(client.GET).toHaveBeenCalledWith("/api/education/reports/{reportCode}", expect.objectContaining({ params: expect.objectContaining({ path: { reportCode: "portfolio-status" }, query: expect.objectContaining({ page: 1, pageSize: 20 }) }) }));
