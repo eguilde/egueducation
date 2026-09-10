@@ -2589,23 +2589,84 @@ const domainDetailMetadata: Partial<Record<EducationRecordsDomain, EducationMeta
     personnel: ["personnel-portfolio-dossier-summary"], portfolios: ["portfolio-transfer-summary"], regulations: ["regulation-procedural-summary"],
   };
 function readable(value: string) {
-  if (value === "school_year") return "An școlar";
+  const labels: Record<string, string> = {
+    school_year: "An școlar",
+    committee: "Comisie",
+    membership: "Componență",
+    readiness: "Pregătire",
+    active_members: "Membri activi",
+    voting_members: "Membri cu drept de vot",
+    member_names: "Membri",
+    chairperson_covered: "Președinte desemnat",
+    secretary_covered: "Secretar desemnat",
+    ready_for_operation: "Pregătită pentru funcționare",
+    blockers: "Blocaje",
+  };
+  if (labels[value]) return labels[value];
   return value
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function isDisplayableMetadataValue(value: unknown) {
+type DisplayableMetadataValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>;
+
+function isDisplayableMetadataValue(
+  value: unknown,
+): value is DisplayableMetadataValue {
   return (
     typeof value === "string" ||
     typeof value === "number" ||
+    typeof value === "boolean" ||
     (Array.isArray(value) &&
       value.every(
-        (entry) => typeof entry === "string" || typeof entry === "number",
+        (entry) =>
+          typeof entry === "string" ||
+          typeof entry === "number" ||
+          typeof entry === "boolean",
       ))
   );
 }
-function EducationMetadata({
+
+export function metadataDisplayEntries(items: Record<string, unknown>[]) {
+  const entries: Array<{
+    key: string;
+    label: string;
+    value: DisplayableMetadataValue;
+  }> = [];
+  const visit = (value: unknown, path: string[], itemIndex: number) => {
+    if (isDisplayableMetadataValue(value)) {
+      entries.push({
+        key: `${itemIndex}.${path.join(".")}`,
+        label: path.map(readable).join(" · "),
+        value,
+      });
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((child, index) => visit(child, [...path, String(index + 1)], itemIndex));
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      if (key !== "id" && key !== "institution_id")
+        visit(child, [...path, key], itemIndex);
+    }
+  };
+  items.forEach((item, itemIndex) => visit(item, [], itemIndex));
+  return entries;
+}
+
+function formatMetadataValue(value: DisplayableMetadataValue) {
+  if (Array.isArray(value))
+    return value.map((entry) => (typeof entry === "boolean" ? (entry ? "Da" : "Nu") : String(entry))).join(", ") || "—";
+  if (typeof value === "boolean") return value ? "Da" : "Nu";
+  return String(value);
+}
+export function EducationMetadata({
   api,
   resources,
   parentID,
@@ -2637,25 +2698,25 @@ function EducationMetadata({
         <Spinner />
       </div>
     );
-  const values = items.flatMap((item) =>
-    Object.entries(item).filter(
-      ([key, value]) =>
-        key !== "institution_id" && isDisplayableMetadataValue(value),
-    ),
-  );
+  const values = metadataDisplayEntries(items);
   return (
     <Card.Root>
       <Card.Body>
         <Card.Title>Indicatori și filtre disponibile</Card.Title>
         <Card.Content>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {values.map(([key, value]) => (
+            {values.map(({ key, label, value }) => (
               <div key={key}>
-                <strong>{readable(key)}</strong>
+                <strong>{label}</strong>
                 <p>
-                  {Array.isArray(value)
-                    ? value.join(", ") || "—"
-                    : String(value)}
+                  {typeof value === "boolean" ? (
+                    <Tag
+                      value={value ? "Da" : "Nu"}
+                      severity={value ? "success" : "secondary"}
+                    />
+                  ) : (
+                    formatMetadataValue(value)
+                  )}
                 </p>
               </div>
             ))}

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { EducationListPanel, RecordFormDialog, SchoolRowActionMenu, domainListCapabilities, domainRelations, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, hasDomainRelations, relationManagePermission } from "./EducationWorkspace";
+import { EducationListPanel, EducationMetadata, RecordFormDialog, SchoolRowActionMenu, domainListCapabilities, domainRelations, domainWizardRoutes, educationPermissionAllows, effectiveEducationPermissions, hasDomainRelations, metadataDisplayEntries, relationManagePermission } from "./EducationWorkspace";
+import type { EducationApi } from "./types";
 
 describe("School overlay lifecycle", () => {
   it("closes the action popover before invoking an action that may mount a dialog", async () => {
@@ -282,6 +283,62 @@ describe("School detail relations", () => {
         { label: "Înlocuit", value: "replaced" },
       ],
     });
+  });
+});
+
+describe("School metadata presentation", () => {
+  it("renders nested committee membership and readiness values instead of dropping them", () => {
+    const entries = metadataDisplayEntries([
+      {
+        institution_id: "hidden-tenant-scope",
+        membership: {
+          active_members: 1,
+          member_names: ["Ana Pop"],
+          chairperson_covered: true,
+        },
+        readiness: {
+          ready_for_operation: false,
+          blockers: ["secretary_missing"],
+        },
+        alerts: [{ id: "technical-id", title: "Lipsește secretarul", critical: true }],
+      },
+    ]);
+
+    expect(entries).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "Componență · Membri activi", value: 1 }),
+      expect.objectContaining({ label: "Componență · Membri", value: ["Ana Pop"] }),
+      expect.objectContaining({ label: "Componență · Președinte desemnat", value: true }),
+      expect.objectContaining({ label: "Pregătire · Pregătită pentru funcționare", value: false }),
+      expect.objectContaining({ label: "Pregătire · Blocaje", value: ["secretary_missing"] }),
+      expect.objectContaining({ label: "Alerts · 1 · Title", value: "Lipsește secretarul" }),
+      expect.objectContaining({ label: "Alerts · 1 · Critical", value: true }),
+    ]));
+    expect(entries.some((entry) => entry.key.includes("institution_id"))).toBe(false);
+    expect(entries.some((entry) => entry.key.endsWith(".id"))).toBe(false);
+  });
+
+  it("shows a nested completeness response and its boolean state in the PrimeReact card", async () => {
+    const api = {
+      metadata: vi.fn().mockResolvedValue({
+        membership: { active_members: 1, member_names: ["Ana Pop"] },
+        readiness: { ready_for_operation: false, blockers: ["secretary_missing"] },
+      }),
+    } as unknown as EducationApi;
+
+    const { container } = render(
+      <PrimeReactProvider>
+        <EducationMetadata
+          api={api}
+          resources={["committee-completeness"]}
+          parentID="committee-1"
+        />
+      </PrimeReactProvider>,
+    );
+
+    expect(await screen.findByText("Componență · Membri activi")).toBeInTheDocument();
+    expect(screen.getByText("Ana Pop")).toBeInTheDocument();
+    expect(screen.getByText("Pregătire · Pregătită pentru funcționare")).toBeInTheDocument();
+    expect(container.querySelector('[data-scope="tag"][value="Nu"]')).toBeInTheDocument();
   });
 });
 

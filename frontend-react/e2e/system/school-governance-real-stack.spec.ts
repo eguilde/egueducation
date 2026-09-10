@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import type { components } from '../../src/api/generated';
 
 /*
  * This is intentionally a real-stack proof.  It does not register routes or
@@ -401,8 +402,11 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await openReactRootDetails(page, committeeTitle);
   const member = await createRelatedThroughReact(page, 'Adaugă membri comisie', `/api/education/committees/records/${committee.id}/members`, { 'Nume complet': actors.directorName, Rol: 'Președinte', Tip: 'Președinte', Stare: 'Activ', 'Numit la': '2026-09-01' });
   expect(member.id).toEqual(expect.any(String));
-  const completeness = await request<{ complete: boolean; active_members?: string[] }>(page, token, `/api/education/committees/records/${committee.id}/completeness-summary`);
-  expect(completeness.status).toBe(200); expect(completeness.body.active_members).toContain(actors.directorName);
+  const completeness = await request<components['schemas']['EducationCommitteeCompletenessResponse']>(page, token, `/api/education/committees/records/${committee.id}/completeness-summary`);
+  expect(completeness.status).toBe(200);
+  expect(completeness.body.membership.active_members).toBeGreaterThanOrEqual(1);
+  expect(completeness.body.membership.member_names).toContain(actors.directorName);
+  expect(completeness.body.membership.chairperson_covered).toBe(true);
 
   const employeeCode = `E2E-${Date.now()}`;
   const evaluation = await createRootThroughReact(page, '/scoala/evaluations', '/api/education/evaluations/records', { 'Cod angajat': employeeCode, 'Nume complet': actors.adjunctName, Funcție: 'Profesor', 'An școlar': '2026-2027', Stare: 'draft', Punctaj: '75', Rezumat: marker });
