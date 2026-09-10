@@ -83,6 +83,18 @@ describe("School trust workspaces", () => {
     expect(body).not.toHaveProperty("storage_object_key");
   });
 
+  it("opens the signature action menu and starts revalidation", async () => {
+    const client = signatureClient();
+    render(<PrimeReactProvider><SignedArtifactEvidenceWorkspace client={client} canManage canValidate /></PrimeReactProvider>);
+    await screen.findByText("CN=Test");
+    fireEvent.click(screen.getByRole("button", { name: "Acțiuni dovadă" }));
+    const menu = await screen.findByRole("menu");
+    fireEvent.click(within(menu).getByRole("button", { name: "Revalidează" }));
+    const dialog = await screen.findByRole("dialog", { name: "Revalidează dovada" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Revalidează" }));
+    await waitFor(() => expect(client.POST).toHaveBeenCalledWith("/api/education/signatures/{evidenceID}/revalidate", { params: { path: { evidenceID: "evidence-1" } } }));
+  });
+
   it("hides mutation controls from read-only users", async () => {
     const client = signatureClient();
     render(<PrimeReactProvider><SignedArtifactEvidenceWorkspace client={client} canManage={false} canValidate={false} /></PrimeReactProvider>);

@@ -154,7 +154,7 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   await clickOpenPopoverAction(page, 'Detalii');
   const details = page.locator('[role="dialog"]:visible').last();
   await expect(details).toBeVisible();
-  await details.getByRole('button', { name: 'Închide' }).click();
+  await page.keyboard.press('Escape');
   await expect(details).toBeHidden();
 }
 

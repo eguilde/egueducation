@@ -1546,7 +1546,7 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const evidenceRow = page.getByText('E2E signer', { exact: true }).locator('xpath=ancestor::tr[1]');
   await expect(evidenceRow).toBeVisible();
   await evidenceRow.getByRole('button', { name: 'Acțiuni dovadă' }).click();
-  await page.getByRole('button', { name: 'Revalidează' }).click();
+  await clickOpenPopoverAction(page, 'Revalidează');
   const revalidated = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/signatures/${evidence.id}/revalidate` && response.request().method() === 'POST');
   await page.getByRole('dialog', { name: 'Revalidează dovada' }).getByRole('button', { name: 'Revalidează' }).click();
   const revalidationHTTP = await revalidated;
