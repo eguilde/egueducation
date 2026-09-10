@@ -50,7 +50,11 @@ async function searchAndSelectPortfolioOwner(page: Page, query: string, optionNa
   const trigger = page.getByRole('combobox', { name: 'Titular *', exact: true });
   await expect(trigger).toBeEnabled();
   await trigger.click();
-  await selectOpenOption(page, optionName);
+  const listbox = page.locator('[role="listbox"]:visible').last();
+  const option = listbox.getByRole('option', { name: optionName, exact: true });
+  await option.scrollIntoViewIfNeeded();
+  await option.click();
+  await expect(page.getByLabel('Titular selectat')).toHaveValue(optionName.replace(/ · .*$/, ''));
 }
 
 async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
@@ -194,9 +198,9 @@ async function openReactRootDetails(page: Page, exactTitle: string): Promise<voi
   await expect(row).toBeVisible();
   await row.getByLabel('Acțiuni înregistrare').click();
   await clickOpenPopoverAction(page, 'Detalii');
-  const details = page.getByRole('dialog');
+  const details = page.locator('[role="dialog"]:visible').last();
   await expect(details).toBeVisible();
-  await details.getByRole('button', { name: 'Închide', exact: true }).click();
+  await page.keyboard.press('Escape');
   await expect(details).toBeHidden();
 }
 
@@ -404,8 +408,8 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Actualizat la').fill('2026-09-10');
   await page.getByLabel('Custode').fill('Școala E2E');
-  await page.getByLabel('Note').fill(marker);
   await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Note').fill(marker);
   await page.getByRole('button', { name: 'Continuă' }).click();
   const portfolioCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/portfolios/records' && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Salvează' }).click();

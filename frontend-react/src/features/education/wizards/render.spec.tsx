@@ -64,9 +64,11 @@ describe("education wizard behavior", () => {
     fireEvent.click(option);
     fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
     fireEvent.change(screen.getByLabelText("Actualizat la"), { target: { value: "2026-09-10" } });
+    expect(screen.queryByLabelText("Note")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
+    fireEvent.change(screen.getByLabelText("Note"), { target: { value: "Audit E2E" } });
     fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
     fireEvent.click(screen.getByRole("button", { name: "Salvează" }));
-    await waitFor(() => expect(api.create).toHaveBeenCalledWith("portfolio", expect.objectContaining({ owner_user_id: "user-1", owner_personnel_id: "person-1", owner_name: "Ana Pop", owner_role: "Profesor" })));
+    await waitFor(() => expect(api.create).toHaveBeenCalledWith("portfolio", expect.objectContaining({ owner_user_id: "user-1", owner_personnel_id: "person-1", owner_name: "Ana Pop", owner_role: "Profesor", notes: "Audit E2E" })));
   });
 });

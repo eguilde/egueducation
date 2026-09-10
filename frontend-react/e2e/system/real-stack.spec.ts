@@ -1208,6 +1208,10 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await meetingRow.getByRole('button', { name: 'Acțiuni înregistrare' }).click();
   await clickOpenPopoverAction(page, 'Detalii');
   await expect(page.getByText('Ședință selectată — operațiuni')).toBeVisible();
+  const meetingDetails = page.getByRole('dialog', { name: 'Ședință de guvernanță', exact: true });
+  await expect(meetingDetails).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(meetingDetails).toBeHidden();
   await page.getByRole('button', { name: 'Adaugă participanți' }).click();
   const participantDialog = page.getByRole('dialog', { name: 'Adaugă participanți' });
   await participantDialog.getByLabel('Nume').fill(chairName);
@@ -1429,7 +1433,7 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   expect((await api<unknown>(assignedPage, assignedToken, `/api/education/classes/${hiddenClass.body.id}`)).status).toBe(404);
   expect((await api<unknown>(assignedPage, assignedToken, `/api/education/students/${hiddenStudent.body.id}`)).status).toBe(404);
   await assignedPage.goto('/scoala/clase');
-  await expect(assignedPage.getByText(className, { exact: true })).toBeVisible();
+  await expect(assignedPage.getByRole('tabpanel', { name: 'Diriginți' }).getByText(className, { exact: true })).toBeVisible();
   await expect(assignedPage.getByText(`IX ascunsă ${suffix}`, { exact: true })).toHaveCount(0);
   await assignedPage.getByRole('tab', { name: 'Elevi' }).click();
   await expect(assignedPage.getByText('E2E', { exact: true })).toBeVisible();
