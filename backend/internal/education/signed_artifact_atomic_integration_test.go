@@ -42,6 +42,11 @@ func TestSignedArtifactMutationsAreAtomic(t *testing.T) {
 	payload := signedArtifactSubmitPayload(artifactID, documentID, versionID)
 
 	installSignedArtifactValidationFailureTrigger(t, ctx, admin)
+	defer func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		dropSignedArtifactValidationFailureTrigger(t, cleanupCtx, admin)
+	}()
 	failedSubmit := httptest.NewRecorder()
 	service.SubmitSignedArtifactEvidence(failedSubmit, signedArtifactMutationRequest(bound, fixture, http.MethodPost, payload, ""))
 	if failedSubmit.Code != http.StatusInternalServerError {
@@ -64,6 +69,11 @@ func TestSignedArtifactMutationsAreAtomic(t *testing.T) {
 	ConfigureSignedArtifactVerifier(deterministicSignedArtifactVerifier{})
 	defer ConfigureSignedArtifactVerifier(nil)
 	installSignedArtifactAuditFailureTrigger(t, ctx, admin)
+	defer func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		dropSignedArtifactAuditFailureTrigger(t, cleanupCtx, admin)
+	}()
 	failedRevalidation := httptest.NewRecorder()
 	service.RevalidateSignedArtifactEvidence(failedRevalidation, signedArtifactMutationRequest(bound, fixture, http.MethodPost, "", evidenceID))
 	if failedRevalidation.Code != http.StatusInternalServerError {
@@ -72,6 +82,7 @@ func TestSignedArtifactMutationsAreAtomic(t *testing.T) {
 	// The pending validation and the original submit audit remain, but the
 	// failed revalidation created neither a new validation nor a false audit.
 	assertSignedArtifactMutationCounts(t, bound, service, 1, 1, 1)
+	dropSignedArtifactAuditFailureTrigger(t, ctx, admin)
 }
 
 func seedAtomicSignedArtifactSource(t *testing.T, ctx context.Context, admin *pgxpool.Pool, institutionID string) (artifactID, documentID, versionID string) {
@@ -168,7 +179,6 @@ func installSignedArtifactAuditFailureTrigger(t *testing.T, ctx context.Context,
 	if _, err := admin.Exec(ctx, `create trigger integration_fail_signed_audit before insert on app_audit_log for each row execute function integration_fail_signed_audit()`); err != nil {
 		t.Fatalf("install signed audit failure trigger: %v", err)
 	}
-	t.Cleanup(func() { dropSignedArtifactAuditFailureTrigger(t, ctx, admin) })
 }
 
 func dropSignedArtifactAuditFailureTrigger(t *testing.T, ctx context.Context, admin *pgxpool.Pool) {
