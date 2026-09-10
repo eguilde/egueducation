@@ -169,7 +169,7 @@ func SchemaContract() []TableContract {
 		institutionTable("education_meeting_minutes", "Meeting minutes."),
 		institutionTable("education_portfolio_opis", "Portfolio inventory list."),
 		institutionTable("education_portfolio_custody", "Portfolio custody history."),
-		institutionTableWithColumns("education_portfolio_archive_attachment_grants", "Narrow institution-scoped grants for attaching eArhiva evidence to a professional portfolio.", "archive_document_id", "grantee_user_id", "granted_by_user_id", "created_at"),
+		institutionTableWithColumnsAndPolicies("education_portfolio_archive_attachment_grants", "Narrow institution-scoped grants for attaching eArhiva evidence to a professional portfolio.", []string{"education_portfolio_archive_attachment_grants_tenant_isolation"}, "archive_document_id", "grantee_user_id", "granted_by_user_id", "created_at"),
 		institutionTableWithColumns("education_role_delegations", "Tenant- and institution-scoped director-to-adjunct delegated authority with immutable provenance.", "tenant_code", "delegator_user_id", "delegate_user_id", "permission_code", "resource_type", "resource_id", "status", "valid_from", "valid_until", "offered_by_user_id", "offered_at"),
 		institutionTableWithColumns("education_portfolio_procedure_versions", "Tenant- and institution-scoped, versioned portfolio procedures.", "tenant_code", "procedure_code", "version_no", "lifecycle_status"),
 		institutionTableWithColumns("education_portfolio_procedure_section_rules", "Tenant- and institution-scoped rules for a versioned portfolio procedure.", "tenant_code", "procedure_id", "section_code"),

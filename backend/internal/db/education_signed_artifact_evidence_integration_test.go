@@ -39,7 +39,11 @@ func TestEducationSignedArtifactEvidenceNOBYPASSRLS(t *testing.T) {
 	if _, err := admin.Exec(ctx, `
 		insert into archive_documents(id,institution_id,title,original_file_name,mime_type,source_kind,status,current_version_no)
 		values ($1,'inst-001','Signed evidence source','signed.pdf','application/pdf','upload','ready',1),
-		       ($2,'inst-balotesti','Foreign signed source','foreign.pdf','application/pdf','upload','ready',1);
+		       ($2,'inst-balotesti','Foreign signed source','foreign.pdf','application/pdf','upload','ready',1)
+	`, archiveDocumentID, foreignDocumentID); err != nil {
+		t.Fatalf("seed signed evidence archive documents: %v", err)
+	}
+	if _, err := admin.Exec(ctx, `
 		insert into archive_document_versions(id,document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,status,source_bucket,source_object_key,source_sha256)
 		values ($3,$1,'inst-001',1,'application/pdf','Signed evidence source','legacy','legacy.pdf',$5,'active','earhive','signed/evidence.pdf',$5),
 		       ($4,$2,'inst-balotesti',1,'application/pdf','Foreign signed source','legacy','foreign.pdf',$5,'active','earhive','foreign/evidence.pdf',$5)
