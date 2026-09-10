@@ -35,10 +35,29 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await option.click();
 }
 
+/** Exercise the wizard's server-side selector before opening its Select. */
+async function searchAndSelectWizardUser(page: Page, label: string, name: string): Promise<void> {
+  const response = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    return candidate.request().method() === 'GET'
+      && url.pathname === '/api/education/governance/eligible-users'
+      && url.searchParams.get('filter.name') === name;
+  });
+  await page.getByLabel(`Caută ${label}`, { exact: true }).fill(name);
+  expect((await response).status()).toBe(200);
+  const trigger = page.getByRole('combobox', { name: label, exact: true });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await selectOpenOption(page, name);
+}
+
 async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   const menu = page.locator('[role="menu"]:visible').last();
   await expect(menu).toBeVisible();
-  await menu.getByRole('button', { name, exact: true }).click();
+  const action = menu.getByRole('button', { name, exact: true });
+  await expect(action).toBeVisible();
+  await action.focus();
+  await action.press('Enter');
 }
 
 const hasRealStack = Boolean(process.env.TEST_DATABASE_URL && process.env.DATABASE_URL);
@@ -200,8 +219,27 @@ test('director delegation is accepted, immediately usable in React/API, and revo
   expect(sql(`select status || '|' || permission_code || '|' || delegate_user_id::text from education_role_delegations where id='${delegation.id}'`)).toBe(`accepted|education.governance.manage|${actors.adjunctID}`);
   expect(sql(`select count(*)::text from app_audit_log where action='education.delegations.accept' and target_id='${delegation.id}'`)).toBe('1');
 
-  // The grant is fetched by AuthProvider and authorizes a real operation.
+  // Reload obtains a fresh request-time authorization snapshot. Assert the
+  // accepted, institution-scoped grant before proving its route/API effect.
+  const activeGrantsResponse = adjunctPage.waitForResponse((response) =>
+    response.request().method() === 'GET'
+    && new URL(response.url()).pathname === '/api/education/delegations/active-grants');
   await adjunctPage.reload();
+  const activeGrantsHTTP = await activeGrantsResponse;
+  expect(activeGrantsHTTP.status()).toBe(200);
+  const activeGrants = await activeGrantsHTTP.json() as {
+    tenant_code: string;
+    institution_id: string;
+    grants: Array<{ permission_code: string; resource_type: string; resource_id: string }>;
+  };
+  expect(activeGrants).toMatchObject({ tenant_code: school.tenant, institution_id: school.institution });
+  expect(activeGrants.grants).toContainEqual({
+    permission_code: 'education.governance.manage',
+    resource_type: 'institution',
+    // Institution scope is represented by the response envelope; an empty
+    // resource_id prevents accidentally treating it as an exact resource.
+    resource_id: '',
+  });
   await adjunctPage.goto('/scoala/governance');
   await expect(adjunctPage.getByText('Ședințe de guvernanță')).toBeVisible();
   const delegatedCommittee = await request<{ id: string }>(adjunctPage, adjunctToken, '/api/education/committees/records', {
@@ -245,10 +283,8 @@ test('governance lifecycle, committee completeness, evaluations and declarations
   await page.getByLabel('Data').fill('2026-09-10');
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Locație').fill('Sala profesorală');
-  await page.getByRole('combobox', { name: 'Președinte *' }).click();
-  await selectOpenOption(page, actors.directorName);
-  await page.getByRole('combobox', { name: 'Secretar *' }).click();
-  await selectOpenOption(page, actors.adjunctName);
+  await searchAndSelectWizardUser(page, 'Președinte *', actors.directorName);
+  await searchAndSelectWizardUser(page, 'Secretar *', actors.adjunctName);
   await page.getByRole('button', { name: 'Continuă', exact: true }).click();
   await expect(page.getByText('4. Creare', { exact: true })).toHaveClass(/font-semibold/);
   await expect(page.getByRole('button', { name: 'Salvează', exact: true })).toBeVisible();

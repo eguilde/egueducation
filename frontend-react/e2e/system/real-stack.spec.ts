@@ -50,10 +50,51 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await option.click();
 }
 
+async function searchAndSelectGovernanceUser(page: Page, label: string, name: string): Promise<void> {
+  const response = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    return candidate.request().method() === 'GET'
+      && url.pathname === '/api/education/governance/eligible-users'
+      && url.searchParams.get('filter.name') === name;
+  });
+  await page.getByLabel(`Caută ${label}`, { exact: true }).fill(name);
+  expect((await response).status()).toBe(200);
+  const trigger = page.getByRole('combobox', { name: label, exact: true });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await selectOpenOption(page, name);
+}
+
+async function searchAndSelectAssignmentOption(
+  page: Page,
+  kind: 'classes' | 'students' | 'teachers',
+  searchLabel: string,
+  query: string,
+  triggerLabel: string,
+  optionName: string,
+): Promise<void> {
+  const response = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    return candidate.request().method() === 'GET'
+      && url.pathname === '/api/education/classes/assignment-options'
+      && url.searchParams.get('kind') === kind
+      && url.searchParams.get('q') === query;
+  });
+  await page.getByLabel(searchLabel, { exact: true }).fill(query);
+  expect((await response).status()).toBe(200);
+  const trigger = page.getByLabel(triggerLabel, { exact: true });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await selectOpenOption(page, optionName);
+}
+
 async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   const menu = page.locator('[role="menu"]:visible').last();
   await expect(menu).toBeVisible();
-  await menu.getByRole('button', { name, exact: true }).click();
+  const action = menu.getByRole('button', { name, exact: true });
+  await expect(action).toBeVisible();
+  await action.focus();
+  await action.press('Enter');
 }
 
 function databaseScalar(sql: string, scope: TenantScope = egueducationScope): string {
@@ -1098,10 +1139,8 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await page.getByLabel('Data').fill('2026-09-10');
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Locație').fill('Sala profesorală');
-  await page.getByRole('combobox', { name: 'Președinte *' }).click();
-  await selectOpenOption(page, chairName);
-  await page.getByRole('combobox', { name: 'Secretar *' }).click();
-  await selectOpenOption(page, secretaryName);
+  await searchAndSelectGovernanceUser(page, 'Președinte *', chairName);
+  await searchAndSelectGovernanceUser(page, 'Secretar *', secretaryName);
   await page.getByLabel('Rezumat').fill('Dovadă reală de guvernanță School.');
   await page.getByRole('button', { name: 'Continuă', exact: true }).click();
   await expect(page.getByText('4. Creare', { exact: true })).toHaveClass(/font-semibold/);
@@ -1113,15 +1152,24 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   );
   await page.getByRole('button', { name: 'Salvează' }).click();
   const createdHTTP = await createdResponse;
-  const requestPayload = createdHTTP.request().postDataJSON() as Record<string, unknown>;
   expect(createdHTTP.status()).toBe(201);
-  expect(requestPayload).toMatchObject({
+  const createdMeeting = await createdHTTP.json() as {
+    id: string;
+    institution_id: string;
+    title: string;
+    quorum_required: number;
+    chairperson_user_id: string;
+    secretary_user_id: string;
+  };
+  // Assert the server-authoritative contract returned after persistence. Some
+  // browser fetch implementations stream Request bodies, for which Playwright
+  // legitimately exposes request.postDataJSON() as null despite a 201 write.
+  expect(createdMeeting).toMatchObject({
     title,
     quorum_required: 1,
     chairperson_user_id: directorID,
     secretary_user_id: secretaryID,
   });
-  const createdMeeting = await createdHTTP.json() as { id: string; institution_id: string };
   expect(createdMeeting.institution_id).toBe('inst-001');
   expect(createdMeeting.id).toMatch(/^[0-9a-f-]{36}$/i);
   expect(databaseScalar(`
@@ -1304,12 +1352,8 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await page.getByRole('tab', { name: 'Înscrieri' }).click();
   await page.getByRole('button', { name: 'Adaugă înscriere' }).click();
   const enrolmentDialog = page.getByRole('dialog', { name: 'Adaugă înscriere' });
-  await enrolmentDialog.getByLabel('Caută elev').fill(student.student_code);
-  await enrolmentDialog.getByLabel('Selectează elevul').click();
-  await selectOpenOption(page, `Elev E2E (${student.student_code})`);
-  await enrolmentDialog.getByLabel('Caută clasă').fill(classCode);
-  await enrolmentDialog.getByLabel('Selectează clasa').click();
-  await selectOpenOption(page, `${className} (${classCode})`);
+  await searchAndSelectAssignmentOption(page, 'students', 'Caută elev', student.student_code, 'Selectează elevul', `Elev E2E (${student.student_code})`);
+  await searchAndSelectAssignmentOption(page, 'classes', 'Caută clasă', classCode, 'Selectează clasa', `${className} (${classCode})`);
   await enrolmentDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-09-01');
   const enrolmentCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/class-enrolments' && response.request().method() === 'POST');
   await enrolmentDialog.getByRole('button', { name: 'Salvează' }).click();
@@ -1341,12 +1385,8 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   await page.getByRole('tab', { name: 'Diriginți' }).click();
   await page.getByRole('button', { name: 'Atribuie diriginte' }).click();
   const homeroomDialog = page.getByRole('dialog', { name: 'Atribuie diriginte' });
-  await homeroomDialog.getByLabel('Caută clasă').fill(classCode);
-  await homeroomDialog.getByLabel('Selectează clasa').click();
-  await selectOpenOption(page, `${className} (${classCode})`);
-  await homeroomDialog.getByLabel('Caută profesor').fill(teacherCode);
-  await homeroomDialog.getByLabel('Selectează profesorul').click();
-  await selectOpenOption(page, `${teacherName} (${teacherCode})`);
+  await searchAndSelectAssignmentOption(page, 'classes', 'Caută clasă', classCode, 'Selectează clasa', `${className} (${classCode})`);
+  await searchAndSelectAssignmentOption(page, 'teachers', 'Caută profesor', teacherCode, 'Selectează profesorul', `${teacherName} (${teacherCode})`);
   await homeroomDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-01-01');
   const homeroomCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/homeroom-assignments' && response.request().method() === 'POST');
   await homeroomDialog.getByRole('button', { name: 'Salvează' }).click();

@@ -28,6 +28,14 @@ export type EducationAuthorizationScope =
     | { resourceType: 'institution' }
     | { resourceType: Exclude<EducationDelegationGrant['resource_type'], 'institution'>; resourceId: string };
 
+export function educationPermissionImplies(granted: string, requested: string): boolean {
+    if (granted === requested && granted !== '') return true;
+    return granted.startsWith('education.')
+        && requested.startsWith('education.')
+        && granted.endsWith('.manage')
+        && requested === `${granted.slice(0, -'.manage'.length)}.read`;
+}
+
 interface AuthValue {
     user: User | null;
     session: SessionContext | null;
@@ -178,10 +186,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         session?.permissions.includes(permission)
     ), [session]);
     const canEducation = useCallback<AuthValue['canEducation']>((permission, scope = { resourceType: 'institution' }) => {
-        if (session?.permissions.includes(permission)) return true;
+        if (session?.permissions.some((granted) => educationPermissionImplies(granted, permission))) return true;
         if (!authorizationReady) return false;
-        if (scope.resourceType === 'institution') return educationGrants.some((grant) => grant.permission_code === permission && grant.resource_type === 'institution');
-        return educationGrants.some((grant) => grant.permission_code === permission && grant.resource_type === scope.resourceType && grant.resource_id === scope.resourceId);
+        if (scope.resourceType === 'institution') return educationGrants.some((grant) => educationPermissionImplies(grant.permission_code, permission) && grant.resource_type === 'institution');
+        return educationGrants.some((grant) => educationPermissionImplies(grant.permission_code, permission) && grant.resource_type === scope.resourceType && grant.resource_id === scope.resourceId);
     }, [authorizationReady, educationGrants, session?.permissions]);
     const updateLocalProfile = useCallback<AuthValue['updateLocalProfile']>((profile) => {
         setSession((current) => current ? {

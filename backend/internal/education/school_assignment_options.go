@@ -67,11 +67,11 @@ func schoolAssignmentOptionsPlan(kind string) (schoolAssignmentOptionPlan, error
 		}, nil
 	case schoolAssignmentOptionStudents:
 		return schoolAssignmentOptionPlan{
-			selectColumns: `'students', '', student.id::text, '', '', student.student_code, concat_ws(' ', student.last_name, student.first_name)`,
+			selectColumns: `'students', '', student.id::text, '', '', student.student_code, concat_ws(' ', student.first_name, student.last_name)`,
 			fromWhere: `from education_students student
 				where student.tenant_code = public.current_tenant_code()
 				and student.institution_id = $1 and student.status = 'active'`,
-			searchClause: ` and (lower(student.student_code) like $2 or lower(student.first_name) like $2 or lower(student.last_name) like $2 or lower(concat_ws(' ', student.last_name, student.first_name)) like $2)`,
+			searchClause: ` and (lower(student.student_code) like $2 or lower(student.first_name) like $2 or lower(student.last_name) like $2 or lower(concat_ws(' ', student.first_name, student.last_name)) like $2 or lower(concat_ws(' ', student.last_name, student.first_name)) like $2)`,
 			orderBy:      `lower(student.last_name), lower(student.first_name), student.id`,
 		}, nil
 	case schoolAssignmentOptionTeachers:

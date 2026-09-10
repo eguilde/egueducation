@@ -18,6 +18,9 @@ func TestEducationDelegationScopeMatches(t *testing.T) {
 		{"resource grant is exact", EducationDelegationScope{PermissionCode: permission, ResourceType: "portfolio", ResourceID: resourceID}, EducationDelegationScope{PermissionCode: permission, ResourceType: "portfolio", ResourceID: resourceID}, true},
 		{"resource grant cannot broaden", EducationDelegationScope{PermissionCode: permission, ResourceType: "portfolio", ResourceID: resourceID}, EducationDelegationScope{PermissionCode: permission, ResourceType: "meeting", ResourceID: resourceID}, false},
 		{"different permission denied", EducationDelegationScope{PermissionCode: permission, ResourceType: "institution"}, EducationDelegationScope{PermissionCode: "education.portfolios.verify", ResourceType: "institution"}, false},
+		{"manage includes read in same family", EducationDelegationScope{PermissionCode: "education.governance.manage", ResourceType: "institution"}, EducationDelegationScope{PermissionCode: "education.governance.read", ResourceType: "institution"}, true},
+		{"manage cannot cross resource family", EducationDelegationScope{PermissionCode: "education.governance.manage", ResourceType: "institution"}, EducationDelegationScope{PermissionCode: "education.decisions.read", ResourceType: "institution"}, false},
+		{"read never includes manage", EducationDelegationScope{PermissionCode: "education.governance.read", ResourceType: "institution"}, EducationDelegationScope{PermissionCode: "education.governance.manage", ResourceType: "institution"}, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := educationDelegationScopeMatches(tc.granted, tc.requested); got != tc.want {

@@ -37,10 +37,32 @@ async function selectOpenOption(page: Page, name: string | RegExp): Promise<void
   await option.click();
 }
 
+/** Query the paginated owner selector before selecting the server-returned option. */
+async function searchAndSelectPortfolioOwner(page: Page, query: string, optionName: string): Promise<void> {
+  const response = page.waitForResponse((candidate) => {
+    const url = new URL(candidate.url());
+    return candidate.request().method() === 'GET'
+      && url.pathname === '/api/education/portfolios/eligible-owners'
+      && url.searchParams.get('filter.display_name') === query;
+  });
+  await page.getByLabel('Caută Titular', { exact: true }).fill(query);
+  expect((await response).status()).toBe(200);
+  const trigger = page.getByRole('combobox', { name: 'Titular', exact: true });
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await selectOpenOption(page, optionName);
+}
+
 async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   const menu = page.locator('[role="menu"]:visible').last();
   await expect(menu).toBeVisible();
-  await menu.getByRole('button', { name, exact: true }).click();
+  const action = menu.getByRole('button', { name, exact: true });
+  await expect(action).toBeVisible();
+  // PrimeReact positions the portalled menu while it opens. Keyboard activation
+  // is the equivalent accessible user interaction and avoids a mouse click on
+  // a moving overlay that can be remounted by the table refresh.
+  await action.focus();
+  await action.press('Enter');
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
@@ -238,7 +260,7 @@ async function publishPortfolioProcedureThroughReact(page: Page): Promise<void> 
   await details.getByRole('button', { name: 'Publică' }).last().click();
   expect((await published).status()).toBe(200);
   await expect(details.getByLabel('Stare procedură')).toHaveText('published');
-  await details.getByRole('button', { name: 'Închide' }).click();
+  await details.getByRole('button', { name: 'Închide', exact: true }).click();
 }
 
 function expectCreated<T extends RecordWithID>(result: ApiResult<T>): T {
@@ -374,8 +396,7 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   await page.goto('/scoala/portfolios');
   await page.getByRole('button', { name: 'Adaugă înregistrare' }).click();
   await expect(page).toHaveURL(/\/scoala\/portfolio\/wizard$/);
-  await page.getByRole('combobox', { name: 'Titular' }).click();
-  await selectOpenOption(page, `${marker} Proprietar · Profesor`);
+  await searchAndSelectPortfolioOwner(page, marker, `${marker} Proprietar · Profesor`);
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Actualizat la').fill('2026-09-10');
   await page.getByLabel('Custode').fill('Școala E2E');

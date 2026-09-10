@@ -62,6 +62,24 @@ func TestSchoolStudentAndTemporalCommandValidation(t *testing.T) {
 	}
 }
 
+func TestSchoolEnrolmentNamesUseTheAssignmentOptionOrder(t *testing.T) {
+	if !strings.Contains(schoolEnrolmentColumns, "concat_ws(' ', student.first_name, student.last_name)") {
+		t.Fatalf("enrolment label must use given-name then family-name: %s", schoolEnrolmentColumns)
+	}
+	body, err := os.ReadFile("school_classes_assignments.go")
+	if err != nil {
+		t.Fatalf("read enrolment handler: %v", err)
+	}
+	for _, order := range []string{
+		"concat_ws(' ', student.first_name, student.last_name)",
+		"concat_ws(' ', student.last_name, student.first_name)",
+	} {
+		if !strings.Contains(string(body), order) {
+			t.Errorf("student-name filter must accept %q", order)
+		}
+	}
+}
+
 func TestSchoolListSortMappingsAreExplicitAndSafe(t *testing.T) {
 	for _, test := range []struct {
 		mapping                   map[string]string

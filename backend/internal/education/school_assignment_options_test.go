@@ -52,6 +52,24 @@ func TestSchoolAssignmentOptionPlansRemainTenantAndInstitutionScoped(t *testing.
 	}
 }
 
+func TestSchoolAssignmentStudentOptionsUseGivenNameThenFamilyName(t *testing.T) {
+	students, err := schoolAssignmentOptionsPlan(schoolAssignmentOptionStudents)
+	if err != nil {
+		t.Fatalf("student plan: %v", err)
+	}
+	if !strings.Contains(students.selectColumns, "concat_ws(' ', student.first_name, student.last_name)") {
+		t.Fatalf("student option label must use given-name then family-name: %s", students.selectColumns)
+	}
+	for _, fullNameOrder := range []string{
+		"concat_ws(' ', student.first_name, student.last_name)",
+		"concat_ws(' ', student.last_name, student.first_name)",
+	} {
+		if !strings.Contains(students.searchClause, fullNameOrder) {
+			t.Errorf("student option search must support %q", fullNameOrder)
+		}
+	}
+}
+
 func TestSchoolAssignmentOptionsHandlerRechecksManagePermission(t *testing.T) {
 	assertSourceContains(t, "school_assignment_options.go", "requireSchoolClassesAccess(w, r, true)")
 	recorder := httptest.NewRecorder()

@@ -34,12 +34,27 @@ func isDelegableEducationPermission(permission string) bool {
 	return strings.HasPrefix(permission, "education.") && !strings.HasPrefix(permission, "education.delegations.")
 }
 
+// educationPermissionImplies keeps the conventional read subset explicit:
+// managing a School resource necessarily includes reading that same resource
+// family, while no other permission is broadened implicitly.
+func educationPermissionImplies(granted, requested string) bool {
+	granted = strings.TrimSpace(granted)
+	requested = strings.TrimSpace(requested)
+	if granted == requested && granted != "" {
+		return true
+	}
+	if !strings.HasPrefix(granted, "education.") || !strings.HasPrefix(requested, "education.") {
+		return false
+	}
+	return strings.HasSuffix(granted, ".manage") && requested == strings.TrimSuffix(granted, ".manage")+".read"
+}
+
 // educationDelegationScopeMatches is deliberately pure so handlers and future
 // route middleware cannot accidentally broaden an institution-bound grant.
 func educationDelegationScopeMatches(granted, requested EducationDelegationScope) bool {
 	granted = normalizeEducationDelegationScope(granted)
 	requested = normalizeEducationDelegationScope(requested)
-	if granted.PermissionCode == "" || granted.PermissionCode != requested.PermissionCode {
+	if !educationPermissionImplies(granted.PermissionCode, requested.PermissionCode) {
 		return false
 	}
 	if granted.ResourceType == "institution" {
@@ -63,6 +78,13 @@ func (s *Service) authorizeEducationPermissionForSubject(r *http.Request, subjec
 	direct, err := s.currentSubjectHasPermission(r, strings.TrimSpace(subject), scope.PermissionCode)
 	if err != nil || direct {
 		return direct, err
+	}
+	if strings.HasSuffix(scope.PermissionCode, ".read") {
+		managePermission := strings.TrimSuffix(scope.PermissionCode, ".read") + ".manage"
+		direct, err = s.currentSubjectHasPermission(r, strings.TrimSpace(subject), managePermission)
+		if err != nil || direct {
+			return direct, err
+		}
 	}
 	actorID, err := s.currentActorUserID(r, strings.TrimSpace(subject))
 	if err != nil || actorID == "" {

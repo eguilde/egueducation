@@ -10,7 +10,7 @@ vi.mock('./oidc-client', () => ({
     refreshWithCookie: vi.fn(async () => ({ accessToken: 'access', expiresAt: 9999999999 }))
 }));
 
-import { AuthProvider, useAuth } from './AuthProvider';
+import { AuthProvider, educationPermissionImplies, useAuth } from './AuthProvider';
 import { beginLogout, refreshWithCookie } from './oidc-client';
 
 const session = {
@@ -76,6 +76,13 @@ function ApiFetchProbe() {
 
 describe('AuthProvider', () => {
     afterEach(() => vi.restoreAllMocks());
+
+    it('treats manage as read only inside the same School permission family', () => {
+        expect(educationPermissionImplies('education.governance.manage', 'education.governance.read')).toBe(true);
+        expect(educationPermissionImplies('education.governance.manage', 'education.decisions.read')).toBe(false);
+        expect(educationPermissionImplies('education.governance.read', 'education.governance.manage')).toBe(false);
+        expect(educationPermissionImplies('registratura.manage', 'registratura.read')).toBe(false);
+    });
 
     it('accepts the backend nested SessionContext and exposes effective permissions', async () => {
         vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>

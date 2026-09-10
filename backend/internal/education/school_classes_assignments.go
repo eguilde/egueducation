@@ -14,7 +14,7 @@ import (
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
-const schoolEnrolmentColumns = `enrolment.id::text, enrolment.student_id::text, enrolment.class_id::text, student.last_name || ' ' || student.first_name, class_row.class_name, to_char(enrolment.enrolled_from, 'YYYY-MM-DD'), coalesce(to_char(enrolment.enrolled_until, 'YYYY-MM-DD'), ''), enrolment.status`
+const schoolEnrolmentColumns = `enrolment.id::text, enrolment.student_id::text, enrolment.class_id::text, concat_ws(' ', student.first_name, student.last_name), class_row.class_name, to_char(enrolment.enrolled_from, 'YYYY-MM-DD'), coalesce(to_char(enrolment.enrolled_until, 'YYYY-MM-DD'), ''), enrolment.status`
 const schoolHomeroomColumns = `assignment.id::text, assignment.class_id::text, class_row.class_name, assignment.personnel_id::text, assignment.app_user_id::text, user_row.name, to_char(assignment.assigned_from, 'YYYY-MM-DD'), coalesce(to_char(assignment.assigned_until, 'YYYY-MM-DD'), '')`
 
 func scanSchoolEnrolment(row pgx.Row, item *SchoolEnrolment) error {
@@ -86,7 +86,7 @@ func (s *Service) SchoolEnrolments(w http.ResponseWriter, r *http.Request) {
 	}
 	if v := strings.TrimSpace(q.Filters["student_name"]); v != "" {
 		args = append(args, "%"+strings.ToLower(v)+"%")
-		where += fmt.Sprintf(" and lower(student.last_name || ' ' || student.first_name) like $%d", len(args))
+		where += fmt.Sprintf(" and (lower(concat_ws(' ', student.first_name, student.last_name)) like $%d or lower(concat_ws(' ', student.last_name, student.first_name)) like $%d)", len(args), len(args))
 	}
 	if v := strings.TrimSpace(q.Filters["class_name"]); v != "" {
 		args = append(args, "%"+strings.ToLower(v)+"%")
