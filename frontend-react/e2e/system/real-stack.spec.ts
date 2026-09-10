@@ -204,6 +204,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // canonical personnel relation, never a display name. Establish that
   // relation before the teacher creates a portfolio below.
   const approverPersonnelCode = `PORT-APPROVER-${marker.slice(-12).replace(/[^A-Za-z0-9]/g, 'X')}`;
+  const unrelatedPersonnelCode = `PORT-UNRELATED-${marker.slice(-12).replace(/[^A-Za-z0-9]/g, 'X')}`;
   databaseExec(`
     insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
     values ('${approverPersonnelCode}','${marker} Profesor portofoliu','Profesor','titular','active','draft','none','${portfolioSchoolYear}','Învățământ gimnazial','+40100000888','${approverPersonnelCode.toLowerCase()}@example.test',true,'inst-001','Canonical E2E portfolio owner.','${approverID}')
@@ -320,7 +321,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     select lifecycle_status || '|' || created_by_user_id::text || '|' || approved_by_user_id::text || '|' || published_by_user_id::text
     from education_portfolio_procedure_versions where id='${procedureCreated.body.id}'
   `)).toBe(`published|${platformAdminID}|${platformAdminID}|${platformAdminID}`);
-  databaseExec(`delete from app_user_platform_roles where user_id='${platformAdminID}'; update app_memberships set position_code='profesor' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'`);
+  databaseExec(`
+    insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
+    values ('${unrelatedPersonnelCode}','${marker} Profesor neasociat','Profesor','titular','active','draft','none','${portfolioSchoolYear}','Învățământ gimnazial','+40100000889','${unrelatedPersonnelCode.toLowerCase()}@example.test',false,'inst-001','Canonical E2E unrelated teacher.','${platformAdminID}')
+    on conflict (institution_id,app_user_id) where app_user_id is not null do update
+      set employee_code=excluded.employee_code,full_name=excluded.full_name,role_title=excluded.role_title,employment_type=excluded.employment_type,status=excluded.status,evaluation_status=excluded.evaluation_status,mobility_stage=excluded.mobility_stage,school_year=excluded.school_year,assigned_unit=excluded.assigned_unit,has_portfolio=excluded.has_portfolio;
+    delete from app_user_platform_roles where user_id='${platformAdminID}';
+    update app_memberships set position_code='profesor' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'
+  `);
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
   unrelatedTeacherToken = await authenticated(page);

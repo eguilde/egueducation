@@ -35,47 +35,46 @@ func TestSchoolClassesNOBYPASSRLS(t *testing.T) {
 	assignedClass, unassignedClass, pastClass, futureClass := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
 	currentStudent, expiredStudent, futureStudent := uuid.NewString(), uuid.NewString(), uuid.NewString()
 	transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent := uuid.NewString(), uuid.NewString(), uuid.NewString(), uuid.NewString()
-	seedArgs := []any{assignedClass, unassignedClass, pastClass, futureClass, currentStudent, expiredStudent, futureStudent, transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent, fixture.tenantA, fixture.institutionA, fixture.memberPersonnelID, fixture.memberUserID}
 	if _, err := admin.Exec(ctx, `
 		insert into education_school_classes(id,tenant_code,institution_id,class_code,class_name,school_year,grade_level)
 		values
-			($1::uuid,$12,$13,'CLS-ASSIGNED','IV A','2026-2027','IV'),
-			($2::uuid,$12,$13,'CLS-UNASSIGNED','IV B','2026-2027','IV'),
-			($3::uuid,$12,$13,'CLS-PAST','IV C','2026-2027','IV'),
-			($4::uuid,$12,$13,'CLS-FUTURE','IV D','2026-2027','IV')
-	`, seedArgs...); err != nil {
+			($1::uuid,$5,$6,'CLS-ASSIGNED','IV A','2026-2027','IV'),
+			($2::uuid,$5,$6,'CLS-UNASSIGNED','IV B','2026-2027','IV'),
+			($3::uuid,$5,$6,'CLS-PAST','IV C','2026-2027','IV'),
+			($4::uuid,$5,$6,'CLS-FUTURE','IV D','2026-2027','IV')
+	`, assignedClass, unassignedClass, pastClass, futureClass, fixture.tenantA, fixture.institutionA); err != nil {
 		t.Fatalf("seed school class fixture: %v", err)
 	}
 	if _, err := admin.Exec(ctx, `
 		insert into education_students(id,tenant_code,institution_id,student_code,first_name,last_name,status) values
-			($5::uuid,$12,$13,'STU-CURRENT','Ana','Current','active'),
-			($6::uuid,$12,$13,'STU-EXPIRED','Bela','Expired','active'),
-			($7::uuid,$12,$13,'STU-FUTURE','Cora','Future','active'),
-			($8::uuid,$12,$13,'STU-TRANSFERRED','Dan','Transferred','active'),
-			($9::uuid,$12,$13,'STU-WITHDRAWN','Eva','Withdrawn','active'),
-			($10::uuid,$12,$13,'STU-PUPIL-WITHDRAWN','Fia','PupilWithdrawn','withdrawn'),
-			($11::uuid,$12,$13,'STU-UNASSIGNED','Gheorghe','Unassigned','active')
-	`, seedArgs...); err != nil {
+			($1::uuid,$8,$9,'STU-CURRENT','Ana','Current','active'),
+			($2::uuid,$8,$9,'STU-EXPIRED','Bela','Expired','active'),
+			($3::uuid,$8,$9,'STU-FUTURE','Cora','Future','active'),
+			($4::uuid,$8,$9,'STU-TRANSFERRED','Dan','Transferred','active'),
+			($5::uuid,$8,$9,'STU-WITHDRAWN','Eva','Withdrawn','active'),
+			($6::uuid,$8,$9,'STU-PUPIL-WITHDRAWN','Fia','PupilWithdrawn','withdrawn'),
+			($7::uuid,$8,$9,'STU-UNASSIGNED','Gheorghe','Unassigned','active')
+	`, currentStudent, expiredStudent, futureStudent, transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent, fixture.tenantA, fixture.institutionA); err != nil {
 		t.Fatalf("seed student fixture: %v", err)
 	}
 	if _, err := admin.Exec(ctx, `
 		insert into education_student_enrolments(tenant_code,institution_id,student_id,class_id,enrolled_from,enrolled_until,status) values
-			($12,$13,$5::uuid,$1::uuid,current_date,null,'active'),
-			($12,$13,$6::uuid,$1::uuid,current_date-10,current_date-1,'active'),
-			($12,$13,$7::uuid,$1::uuid,current_date+1,null,'active'),
-			($12,$13,$8::uuid,$1::uuid,current_date,null,'transferred'),
-			($12,$13,$9::uuid,$1::uuid,current_date,null,'withdrawn'),
-			($12,$13,$10::uuid,$1::uuid,current_date,null,'active'),
-			($12,$13,$11::uuid,$2::uuid,current_date,null,'active')
-	`, seedArgs...); err != nil {
+			($10,$11,$3::uuid,$1::uuid,current_date,null,'active'),
+			($10,$11,$4::uuid,$1::uuid,current_date-10,current_date-1,'active'),
+			($10,$11,$5::uuid,$1::uuid,current_date+1,null,'active'),
+			($10,$11,$6::uuid,$1::uuid,current_date,null,'transferred'),
+			($10,$11,$7::uuid,$1::uuid,current_date,null,'withdrawn'),
+			($10,$11,$8::uuid,$1::uuid,current_date,null,'active'),
+			($10,$11,$9::uuid,$2::uuid,current_date,null,'active')
+	`, assignedClass, unassignedClass, currentStudent, expiredStudent, futureStudent, transferredStudent, withdrawnStudent, withdrawnPupilStudent, unassignedStudent, fixture.tenantA, fixture.institutionA); err != nil {
 		t.Fatalf("seed enrolment fixture: %v", err)
 	}
 	if _, err := admin.Exec(ctx, `
 		insert into education_class_homeroom_assignments(tenant_code,institution_id,class_id,personnel_id,app_user_id,assigned_from,assigned_until) values
-			($12,$13,$1::uuid,$14::uuid,$15::uuid,current_date,null),
-			($12,$13,$3::uuid,$14::uuid,$15::uuid,current_date-10,current_date-1),
-			($12,$13,$4::uuid,$14::uuid,$15::uuid,current_date+1,null)
-	`, seedArgs...); err != nil {
+			($6,$7,$1::uuid,$4::uuid,$5::uuid,current_date,null),
+			($6,$7,$2::uuid,$4::uuid,$5::uuid,current_date-10,current_date-1),
+			($6,$7,$3::uuid,$4::uuid,$5::uuid,current_date+1,null)
+	`, assignedClass, pastClass, futureClass, fixture.memberPersonnelID, fixture.memberUserID, fixture.tenantA, fixture.institutionA); err != nil {
 		t.Fatalf("seed homeroom fixture: %v", err)
 	}
 

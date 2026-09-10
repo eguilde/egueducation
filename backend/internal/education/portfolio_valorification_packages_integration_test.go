@@ -104,19 +104,19 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 	pool := appdb.NewSessionPool(it.readerPool)
 	var packageID string
 	if err := pool.QueryRow(sourceCtx, `
-		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,source_evaluation_id,created_by_subject)
-		values ($1,$2,$3::uuid,'evaluare_profesionala',$4::uuid,'forged') returning id::text`, fixture.tenantA, fixture.institutionA, fixture.portfolioID, evaluationID).Scan(&packageID); err != nil {
+		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,purpose,source_evaluation_id,created_by_subject)
+		values ($1,$2,$3::uuid,'evaluare_profesionala','evaluare_profesionala',$4::uuid,'forged') returning id::text`, fixture.tenantA, fixture.institutionA, fixture.portfolioID, evaluationID).Scan(&packageID); err != nil {
 		t.Fatalf("create scope-bound package: %v", err)
 	}
 	if _, err := pool.Exec(sourceCtx, `
-		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,source_evaluation_id)
-		values ($1,$2,$3::uuid,'evaluare_profesionala',$4::uuid)
+		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,purpose,source_evaluation_id)
+		values ($1,$2,$3::uuid,'evaluare_profesionala','evaluare_profesionala',$4::uuid)
 	`, fixture.tenantA, fixture.institutionA, fixture.portfolioID, foreignEvaluationID); err == nil || !strings.Contains(err.Error(), "must match portfolio personnel") {
 		t.Fatalf("same-tenant foreign personnel source must be rejected; err=%v", err)
 	}
 	if _, err := pool.Exec(sourceCtx, `
-		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,source_evaluation_id)
-		values ($1,$2,$3::uuid,'evaluare_profesionala',$4::uuid)
+		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,purpose,source_evaluation_id)
+		values ($1,$2,$3::uuid,'evaluare_profesionala','evaluare_profesionala',$4::uuid)
 	`, fixture.tenantA, fixture.institutionA, fixture.portfolioID, wrongYearEvaluationID); err == nil || !strings.Contains(err.Error(), "school year") {
 		t.Fatalf("same-person wrong-school-year source must be rejected; err=%v", err)
 	}
@@ -125,7 +125,7 @@ func TestPortfolioValorificationPackagesIntegration(t *testing.T) {
 		column string
 		id     string
 	}{{"mobilitate", "source_mobility_case_id", mobilityID}, {"gradatie_merit", "source_merit_grant_id", meritID}} {
-		statement := `insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,` + source.column + `) values ($1,$2,$3::uuid,$4,$5::uuid)`
+		statement := `insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,purpose,` + source.column + `) values ($1,$2,$3::uuid,$4,$4,$5::uuid)`
 		if _, err := pool.Exec(sourceCtx, statement, fixture.tenantA, fixture.institutionA, fixture.portfolioID, source.scope, source.id); err != nil {
 			t.Fatalf("canonical %s source must create a bound package: %v", source.scope, err)
 		}
