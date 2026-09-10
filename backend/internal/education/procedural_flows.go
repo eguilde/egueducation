@@ -17,11 +17,16 @@ import (
 func (s *Service) GovernanceMinuteItems(w http.ResponseWriter, r *http.Request) {
 	meetingID := strings.TrimSpace(chi.URLParam(r, "meetingID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
+		"agenda_order":         {},
 		"topic_title":          {},
+		"discussion_summary":   {},
+		"decision_summary":     {},
 		"follow_up_status":     {},
 		"responsible_party":    {},
+		"due_on":               {},
 		"requires_publication": {},
-	}, []string{"agenda_order", "topic_title", "follow_up_status", "responsible_party"})
+		"notes":                {},
+	}, []string{"agenda_order", "topic_title", "discussion_summary", "decision_summary", "follow_up_status", "responsible_party", "due_on", "requires_publication", "notes"})
 	if query.Sort == "" {
 		query.Sort = "agenda_order"
 	}
@@ -302,12 +307,12 @@ func (s *Service) DeleteGovernanceMinuteItem(w http.ResponseWriter, r *http.Requ
 func (s *Service) PortfolioOpisEntries(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
-		"section_code":       {},
-		"component_code":     {},
-		"entry_title":        {},
-		"source_scope":       {},
-		"document_reference": {},
-	}, []string{"section_code", "component_code", "entry_title", "source_scope", "document_reference"})
+		"section_code":        {},
+		"component_code":      {},
+		"entry_title":         {},
+		"chronological_index": {},
+		"document_reference":  {},
+	}, []string{"section_code", "component_code", "entry_title", "source_scope", "chronological_index", "document_reference", "checked_on", "notes"})
 	if query.Sort == "" {
 		query.Sort = "chronological_index"
 	}
@@ -325,7 +330,7 @@ func (s *Service) PortfolioOpisEntries(w http.ResponseWriter, r *http.Request) {
 			document_reference, included_in_transfer, to_char(checked_on, 'YYYY-MM-DD'), checked_by, institution_id, notes
 		from education_portfolio_opis epo
 		%s
-		order by %s %s, chronological_index, section_code, component_code
+		order by %s %s, epo.id asc
 		limit $%d offset $%d
 	`, whereClause, portfolioOpisSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
@@ -502,12 +507,12 @@ func (s *Service) DeletePortfolioOpisEntry(w http.ResponseWriter, r *http.Reques
 func (s *Service) PortfolioCustodyEvents(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
-		"event_type":     {},
-		"holder_name":    {},
-		"holder_role":    {},
-		"location_label": {},
-		"access_mode":    {},
-	}, []string{"event_type", "holder_name", "holder_role", "location_label", "access_mode"})
+		"event_type":  {},
+		"holder_name": {},
+		"holder_role": {},
+		"started_on":  {},
+		"ended_on":    {},
+	}, []string{"event_type", "holder_name", "holder_role", "location_label", "started_on", "ended_on", "access_mode", "notes"})
 	if query.Sort == "" {
 		query.Sort = "started_on"
 	}
@@ -525,7 +530,7 @@ func (s *Service) PortfolioCustodyEvents(w http.ResponseWriter, r *http.Request)
 			to_char(started_on, 'YYYY-MM-DD'), coalesce(to_char(ended_on, 'YYYY-MM-DD'), ''), access_mode, sensitive_data_access, institution_id, notes
 		from education_portfolio_custody epc
 		%s
-		order by %s %s, started_on desc, holder_name
+		order by %s %s, epc.id asc
 		limit $%d offset $%d
 	`, whereClause, portfolioCustodySortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
@@ -843,7 +848,7 @@ func (s *Service) CreatePublicationRecord(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	code := fmt.Sprintf("PUB-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	code := newEducationCode("PUB")
 	var item PublicationRecord
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_publications (
@@ -949,9 +954,14 @@ func buildGovernanceMinuteFilters(filters map[string]string, meetingID string, i
 	where := []string{"emm.meeting_id = $1", "emm.institution_id = $2"}
 	args := []any{meetingID, institutionID}
 	for key, column := range map[string]string{
-		"topic_title":       "emm.topic_title",
-		"follow_up_status":  "emm.follow_up_status",
-		"responsible_party": "emm.responsible_party",
+		"agenda_order":       "emm.agenda_order::text",
+		"topic_title":        "emm.topic_title",
+		"discussion_summary": "emm.discussion_summary",
+		"decision_summary":   "emm.decision_summary",
+		"follow_up_status":   "emm.follow_up_status",
+		"responsible_party":  "emm.responsible_party",
+		"due_on":             "to_char(emm.due_on, 'YYYY-MM-DD')",
+		"notes":              "emm.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -969,11 +979,14 @@ func buildPortfolioOpisFilters(filters map[string]string, recordID string, insti
 	where := []string{"epo.portfolio_id = $1", "epo.institution_id = $2"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
-		"section_code":       "epo.section_code",
-		"component_code":     "epo.component_code",
-		"entry_title":        "epo.entry_title",
-		"source_scope":       "epo.source_scope",
-		"document_reference": "epo.document_reference",
+		"section_code":        "epo.section_code",
+		"component_code":      "epo.component_code",
+		"entry_title":         "epo.entry_title",
+		"source_scope":        "epo.source_scope",
+		"chronological_index": "epo.chronological_index::text",
+		"document_reference":  "epo.document_reference",
+		"checked_on":          "to_char(epo.checked_on, 'YYYY-MM-DD')",
+		"notes":               "epo.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -991,7 +1004,10 @@ func buildPortfolioCustodyFilters(filters map[string]string, recordID string, in
 		"holder_name":    "epc.holder_name",
 		"holder_role":    "epc.holder_role",
 		"location_label": "epc.location_label",
+		"started_on":     "to_char(epc.started_on, 'YYYY-MM-DD')",
+		"ended_on":       "to_char(epc.ended_on, 'YYYY-MM-DD')",
 		"access_mode":    "epc.access_mode",
+		"notes":          "epc.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1046,14 +1062,10 @@ func portfolioOpisSortColumn(value string) string {
 		return "epo.component_code"
 	case "entry_title":
 		return "epo.entry_title"
-	case "source_scope":
-		return "epo.source_scope"
 	case "chronological_index":
 		return "epo.chronological_index"
 	case "document_reference":
 		return "epo.document_reference"
-	case "checked_on":
-		return "epo.checked_on"
 	default:
 		return "epo.chronological_index"
 	}
@@ -1067,14 +1079,10 @@ func portfolioCustodySortColumn(value string) string {
 		return "epc.holder_name"
 	case "holder_role":
 		return "epc.holder_role"
-	case "location_label":
-		return "epc.location_label"
 	case "started_on":
 		return "epc.started_on"
 	case "ended_on":
 		return "epc.ended_on"
-	case "access_mode":
-		return "epc.access_mode"
 	default:
 		return "epc.started_on"
 	}

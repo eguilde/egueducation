@@ -123,6 +123,21 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 	if crossTenantMembership {
 		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture user already belongs to another tenant")
 	}
+	var crossTenantAuthorization bool
+	if err = tx.QueryRow(ctx, `
+		select exists(
+			select 1 from app_user_roles where user_id=$1 and tenant_code<>$2
+			union all
+			select 1 from app_user_permissions where user_id=$1 and tenant_code<>$2
+			union all
+			select 1 from app_user_modules where user_id=$1 and tenant_code<>$2
+		)
+	`, user.ID, cfg.TestOTPFixtureTenantCode).Scan(&crossTenantAuthorization); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("inspect test OTP cross-tenant authorization: %w", err)
+	}
+	if crossTenantAuthorization {
+		return OIDCTestFixtureUser{}, fmt.Errorf("test OTP fixture user has cross-tenant authorization grants")
+	}
 	if _, err = tx.Exec(ctx, `
 		insert into app_users (id, sub, name, email, phone_number, locale, status, email_verified, phone_number_verified, preferred_otp_channel)
 		values ($1, $2, 'Utilizator Test', $3, $4, 'ro', 'active', true, false, 'sms')
@@ -169,17 +184,26 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 		return OIDCTestFixtureUser{}, fmt.Errorf("resolve test OTP tenant: %w", err)
 	}
 	if _, err = tx.Exec(ctx, `
-		insert into app_session_context (user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
-		values ($1, $2, $3, array['oidc_redirect', 'sms_otp'], '{}')
-		on conflict (user_id) do update set institution_id=excluded.institution_id, institution_name=excluded.institution_name, auth_methods=excluded.auth_methods
-	`, user.ID, institutionID, institutionName); err != nil {
+		insert into app_session_context (user_id, tenant_code, institution_id, institution_name, auth_methods, gdpr_capabilities)
+		values ($1, $2, $3, $4, array['oidc_redirect', 'sms_otp'], '{}')
+		on conflict (user_id, tenant_code) do update set institution_id=excluded.institution_id, institution_name=excluded.institution_name, auth_methods=excluded.auth_methods
+	`, user.ID, cfg.TestOTPFixtureTenantCode, institutionID, institutionName); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP session context: %w", err)
 	}
 	if _, err = tx.Exec(ctx, `delete from app_memberships where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP memberships: %w", err)
 	}
+	if _, err = tx.Exec(ctx, `delete from app_user_platform_roles where user_id=$1`, user.ID); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("remove test OTP platform roles: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `delete from app_user_roles where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP tenant roles: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `delete from app_user_permissions where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP direct permissions: %w", err)
+	}
 	positionCode := "super_admin"
-	if cfg.ProductionE2ECanaryEnabled() {
+	if cfg.ProductionFixedOTPTestUserEnabled() {
 		positionCode = "e2e_canary"
 	}
 	if _, err = tx.Exec(ctx, `
@@ -187,6 +211,15 @@ func EnsureOIDCTestFixtureUser(ctx context.Context, pool *pgxpool.Pool, cfg conf
 		values ($1, $2, $3, $4, $5, true, true, current_date)
 	`, user.ID, cfg.TestOTPFixtureTenantCode, positionCode, rootOrgUnitCode, institutionName); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("seed test OTP membership: %w", err)
+	}
+	if cfg.ProductionFixedOTPTestUserEnabled() {
+		if _, err = tx.Exec(ctx, `
+			insert into app_user_roles (tenant_code, user_id, role_code)
+			values ($2, $1, 'e2e_canary')
+			on conflict do nothing
+		`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
+			return OIDCTestFixtureUser{}, fmt.Errorf("seed production test OTP tenant role: %w", err)
+		}
 	}
 	if _, err = tx.Exec(ctx, `delete from app_user_modules where user_id=$1 and tenant_code=$2`, user.ID, cfg.TestOTPFixtureTenantCode); err != nil {
 		return OIDCTestFixtureUser{}, fmt.Errorf("reset test OTP modules: %w", err)

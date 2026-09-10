@@ -23,6 +23,9 @@ func (s *Service) MobilityFinalDecisions(w http.ResponseWriter, r *http.Request)
 		"outcome":          {},
 		"panel_name":       {},
 		"destination_unit": {},
+		"decision_stage":   {},
+		"legal_basis":      {},
+		"notes":            {},
 	}, []string{"decision_code", "decision_type", "outcome", "panel_name", "approved_on", "effective_from"})
 	if query.Sort == "" {
 		query.Sort = "approved_on"
@@ -127,7 +130,7 @@ func (s *Service) CreateMobilityFinalDecision(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	code := fmt.Sprintf("MOB-DEC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MOB-DEC")
 	var item MobilityFinalDecision
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_mobility_final_decisions (
@@ -254,7 +257,8 @@ func (s *Service) MobilityResultIssues(w http.ResponseWriter, r *http.Request) {
 		"delivery_channel":   {},
 		"delivery_status":    {},
 		"registry_reference": {},
-	}, []string{"issue_code", "document_type", "recipient_name", "recipient_role", "delivery_channel", "delivery_status", "issued_on", "delivered_on"})
+		"notes":              {},
+	}, []string{"issue_code", "document_type", "recipient_name", "recipient_role", "delivery_channel", "delivery_status", "issued_on", "delivered_on", "notes"})
 	if query.Sort == "" {
 		query.Sort = "issued_on"
 	}
@@ -363,7 +367,7 @@ func (s *Service) CreateMobilityResultIssue(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	code := fmt.Sprintf("MOB-OUT-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MOB-OUT")
 	var item MobilityResultIssue
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_mobility_result_issues (
@@ -490,7 +494,9 @@ func (s *Service) MeritFinalDecisions(w http.ResponseWriter, r *http.Request) {
 		"decision_stage": {},
 		"outcome":        {},
 		"panel_name":     {},
-	}, []string{"decision_code", "decision_stage", "outcome", "panel_name", "approved_on", "effective_from"})
+		"funded":         {},
+		"notes":          {},
+	}, []string{"decision_code", "decision_stage", "outcome", "panel_name", "approved_on", "effective_from", "funded", "notes"})
 	if query.Sort == "" {
 		query.Sort = "approved_on"
 	}
@@ -590,7 +596,7 @@ func (s *Service) CreateMeritFinalDecision(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	code := fmt.Sprintf("MER-DEC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MER-DEC")
 	var item MeritFinalDecision
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_merit_final_decisions (
@@ -714,7 +720,8 @@ func (s *Service) MeritResultIssues(w http.ResponseWriter, r *http.Request) {
 		"delivery_channel":   {},
 		"delivery_status":    {},
 		"registry_reference": {},
-	}, []string{"issue_code", "document_type", "recipient_name", "recipient_role", "delivery_channel", "delivery_status", "issued_on", "delivered_on"})
+		"notes":              {},
+	}, []string{"issue_code", "document_type", "recipient_name", "recipient_role", "delivery_channel", "delivery_status", "issued_on", "delivered_on", "notes"})
 	if query.Sort == "" {
 		query.Sort = "issued_on"
 	}
@@ -820,7 +827,7 @@ func (s *Service) CreateMeritResultIssue(w http.ResponseWriter, r *http.Request)
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_merit_result_issue_delivered_on"})
 		return
 	}
-	code := fmt.Sprintf("MER-OUT-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MER-OUT")
 	var item MeritResultIssue
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_merit_result_issues (
@@ -1140,6 +1147,9 @@ func buildMobilityFinalDecisionFilters(filters map[string]string, recordID strin
 	if value := filters["decision_type"]; value != "" {
 		addContains("emfd.decision_type", value)
 	}
+	if value := filters["decision_stage"]; value != "" {
+		addContains("emfd.decision_type", value)
+	}
 	if value := filters["outcome"]; value != "" {
 		addContains("emfd.outcome", value)
 	}
@@ -1148,6 +1158,12 @@ func buildMobilityFinalDecisionFilters(filters map[string]string, recordID strin
 	}
 	if value := filters["destination_unit"]; value != "" {
 		addContains("emfd.destination_unit", value)
+	}
+	if value := filters["legal_basis"]; value != "" {
+		addContains("emfd.legal_basis", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("emfd.notes", value)
 	}
 	return "where " + strings.Join(where, " and "), args
 }
@@ -1180,6 +1196,9 @@ func buildMobilityResultIssueFilters(filters map[string]string, recordID string,
 	if value := filters["registry_reference"]; value != "" {
 		addContains("emri.registry_reference", value)
 	}
+	if value := filters["notes"]; value != "" {
+		addContains("emri.notes", value)
+	}
 	return "where " + strings.Join(where, " and "), args
 }
 
@@ -1201,6 +1220,13 @@ func buildMeritFinalDecisionFilters(filters map[string]string, recordID string, 
 	}
 	if value := filters["panel_name"]; value != "" {
 		addContains("emfd.panel_name", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("emfd.notes", value)
+	}
+	if value := strings.TrimSpace(filters["funded"]); value != "" {
+		args = append(args, value == "true")
+		where = append(where, fmt.Sprintf("emfd.funded = $%d", len(args)))
 	}
 	return "where " + strings.Join(where, " and "), args
 }
@@ -1232,6 +1258,9 @@ func buildMeritResultIssueFilters(filters map[string]string, recordID string, in
 	}
 	if value := filters["registry_reference"]; value != "" {
 		addContains("emri.registry_reference", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("emri.notes", value)
 	}
 	return "where " + strings.Join(where, " and "), args
 }

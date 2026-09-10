@@ -42,6 +42,28 @@ func TestPortfolioRecordRequestRejectsClientRetentionDeadline(t *testing.T) {
 	}
 }
 
+func TestPortfolioCreateAndUpdateUseExplicitOwnerPairingContracts(t *testing.T) {
+	const payload = `{"owner_user_id":"11111111-1111-4111-8111-111111111111","owner_personnel_id":"22222222-2222-4222-8222-222222222222","owner_name":"Profesor"}`
+
+	createRequest := httptest.NewRequest("POST", "/education/portfolios/records", strings.NewReader(payload))
+	var createTarget CreatePortfolioRecordRequest
+	if err := decodePortfolioRecordRequest(createRequest, &createTarget); err != nil {
+		t.Fatalf("create portfolio contract rejected owner pairing: %v", err)
+	}
+	if createTarget.OwnerUserID == "" || createTarget.OwnerPersonnelID == "" {
+		t.Fatalf("create portfolio contract lost owner pairing: %#v", createTarget)
+	}
+
+	updateRequest := httptest.NewRequest("PATCH", "/education/portfolios/records/portfolio-id", strings.NewReader(payload))
+	var updateTarget UpdatePortfolioRecordRequest
+	if err := decodePortfolioRecordRequest(updateRequest, &updateTarget); err != nil {
+		t.Fatalf("update portfolio contract rejected owner assertions: %v", err)
+	}
+	if updateTarget.OwnerUserID != createTarget.OwnerUserID || updateTarget.OwnerPersonnelID != createTarget.OwnerPersonnelID {
+		t.Fatalf("create/update owner assertions diverged: create=%#v update=%#v", createTarget, updateTarget)
+	}
+}
+
 func TestOwnPortfolioRequestRejectsLegacyClientControlledEvidence(t *testing.T) {
 	request := httptest.NewRequest("POST", "/education/portfolios/me", strings.NewReader(`{"school_year":"2026-2027","last_updated_on":"2026-09-09","notes":"","authenticity_declared":true}`))
 	var target OwnPortfolioRequest

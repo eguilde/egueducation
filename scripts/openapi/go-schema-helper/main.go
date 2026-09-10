@@ -50,12 +50,17 @@ func scalar(e ast.Expr, structs map[string]*ast.StructType, visiting map[string]
 }
 func objectSchema(st *ast.StructType, structs map[string]*ast.StructType, visiting map[string]bool) map[string]any {
 	props := map[string]any{}
+	required := make([]string, 0)
 	for _, field := range st.Fields.List {
 		if len(field.Names) == 0 { // embedded local DTO: JSON embeds its exported fields.
 			if ident, ok := field.Type.(*ast.Ident); ok {
 				if embedded, ok := structs[ident.Name]; ok && !visiting[ident.Name] {
-					for key, value := range objectSchema(embedded, structs, map[string]bool{ident.Name: true})["properties"].(map[string]any) {
+					embeddedSchema := objectSchema(embedded, structs, map[string]bool{ident.Name: true})
+					for key, value := range embeddedSchema["properties"].(map[string]any) {
 						props[key] = value
+					}
+					if embeddedRequired, ok := embeddedSchema["required"].([]string); ok {
+						required = append(required, embeddedRequired...)
 					}
 				}
 			}
@@ -65,13 +70,28 @@ func objectSchema(st *ast.StructType, structs map[string]*ast.StructType, visiti
 			continue
 		}
 		tag := reflect.StructTag(strings.Trim(field.Tag.Value, "`")).Get("json")
-		name := strings.Split(tag, ",")[0]
+		parts := strings.Split(tag, ",")
+		name := parts[0]
 		if name == "" || name == "-" {
 			continue
 		}
 		props[name] = scalar(field.Type, structs, visiting)
+		omitEmpty := false
+		for _, option := range parts[1:] {
+			if option == "omitempty" {
+				omitEmpty = true
+				break
+			}
+		}
+		if !omitEmpty {
+			required = append(required, name)
+		}
 	}
-	return map[string]any{"type": "object", "additionalProperties": false, "properties": props}
+	result := map[string]any{"type": "object", "additionalProperties": false, "properties": props}
+	if len(required) > 0 {
+		result["required"] = required
+	}
+	return result
 }
 func main() {
 	args := os.Args[1:]

@@ -2,6 +2,7 @@ package education
 
 type PersonnelRecord struct {
 	ID               string `json:"id"`
+	AppUserID        string `json:"app_user_id,omitempty"`
 	EmployeeCode     string `json:"employee_code"`
 	FullName         string `json:"full_name"`
 	RoleTitle        string `json:"role_title"`
@@ -89,6 +90,11 @@ type PersonnelPortfolioRelationReadiness struct {
 }
 
 type CreatePersonnelRecordRequest struct {
+	// AppUserID is the explicit, administrator-managed canonical identity for
+	// this institutional personnel record. It is never inferred by portfolio
+	// commands and may be omitted only for personnel without an application
+	// account yet.
+	AppUserID        string `json:"app_user_id,omitempty"`
 	FullName         string `json:"full_name"`
 	RoleTitle        string `json:"role_title"`
 	EmploymentType   string `json:"employment_type"`

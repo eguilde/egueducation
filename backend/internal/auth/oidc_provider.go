@@ -512,46 +512,13 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 			return nil
 		}
 
-		var (
-			subject              string
-			name                 string
-			email                string
-			phone                string
-			locale               string
-			emailVerified        bool
-			phoneVerified        bool
-			preferredInstitution string
-		)
-		err = db.QueryRow(r.Context(), `
-			select
-				sub,
-				name,
-				email,
-				phone_number,
-				locale,
-				email_verified,
-				phone_number_verified,
-				sc.institution_id
-			from app_users u
-			join app_session_context sc on sc.user_id = u.id
-			where u.id = $1::uuid and u.status = 'active'
-		`, userID).Scan(&subject, &name, &email, &phone, &locale, &emailVerified, &phoneVerified, &preferredInstitution)
-		if err != nil {
-			return nil
-		}
-
 		configuredTenantHint := strings.TrimSpace(cfg.CustomerDomain + " " + cfg.CustomerName)
-		branding := tenant.ResolveBranding(r.Host, cfg.CustomerName, preferredInstitution)
-		if tenant.IsLocalHost(r.Host) {
+		branding := tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
+		if tenant.IsLocalHost(r.Host) || branding.InstitutionID == "" {
 			branding = tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
 		}
-		if branding.InstitutionID == "" {
-			branding = tenant.ResolveBranding(r.Host, cfg.CustomerName, tenant.DefaultInstitutionID(configuredTenantHint))
-		}
-		preferredInstitution = branding.InstitutionID
-
 		tenantCode := branding.TenantCode
-		if tenantCode == "" {
+		if tenantCode == "" || branding.InstitutionID == "" {
 			return errors.New("unknown tenant host")
 		}
 		requestTenantCode, err := oidcTenantCodeFromContext(r.Context())
@@ -561,6 +528,38 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		if requestTenantCode != tenantCode {
 			return errors.New("OIDC transaction tenant does not match request host")
 		}
+
+		var (
+			subject       string
+			name          string
+			email         string
+			phone         string
+			locale        string
+			emailVerified bool
+			phoneVerified bool
+		)
+		err = db.QueryRow(r.Context(), `
+			select
+				sub,
+				name,
+				email,
+				phone_number,
+				locale,
+				email_verified,
+				phone_number_verified
+			from app_users u
+			join app_session_context sc
+				on sc.user_id = u.id
+				and sc.tenant_code = $2
+				and sc.institution_id = $3
+			where u.id = $1::uuid and u.status = 'active'
+		`, userID, tenantCode, branding.InstitutionID).Scan(&subject, &name, &email, &phone, &locale, &emailVerified, &phoneVerified)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return errors.New("authenticated user has no session context for the requested tenant")
+			}
+			return fmt.Errorf("load grant tenant session context: %w", err)
+		}
 		tx, err := beginTenantReadTx(r.Context(), db, tenantCode, "grant claims")
 		if err != nil {
 			return err
@@ -568,7 +567,16 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		defer func() { _ = tx.Rollback(r.Context()) }()
 
 		var tenantMembership bool
-		if err := tx.QueryRow(r.Context(), `select exists(select 1 from app_memberships where user_id = $1::uuid and tenant_code = $2 and active = true)`, userID, tenantCode).Scan(&tenantMembership); err != nil {
+		if err := tx.QueryRow(r.Context(), `
+			select exists(
+				select 1 from app_memberships
+				where user_id = $1::uuid
+					and tenant_code = $2
+					and active = true
+					and start_date <= current_date
+					and (end_date is null or end_date >= current_date)
+			)
+		`, userID, tenantCode).Scan(&tenantMembership); err != nil {
 			return fmt.Errorf("verify grant tenant membership: %w", err)
 		}
 		if !tenantMembership {
@@ -598,7 +606,7 @@ func buildGrantClaimsEnricher(db *pgxpool.Pool, cfg *config.Config) goidc.Handle
 		applyOIDCGrantClaimRelease(grant, oidcClaimSubject{
 			UserID:        userID.String(),
 			TenantCode:    tenantCode,
-			InstitutionID: preferredInstitution,
+			InstitutionID: branding.InstitutionID,
 			Name:          name,
 			Email:         email,
 			PhoneNumber:   phone,
@@ -948,8 +956,8 @@ func renderOTPIdentifierStep(
 	// The fixed canary UUID is permanently reserved in production. Disabling
 	// the feature must make a previously provisioned canary unusable instead of
 	// falling back to the normal SMS path.
-	productionCanaryUser := isReservedProductionE2ECanaryUser(cfg, user.ID)
-	if productionCanaryUser && !isProductionE2ECanaryIdentity(cfg, user, loginBranding.TenantCode) {
+	productionFixedOTPTestUser := isReservedProductionFixedOTPTestUser(cfg, user.ID)
+	if productionFixedOTPTestUser && !isProductionFixedOTPTestIdentity(cfg, user, loginBranding.TenantCode) {
 		// The production canary identity never falls through to normal OTP/SMS.
 		// An ungated interaction receives the same decoy step as an unknown user.
 		sess.StoreParameter("step", "otp")
@@ -1033,21 +1041,21 @@ func testOTPFixtureAllowed(_ *http.Request, cfg *config.Config, user oidcLoginUs
 	if !identityMatches {
 		return false
 	}
-	return !cfg.IsProduction() || (cfg.ProductionE2ECanaryEnabled() && user.ID == testOTPFixtureUserID(*cfg))
+	return !cfg.IsProduction() || (cfg.ProductionFixedOTPTestUserEnabled() && user.ID == testOTPFixtureUserID(*cfg))
 }
 
-func isProductionE2ECanaryIdentity(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
-	return isProductionE2ECanaryUser(cfg, user, tenantCode) &&
+func isProductionFixedOTPTestIdentity(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+	return isProductionFixedOTPTestUser(cfg, user, tenantCode) &&
 		strings.EqualFold(strings.TrimSpace(user.Email), cfg.TestOTPFixtureIdentifier) &&
 		strings.TrimSpace(user.Subject) == cfg.TestOTPFixtureSubject
 }
 
-func isProductionE2ECanaryUser(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
-	return cfg != nil && cfg.ProductionE2ECanaryEnabled() && user.ID == testOTPFixtureUserID(*cfg) &&
+func isProductionFixedOTPTestUser(cfg *config.Config, user oidcLoginUser, tenantCode string) bool {
+	return cfg != nil && cfg.ProductionFixedOTPTestUserEnabled() && user.ID == testOTPFixtureUserID(*cfg) &&
 		strings.TrimSpace(tenantCode) == cfg.TestOTPFixtureTenantCode
 }
 
-func isReservedProductionE2ECanaryUser(cfg *config.Config, userID uuid.UUID) bool {
+func isReservedProductionFixedOTPTestUser(cfg *config.Config, userID uuid.UUID) bool {
 	return cfg != nil && cfg.IsProduction() && userID == testOTPFixtureUserID(*cfg)
 }
 
@@ -1285,7 +1293,11 @@ func findLoginUser(ctx context.Context, db *pgxpool.Pool, identifier string, ten
 			)
 			and exists (
 				select 1 from app_memberships m
-				where m.user_id = app_users.id and m.tenant_code = $3 and m.active = true
+				where m.user_id = app_users.id
+					and m.tenant_code = $3
+					and m.active = true
+					and m.start_date <= current_date
+					and (m.end_date is null or m.end_date >= current_date)
 			)
 		order by updated_at desc
 		limit 1
@@ -1340,6 +1352,8 @@ func loadRolesForSubject(ctx context.Context, db oidcRowsQuerier, subject string
 			join app_position_roles pr on pr.position_code = m.position_code
 			where lower(u.sub) = lower($1)
 				and m.active = true
+				and m.start_date <= current_date
+				and (m.end_date is null or m.end_date >= current_date)
 				and m.tenant_code = $2
 		) roles
 		order by role_code
@@ -1448,6 +1462,8 @@ func loadPermissionsForSubject(ctx context.Context, db oidcRowsQuerier, subject 
 			join app_position_permissions pp on pp.position_code = m.position_code
 			where lower(u.sub) = lower($1)
 			  and m.active = true
+			  and m.start_date <= current_date
+			  and (m.end_date is null or m.end_date >= current_date)
 			  and m.tenant_code = $2
 			union
 			select rp.permission_code
@@ -1457,6 +1473,8 @@ func loadPermissionsForSubject(ctx context.Context, db oidcRowsQuerier, subject 
 			join app_role_permissions rp on rp.role_code = pr.role_code
 			where lower(u.sub) = lower($1)
 			  and m.active = true
+			  and m.start_date <= current_date
+			  and (m.end_date is null or m.end_date >= current_date)
 			  and m.tenant_code = $2
 		) permissions
 		order by permission_code

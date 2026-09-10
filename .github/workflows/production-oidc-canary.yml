@@ -1,4 +1,4 @@
-name: Production OIDC canary
+name: Production fixed-OTP test user
 
 on:
   workflow_dispatch:
@@ -11,15 +11,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: egueducation-production-oidc-canary
+  group: egueducation-production-fixed-otp-test-user
   cancel-in-progress: false
 
 jobs:
-  production-oidc-canary:
-    name: Production PKCE and OTP canary
+  production-fixed-otp-test-user:
+    name: Production PKCE and fixed-OTP verification
     # The production test user follows the same OIDC + OTP flow as a real user.
     # Its fixed OTP is stored only as a GitHub/Kubernetes secret and its RBAC
-    # role is tenant-scoped and read-only.
+    # role is tenant-scoped and has the explicitly approved complete tenant
+    # permission set. It never receives a platform role or cross-tenant bypass.
     if: >-
       ${{
         vars.ENABLE_PRODUCTION_OIDC_CANARY == 'true' &&
@@ -35,9 +36,8 @@ jobs:
     environment: production
     env:
       PRODUCTION_ORIGIN: https://scoalabalotesti.eguilde.cloud
-      PRODUCTION_E2E_CANARY_IDENTIFIER: ${{ secrets.PRODUCTION_E2E_CANARY_IDENTIFIER }}
-      PRODUCTION_E2E_CANARY_OTP: ${{ secrets.PRODUCTION_E2E_CANARY_OTP }}
-      PRODUCTION_E2E_CANARY_ACTIVATION_KEY: ${{ secrets.PRODUCTION_E2E_CANARY_ACTIVATION_KEY }}
+      PRODUCTION_TEST_USER_IDENTIFIER: ${{ secrets.PRODUCTION_TEST_USER_IDENTIFIER }}
+      PRODUCTION_TEST_USER_OTP: ${{ secrets.PRODUCTION_TEST_USER_OTP }}
     steps:
       - name: Check out the deployed source revision
         uses: actions/checkout@v4

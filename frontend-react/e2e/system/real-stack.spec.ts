@@ -231,7 +231,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // perform a fresh teacher authorization-code exchange before self-service.
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
-  databaseExec(`update app_users set name='${marker} Profesor portofoliu' where id='${approverID}'; update app_memberships set position_code='director' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; insert into app_user_platform_roles(user_id, role_code) values ('${platformAdminID}', 'platform_super_admin') on conflict (user_id, role_code) do nothing`);
+  databaseExec(`update app_users set name='${marker} Profesor portofoliu' where id='${approverID}'; update app_memberships set position_code='director' where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; delete from app_user_platform_roles where user_id='${platformAdminID}'; delete from app_user_roles where user_id='${platformAdminID}' and tenant_code='tenant-egueducation'; insert into app_user_roles(tenant_code,user_id,role_code) values ('tenant-egueducation','${platformAdminID}','admin') on conflict do nothing`);
   const portfolioGrantAdminToken = await authenticated(page);
   const portfolioGrantAdminMe = await api<{ permissions: string[] }>(page, portfolioGrantAdminToken, '/api/me');
   expect(portfolioGrantAdminMe.status).toBe(200);
@@ -1025,17 +1025,21 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   databaseExec(`
     update app_users set name='${chairName}' where id='${directorID}';
     update app_users set name='${secretaryName}' where id='${secretaryID}';
-    update app_memberships set position_code='super_admin'
+    update app_memberships set position_code='director'
     where user_id='${directorID}' and tenant_code='tenant-egueducation';
-    insert into app_user_platform_roles(user_id, role_code)
-    values ('${directorID}', 'platform_super_admin')
-    on conflict (user_id, role_code) do nothing
+    delete from app_user_platform_roles where user_id='${directorID}';
+    delete from app_user_roles where user_id='${directorID}' and tenant_code='tenant-egueducation';
+    insert into app_user_roles(tenant_code,user_id,role_code)
+    values ('tenant-egueducation','${directorID}','director')
+    on conflict do nothing
   `);
 
   const directorToken = await authenticated(page);
-  const directorMe = await api<{ permissions: string[] }>(page, directorToken, '/api/me');
+  const directorMe = await api<{ permissions: string[]; platform_roles: string[] }>(page, directorToken, '/api/me');
   expect(directorMe.status).toBe(200);
   expect(directorMe.body.permissions).toContain('education.governance.manage');
+  expect(directorMe.body.platform_roles).toEqual([]);
+  expect(jwtPayload(directorToken).platform_roles).toEqual([]);
 
   // This is deliberately a real lazy-loaded React wizard and not a direct
   // fetch: it proves browser interaction -> generated transport -> OIDC/RBAC
@@ -1047,8 +1051,8 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
   await page.getByLabel('Cvorum').fill('1');
   await page.getByRole('button', { name: 'Continuă' }).click();
   await page.getByLabel('Data').fill('2026-09-10');
-  await page.getByLabel('Locație').fill('Sala profesorală');
   await page.getByRole('button', { name: 'Continuă' }).click();
+  await page.getByLabel('Locație').fill('Sala profesorală');
   await page.getByRole('combobox', { name: 'Președinte *' }).click();
   await page.getByRole('option', { name: chairName, exact: true }).click();
   await page.getByRole('combobox', { name: 'Secretar *' }).click();
@@ -1202,4 +1206,222 @@ test('real React governance wizard persists UUID-bound meeting and remains tenan
 
   await page.getByRole('button', { name: 'Deconectare' }).click();
   await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+});
+
+test('School class roster, reports and signature evidence remain tenant/RBAC scoped', async ({ page, browser }) => {
+  // Give the ordinary fixture the same institution role a director would have.
+  // The browser still receives a fresh authorization-code token; database setup
+  // never substitutes an authenticated API request.
+  const actorID = databaseScalar("select id::text from app_users where sub='oidc-browser-fixture-subject'");
+  databaseExec(`
+    update app_memberships set position_code='director'
+    where user_id='${actorID}' and tenant_code='tenant-egueducation';
+    delete from app_user_roles where user_id='${actorID}' and tenant_code='tenant-egueducation'
+  `);
+  const token = await authenticated(page);
+  const suffix = `${Date.now()}`;
+
+  // Classes, pupils and enrolments are created through the actual PrimeReact
+  // dialogs.  This catches regressions where the selector UI drops either the
+  // selected student or selected class from the generated request body.
+  const classCode = `E2E-${suffix}`;
+  const className = `IX E2E ${suffix}`;
+  await page.goto('/scoala/clase');
+  await expect(page.getByRole('heading', { name: 'Clase, elevi și diriginți' })).toBeVisible();
+  await page.getByRole('button', { name: 'Adaugă clasă' }).click();
+  const classDialog = page.getByRole('dialog', { name: 'Adaugă clasă' });
+  await classDialog.locator('label').filter({ hasText: 'Cod *' }).locator('input').fill(classCode);
+  await classDialog.locator('label').filter({ hasText: 'Denumire *' }).locator('input').fill(className);
+  await classDialog.locator('label').filter({ hasText: 'An școlar *' }).locator('input').fill('2026-2027');
+  await classDialog.locator('label').filter({ hasText: 'Nivel *' }).locator('input').fill('IX');
+  const classCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/classes' && response.request().method() === 'POST');
+  await classDialog.getByRole('button', { name: 'Salvează' }).click();
+  const classHTTP = await classCreated;
+  expect(classHTTP.status()).toBe(201);
+  const schoolClass = await classHTTP.json() as { id: string; class_code: string };
+  expect(schoolClass.class_code).toBe(classCode);
+
+  await page.getByRole('tab', { name: 'Elevi' }).click();
+  await page.getByRole('button', { name: 'Adaugă elev' }).click();
+  const studentDialog = page.getByRole('dialog', { name: 'Adaugă elev' });
+  await studentDialog.locator('label').filter({ hasText: 'Cod *' }).locator('input').fill(`ST-${suffix}`);
+  await studentDialog.locator('label').filter({ hasText: 'Nume *' }).locator('input').fill('E2E');
+  await studentDialog.locator('label').filter({ hasText: 'Prenume *' }).locator('input').fill('Elev');
+  const studentCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/students' && response.request().method() === 'POST');
+  await studentDialog.getByRole('button', { name: 'Salvează' }).click();
+  const studentHTTP = await studentCreated;
+  expect(studentHTTP.status()).toBe(201);
+  const student = await studentHTTP.json() as { id: string; student_code: string };
+
+  await page.getByRole('tab', { name: 'Înscrieri' }).click();
+  await page.getByRole('button', { name: 'Adaugă înscriere' }).click();
+  const enrolmentDialog = page.getByRole('dialog', { name: 'Adaugă înscriere' });
+  await enrolmentDialog.getByLabel('Caută elev').fill(student.student_code);
+  await enrolmentDialog.getByLabel('Selectează elevul').click();
+  await page.getByRole('option', { name: `Elev E2E (${student.student_code})`, exact: true }).click();
+  await enrolmentDialog.getByLabel('Caută clasă').fill(classCode);
+  await enrolmentDialog.getByLabel('Selectează clasa').click();
+  await page.getByRole('option', { name: `${className} (${classCode})`, exact: true }).click();
+  await enrolmentDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-09-01');
+  const enrolmentCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/class-enrolments' && response.request().method() === 'POST');
+  await enrolmentDialog.getByRole('button', { name: 'Salvează' }).click();
+  const enrolmentHTTP = await enrolmentCreated;
+  expect(enrolmentHTTP.status()).toBe(201);
+  const enrolment = await enrolmentHTTP.json() as { id: string; class_id: string; student_id: string };
+  expect(enrolment).toMatchObject({ class_id: schoolClass.id, student_id: student.id });
+  expect(databaseScalar(`select count(*)::text from education_student_enrolments where id='${enrolment.id}' and class_id='${schoolClass.id}' and student_id='${student.id}'`)).toBe('1');
+
+  // Link the second ordinary OIDC fixture to an active personnel identity,
+  // then use the production homeroom dialog and both server-backed selectors.
+  // The fixture is deliberately only a professor: it receives
+  // `education.classes.read_assigned`, never the all-classes permissions.
+  const assignedTeacherID = databaseScalar("select id::text from app_users where sub='oidc-browser-approver-subject'");
+  const teacherName = `${marker} Diriginte ${suffix}`;
+  const teacherCode = `DIR-${suffix}`;
+  databaseExec(`
+    update app_users set name='${teacherName}' where id='${assignedTeacherID}';
+    update app_memberships set position_code='profesor'
+    where user_id='${assignedTeacherID}' and tenant_code='tenant-egueducation';
+    delete from app_user_roles where user_id='${assignedTeacherID}' and tenant_code='tenant-egueducation';
+    delete from app_user_platform_roles where user_id='${assignedTeacherID}';
+    insert into education_personnel (tenant_code,employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
+    values ('tenant-egueducation','${teacherCode}','${teacherName}','Profesor diriginte','titular','active','draft','none','2026-2027','Învățământ gimnazial','+40100000999','diriginte-${suffix}@example.test',false,'inst-001','Fixture E2E pentru acces restrâns.','${assignedTeacherID}')
+    on conflict (institution_id,app_user_id) where app_user_id is not null do update
+      set employee_code=excluded.employee_code,full_name=excluded.full_name,role_title=excluded.role_title,employment_type=excluded.employment_type,status=excluded.status,evaluation_status=excluded.evaluation_status,mobility_stage=excluded.mobility_stage,school_year=excluded.school_year,assigned_unit=excluded.assigned_unit,app_user_id=excluded.app_user_id
+  `);
+  const teacherPersonnelID = databaseScalar(`select id::text from education_personnel where institution_id='inst-001' and app_user_id='${assignedTeacherID}'`);
+  await page.getByRole('tab', { name: 'Diriginți' }).click();
+  await page.getByRole('button', { name: 'Atribuie diriginte' }).click();
+  const homeroomDialog = page.getByRole('dialog', { name: 'Atribuie diriginte' });
+  await homeroomDialog.getByLabel('Caută clasă').fill(classCode);
+  await homeroomDialog.getByLabel('Selectează clasa').click();
+  await page.getByRole('option', { name: `${className} (${classCode})`, exact: true }).click();
+  await homeroomDialog.getByLabel('Caută profesor').fill(teacherCode);
+  await homeroomDialog.getByLabel('Selectează profesorul').click();
+  await page.getByRole('option', { name: `${teacherName} (${teacherCode})`, exact: true }).click();
+  await homeroomDialog.locator('label').filter({ hasText: 'De la *' }).locator('input').fill('2026-01-01');
+  const homeroomCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/homeroom-assignments' && response.request().method() === 'POST');
+  await homeroomDialog.getByRole('button', { name: 'Salvează' }).click();
+  const homeroomHTTP = await homeroomCreated;
+  expect(homeroomHTTP.status()).toBe(201);
+  const homeroom = await homeroomHTTP.json() as { id: string; class_id: string; personnel_id: string; app_user_id: string };
+  expect(homeroom).toMatchObject({ class_id: schoolClass.id, personnel_id: teacherPersonnelID, app_user_id: assignedTeacherID });
+  expect(databaseScalar(`select count(*)::text from education_class_homeroom_assignments where id='${homeroom.id}' and class_id='${schoolClass.id}' and personnel_id='${teacherPersonnelID}' and app_user_id='${assignedTeacherID}'`)).toBe('1');
+
+  // Seed a genuinely unassigned class and pupil through the authorized API,
+  // then prove the assigned teacher cannot enumerate or read either resource.
+  const hiddenClass = await api<{ id: string }>(page, token, '/api/education/classes', { method: 'POST', body: JSON.stringify({ class_code: `HIDDEN-${suffix}`, class_name: `IX ascunsă ${suffix}`, grade_level: 'IX', school_year: '2026-2027', study_shift: 'day', active: true }) });
+  expect(hiddenClass.status).toBe(201);
+  const hiddenStudent = await api<{ id: string }>(page, token, '/api/education/students', { method: 'POST', body: JSON.stringify({ student_code: `HST-${suffix}`, first_name: 'Elev', last_name: 'Ascuns', status: 'active' }) });
+  expect(hiddenStudent.status).toBe(201);
+  const hiddenEnrolment = await api<{ id: string }>(page, token, '/api/education/class-enrolments', { method: 'POST', body: JSON.stringify({ class_id: hiddenClass.body.id, student_id: hiddenStudent.body.id, enrolled_from: '2026-09-01', status: 'active' }) });
+  expect(hiddenEnrolment.status).toBe(201);
+
+  const assignedContext = await browser.newContext({ baseURL: 'http://localhost:4174' });
+  const assignedPage = await assignedContext.newPage();
+  const assignedToken = await authenticated(assignedPage, approverIdentifier, approverOTP, 'http://localhost:4174');
+  const assignedMe = await api<{ permissions: string[] }>(assignedPage, assignedToken, '/api/me');
+  expect(assignedMe.status).toBe(200);
+  expect(assignedMe.body.permissions).toContain('education.classes.read_assigned');
+  expect(assignedMe.body.permissions).not.toContain('education.classes.read');
+  expect(assignedMe.body.permissions).not.toContain('education.classes.manage');
+  const assignedClasses = await api<{ items: Array<{ id: string }>; total: number }>(assignedPage, assignedToken, '/api/education/classes?page=1&pageSize=50');
+  expect(assignedClasses.status).toBe(200);
+  expect(assignedClasses.body.items.map((item) => item.id)).toEqual([schoolClass.id]);
+  expect(assignedClasses.body.total).toBe(1);
+  const assignedStudents = await api<{ items: Array<{ id: string }>; total: number }>(assignedPage, assignedToken, '/api/education/students?page=1&pageSize=50');
+  expect(assignedStudents.status).toBe(200);
+  expect(assignedStudents.body.items.map((item) => item.id)).toEqual([student.id]);
+  expect(assignedStudents.body.total).toBe(1);
+  expect((await api<unknown>(assignedPage, assignedToken, `/api/education/classes/${schoolClass.id}`)).status).toBe(200);
+  expect((await api<unknown>(assignedPage, assignedToken, `/api/education/students/${student.id}`)).status).toBe(200);
+  expect((await api<unknown>(assignedPage, assignedToken, `/api/education/classes/${hiddenClass.body.id}`)).status).toBe(404);
+  expect((await api<unknown>(assignedPage, assignedToken, `/api/education/students/${hiddenStudent.body.id}`)).status).toBe(404);
+  await assignedPage.goto('/scoala/clase');
+  await expect(assignedPage.getByText(className, { exact: true })).toBeVisible();
+  await expect(assignedPage.getByText(`IX ascunsă ${suffix}`, { exact: true })).toHaveCount(0);
+  await assignedPage.getByRole('tab', { name: 'Elevi' }).click();
+  await expect(assignedPage.getByText('E2E', { exact: true })).toBeVisible();
+  await expect(assignedPage.getByText('Ascuns', { exact: true })).toHaveCount(0);
+  await assignedPage.getByRole('button', { name: 'Deconectare' }).click();
+  await assignedContext.close();
+
+  // The reports UI must make a real server-side list query, filter/sort it and
+  // send an audited CSV export rather than rendering a client-side projection.
+  await page.goto('/scoala/reports');
+  await expect(page.getByRole('heading', { name: 'Rapoarte școlare' })).toBeVisible();
+  await expect.poll(() => page.getByLabel('Raport').count()).toBeGreaterThan(0);
+  const reportLoaded = page.waitForResponse((response) => /^\/api\/education\/reports\/[^/]+$/.test(new URL(response.url()).pathname) && response.request().method() === 'GET');
+  await page.getByRole('button', { name: /Sortează după/ }).first().click();
+  expect((await reportLoaded).status()).toBe(200);
+  const filter = page.getByRole('textbox', { name: /Filtru/ }).first();
+  const filtered = page.waitForResponse((response) => new URL(response.url()).pathname.startsWith('/api/education/reports/') && new URL(response.url()).searchParams.keys().next().value !== undefined && response.request().method() === 'GET');
+  await filter.fill('nu-exista-e2e');
+  expect((await filtered).status()).toBe(200);
+  await filter.fill('');
+  const exported = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/csv') && response.request().method() === 'GET');
+  await page.getByRole('button', { name: 'Exportă CSV' }).click();
+  expect((await exported).status()).toBe(200);
+  expect(databaseScalar("select count(*)::text from app_audit_log where action='education.reports.export.csv' and tenant_code='tenant-egueducation'")).not.toBe('0');
+
+  // A ready/active archive version is the only provenance supplied to the
+  // submit API.  Browser-controlled hash, bucket and object key are forbidden;
+  // the server derives all three from this version inside the tenant scope.
+  const archiveDocumentID = databaseScalar('select gen_random_uuid()::text');
+  const archiveTitle = `${marker} signature source ${suffix}`;
+  const archiveHash = 'b'.repeat(64);
+  const archiveBucket = 'system-e2e-signatures';
+  const archiveObjectKey = `${marker}/signature-${suffix}.pdf`;
+  databaseExec(`
+    insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
+    values ('${archiveDocumentID}','inst-001','${archiveTitle}','signature-${suffix}.pdf','application/pdf','upload','ready','${archiveBucket}','${archiveObjectKey}','${archiveBucket}','${archiveObjectKey}',1,'oidc-browser-fixture-subject');
+    insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,source_bucket,source_object_key,source_sha256,status,text_status)
+    values ('${archiveDocumentID}','inst-001',1,'application/pdf','${archiveTitle}','${archiveBucket}','${archiveObjectKey}','${archiveHash}','${archiveBucket}','${archiveObjectKey}','${archiveHash}','active','processed')
+  `);
+  const archiveVersionID = databaseScalar(`select id::text from archive_document_versions where document_id='${archiveDocumentID}' and version_no=1`);
+  const decisionID = databaseScalar('select gen_random_uuid()::text');
+  const decisionCode = `SIG-${suffix}`;
+  databaseExec(`insert into education_decisions(id,decision_code,school_year,organism,title,status,publication_status,decision_date,legal_basis,signed_by,institution_id,summary) values ('${decisionID}','${decisionCode}','2026-2027','ca','${marker} decizie semnată','approved','internal','2026-09-10','ROFUIP','Director','inst-001','Fixture semnătură')`);
+
+  await page.goto('/scoala/signatures');
+  await expect(page.getByRole('heading', { name: 'Semnături și dovezi digitale' })).toBeVisible();
+  await page.getByRole('button', { name: 'Înregistrează dovadă' }).click();
+  const evidenceDialog = page.getByRole('dialog', { name: 'Înregistrează dovadă de semnătură' });
+  await expect(evidenceDialog.getByText('Hash-ul și locația de stocare sunt preluate și validate exclusiv de server.')).toBeVisible();
+  await evidenceDialog.getByLabel('Caută artefact').fill(decisionCode);
+  await evidenceDialog.getByLabel('Artefact eligibil *').click();
+  await page.getByRole('option', { name: new RegExp(decisionCode) }).click();
+  await evidenceDialog.getByLabel('Caută versiune eArhivă').fill(archiveTitle);
+  await evidenceDialog.getByLabel('Versiune eArhivă *').click();
+  await page.getByRole('option', { name: `${archiveTitle} · v1`, exact: true }).click();
+  await evidenceDialog.getByLabel('Subiect certificat').fill('E2E signer');
+  await evidenceDialog.getByLabel('Emitent certificat').fill('E2E issuer');
+  await evidenceDialog.getByLabel('Serie certificat').fill(suffix);
+  await evidenceDialog.getByLabel('Certificat valabil de la').fill('2026-01-01T00:00');
+  await evidenceDialog.getByLabel('Certificat valabil până la').fill('2027-01-01T00:00');
+  const evidenceCreated = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/education/signatures' && response.request().method() === 'POST');
+  await evidenceDialog.getByRole('button', { name: 'Înregistrează dovada' }).click();
+  const evidenceHTTP = await evidenceCreated;
+  expect(evidenceHTTP.status()).toBe(201);
+  const evidencePayload = evidenceHTTP.request().postDataJSON() as Record<string, unknown>;
+  expect(evidencePayload).toMatchObject({ artifact_type: 'decision', artifact_id: decisionID, storage_document_id: archiveDocumentID, storage_version_id: archiveVersionID });
+  expect(evidencePayload).not.toHaveProperty('document_sha256');
+  expect(evidencePayload).not.toHaveProperty('storage_bucket');
+  expect(evidencePayload).not.toHaveProperty('storage_object_key');
+  const evidence = await evidenceHTTP.json() as { id: string };
+  expect(databaseScalar(`select document_sha256 || '|' || storage_bucket || '|' || storage_object_key || '|' || storage_document_id::text || '|' || storage_version_id::text from education_signed_artifact_evidence where id='${evidence.id}'`)).toBe(`${archiveHash}|${archiveBucket}|${archiveObjectKey}|${archiveDocumentID}|${archiveVersionID}`);
+
+  const evidenceRow = page.getByText('E2E signer', { exact: true }).locator('xpath=ancestor::tr[1]');
+  await expect(evidenceRow).toBeVisible();
+  await evidenceRow.getByRole('button', { name: 'Acțiuni dovadă' }).click();
+  await page.getByRole('button', { name: 'Revalidează' }).click();
+  const revalidated = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/signatures/${evidence.id}/revalidate` && response.request().method() === 'POST');
+  await page.getByRole('dialog', { name: 'Revalidează dovada' }).getByRole('button', { name: 'Revalidează' }).click();
+  const revalidationHTTP = await revalidated;
+  expect(revalidationHTTP.status()).toBe(201);
+  expect((await revalidationHTTP.json() as { validation_status: string }).validation_status).toBe('error'); // verifier remains explicitly fail-closed until deployment config exists
+  expect(databaseScalar(`select count(*)::text from education_signed_artifact_evidence where id='${evidence.id}'`)).toBe('1');
+  expect(databaseScalar(`select count(*)::text from app_audit_log where action='education.signatures.revalidate' and target_id='${evidence.id}'`)).toBe('1');
+  const other = await browser.newContext({ baseURL: 'http://localhost:4175' }); const otherPage = await other.newPage(); const otherToken = await authenticated(otherPage, balotestiIdentifier, balotestiOTP, 'http://localhost:4175');
+  const hidden = await api<unknown>(otherPage, otherToken, `/api/education/signatures/${evidence.id}`); expect(hidden.status).toBe(404); await other.close();
 });

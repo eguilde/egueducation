@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -24,7 +23,9 @@ func (s *Service) PersonnelPersonalFileDocuments(w http.ResponseWriter, r *http.
 		"confidentiality_level": {},
 		"included_in_portfolio": {},
 		"sensitive_data":        {},
-	}, []string{"document_code", "document_category", "document_title", "file_scope", "confidentiality_level", "issued_on", "expires_on"})
+		"file_reference":        {},
+		"notes":                 {},
+	}, []string{"document_code", "document_category", "document_title", "file_scope", "confidentiality_level", "issued_on", "expires_on", "included_in_portfolio", "sensitive_data", "file_reference", "notes"})
 	if query.Sort == "" {
 		query.Sort = "issued_on"
 	}
@@ -186,7 +187,7 @@ func (s *Service) CreatePersonnelPersonalFileDocument(w http.ResponseWriter, r *
 		return
 	}
 
-	documentCode := fmt.Sprintf("PFD-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	documentCode := newEducationCode("PFD")
 	var item PersonnelPersonalFileDocument
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_personnel_file_documents (
@@ -383,7 +384,9 @@ func (s *Service) PersonnelPersonalAccessEvents(w http.ResponseWriter, r *http.R
 		"actor_role":      {},
 		"access_channel":  {},
 		"sensitive_scope": {},
-	}, []string{"event_type", "actor_name", "actor_role", "access_channel", "accessed_on", "closed_on"})
+		"purpose":         {},
+		"notes":           {},
+	}, []string{"event_type", "actor_name", "actor_role", "access_channel", "accessed_on", "closed_on", "sensitive_scope", "purpose", "notes"})
 	if query.Sort == "" {
 		query.Sort = "accessed_on"
 	}
@@ -709,10 +712,13 @@ func (s *Service) DeletePersonnelPersonalAccessEvent(w http.ResponseWriter, r *h
 func (s *Service) EvaluationAppeals(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
-		"appeal_code":  {},
-		"submitted_by": {},
-		"status":       {},
-	}, []string{"appeal_code", "submitted_by", "status", "submitted_on", "hearing_on", "resolved_on"})
+		"appeal_code":      {},
+		"submitted_by":     {},
+		"status":           {},
+		"grounds":          {},
+		"decision_summary": {},
+		"committee_note":   {},
+	}, []string{"appeal_code", "submitted_by", "status", "submitted_on", "hearing_on", "resolved_on", "grounds", "decision_summary", "committee_note"})
 	if query.Sort == "" {
 		query.Sort = "submitted_on"
 	}
@@ -879,7 +885,7 @@ func (s *Service) CreateEvaluationAppeal(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	appealCode := fmt.Sprintf("APEL-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	appealCode := newEducationCode("APEL")
 	var item PersonnelEvaluationAppeal
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_evaluation_appeals (
@@ -1092,6 +1098,8 @@ func buildPersonnelDocumentFilters(filters map[string]string, recordID string, i
 		"document_title":        "epfd.document_title",
 		"file_scope":            "epfd.file_scope",
 		"confidentiality_level": "epfd.confidentiality_level",
+		"file_reference":        "epfd.file_reference",
+		"notes":                 "epfd.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1121,6 +1129,8 @@ func buildPersonnelAccessFilters(filters map[string]string, recordID string, ins
 		"actor_name":     "epae.actor_name",
 		"actor_role":     "epae.actor_role",
 		"access_channel": "epae.access_channel",
+		"purpose":        "epae.purpose",
+		"notes":          "epae.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1138,9 +1148,12 @@ func buildEvaluationAppealFilters(filters map[string]string, recordID string, in
 	where := []string{"eea.evaluation_id = $1", "eea.institution_id = $2"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
-		"appeal_code":  "eea.appeal_code",
-		"submitted_by": "eea.submitted_by",
-		"status":       "eea.status",
+		"appeal_code":      "eea.appeal_code",
+		"submitted_by":     "eea.submitted_by",
+		"status":           "eea.status",
+		"grounds":          "eea.grounds",
+		"decision_summary": "eea.decision_summary",
+		"committee_note":   "eea.committee_note",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")

@@ -17,10 +17,11 @@ const (
 )
 
 type TableContract struct {
-	Name            string
-	Scope           SchemaScope
-	RequiredColumns []string
-	Notes           string
+	Name             string
+	Scope            SchemaScope
+	RequiredColumns  []string
+	RequiredPolicies []string
+	Notes            string
 }
 
 func (t TableContract) requiresRLS() bool {
@@ -64,6 +65,16 @@ func institutionTableWithColumns(name, notes string, requiredColumns ...string) 
 	}
 }
 
+func institutionTableWithColumnsAndPolicies(name, notes string, requiredPolicies []string, requiredColumns ...string) TableContract {
+	return TableContract{
+		Name:             name,
+		Scope:            SchemaScopeInstitution,
+		RequiredColumns:  append([]string{"institution_id"}, requiredColumns...),
+		RequiredPolicies: append([]string(nil), requiredPolicies...),
+		Notes:            notes,
+	}
+}
+
 func tenantTable(name, notes string) TableContract {
 	return TableContract{
 		Name:            name,
@@ -86,7 +97,7 @@ func SchemaContract() []TableContract {
 		globalTableWithColumns("app_user_permissions", "Tenant-scoped user-permission grants enforced by authorization queries.", "tenant_code"),
 		globalTableWithColumns("app_modules", "Feature module flags.", "code", "active"),
 		globalTableWithColumns("app_user_modules", "Tenant-scoped user module grants enforced by authorization queries.", "tenant_code"),
-		globalTableWithColumns("app_session_context", "User session bootstrap context.", "user_id", "institution_id", "institution_name", "auth_methods", "gdpr_capabilities"),
+		globalTableWithColumns("app_session_context", "Tenant-keyed user session bootstrap context.", "user_id", "tenant_code", "institution_id", "institution_name", "auth_methods", "gdpr_capabilities"),
 		globalTableWithColumns("app_position_roles", "Position-to-role mapping.", "position_code", "role_code"),
 		globalTableWithColumns("app_auth_methods", "Authentication method catalog.", "code", "enabled", "primary_method", "sort_order"),
 		globalTableWithColumns("oidc_otp_challenges", "OIDC OTP proofs bound to the exact tenant and authentication session.", "user_id", "identity_id", "tenant_code", "authn_session_id", "purpose", "code_hash", "expires_at", "attempts"),
@@ -116,7 +127,7 @@ func SchemaContract() []TableContract {
 		institutionTable("app_parties", "Physical persons, legal entities and institutions used by registratura."),
 		institutionTable("archive_records", "Electronic archive records."),
 		institutionTable("archive_documents", "Independent archive document registry."),
-		institutionTableWithColumns("archive_document_versions", "Immutable archive document versions.", "source_bucket", "source_object_key", "artifact_bucket", "artifact_object_key", "source_sha256", "source_size_bytes", "page_count", "text_status", "extracted_text", "extracted_metadata", "search_embedding", "created_by", "updated_at"),
+		institutionTableWithColumns("archive_document_versions", "Immutable archive document versions.", "source_bucket", "source_object_key", "source_object_version_id", "source_object_etag", "source_sha256", "source_size_bytes", "retention_until", "legal_hold_active", "artifact_bucket", "artifact_object_key", "page_count", "text_status", "extracted_text", "extracted_metadata", "search_embedding", "created_by", "updated_at"),
 		institutionTableWithColumns("archive_document_chunks", "Searchable text chunks for archive documents.", "version_id", "chunk_no", "page_no", "content", "content_tsv"),
 		institutionTableWithColumns("archive_document_entities", "Extracted archive document entities.", "document_id", "version_id", "entity_type", "entity_value", "normalized_value", "confidence", "chunk_no", "page_no"),
 		institutionTableWithColumns("archive_document_relations", "Archive document relations.", "source_document_id", "relation_type", "relation_value", "confidence", "metadata"),
@@ -127,6 +138,10 @@ func SchemaContract() []TableContract {
 		institutionTable("workflow_instances", "Runtime workflow instances."),
 		institutionTableWithColumns("education_meetings", "Governance meetings with immutable actor identities.", "chairperson_user_id", "secretary_user_id"),
 		institutionTable("education_personnel", "Personnel master data."),
+		institutionTableWithColumnsAndPolicies("education_school_classes", "Tenant- and institution-scoped school classes with lifecycle history.", []string{"education_classes_read", "education_classes_manage"}, "tenant_code", "class_code", "class_name", "school_year", "active"),
+		institutionTableWithColumnsAndPolicies("education_students", "Tenant- and institution-scoped student directory.", []string{"education_students_read", "education_students_manage"}, "tenant_code", "student_code", "first_name", "last_name", "status"),
+		institutionTableWithColumnsAndPolicies("education_student_enrolments", "Temporal class enrolments retained as school evidence.", []string{"education_student_enrolments_read", "education_student_enrolments_manage"}, "tenant_code", "student_id", "class_id", "enrolled_from", "status"),
+		institutionTableWithColumnsAndPolicies("education_class_homeroom_assignments", "Temporal homeroom assignments bound to canonical personnel identity.", []string{"education_homeroom_assignments_read", "education_homeroom_assignments_manage"}, "tenant_code", "class_id", "personnel_id", "app_user_id", "assigned_from"),
 		institutionTableWithColumns("education_portfolios", "Personnel portfolio records with auditable lifecycle safety.", "activity_ceased_on", "retention_period_days", "legal_hold_active", "withdrawn_at", "withdrawal_reason"),
 		institutionTable("education_mobility_cases", "Mobility cases."),
 		institutionTable("education_merit_grants", "Merit grant cases."),
@@ -141,7 +156,7 @@ func SchemaContract() []TableContract {
 		institutionTable("gdpr_publication_reviews", "Publication review flows."),
 		institutionTable("education_meeting_participants", "Meeting participants."),
 		institutionTable("education_meeting_documents", "Meeting documents."),
-		institutionTable("education_portfolio_documents", "Portfolio documents."),
+		institutionTableWithColumns("education_portfolio_documents", "Portfolio documents retained with append-audit lifecycle provenance.", "status", "withdrawn_at", "withdrawn_by_subject", "withdrawal_reason"),
 		institutionTable("education_meeting_votes", "Meeting votes."),
 		institutionTable("education_portfolio_checklist", "Portfolio checklist items."),
 		institutionTableWithColumns("education_governance_memberships", "Governance memberships with immutable user identity.", "app_user_id"),
@@ -154,10 +169,14 @@ func SchemaContract() []TableContract {
 		institutionTable("education_meeting_minutes", "Meeting minutes."),
 		institutionTable("education_portfolio_opis", "Portfolio inventory list."),
 		institutionTable("education_portfolio_custody", "Portfolio custody history."),
+		institutionTableWithColumns("education_portfolio_archive_attachment_grants", "Narrow institution-scoped grants for attaching eArhiva evidence to a professional portfolio.", "archive_document_id", "grantee_user_id", "granted_by_user_id", "created_at"),
+		institutionTableWithColumns("education_role_delegations", "Tenant- and institution-scoped director-to-adjunct delegated authority with immutable provenance.", "tenant_code", "delegator_user_id", "delegate_user_id", "permission_code", "resource_type", "resource_id", "status", "valid_from", "valid_until", "offered_by_user_id", "offered_at"),
 		institutionTableWithColumns("education_portfolio_procedure_versions", "Tenant- and institution-scoped, versioned portfolio procedures.", "tenant_code", "procedure_code", "version_no", "lifecycle_status"),
 		institutionTableWithColumns("education_portfolio_procedure_section_rules", "Tenant- and institution-scoped rules for a versioned portfolio procedure.", "tenant_code", "procedure_id", "section_code"),
 		institutionTableWithColumns("education_portfolio_declaration_acknowledgements", "Tenant- and institution-scoped immutable portfolio declaration acknowledgements.", "tenant_code", "portfolio_id", "declaration_type", "declaration_version", "accepted_at"),
 		institutionTableWithColumns("education_portfolio_export_manifests", "Tenant- and institution-scoped immutable portfolio evidence export manifests.", "tenant_code", "portfolio_id", "manifest_version", "manifest_sha256", "manifest", "generated_at"),
+		institutionTableWithColumns("education_portfolio_valorification_packages", "Tenant- and institution-scoped evidence packages connecting a portfolio to evaluation, mobility, or merit proceedings.", "tenant_code", "portfolio_id", "scope", "status", "created_by_subject", "created_at"),
+		institutionTableWithColumns("education_portfolio_valorification_package_documents", "Immutable archive-version snapshots attached to portfolio valorification packages.", "package_id", "archive_document_id", "archive_version_id", "archive_version_no", "archive_source_bucket", "archive_source_object_key", "archive_sha256", "created_by_subject", "created_at"),
 		institutionTable("education_publications", "Publications and notices."),
 		institutionTable("education_managerial_documents", "Managerial document flow."),
 		institutionTable("education_managerial_workflow_steps", "Managerial workflow steps."),
@@ -183,6 +202,8 @@ func SchemaContract() []TableContract {
 		institutionTable("education_evaluation_self_reviews", "Self-review rows."),
 		institutionTable("education_evaluation_criteria", "Evaluation criteria rows."),
 		institutionTable("education_evaluation_result_issues", "Evaluation result issues."),
+		institutionTableWithColumns("education_signed_artifact_evidence", "Append-only cryptographic signature evidence for official school artifacts.", "tenant_code", "artifact_type", "artifact_id", "document_sha256", "signature_format", "signature_level", "submitted_by_subject", "submitted_at"),
+		institutionTableWithColumns("education_signed_artifact_validations", "Append-only DSS trust validation history for signed school artifacts.", "tenant_code", "evidence_id", "validation_status", "validated_at", "trusted_list_provider", "validator_provider", "validator_version", "validation_policy", "observed_sha256", "observed_size_bytes", "diagnostic_data", "detailed_report", "simple_report", "etsi_validation_report"),
 		globalTableWithColumns("app_entity_versions", "Cross-module version history captures both tenant and institution context.", "id", "entity_table", "entity_id", "version_no", "change_type", "tenant_code", "institution_id", "snapshot", "changed_by", "changed_at"),
 	}
 }
@@ -223,6 +244,32 @@ func ValidateSchemaContract(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("schema contract validation failed:\n- %s", strings.Join(violations, "\n- "))
 	}
 
+	return nil
+}
+
+// ValidateRuntimeDatabaseRole prevents a production runtime connection from
+// silently bypassing FORCE RLS. Application-level session settings cannot
+// constrain a PostgreSQL SUPERUSER or a role carrying BYPASSRLS.
+func ValidateRuntimeDatabaseRole(ctx context.Context, pool *pgxpool.Pool) error {
+	var role string
+	var superuser, bypassRLS bool
+	if err := pool.QueryRow(ctx, `
+		select current_user, rolsuper, rolbypassrls
+		from pg_catalog.pg_roles
+		where rolname = current_user
+	`).Scan(&role, &superuser, &bypassRLS); err != nil {
+		return fmt.Errorf("inspect runtime database role: %w", err)
+	}
+	return validateRuntimeDatabaseRoleFlags(role, superuser, bypassRLS)
+}
+
+func validateRuntimeDatabaseRoleFlags(role string, superuser, bypassRLS bool) error {
+	if strings.TrimSpace(role) == "" {
+		return fmt.Errorf("runtime database role is empty")
+	}
+	if superuser || bypassRLS {
+		return fmt.Errorf("runtime database role %q must be NOSUPERUSER and NOBYPASSRLS", role)
+	}
 	return nil
 }
 
@@ -273,20 +320,26 @@ func validateRowLevelSecurity(ctx context.Context, pool *pgxpool.Pool, table Tab
 		return fmt.Errorf("schema contract violation: table %s must have forced row level security enabled", table.Name)
 	}
 
-	var policyExists bool
-	if err := pool.QueryRow(ctx, `
-		select exists (
-			select 1
-			from pg_policies
-			where schemaname = 'public'
-				and tablename = $1
-				and policyname = 'tenant_isolation'
-		)
-	`, table.Name).Scan(&policyExists); err != nil {
-		return fmt.Errorf("check row level security policy for %s: %w", table.Name, err)
+	policyNames := table.RequiredPolicies
+	if len(policyNames) == 0 {
+		policyNames = []string{"tenant_isolation"}
 	}
-	if !policyExists {
-		return fmt.Errorf("schema contract violation: table %s is missing tenant_isolation policy", table.Name)
+	for _, policyName := range policyNames {
+		var policyExists bool
+		if err := pool.QueryRow(ctx, `
+			select exists (
+				select 1
+				from pg_policies
+				where schemaname = 'public'
+					and tablename = $1
+					and policyname = $2
+			)
+		`, table.Name, policyName).Scan(&policyExists); err != nil {
+			return fmt.Errorf("check row level security policy for %s: %w", table.Name, err)
+		}
+		if !policyExists {
+			return fmt.Errorf("schema contract violation: table %s is missing %s policy", table.Name, policyName)
+		}
 	}
 
 	if column := table.filterColumn(); column != "" {

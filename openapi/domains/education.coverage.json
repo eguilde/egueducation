@@ -4,7 +4,7 @@
   "scope": {
     "router": "backend/cmd/server/main.go",
     "routePrefix": "/api/education",
-    "operationCount": 356
+    "operationCount": 362
   },
   "sharedContract": {
     "securityScheme": "oidcAuthorizationCode",
@@ -98,7 +98,7 @@
       "success": {
         "status": 200,
         "contentType": "application/json",
-        "schema": "TaxonomyItem"
+        "schema": "TaxonomyCatalogResponse"
       },
       "errors": [
         400,
@@ -114,7 +114,7 @@
       "operationKey": "GET /api/education/requirements",
       "operationId": "get_api_education_requirements",
       "handler": "RequirementCatalog",
-      "source": "backend/internal/education/service.go:5741",
+      "source": "backend/internal/education/service.go:6191",
       "contractStatus": "detailed",
       "security": [
         "oidcAuthorizationCode"
@@ -127,13 +127,16 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.domain"
+        "filter.domain",
+        "filter.priority",
+        "filter.implementation_status",
+        "filter.requirement_type"
       ],
       "requestBody": null,
       "success": {
         "status": 200,
         "contentType": "application/json",
-        "schema": "EducationRequirement"
+        "schema": "EducationPageOfEducationRequirement"
       },
       "errors": [
         400,
@@ -419,7 +422,8 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.school_year"
+        "filter.school_year",
+        "filter.organism"
       ],
       "requestBody": null,
       "success": {
@@ -607,7 +611,11 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.school_year"
+        "filter.school_year",
+        "filter.organism",
+        "filter.full_name",
+        "filter.role_name",
+        "filter.status"
       ],
       "requestBody": null,
       "success": {
@@ -675,7 +683,12 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.full_name"
+        "filter.full_name",
+        "filter.role_name",
+        "filter.member_type",
+        "filter.attendance_status",
+        "filter.signature_present",
+        "filter.voting_right"
       ],
       "requestBody": null,
       "success": {
@@ -744,7 +757,13 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.document_type"
+        "filter.document_type",
+        "filter.title",
+        "filter.document_number",
+        "filter.registry_number",
+        "filter.publication_status",
+        "filter.issued_on",
+        "filter.custody_owner"
       ],
       "requestBody": null,
       "success": {
@@ -845,7 +864,11 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.subject_title"
+        "filter.subject_title",
+        "filter.agenda_order",
+        "filter.decision_type",
+        "filter.outcome",
+        "filter.requires_follow_up"
       ],
       "requestBody": null,
       "success": {
@@ -914,7 +937,15 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.topic_title"
+        "filter.agenda_order",
+        "filter.topic_title",
+        "filter.discussion_summary",
+        "filter.decision_summary",
+        "filter.follow_up_status",
+        "filter.responsible_party",
+        "filter.due_on",
+        "filter.requires_publication",
+        "filter.notes"
       ],
       "requestBody": null,
       "success": {
@@ -1015,7 +1046,11 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.resolution_code"
+        "filter.resolution_code",
+        "filter.title",
+        "filter.resolution_type",
+        "filter.publication_status",
+        "filter.anonymization_state"
       ],
       "requestBody": null,
       "success": {
@@ -1946,7 +1981,14 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.issuance_code"
+        "filter.issuance_code",
+        "filter.document_type",
+        "filter.recipient_name",
+        "filter.recipient_role",
+        "filter.delivery_channel",
+        "filter.delivery_status",
+        "filter.signed_on",
+        "filter.delivered_on"
       ],
       "requestBody": null,
       "success": {
@@ -2015,7 +2057,13 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.step_type"
+        "filter.step_order",
+        "filter.step_type",
+        "filter.status",
+        "filter.responsible_name",
+        "filter.publication_channel",
+        "filter.due_on",
+        "filter.completed_on"
       ],
       "requestBody": null,
       "success": {
@@ -2572,7 +2620,12 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.document_code"
+        "filter.document_code",
+        "filter.document_category",
+        "filter.title",
+        "filter.document_status",
+        "filter.version_label",
+        "filter.owner_name"
       ],
       "requestBody": null,
       "success": {
@@ -2673,7 +2726,12 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.stage_type"
+        "filter.stage_order",
+        "filter.stage_type",
+        "filter.status",
+        "filter.assigned_to",
+        "filter.due_on",
+        "filter.completed_on"
       ],
       "requestBody": null,
       "success": {
@@ -3199,7 +3257,12 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.version_label"
+        "filter.version_label",
+        "filter.version_status",
+        "filter.prepared_by",
+        "filter.approved_on",
+        "filter.effective_from",
+        "filter.published_on"
       ],
       "requestBody": null,
       "success": {
@@ -3268,7 +3331,14 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.phase_type"
+        "filter.phase_order",
+        "filter.phase_type",
+        "filter.status",
+        "filter.audience",
+        "filter.started_on",
+        "filter.due_on",
+        "filter.completed_on",
+        "filter.feedback_count"
       ],
       "requestBody": null,
       "success": {
@@ -3736,7 +3806,11 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.full_name"
+        "filter.full_name",
+        "filter.role_name",
+        "filter.member_type",
+        "filter.status",
+        "filter.appointed_on"
       ],
       "requestBody": null,
       "success": {
@@ -9247,7 +9321,7 @@
       "operationKey": "GET /api/education/portfolios/sections",
       "operationId": "get_api_education_portfolios_sections",
       "handler": "PortfolioSections",
-      "source": "backend/internal/education/service.go:5813",
+      "source": "backend/internal/education/service.go:6263",
       "contractStatus": "detailed",
       "security": [
         "oidcAuthorizationCode"
@@ -9260,13 +9334,15 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.section_code"
+        "filter.section_code",
+        "filter.component_code",
+        "filter.label"
       ],
       "requestBody": null,
       "success": {
         "status": 200,
         "contentType": "application/json",
-        "schema": "PortfolioSection"
+        "schema": "EducationPageOfPortfolioSection"
       },
       "errors": [
         400,
@@ -9329,7 +9405,7 @@
       "requestBody": {
         "required": true,
         "contentType": "application/json",
-        "schema": "CreatePortfolioRecordRequest"
+        "schema": "UpdatePortfolioRecordRequest"
       },
       "success": {
         "status": 200,
@@ -10948,6 +11024,9 @@
       "operationKey":"GET /api/education/delegations", "operationId":"get_api_education_delegations", "handler":"EducationDelegations", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"tenant and institution are server-derived; directors see the institution ledger while adjuncts see only delegations in which they participate", "requiredPermission":"education.delegations.read", "pathParameters":[], "queryParameters":["page","pageSize","sort","direction","filter.status","filter.permission_code","filter.delegate_user_id","filter.delegate_name"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfEducationDelegation"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-side filtered and sorted delegation ledger protected by FORCE RLS"
     },
     {
+      "operationKey":"GET /api/education/delegations/active-grants", "operationId":"get_api_education_delegations_active_grants", "handler":"ActiveEducationDelegationGrants", "source":"backend/internal/education/education_delegation_active_grants.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"tenant and institution are server-derived; only the authenticated actor's currently accepted, valid and revalidated grants are returned", "requiredPermission":"authenticated actor; no direct RBAC permission", "pathParameters":[], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationActiveDelegationGrantsResponse"}, "errors":[401,403,500], "modelEvidence":"uses the same request-time accepted-grant predicate as RequireEducationPermission; delegation-management permissions are structurally excluded; response is Cache-Control: no-store and Vary: Authorization"
+    },
+    {
       "operationKey":"GET /api/education/delegations/eligible-adjuncts", "operationId":"get_api_education_delegations_eligible_adjuncts", "handler":"EducationDelegationEligibleAdjuncts", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only active director-adjunct memberships in the authenticated tenant are returned", "requiredPermission":"education.delegations.read", "pathParameters":[], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegationEligibleAdjunctList"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-authorized principal directory without client-supplied tenant identifiers"
     },
     {
@@ -10966,7 +11045,7 @@
       "operationKey":"POST /api/education/delegations/{delegationID}/expire", "operationId":"post_api_education_delegations_delegationid_expire", "handler":"ExpireEducationDelegation", "source":"backend/internal/education/education_delegation_handlers.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only a delegation party can record expiry after the server-validated end date", "requiredPermission":"education.delegations.revoke", "pathParameters":["delegationID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationDelegation"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"bodyless expiry transition with server actor and timestamp provenance"
     },
     {
-      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages", "handler":"PortfolioValorificationPackages", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"portfolio and institution are server-scoped", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID"], "queryParameters":["page","pageSize","sort","direction","filter.scope","filter.status"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioValorificationPackage"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-side page of source-bound evidentiary packages"
+      "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages", "handler":"PortfolioValorificationPackages", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"portfolio and institution are server-scoped", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID"], "queryParameters":["page","pageSize","sort","direction","filter.scope","filter.purpose","filter.status"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfPortfolioValorificationPackage"}, "errors":[400,401,403,404,422,500], "modelEvidence":"server-side page of source-bound evidentiary packages"
     },
     {
       "operationKey":"GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}", "operationId":"get_api_education_portfolios_records_recordid_valorification_packages_itemid", "handler":"PortfolioValorificationPackageDetail", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"package must be a child of the requested portfolio in the authenticated institution", "requiredPermission":"one of education.portfolios.school.read or education.portfolios.read", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationPackage"}, "errors":[400,401,403,404,422,500], "modelEvidence":"parent-scoped package detail"
@@ -10988,6 +11067,21 @@
     },
     {
       "operationKey":"POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents", "operationId":"post_api_education_portfolios_records_recordid_valorification_packages_itemid_documents", "handler":"AddPortfolioValorificationPackageDocument", "source":"backend/internal/education/portfolio_valorification_flows.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"package and archive version must belong to the authenticated institution and requested portfolio", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"AddPortfolioValorificationPackageDocumentRequest"}, "success":{"status":201,"contentType":"application/json","schema":"PortfolioValorificationPackageDocumentCreateResponse"}, "errors":[400,401,403,404,409,422,500], "modelEvidence":"browser supplies only archive IDs; immutable hash and storage provenance are copied by database trigger"
+    },
+    {
+      "operationKey":"GET /api/education/governance/eligible-users", "operationId":"get_api_education_governance_eligible_users", "handler":"EligibleGovernanceUsers", "source":"backend/internal/education/eligible_users.go:18", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only currently eligible active users of the authenticated tenant and institution are returned", "requiredPermission":"education.governance.read", "pathParameters":[], "queryParameters":["page","pageSize","sort","direction","filter.name"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfEligibleGovernanceUser"}, "errors":[400,401,403,404,422,500], "modelEvidence":"httpx.WritePage of EligibleGovernanceUser"
+    },
+    {
+      "operationKey":"GET /api/education/portfolios/eligible-owners", "operationId":"get_api_education_portfolios_eligible_owners", "handler":"EligiblePortfolioOwners", "source":"backend/internal/education/eligible_users.go", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"only active personnel paired with eligible active users of the authenticated tenant and institution are returned", "requiredPermission":"education.portfolios.manage", "pathParameters":[], "queryParameters":["page","pageSize","sort","direction","filter.display_name","filter.role_title","filter.employment_status"], "requestBody":null, "success":{"status":200,"contentType":"application/json","schema":"EducationPageOfEligiblePortfolioOwner"}, "errors":[400,401,403,404,422,500], "modelEvidence":"httpx.WritePage of EligiblePortfolioOwner"
+    },
+    {
+      "operationKey":"POST /api/education/portfolios/records/{recordID}/valorifications", "operationId":"post_api_education_portfolios_records_recordid_valorifications", "handler":"CreatePortfolioValorification", "source":"backend/internal/education/portfolio_valorification_flows.go:126", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"portfolio and created valorification are constrained to the authenticated institution", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"CreatePortfolioValorificationEventRequest"}, "success":{"status":201,"contentType":"application/json","schema":"PortfolioValorificationEvent"}, "errors":[400,401,403,404,422,500], "modelEvidence":"handler request and response DTOs"
+    },
+    {
+      "operationKey":"PATCH /api/education/portfolios/records/{recordID}/valorifications/{itemID}", "operationId":"patch_api_education_portfolios_records_recordid_valorifications_itemid", "handler":"UpdatePortfolioValorification", "source":"backend/internal/education/portfolio_valorification_flows.go:222", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"valorification is constrained by parent portfolio and authenticated institution", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":{"required":true,"contentType":"application/json","schema":"CreatePortfolioValorificationEventRequest"}, "success":{"status":200,"contentType":"application/json","schema":"PortfolioValorificationEvent"}, "errors":[400,401,403,404,422,500], "modelEvidence":"handler request and response DTOs"
+    },
+    {
+      "operationKey":"DELETE /api/education/portfolios/records/{recordID}/valorifications/{itemID}", "operationId":"delete_api_education_portfolios_records_recordid_valorifications_itemid", "handler":"DeletePortfolioValorification", "source":"backend/internal/education/portfolio_valorification_flows.go:321", "contractStatus":"detailed", "security":["oidcAuthorizationCode"], "tenantScope":"valorification is constrained by parent portfolio and authenticated institution", "requiredPermission":"one of education.portfolios.school.manage or education.portfolios.manage", "pathParameters":["recordID","itemID"], "queryParameters":[], "requestBody":null, "success":{"status":204,"content":null}, "errors":[400,401,403,404,422,500], "modelEvidence":"handler returns an empty 204 response"
     }
   ],
   "components": {
@@ -11015,15 +11109,25 @@
       },
       "EducationDelegationEligibleAdjunctList": {"type":"array","items":{"$ref":"#/components/schemas/EducationDelegationEligibleAdjunct"}},
       "EducationDelegationEligiblePermissionList": {"type":"array","items":{"type":"string","pattern":"^education\\."}},
+      "EducationActiveDelegationGrant": {
+        "type":"object", "additionalProperties":false, "required":["permission_code","resource_type","resource_id"],
+        "properties":{"permission_code":{"type":"string","pattern":"^education\\.","not":{"pattern":"^education\\.delegations\\."}},"resource_type":{"type":"string","enum":["institution","portfolio","meeting","decision","regulation","personnel"]},"resource_id":{"type":"string"}},
+        "x-go-model":"EducationActiveDelegationGrant", "x-source":"backend/internal/education/education_delegation_active_grants.go"
+      },
+      "EducationActiveDelegationGrantsResponse": {
+        "type":"object", "additionalProperties":false, "required":["tenant_code","institution_id","evaluated_at","revision","grants"],
+        "properties":{"tenant_code":{"type":"string"},"institution_id":{"type":"string"},"evaluated_at":{"type":"string","format":"date-time"},"revision":{"type":"string","pattern":"^[a-f0-9]{64}$"},"grants":{"type":"array","items":{"$ref":"#/components/schemas/EducationActiveDelegationGrant"}}},
+        "x-go-model":"EducationActiveDelegationGrantsResponse", "x-source":"backend/internal/education/education_delegation_active_grants.go"
+      },
       "PortfolioValorificationPackage": {
         "type":"object", "additionalProperties":false,
-        "required":["id","tenant_code","institution_id","portfolio_id","scope","status","created_by_subject","created_at"],
-        "properties":{"id":{"type":"string","format":"uuid"},"tenant_code":{"type":"string"},"institution_id":{"type":"string"},"portfolio_id":{"type":"string","format":"uuid"},"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"source_evaluation_id":{"type":"string"},"source_mobility_case_id":{"type":"string"},"source_merit_grant_id":{"type":"string"},"status":{"type":"string","enum":["draft","submitted","validated","completed"]},"created_by_subject":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"submitted_by_subject":{"type":"string"},"submitted_at":{"type":"string"},"validated_by_subject":{"type":"string"},"validated_at":{"type":"string"},"completed_by_subject":{"type":"string"},"completed_at":{"type":"string"}},
+        "required":["id","tenant_code","institution_id","portfolio_id","scope","purpose","status","created_by_subject","created_at"],
+        "properties":{"id":{"type":"string","format":"uuid"},"tenant_code":{"type":"string"},"institution_id":{"type":"string"},"portfolio_id":{"type":"string","format":"uuid"},"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"purpose":{"type":"string","enum":["licentiere","debut","definitivat","grad_ii","grad_i","evaluare_profesionala","mobilitate","dezvoltare_profesionala","inspectie_scolara","evaluare_externa_calitate","gradatie_merit","distinctie_premiu"]},"source_evaluation_id":{"type":"string"},"source_mobility_case_id":{"type":"string"},"source_merit_grant_id":{"type":"string"},"status":{"type":"string","enum":["draft","submitted","validated","completed"]},"created_by_subject":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"submitted_by_subject":{"type":"string"},"submitted_at":{"type":"string"},"validated_by_subject":{"type":"string"},"validated_at":{"type":"string"},"completed_by_subject":{"type":"string"},"completed_at":{"type":"string"}},
         "x-go-model":"PortfolioValorificationPackage", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
       },
       "CreatePortfolioValorificationPackageRequest": {
-        "type":"object", "additionalProperties":false, "required":["scope"],
-        "properties":{"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"source_evaluation_id":{"type":"string","format":"uuid"},"source_mobility_case_id":{"type":"string","format":"uuid"},"source_merit_grant_id":{"type":"string","format":"uuid"}},
+        "type":"object", "additionalProperties":false, "required":["scope","purpose"],
+        "properties":{"scope":{"type":"string","enum":["evaluare_profesionala","mobilitate","gradatie_merit"]},"purpose":{"type":"string","enum":["licentiere","debut","definitivat","grad_ii","grad_i","evaluare_profesionala","mobilitate","dezvoltare_profesionala","inspectie_scolara","evaluare_externa_calitate","gradatie_merit","distinctie_premiu"]},"source_evaluation_id":{"type":"string","format":"uuid"},"source_mobility_case_id":{"type":"string","format":"uuid"},"source_merit_grant_id":{"type":"string","format":"uuid"}},
         "x-go-model":"CreatePortfolioValorificationPackageRequest", "x-source":"backend/internal/education/portfolio_valorification_flows.go"
       },
       "AdvancePortfolioValorificationPackageRequest": {
@@ -11267,6 +11371,7 @@
       },
       "CreateCommitteeRecordRequest": {
         "type": "object",
+        "required": ["school_year", "committee_type", "title", "status", "starts_on"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -11376,6 +11481,7 @@
       },
       "CreateGovernanceDecisionRequest": {
         "type": "object",
+        "required": ["school_year", "organism", "title", "status", "publication_status", "decision_date"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -11475,6 +11581,8 @@
       },
       "CreateGovernanceMeetingRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["school_year", "organism", "title", "meeting_type", "status", "meeting_date", "chairperson_user_id", "secretary_user_id"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -11510,6 +11618,14 @@
           },
           "secretary_name": {
             "type": "string"
+          },
+          "chairperson_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "secretary_user_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "summary": {
             "type": "string"
@@ -11563,6 +11679,8 @@
       },
       "CreateGovernanceMembershipRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["school_year", "organism", "app_user_id", "role_name", "mandate_from", "mandate_to", "status"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -11572,6 +11690,10 @@
           },
           "full_name": {
             "type": "string"
+          },
+          "app_user_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "role_name": {
             "type": "string"
@@ -11707,6 +11829,7 @@
       },
       "CreateManagerialDossierRequest": {
         "type": "object",
+        "required": ["school_year", "dossier_type", "title", "status", "due_on"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -11905,6 +12028,7 @@
       },
       "CreateMeritGrantRequest": {
         "type": "object",
+        "required": ["full_name", "role_title", "school_year", "category", "status", "decision_date"],
         "properties": {
           "full_name": {
             "type": "string"
@@ -12011,6 +12135,7 @@
       },
       "CreateMobilityCaseRequest": {
         "type": "object",
+        "required": ["employee_code", "full_name", "school_year", "request_type", "stage", "status", "submitted_on"],
         "properties": {
           "employee_code": {
             "type": "string"
@@ -12224,6 +12349,7 @@
       },
       "CreatePersonnelDeclarationRequest": {
         "type": "object",
+        "required": ["employee_code", "full_name", "declaration_type", "status", "school_year", "submitted_on"],
         "properties": {
           "employee_code": {
             "type": "string"
@@ -12365,6 +12491,7 @@
       },
       "CreatePersonnelEvaluationRequest": {
         "type": "object",
+        "required": ["employee_code", "full_name", "role_title", "school_year", "status"],
         "properties": {
           "employee_code": {
             "type": "string"
@@ -12551,7 +12678,14 @@
       },
       "CreatePersonnelRecordRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["full_name", "role_title", "employment_type", "status", "evaluation_status", "mobility_stage", "school_year"],
         "properties": {
+          "app_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional canonical application account associated by an authorized personnel administrator; the server requires a current membership in the active tenant and institution."
+          },
           "full_name": {
             "type": "string"
           },
@@ -12758,12 +12892,12 @@
         "type": "object",
         "required": [
           "owner_user_id",
+          "owner_personnel_id",
           "owner_name",
           "owner_role",
           "school_year",
           "status",
           "last_updated_on",
-          "retention_until",
           "transfer_status"
         ],
         "properties": {
@@ -12794,9 +12928,6 @@
           "last_updated_on": {
             "type": "string"
           },
-          "retention_until": {
-            "type": "string"
-          },
           "transfer_status": {
             "type": "string"
           },
@@ -12816,6 +12947,34 @@
         "x-go-model": "CreatePortfolioRecordRequest",
         "x-source": "backend/internal/education/*.go",
         "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
+      },
+      "UpdatePortfolioRecordRequest": {
+        "type": "object",
+        "required": [
+          "owner_name",
+          "owner_role",
+          "school_year",
+          "status",
+          "last_updated_on",
+          "transfer_status"
+        ],
+        "properties": {
+          "owner_user_id": { "type": "string", "format": "uuid" },
+          "owner_personnel_id": { "type": "string", "format": "uuid" },
+          "owner_name": { "type": "string" },
+          "owner_role": { "type": "string" },
+          "school_year": { "type": "string" },
+          "status": { "type": "string" },
+          "section_count": { "type": "integer", "format": "int32" },
+          "last_updated_on": { "type": "string" },
+          "transfer_status": { "type": "string" },
+          "authenticity_declared": { "type": "boolean" },
+          "consent_captured": { "type": "boolean" },
+          "custodian": { "type": "string" },
+          "notes": { "type": "string" }
+        },
+        "x-go-model": "UpdatePortfolioRecordRequest",
+        "x-source": "backend/internal/education/portfolio_models.go"
       },
       "CreatePortfolioReviewEventRequest": {
         "type": "object",
@@ -12912,6 +13071,8 @@
       },
       "CreatePortfolioValorificationEventRequest": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["scope", "status", "started_on"],
         "properties": {
           "scope": {
             "type": "string"
@@ -12944,6 +13105,7 @@
       },
       "CreatePublicationRecordRequest": {
         "type": "object",
+        "required": ["domain", "entity_type", "entity_label", "publication_channel", "publication_status", "anonymization_status"],
         "properties": {
           "domain": {
             "type": "string"
@@ -12982,6 +13144,7 @@
       },
       "CreateRegulationRecordRequest": {
         "type": "object",
+        "required": ["school_year", "regulation_type", "title", "status", "approval_status", "review_due_on"],
         "properties": {
           "school_year": {
             "type": "string"
@@ -13920,6 +14083,14 @@
           "secretary_name": {
             "type": "string"
           },
+          "chairperson_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "secretary_user_id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "institution_id": {
             "type": "string"
           },
@@ -14257,6 +14428,10 @@
           },
           "full_name": {
             "type": "string"
+          },
+          "app_user_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "role_name": {
             "type": "string"
@@ -16286,6 +16461,11 @@
           "id": {
             "type": "string"
           },
+          "app_user_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Canonical application account linked to this institutional personnel identity, when one has been assigned."
+          },
           "employee_code": {
             "type": "string"
           },
@@ -16705,6 +16885,29 @@
           },
           "retention_until": {
             "type": "string"
+          },
+          "activity_ceased_on": {
+            "type": "string"
+          },
+          "retention_period_days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "legal_hold_active": {
+            "type": "boolean"
+          },
+          "legal_hold_reason": {
+            "type": "string"
+          },
+          "withdrawn_at": {
+            "type": "string"
+          },
+          "withdrawal_reason": {
+            "type": "string"
+          },
+          "applied_procedure_id": {
+            "type": "string",
+            "format": "uuid"
           },
           "transfer_status": {
             "type": "string"
@@ -17811,6 +18014,8 @@
       },
       "TaxonomyCatalogResponse": {
         "type": "object",
+        "additionalProperties": false,
+        "required": ["items"],
         "properties": {
           "items": {
             "type": "object",
@@ -19189,6 +19394,30 @@
         },
         "x-derived-from": "httpx.WritePage"
       },
+      "EducationPageOfEducationRequirement": {
+        "type": "object",
+        "required": ["items", "page", "pageSize", "total"],
+        "additionalProperties": false,
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/EducationRequirement" } },
+          "page": { "type": "integer", "minimum": 1 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "total": { "type": "integer", "minimum": 0 }
+        },
+        "x-derived-from": "httpx.WritePage"
+      },
+      "EducationPageOfPortfolioSection": {
+        "type": "object",
+        "required": ["items", "page", "pageSize", "total"],
+        "additionalProperties": false,
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/PortfolioSection" } },
+          "page": { "type": "integer", "minimum": 1 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "total": { "type": "integer", "minimum": 0 }
+        },
+        "x-derived-from": "httpx.WritePage"
+      },
       "EducationPageOfPortfolioRecord": {
         "type": "object",
         "required": [
@@ -19261,6 +19490,20 @@
           }
         },
         "x-go-model": "EligibleGovernanceUser",
+        "x-source": "backend/internal/education/eligible_users.go"
+      },
+      "EligiblePortfolioOwner": {
+        "type": "object",
+        "required": ["user_id", "personnel_id", "display_name", "role_title", "employment_status"],
+        "additionalProperties": false,
+        "properties": {
+          "user_id": { "type": "string", "format": "uuid" },
+          "personnel_id": { "type": "string", "format": "uuid" },
+          "display_name": { "type": "string" },
+          "role_title": { "type": "string" },
+          "employment_status": { "type": "string", "const": "active" }
+        },
+        "x-go-model": "EligiblePortfolioOwner",
         "x-source": "backend/internal/education/eligible_users.go"
       },
       "PortfolioArchiveAttachmentGrant": {
@@ -19384,6 +19627,17 @@
             "type": "integer",
             "minimum": 0
           }
+        },
+        "x-derived-from": "httpx.WritePage"
+      },
+      "EducationPageOfEligiblePortfolioOwner": {
+        "type": "object",
+        "required": ["items", "page", "pageSize", "total"],
+        "properties": {
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/EligiblePortfolioOwner" } },
+          "page": { "type": "integer", "minimum": 1 },
+          "pageSize": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "total": { "type": "integer", "minimum": 0 }
         },
         "x-derived-from": "httpx.WritePage"
       },
@@ -19719,8 +19973,8 @@
     "The generator deterministically imports this domain fragment and uses each operation's handler-backed request and success schema."
   ],
   "validation": {
-    "expectedOperations": 356,
-    "documentedOperations": 356,
+    "expectedOperations": 357,
+    "documentedOperations": 357,
     "missingHandlerSources": [],
     "unknownResponseSchemas": [],
     "allInstitutionScoped": true,

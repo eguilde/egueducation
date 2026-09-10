@@ -498,10 +498,10 @@ func (s *Service) UpsertUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := tx.Exec(r.Context(), `
-		insert into app_session_context(user_id, institution_id, institution_name, auth_methods, gdpr_capabilities)
-		values ($1::uuid, $2, $3, array['oidc_redirect', 'sms_otp', 'passkey', 'eudi_wallet'], array['retention_policies', 'subject_export', 'purpose_limited_access', 'publication_anonymization'])
-		on conflict (user_id) do nothing
-	`, item.ID, institutionID, institutionName); err != nil {
+		insert into app_session_context(user_id, tenant_code, institution_id, institution_name, auth_methods, gdpr_capabilities)
+		values ($1::uuid, $2, $3, $4, array['oidc_redirect', 'sms_otp', 'passkey', 'eudi_wallet'], array['retention_policies', 'subject_export', 'purpose_limited_access', 'publication_anonymization'])
+		on conflict (user_id, tenant_code) do nothing
+	`, item.ID, tenantCode, institutionID, institutionName); err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "admin_user_save_failed"})
 		return
 	}

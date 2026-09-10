@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	aws "github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
@@ -18,11 +19,19 @@ import (
 )
 
 type ArchiveStorage struct {
-	client       *s3.Client
-	bucket       string
-	region       string
-	enabled      bool
-	createBucket bool
+	client            *s3.Client
+	bucket            string
+	region            string
+	enabled           bool
+	createBucket      bool
+	requireObjectLock bool
+}
+
+type ImmutableArchiveObject struct {
+	Bucket    string
+	Key       string
+	VersionID string
+	ETag      string
 }
 
 func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage, error) {
@@ -66,13 +75,17 @@ func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage,
 	})
 
 	storage := &ArchiveStorage{
-		client:       client,
-		bucket:       bucket,
-		region:       strings.TrimSpace(cfg.ArchiveStorageRegion),
-		enabled:      true,
-		createBucket: cfg.ArchiveStorageCreateBucket,
+		client:            client,
+		bucket:            bucket,
+		region:            strings.TrimSpace(cfg.ArchiveStorageRegion),
+		enabled:           true,
+		createBucket:      cfg.ArchiveStorageCreateBucket,
+		requireObjectLock: cfg.ArchiveStorageRequireObjectLock,
 	}
 	if err := storage.EnsureBucket(ctx); err != nil {
+		return nil, err
+	}
+	if err := storage.VerifyWORMPolicy(ctx); err != nil {
 		return nil, err
 	}
 	return storage, nil
@@ -100,7 +113,7 @@ func (s *ArchiveStorage) EnsureBucket(ctx context.Context) error {
 		return fmt.Errorf("archive bucket is unavailable")
 	}
 
-	input := &s3.CreateBucketInput{Bucket: aws.String(s.bucket)}
+	input := &s3.CreateBucketInput{Bucket: aws.String(s.bucket), ObjectLockEnabledForBucket: aws.Bool(s.requireObjectLock)}
 	if region := strings.TrimSpace(s.region); region != "" && region != "us-east-1" {
 		input.CreateBucketConfiguration = &s3types.CreateBucketConfiguration{
 			LocationConstraint: s3types.BucketLocationConstraint(region),
@@ -113,6 +126,31 @@ func (s *ArchiveStorage) EnsureBucket(ctx context.Context) error {
 			return nil
 		}
 		return fmt.Errorf("ensure archive bucket %s: %w", s.bucket, err)
+	}
+	return nil
+}
+
+// VerifyWORMPolicy proves the bucket prerequisites instead of treating an
+// immutable-looking key as WORM. Retention itself is deliberately supplied per
+// object by PutImmutableObject from the applicable archive-series policy. The
+// check is read-only and does not silently reconfigure an existing bucket.
+func (s *ArchiveStorage) VerifyWORMPolicy(ctx context.Context) error {
+	if !s.Enabled() || !s.requireObjectLock {
+		return nil
+	}
+	versioning, err := s.client.GetBucketVersioning(ctx, &s3.GetBucketVersioningInput{Bucket: aws.String(s.bucket)})
+	if err != nil {
+		return fmt.Errorf("verify archive bucket versioning: %w", err)
+	}
+	if versioning.Status != s3types.BucketVersioningStatusEnabled {
+		return fmt.Errorf("archive bucket must have versioning enabled for WORM storage")
+	}
+	lock, err := s.client.GetObjectLockConfiguration(ctx, &s3.GetObjectLockConfigurationInput{Bucket: aws.String(s.bucket)})
+	if err != nil {
+		return fmt.Errorf("verify archive bucket Object Lock: %w", err)
+	}
+	if lock.ObjectLockConfiguration == nil || lock.ObjectLockConfiguration.ObjectLockEnabled != s3types.ObjectLockEnabledEnabled {
+		return fmt.Errorf("archive bucket must have Object Lock enabled")
 	}
 	return nil
 }
@@ -138,6 +176,62 @@ func (s *ArchiveStorage) PutObject(ctx context.Context, key, contentType string,
 		return fmt.Errorf("put archive object %s: %w", key, err)
 	}
 	return nil
+}
+
+// PutImmutableObject stores one exact S3 version under COMPLIANCE retention.
+// Callers must derive retainUntil from the applicable archive-series policy;
+// this boundary deliberately refuses missing or elapsed deadlines instead of
+// inventing a bucket-wide retention period.
+func (s *ArchiveStorage) PutImmutableObject(ctx context.Context, key, contentType string, body io.Reader, contentLength int64, retainUntil time.Time, legalHold bool) (ImmutableArchiveObject, error) {
+	if !s.Enabled() {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive storage is disabled")
+	}
+	if !s.requireObjectLock {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires verified Object Lock storage")
+	}
+	retainUntil = retainUntil.UTC()
+	if !retainUntil.After(time.Now().UTC()) {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires a future retention deadline")
+	}
+	input := &s3.PutObjectInput{
+		Bucket:                    aws.String(s.bucket),
+		Key:                       aws.String(key),
+		Body:                      body,
+		ObjectLockMode:            s3types.ObjectLockModeCompliance,
+		ObjectLockRetainUntilDate: aws.Time(retainUntil),
+	}
+	if legalHold {
+		input.ObjectLockLegalHoldStatus = s3types.ObjectLockLegalHoldStatusOn
+	}
+	if strings.TrimSpace(contentType) != "" {
+		input.ContentType = aws.String(contentType)
+	}
+	if contentLength >= 0 {
+		input.ContentLength = aws.Int64(contentLength)
+	}
+	output, err := s.client.PutObject(ctx, input)
+	if err != nil {
+		return ImmutableArchiveObject{}, fmt.Errorf("put immutable archive object %s: %w", key, err)
+	}
+	versionID := strings.TrimSpace(aws.ToString(output.VersionId))
+	if versionID == "" {
+		return ImmutableArchiveObject{}, fmt.Errorf("immutable archive object %s has no storage version id", key)
+	}
+	return ImmutableArchiveObject{Bucket: s.bucket, Key: key, VersionID: versionID, ETag: strings.Trim(aws.ToString(output.ETag), `"`)}, nil
+}
+
+func (s *ArchiveStorage) OpenObjectVersion(ctx context.Context, key, versionID string) (io.ReadCloser, error) {
+	if !s.Enabled() {
+		return nil, fmt.Errorf("archive storage is disabled")
+	}
+	if strings.TrimSpace(versionID) == "" {
+		return nil, fmt.Errorf("archive object version id is required")
+	}
+	output, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key), VersionId: aws.String(versionID)})
+	if err != nil {
+		return nil, fmt.Errorf("get archive object %s version %s: %w", key, versionID, err)
+	}
+	return output.Body, nil
 }
 
 func (s *ArchiveStorage) CopyObject(ctx context.Context, sourceKey, destinationKey, contentType string) error {

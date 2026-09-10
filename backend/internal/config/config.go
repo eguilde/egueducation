@@ -45,9 +45,7 @@ type Config struct {
 	EnableSMSOTP                            bool
 	OTPHMACKey                              string
 	EnableTestOTPFixture                    bool
-	EnableProductionE2ECanary               bool
-	ProductionE2ECanaryActivationKey        string
-	ProductionE2ECanarySigningKey           string
+	EnableProductionFixedOTPTestUser        bool
 	TestOTPFixtureCode                      string
 	TestOTPFixtureIdentifier                string
 	TestOTPFixtureSubject                   string
@@ -67,6 +65,7 @@ type Config struct {
 	ArchiveStorageSecretKey                 string
 	ArchiveStorageUsePathStyle              bool
 	ArchiveStorageCreateBucket              bool
+	ArchiveStorageRequireObjectLock         bool
 	ArchiveTextractBucket                   string
 	ArchiveTextractRegion                   string
 	AzureDocumentIntelligenceEndpoint       string
@@ -78,6 +77,9 @@ type Config struct {
 	ArchiveWorkerPollInterval               int
 	ArchiveWorkerMaxAttempts                int
 	ClamdAddress                            string
+	SignatureVerifierURL                    string
+	SignatureVerifierToken                  string
+	SignatureVerifierTimeoutSeconds         int
 }
 
 func Load() Config {
@@ -112,13 +114,11 @@ func Load() Config {
 		EnableSMSOTP:                            envBool("ENABLE_SMS_OTP", true),
 		OTPHMACKey:                              strings.TrimSpace(os.Getenv("OTP_HMAC_KEY")),
 		EnableTestOTPFixture:                    envBool("ENABLE_TEST_OTP_FIXTURE", false),
-		EnableProductionE2ECanary:               envBool("ENABLE_PRODUCTION_E2E_CANARY", false),
-		ProductionE2ECanaryActivationKey:        strings.TrimSpace(os.Getenv("PRODUCTION_E2E_CANARY_ACTIVATION_KEY")),
-		ProductionE2ECanarySigningKey:           strings.TrimSpace(os.Getenv("PRODUCTION_E2E_CANARY_SIGNING_KEY")),
-		TestOTPFixtureCode:                      strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_CODE")),
-		TestOTPFixtureIdentifier:                strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_IDENTIFIER")),
-		TestOTPFixtureSubject:                   strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_SUBJECT")),
-		TestOTPFixtureTenantCode:                strings.TrimSpace(os.Getenv("TEST_OTP_FIXTURE_TENANT_CODE")),
+		EnableProductionFixedOTPTestUser:        envBool("ENABLE_PRODUCTION_FIXED_OTP_TEST_USER", false),
+		TestOTPFixtureCode:                      preferredEnv("PRODUCTION_TEST_USER_OTP", "TEST_OTP_FIXTURE_CODE"),
+		TestOTPFixtureIdentifier:                preferredEnv("PRODUCTION_TEST_USER_IDENTIFIER", "TEST_OTP_FIXTURE_IDENTIFIER"),
+		TestOTPFixtureSubject:                   preferredEnv("PRODUCTION_TEST_USER_SUBJECT", "TEST_OTP_FIXTURE_SUBJECT"),
+		TestOTPFixtureTenantCode:                preferredEnv("PRODUCTION_TEST_USER_TENANT", "TEST_OTP_FIXTURE_TENANT_CODE"),
 		EnableGDPRFeatures:                      envBool("ENABLE_GDPR_FEATURES", true),
 		ForceSecureCookies:                      envBool("FORCE_SECURE_COOKIES", false),
 		JWTKeyRotationDays:                      envInt("JWT_KEY_ROTATION_DAYS", 90),
@@ -134,6 +134,7 @@ func Load() Config {
 		ArchiveStorageSecretKey:                 env("ARCHIVE_STORAGE_SECRET_KEY", ""),
 		ArchiveStorageUsePathStyle:              envBool("ARCHIVE_STORAGE_USE_PATH_STYLE", false),
 		ArchiveStorageCreateBucket:              envBool("ARCHIVE_STORAGE_CREATE_BUCKET", false),
+		ArchiveStorageRequireObjectLock:         envBool("ARCHIVE_STORAGE_REQUIRE_OBJECT_LOCK", false),
 		ArchiveTextractBucket:                   env("ARCHIVE_TEXTRACT_BUCKET", ""),
 		ArchiveTextractRegion:                   env("ARCHIVE_TEXTRACT_REGION", "us-east-1"),
 		AzureDocumentIntelligenceEndpoint:       strings.TrimSpace(os.Getenv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT")),
@@ -145,6 +146,9 @@ func Load() Config {
 		ArchiveWorkerPollInterval:               envInt("ARCHIVE_WORKER_POLL_INTERVAL_SECONDS", 5),
 		ArchiveWorkerMaxAttempts:                boundedEnvInt("ARCHIVE_WORKER_MAX_ATTEMPTS", 5, 1, 20),
 		ClamdAddress:                            env("CLAMD_ADDRESS", ""),
+		SignatureVerifierURL:                    strings.TrimSpace(os.Getenv("SIGNATURE_VERIFIER_URL")),
+		SignatureVerifierToken:                  strings.TrimSpace(os.Getenv("SIGNATURE_VERIFIER_TOKEN")),
+		SignatureVerifierTimeoutSeconds:         boundedEnvInt("SIGNATURE_VERIFIER_TIMEOUT_SECONDS", 30, 1, 180),
 	}
 }
 
@@ -208,6 +212,25 @@ func (c Config) ValidateArchiveOCR() error {
 	return nil
 }
 
+// ValidateSignatureVerifier rejects half-configured remote trust validation.
+// Keeping the token separate from the URL avoids accidental credential
+// disclosure in logs and deployment manifests.
+func (c Config) ValidateSignatureVerifier() error {
+	endpoint := strings.TrimSpace(c.SignatureVerifierURL)
+	token := strings.TrimSpace(c.SignatureVerifierToken)
+	if endpoint == "" && token == "" {
+		return nil
+	}
+	if endpoint == "" || token == "" {
+		return fmt.Errorf("SIGNATURE_VERIFIER_URL and SIGNATURE_VERIFIER_TOKEN must be configured together")
+	}
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && !(strings.EqualFold(c.Environment, "test") && parsed.Scheme == "http")) {
+		return fmt.Errorf("SIGNATURE_VERIFIER_URL must be an absolute HTTPS URL")
+	}
+	return nil
+}
+
 func (c Config) DesktopClientID() string {
 	return c.OIDCDesktopClient
 }
@@ -224,9 +247,34 @@ func (c Config) IsProduction() bool {
 	return value == "production" || value == "prod"
 }
 
+// AutoMigrateOnStartup preserves the frictionless developer and test setup
+// while making production schema changes an explicit, one-shot deployment
+// operation. Production API instances must only consume an already validated
+// schema using the restricted runtime database role.
+func (c Config) AutoMigrateOnStartup() bool {
+	return !c.IsProduction()
+}
+
+// MigrationURL returns the database connection dedicated to schema changes.
+// A production migration must never silently fall back to the runtime URL:
+// the Kubernetes pre-sync Job receives this value while the API Deployment
+// intentionally does not.
+func (c Config) MigrationURL() (string, error) {
+	if migrationURL := strings.TrimSpace(c.MigrationDatabaseURL); migrationURL != "" {
+		return migrationURL, nil
+	}
+	if c.IsProduction() {
+		return "", fmt.Errorf("MIGRATION_DATABASE_URL is required for production schema migration")
+	}
+	if runtimeURL := strings.TrimSpace(c.DatabaseURL); runtimeURL != "" {
+		return runtimeURL, nil
+	}
+	return "", fmt.Errorf("DATABASE_URL is required for non-production schema migration")
+}
+
 // TestOTPFixtureEnabled reports whether the deterministic OTP identity passed
-// either the isolated loopback-test policy or the separately gated production
-// canary policy.
+// either the isolated loopback-test policy or the explicitly enabled,
+// tenant-bound production fixed-OTP test-user policy.
 func (c Config) TestOTPFixtureEnabled() bool {
 	return c.ValidateTestOTPFixture() == nil && c.testOTPFixtureConfigured()
 }
@@ -238,7 +286,7 @@ func (c Config) ValidateTestOTPFixture() error {
 	if !c.testOTPFixtureConfigured() {
 		return nil
 	}
-	if !c.EnableTestOTPFixture {
+	if !c.EnableTestOTPFixture && !(c.IsProduction() && c.EnableProductionFixedOTPTestUser) {
 		return fmt.Errorf("test OTP fixture requires ENABLE_TEST_OTP_FIXTURE=true")
 	}
 	environment := strings.ToLower(strings.TrimSpace(c.Environment))
@@ -248,17 +296,8 @@ func (c Config) ValidateTestOTPFixture() error {
 			return fmt.Errorf("test OTP fixture requires loopback FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
 		}
 	case "production", "prod":
-		if !c.EnableProductionE2ECanary {
-			return fmt.Errorf("production OTP fixture requires ENABLE_PRODUCTION_E2E_CANARY=true")
-		}
-		if len(c.ProductionE2ECanaryActivationKey) < 32 || len(c.ProductionE2ECanarySigningKey) < 32 {
-			return fmt.Errorf("production E2E canary activation and signing keys must each contain at least 32 characters")
-		}
-		if c.ProductionE2ECanaryActivationKey == c.ProductionE2ECanarySigningKey {
-			return fmt.Errorf("production E2E canary activation and signing keys must be distinct")
-		}
-		if c.ProductionE2ECanaryActivationKey == c.TestOTPFixtureCode || c.ProductionE2ECanarySigningKey == c.TestOTPFixtureCode {
-			return fmt.Errorf("production E2E canary keys must be distinct from the OTP")
+		if !c.EnableProductionFixedOTPTestUser {
+			return fmt.Errorf("production OTP fixture requires ENABLE_PRODUCTION_FIXED_OTP_TEST_USER=true")
 		}
 		if !securePublicURL(c.FrontendOrigin) || !securePublicURL(c.BackendURL) || !securePublicURL(c.OIDCIssuer) {
 			return fmt.Errorf("production E2E canary requires HTTPS FRONTEND_ORIGIN, BACKEND_URL, and OIDC_ISSUER")
@@ -293,11 +332,11 @@ func (c Config) ValidateTestOTPFixture() error {
 }
 
 func (c Config) testOTPFixtureConfigured() bool {
-	return c.EnableTestOTPFixture || c.EnableProductionE2ECanary || c.ProductionE2ECanaryActivationKey != "" || c.ProductionE2ECanarySigningKey != "" || c.TestOTPFixtureCode != "" || c.TestOTPFixtureIdentifier != "" || c.TestOTPFixtureSubject != "" || c.TestOTPFixtureTenantCode != ""
+	return c.EnableTestOTPFixture || c.EnableProductionFixedOTPTestUser || c.TestOTPFixtureCode != "" || c.TestOTPFixtureIdentifier != "" || c.TestOTPFixtureSubject != "" || c.TestOTPFixtureTenantCode != ""
 }
 
-func (c Config) ProductionE2ECanaryEnabled() bool {
-	return c.IsProduction() && c.EnableProductionE2ECanary && c.TestOTPFixtureEnabled()
+func (c Config) ProductionFixedOTPTestUserEnabled() bool {
+	return c.IsProduction() && c.EnableProductionFixedOTPTestUser && c.TestOTPFixtureEnabled()
 }
 
 func loopbackURL(raw string) bool {
@@ -325,6 +364,13 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func preferredEnv(primary, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(primary)); value != "" {
+		return value
+	}
+	return strings.TrimSpace(os.Getenv(fallback))
 }
 
 func envBool(key string, fallback bool) bool {

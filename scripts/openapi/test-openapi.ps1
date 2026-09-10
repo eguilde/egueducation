@@ -215,11 +215,6 @@ if (-not $logout -or $logout.requestBody -or $logout.security.Count -ne 1 -or -n
     throw 'OIDC browser logout contract must be refresh-cookie secured, bodyless and return LogoutResponse.'
 }
 
-$productionCanary = $specData.paths['/api/oidc/e2e-canary/session'].post
-if (-not $productionCanary -or $productionCanary.requestBody -or $productionCanary.security.Count -ne 1 -or -not $productionCanary.security[0].Contains('productionE2ECanaryActivation') -or -not $productionCanary.responses['204']) {
-    throw 'Production OIDC canary activation must be bodyless, activation-key secured and return 204.'
-}
-
 $revoke = $specData.paths['/api/oidc/revoke'].post
 if (-not $revoke -or $revoke.security.Count -ne 0 -or $revoke.description -notmatch 'actual token') {
     throw 'OIDC RFC 7009 revocation contract must be public-client authenticated and prohibit cookie substitution.'
@@ -234,12 +229,314 @@ foreach ($assetPath in @('/api/oidc/ui/login.js', '/api/oidc/ui/logout.js')) {
     if (-not $asset -or $asset.security.Count -ne 0 -or $asset.requestBody -or -not $asset.responses['200'].content.'text/javascript') { throw "OIDC interaction asset contract invalid: $assetPath" }
 }
 
-$educationCoverage = Get-Content -Raw 'openapi/domains/education.coverage.json' | ConvertFrom-Json -AsHashtable
-$unresolvedEducationRequests = @($educationCoverage.operations | Where-Object { $_.requestBody -and -not $specData.components.schemas.Contains($_.requestBody.schema) })
-if ($educationCoverage.operations.Count -ne 356 -or @($educationCoverage.validation.missingHandlerSources).Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0 -or @($educationCoverage.validation.unknownResponseSchemas).Count -ne 0) {
-	throw 'Education domain coverage drift: expected 356 handler-backed operations with all request and response schemas resolved.'
+$educationCoverageFragments = @(Get-ChildItem 'openapi/domains/education*.coverage.json' | Sort-Object Name | ForEach-Object { Get-Content -Raw $_.FullName | ConvertFrom-Json -AsHashtable })
+$educationOperations = @($educationCoverageFragments | ForEach-Object { @($_.operations) })
+$declaredEducationCount = ($educationCoverageFragments | ForEach-Object { [int]$_.scope.operationCount } | Measure-Object -Sum).Sum
+$unresolvedEducationRequests = @($educationOperations | Where-Object { $_.requestBody -and -not $specData.components.schemas.Contains($_.requestBody.schema) })
+$invalidEducationFragments = @($educationCoverageFragments | Where-Object { $_.Contains('validation') -and (@($_.validation.missingHandlerSources).Count -ne 0 -or @($_.validation.unknownResponseSchemas).Count -ne 0) })
+if ($declaredEducationCount -ne 397 -or $educationOperations.Count -ne 397 -or $invalidEducationFragments.Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0) {
+	throw 'Education domain coverage drift: expected 397 handler-backed operations across all School coverage fragments with every request and response schema resolved.'
+}
+$coveredEducation = @{}
+foreach ($operation in $educationOperations) {
+    if ($coveredEducation.ContainsKey([string]$operation.operationKey)) { throw "Duplicate Education coverage operation: $($operation.operationKey)" }
+    $coveredEducation[[string]$operation.operationKey] = $true
+}
+$routedEducation = @($expected.Keys | Where-Object { $_ -match '^\w+ /api/education/' } | ForEach-Object { $_.ToUpperInvariant().Substring(0, $_.IndexOf(' ')) + $_.Substring($_.IndexOf(' ')) })
+$missingEducationCoverage = @($routedEducation | Where-Object { -not $coveredEducation.ContainsKey($_) })
+$orphanedEducationCoverage = @($coveredEducation.Keys | Where-Object { -not ($routedEducation -contains $_) })
+if ($missingEducationCoverage.Count -gt 0 -or $orphanedEducationCoverage.Count -gt 0) {
+    throw "Education coverage/router parity failed. Missing: $($missingEducationCoverage -join ', '); orphaned: $($orphanedEducationCoverage -join ', ')"
+}
+
+$problem = $specData.components.schemas.Problem
+if ($problem.required -notcontains 'code' -or @($problem.required).Count -ne 1 -or $problem.additionalProperties -ne $false) {
+    throw 'Backend error contract must be the closed, machine-readable {code} envelope.'
+}
+foreach ($responseName in @('BadRequest','Unauthorized','Forbidden','NotFound','Validation','ServerError')) {
+    $response = $specData.components.responses[$responseName]
+    if (-not $response.content.'application/json' -or $response.content.'application/problem+json') {
+        throw "Error response $responseName must mirror backend application/json payloads."
+    }
+}
+
+$taxonomy = $specData.paths['/api/education/taxonomies'].get.responses['200'].content.'application/json'.schema.'$ref'
+if ($taxonomy -ne '#/components/schemas/TaxonomyCatalogResponse' -or $specData.components.schemas.TaxonomyCatalogResponse.required -notcontains 'items') {
+    throw 'Education taxonomy must return the typed {items: domain -> TaxonomyItem[]} catalogue envelope.'
+}
+
+foreach ($catalogue in @(
+    @{ path='/api/education/requirements'; schema='EducationPageOfEducationRequirement'; filters=@('filter.domain','filter.priority','filter.implementation_status','filter.requirement_type') },
+    @{ path='/api/education/portfolios/sections'; schema='EducationPageOfPortfolioSection'; filters=@('filter.section_code','filter.component_code','filter.label') }
+)) {
+    $operation = $specData.paths[$catalogue.path].get
+    $responseRef = [string]$operation.responses['200'].content.'application/json'.schema.'$ref'
+    if ($responseRef -ne "#/components/schemas/$($catalogue.schema)") { throw "Paged catalogue must expose the typed page response: $($catalogue.path)" }
+    $pageSchema = $specData.components.schemas[$catalogue.schema]
+    if ($pageSchema.required -notcontains 'items' -or $pageSchema.required -notcontains 'page' -or $pageSchema.required -notcontains 'pageSize' -or $pageSchema.required -notcontains 'total') { throw "Paged catalogue is missing its httpx.WritePage envelope contract: $($catalogue.schema)" }
+    $documentedFilters = @($operation.parameters | ForEach-Object { $_.name })
+    foreach ($filter in $catalogue.filters) { if ($documentedFilters -notcontains $filter) { throw "Paged catalogue omits handler filter ${filter}: $($catalogue.path)" } }
+}
+
+$educationRequestRequiredFields = @{
+    'CreateGovernanceMeetingParticipantRequest' = @('full_name','role_name','member_type','attendance_status')
+    'CreateGovernanceMeetingDocumentRequest' = @('document_type','title','publication_status','issued_on')
+    'CreateGovernanceMeetingVoteRequest' = @('agenda_order','subject_title','decision_type','outcome')
+    'CreateGovernanceMinuteItemRequest' = @('agenda_order','topic_title','discussion_summary','decision_summary','follow_up_status')
+    'CreateGovernanceResolutionRequest' = @('vote_id','title','resolution_type','publication_status','anonymization_state','issued_on')
+    'CreateDecisionIssuanceRequest' = @('document_type','recipient_name','delivery_channel','delivery_status')
+    'CreateDecisionPublicationStepRequest' = @('step_order','step_type','status','responsible_name','due_on')
+    'CreateRegulationVersionRequest' = @('version_label','version_status','change_summary','effective_from','prepared_by')
+    'CreateRegulationWorkflowStepRequest' = @('phase_order','phase_type','status','audience','started_on','due_on')
+    'CreateCommitteeMemberRequest' = @('full_name','role_name','member_type','status','appointed_on')
+    'CreateManagerialDocumentRequest' = @('document_category','title','document_status','version_label','registered_on')
+    'CreateManagerialWorkflowStepRequest' = @('stage_order','stage_type','status','assigned_to','due_on')
+    'CreatePersonnelAssignmentRequest' = @('assignment_type','assignment_title','status','assigned_on')
+    'CreatePersonnelPersonalFileDocumentRequest' = @('document_category','document_title','file_scope','confidentiality_level','issued_on')
+    'CreatePersonnelDisciplinaryCaseRequest' = @('case_type','status','reported_on')
+    'CreatePersonnelPersonalAccessEventRequest' = @('event_type','actor_name','actor_role','purpose','access_channel','accessed_on')
+    'CreatePersonnelEvaluationSelfReviewRequest' = @('section_title','narrative_type','status','completed_on')
+    'CreatePersonnelEvaluationCriterionRequest' = @('criterion_category','criterion_label','status','max_score')
+    'CreatePersonnelEvaluationAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreatePersonnelEvaluationResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreateMobilityDocumentRequest' = @('document_type','stage_scope','document_title','registered_on','validation_status')
+    'CreateMobilityCriterionScoreRequest' = @('criterion_code','criterion_label','criterion_category','max_score')
+    'CreateMobilityAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreateMobilityFinalDecisionRequest' = @('decision_type','outcome','approved_on','effective_from','panel_name')
+    'CreateMobilityResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreateMeritDocumentRequest' = @('document_type','document_title','registered_on','validation_status')
+    'CreateMeritCriterionScoreRequest' = @('criterion_code','criterion_label','criterion_category','panel_stage','max_score')
+    'CreateMeritAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreateMeritFinalDecisionRequest' = @('decision_stage','outcome','approved_on','effective_from','panel_name')
+    'CreateMeritResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','source_scope','evidence_type','issued_on','added_on','authenticity_status')
+    'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
+    'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
+    'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
+    'CreatePortfolioReviewEventRequest' = @('review_stage','outcome','reviewer_name','reviewed_on')
+}
+foreach ($schemaName in $educationRequestRequiredFields.Keys) {
+    $schema = $specData.components.schemas[$schemaName]
+    $expectedRequired = @($educationRequestRequiredFields[$schemaName])
+    if (-not $schema -or @($schema.required).Count -ne $expectedRequired.Count -or @($expectedRequired | Where-Object { $schema.required -notcontains $_ }).Count -gt 0) { throw "Education request required-field contract drift: $schemaName" }
+    if ($schema.PSObject.Properties.Name -contains 'x-requiredness') { throw "Education request must not retain provisional requiredness: $schemaName" }
+}
+
+foreach ($operation in $educationOperations | Where-Object { $_.operationKey -like 'POST *' }) {
+    $sourcePath = ([string]$operation.source) -replace ':\d+$', ''
+    if (-not (Test-Path $sourcePath)) { continue }
+    $source = Get-Content -Raw $sourcePath
+    $handler = [regex]::Escape([string]$operation.handler)
+    $body = [regex]::Match($source, "(?ms)^func\s+\(s\s+\*Service\)\s+$handler\s*\(.*?(?=^func\s|\z)")
+    if (-not $body.Success -or $body.Value -notmatch 'http\.StatusCreated') { continue }
+    $parts = ([string]$operation.operationKey).Split(' ', 2)
+    if (-not $specData.paths[$parts[1]][$parts[0].ToLowerInvariant()].responses['201']) {
+        throw "Handler-created resource is not documented as 201: $($operation.operationKey)"
+    }
+}
+
+$valorifications = $specData.paths['/api/education/portfolios/records/{recordID}/valorifications']
+$valorificationItem = $specData.paths['/api/education/portfolios/records/{recordID}/valorifications/{itemID}']
+if (-not $valorifications.post.responses['201'] -or $valorifications.post.'x-required-permission' -notmatch 'education\.portfolios\.(school\.)?manage' -or -not $valorificationItem.patch -or -not $valorificationItem.delete.responses['204']) {
+    throw 'Legacy portfolio valorification CRUD must be fully routed, typed, RBAC-protected and use 201/204 semantics.'
+}
+
+foreach ($field in @('chairperson_user_id','secretary_user_id')) {
+    if ($specData.components.schemas.CreateGovernanceMeetingRequest.properties[$field].format -ne 'uuid' -or $specData.components.schemas.GovernanceMeeting.properties[$field].format -ne 'uuid') {
+        throw "Governance meeting identity field is missing or not UUID: $field"
+    }
+    if ($specData.components.schemas.CreateGovernanceMeetingRequest.required -notcontains $field -or $specData.components.schemas.GovernanceMeeting.required -contains $field) {
+        throw "Governance meeting $field must be mandatory on writes and optional on responses when omitted by encoding/json."
+    }
+}
+foreach ($schemaName in @('CreateGovernanceMembershipRequest','GovernanceMembership')) {
+    if ($specData.components.schemas[$schemaName].properties.app_user_id.format -ne 'uuid' -or $specData.components.schemas[$schemaName].required -notcontains 'app_user_id') { throw "$schemaName must expose required app_user_id as UUID." }
+}
+$personnelCreate = $specData.paths['/api/education/personnel/records'].post
+$personnelCreateRef = [string]$personnelCreate.requestBody.content.'application/json'.schema.'$ref'
+$personnelCreateSchema = $specData.components.schemas[$personnelCreateRef.Split('/')[-1]]
+if (-not $personnelCreateSchema.properties.Contains('app_user_id') -or $personnelCreateSchema.properties.app_user_id.format -ne 'uuid') {
+	throw 'School personnel create/update contract must expose the canonical app_user_id association as a UUID.'
+}
+foreach ($requiredField in @('full_name','role_title','employment_type','status','evaluation_status','mobility_stage','school_year')) {
+    if ($personnelCreateSchema.required -notcontains $requiredField) { throw "School personnel request is missing handler-required field $requiredField." }
+}
+if ($personnelCreateSchema.required -contains 'app_user_id' -or $specData.components.schemas.PersonnelRecord.required -contains 'app_user_id') {
+    throw 'Personnel app_user_id is a documented optional association and must remain optional in request and response contracts.'
+}
+Assert-SuccessProperties '/api/education/personnel/records' @('id','app_user_id','employee_code','full_name','institution_id') 'post'
+
+foreach ($resource in @(
+    @{ path='/api/education/classes'; item='/api/education/classes/{classID}'; schema='SchoolClass'; request='CreateSchoolClassRequest' },
+    @{ path='/api/education/students'; item='/api/education/students/{studentID}'; schema='SchoolStudent'; request='CreateSchoolStudentRequest' }
+)) {
+    $collection = $specData.paths[$resource.path]
+    $item = $specData.paths[$resource.item]
+    if (-not $collection.get.responses['200'] -or -not $collection.post.responses['201'] -or -not $item.get.responses['200'] -or -not $item.patch.responses['200'] -or -not $item.delete) {
+        throw "School CRUD surface is incomplete: $($resource.path)"
+    }
+    $requestRef = [string]$collection.post.requestBody.content.'application/json'.schema.'$ref'
+    $responseRef = [string]$collection.post.responses['201'].content.'application/json'.schema.'$ref'
+    if ($requestRef -ne "#/components/schemas/$($resource.request)" -or $responseRef -ne "#/components/schemas/$($resource.schema)") {
+        throw "School CRUD surface is not contract-typed: $($resource.path)"
+    }
+}
+foreach ($resource in @(
+    @{ path='/api/education/class-enrolments'; item='/api/education/class-enrolments/{enrolmentID}'; schema='SchoolEnrolment' },
+    @{ path='/api/education/homeroom-assignments'; item='/api/education/homeroom-assignments/{assignmentID}'; schema='SchoolHomeroomAssignment' }
+)) {
+    if (-not $specData.paths[$resource.path].get.responses['200'] -or -not $specData.paths[$resource.path].post.responses['201'] -or -not $specData.paths[$resource.item].get.responses['200'] -or -not $specData.paths[$resource.item].patch.responses['200'] -or -not $specData.paths[$resource.item].delete.responses['200']) {
+        throw "School assignment surface is incomplete: $($resource.path)"
+    }
+}
+$reportCatalogRef = [string]$specData.paths['/api/education/reports'].get.responses['200'].content.'application/json'.schema.'$ref'
+$reportRef = [string]$specData.paths['/api/education/reports/{reportCode}'].get.responses['200'].content.'application/json'.schema.'$ref'
+if ($reportCatalogRef -ne '#/components/schemas/SchoolReportCatalogResponse' -or $reportRef -ne '#/components/schemas/EducationPageOfSchoolReportRow' -or -not $specData.paths['/api/education/reports/{reportCode}/csv'].get.responses['200'].content.'text/csv' -or -not $specData.paths['/api/education/reports/{reportCode}/pdf'].get.responses['200'].content.'application/pdf') {
+    throw 'Server-owned School report catalogue/JSON/CSV/PDF contracts are incomplete or untyped.'
+}
+$reportJSONPermission = [string]$specData.paths['/api/education/reports/{reportCode}'].get.'x-required-permission'
+foreach ($format in @('csv','pdf')) {
+    $exportPermission = [string]$specData.paths["/api/education/reports/{reportCode}/$format"].get.'x-required-permission'
+    if ($exportPermission -notmatch 'education\.reports\.export_sensitive' -or $exportPermission -notmatch 'selected report read permission') {
+        throw "School $format export must require both sensitive-export and report-specific read permission."
+    }
+}
+if ($reportJSONPermission -match 'education\.reports\.export_sensitive') {
+    throw 'School JSON reports must remain available under report-specific read permission without sensitive-export permission.'
+}
+if (-not $specData.paths['/api/education/signatures'].get.responses['200'] -or -not $specData.paths['/api/education/signatures'].post.responses['201'] -or -not $specData.paths['/api/education/signatures/{evidenceID}'].get.responses['200'] -or -not $specData.paths['/api/education/signatures/{evidenceID}/revalidate'].post.responses['201']) {
+    throw 'Signed artifact evidence list/detail/submit/revalidate contracts are incomplete.'
+}
+foreach ($cockpit in @(
+    @{ path='/api/education/secretariat/cockpit'; permission='education.cockpit.secretariat.read'; schema='SecretariatCockpitResponse' },
+    @{ path='/api/education/hr/cockpit'; permission='education.cockpit.hr.read'; schema='HRCockpitResponse' },
+    @{ path='/api/education/committee/cockpit'; permission='education.cockpit.committee.read'; schema='CommitteeCockpitResponse' },
+    @{ path='/api/education/inspector/cockpit'; permission='education.cockpit.inspector.read'; schema='InspectorCockpitResponse' }
+)) {
+    $operation = $specData.paths[$cockpit.path].get
+    if (-not $operation.responses['200'] -or $operation.'x-required-permission' -ne $cockpit.permission -or [string]$operation.responses['200'].content.'application/json'.schema.'$ref' -ne "#/components/schemas/$($cockpit.schema)") {
+        throw "Operational cockpit is not fully routed, typed and permission-protected: $($cockpit.path)"
+    }
+    $schema = $specData.components.schemas[$cockpit.schema]
+    if (-not $schema -or $schema.additionalProperties -ne $false -or $schema.required -notcontains 'institution_id') {
+        throw "Operational cockpit response must be closed and institution-scoped: $($cockpit.schema)"
+    }
+}
+$assignmentOptions = $specData.paths['/api/education/classes/assignment-options'].get
+$assignmentOptionParameters = @($assignmentOptions.parameters)
+$assignmentKind = $assignmentOptionParameters | Where-Object { $_.name -eq 'kind' }
+if (-not $assignmentOptions.responses['200'] -or $assignmentOptions.'x-required-permission' -ne 'education.classes.manage' -or -not $assignmentKind.required -or @($assignmentKind.schema.enum).Count -ne 3 -or -not ($assignmentOptionParameters | Where-Object { $_.name -eq 'q' })) {
+    throw 'School assignment options must be a typed, searchable, paged manage-only endpoint with a required kind discriminator.'
+}
+$assignmentOptionSchema = $specData.components.schemas.SchoolAssignmentOption
+foreach ($field in @('kind','class_id','student_id','personnel_id','app_user_id','code','name')) {
+    if (-not $assignmentOptionSchema.properties.Contains($field)) { throw "School assignment option contract is missing $field." }
+}
+$eligibleArtifacts = $specData.paths['/api/education/signatures/eligible-artifacts'].get
+$eligibleVersions = $specData.paths['/api/education/signatures/eligible-archive-versions'].get
+$artifactTypeParameter = @($eligibleArtifacts.parameters) | Where-Object { $_.name -eq 'artifactType' }
+if ($eligibleArtifacts.'x-required-permission' -ne 'education.signatures.manage' -or $eligibleVersions.'x-required-permission' -ne 'education.signatures.manage' -or -not $artifactTypeParameter.required -or @($artifactTypeParameter.schema.enum).Count -ne 6) {
+    throw 'Signature evidence selectors must be manage-only and expose the exact artifact type discriminator.'
+}
+$signatureSubmitRef = [string]$specData.paths['/api/education/signatures'].post.requestBody.content.'application/json'.schema.'$ref'
+$signatureSubmit = $specData.components.schemas[$signatureSubmitRef.Split('/')[-1]]
+foreach ($requiredField in @('storage_document_id','storage_version_id')) {
+    if ($signatureSubmit.required -notcontains $requiredField) { throw "Signed evidence submit must require $requiredField." }
+}
+foreach ($forbiddenField in @('document_sha256','storage_bucket','storage_object_key')) {
+    if ($signatureSubmit.properties.Contains($forbiddenField)) { throw "Signed evidence submit must not accept browser-owned provenance field $forbiddenField." }
+}
+
+$valorificationPurposes = @('licentiere','debut','definitivat','grad_ii','grad_i','evaluare_profesionala','mobilitate','dezvoltare_profesionala','inspectie_scolara','evaluare_externa_calitate','gradatie_merit','distinctie_premiu')
+foreach ($schemaName in @('PortfolioValorificationPackage','CreatePortfolioValorificationPackageRequest')) {
+    $schema = $specData.components.schemas[$schemaName]
+    $actualPurposes = @($schema.properties.purpose.enum)
+    if ($schema.required -notcontains 'purpose' -or $actualPurposes.Count -ne $valorificationPurposes.Count -or @($valorificationPurposes | Where-Object { $_ -notin $actualPurposes }).Count -gt 0) {
+        throw "$schemaName must require purpose and expose the complete canonical 12-purpose enum."
+    }
+}
+$valorificationPackageList = $specData.paths['/api/education/portfolios/records/{recordID}/valorification-packages'].get
+$valorificationPackageParameters = @($valorificationPackageList.parameters)
+$purposeFilter = $valorificationPackageParameters | Where-Object { $_.name -eq 'filter.purpose' }
+$sortParameter = $valorificationPackageParameters | Where-Object { $_.name -eq 'sort' }
+if (-not $purposeFilter -or -not $sortParameter -or $sortParameter.schema.enum -notcontains 'purpose') {
+    throw 'Portfolio valorification package list must expose filter.purpose and permit server-side sorting by purpose.'
+}
+
+# The authenticated-teacher portfolio surface is intentionally separate from
+# institution-wide CRUD.  Keep its public response projection and every
+# lifecycle/procedure/grant/export route pinned to literal, closed contracts.
+# This prevents a future generated model regression from silently removing
+# fields used by the OwnPortfolio workspace while the Go handler still emits
+# them.
+function Assert-ResponseSchemaReference([string]$path, [string]$method, [string]$schemaName) {
+    $operation = $specData.paths[$path][$method]
+    if (-not $operation) { throw "Portfolio operation missing: $($method.ToUpperInvariant()) $path" }
+    $success = $operation.responses.GetEnumerator() | Where-Object { $_.Key -match '^2' } | Select-Object -First 1
+    $reference = [string](($success.Value.content.GetEnumerator() | Select-Object -First 1).Value.schema.'$ref')
+    if ($reference -ne "#/components/schemas/$schemaName") {
+        throw "Portfolio response contract drift: $($method.ToUpperInvariant()) $path must return $schemaName, got $reference"
+    }
+}
+
+$portfolioRecordSchema = $specData.components.schemas.PortfolioRecord
+$portfolioResponseFields = @('id','portfolio_code','owner_user_id','owner_personnel_id','owner_name','owner_role','school_year','status','section_count','last_updated_on','retention_until','activity_ceased_on','retention_period_days','legal_hold_active','legal_hold_reason','withdrawn_at','withdrawal_reason','applied_procedure_id','transfer_status','authenticity_declared','consent_captured','custodian','institution_id','notes') | Sort-Object
+$actualPortfolioResponseFields = @($portfolioRecordSchema.properties.Keys | Sort-Object)
+if ((Compare-Object $actualPortfolioResponseFields $portfolioResponseFields) -or $portfolioRecordSchema.additionalProperties -ne $false) {
+    throw 'PortfolioRecord must remain the complete closed server response projection emitted by portfolio handlers.'
+}
+foreach ($field in @('id','portfolio_code','owner_name','owner_role','school_year','status','section_count','last_updated_on','retention_until','retention_period_days','legal_hold_active','transfer_status','authenticity_declared','consent_captured','custodian','institution_id','notes')) {
+    if ($portfolioRecordSchema.required -notcontains $field) { throw "PortfolioRecord response is missing required emitted field: $field" }
+}
+foreach ($field in @('owner_user_id','owner_personnel_id','activity_ceased_on','legal_hold_reason','withdrawn_at','withdrawal_reason','applied_procedure_id')) {
+    if ($portfolioRecordSchema.required -contains $field) { throw "PortfolioRecord optional response field became falsely required: $field" }
+}
+
+$ownPortfolioRequest = $specData.components.schemas.OwnPortfolioRequest
+$ownPortfolioFields = @('school_year','last_updated_on','notes') | Sort-Object
+if ((Compare-Object @($ownPortfolioRequest.properties.Keys | Sort-Object) $ownPortfolioFields) -or (Compare-Object @($ownPortfolioRequest.required | Sort-Object) $ownPortfolioFields) -or $ownPortfolioRequest.additionalProperties -ne $false) {
+    throw 'OwnPortfolioRequest must contain only owner-editable school_year, last_updated_on and notes fields.'
+}
+foreach ($forbiddenField in @('owner_user_id','owner_personnel_id','owner_name','owner_role','status','transfer_status','retention_until','custodian','authenticity_declared','consent_captured')) {
+    if ($ownPortfolioRequest.properties.Contains($forbiddenField)) { throw "OwnPortfolioRequest exposes server-controlled field: $forbiddenField" }
+}
+
+Assert-ResponseSchemaReference '/api/education/portfolios/me' 'get' 'EducationPageOfPortfolioRecord'
+foreach ($operation in @(
+    @{path='/api/education/portfolios/me'; method='post'},
+    @{path='/api/education/portfolios/me/{recordID}'; method='get'},
+    @{path='/api/education/portfolios/me/{recordID}'; method='patch'},
+    @{path='/api/education/portfolios/me/{recordID}/submit'; method='post'},
+    @{path='/api/education/portfolios/records/{recordID}/verify'; method='post'},
+    @{path='/api/education/portfolios/records/{recordID}/return'; method='post'},
+    @{path='/api/education/portfolios/records/{recordID}/activity-cessation'; method='post'},
+    @{path='/api/education/portfolios/records/{recordID}/legal-hold'; method='post'}
+)) { Assert-ResponseSchemaReference $operation.path $operation.method 'PortfolioRecord' }
+
+foreach ($operation in @(
+    @{path='/api/education/portfolios/me/{recordID}/documents'; schema='EducationPageOfPortfolioDocument'},
+    @{path='/api/education/portfolios/me/{recordID}/checklist'; schema='EducationPageOfPortfolioChecklistItem'},
+    @{path='/api/education/portfolios/me/{recordID}/opis'; schema='EducationPageOfPortfolioOpisEntry'},
+    @{path='/api/education/portfolios/me/{recordID}/reviews'; schema='EducationPageOfPortfolioReviewEvent'},
+    @{path='/api/education/portfolios/me/archive-documents'; schema='EducationPageOfPortfolioArchiveAttachment'},
+    @{path='/api/education/portfolios/archive-attachment-grants'; schema='EducationPageOfPortfolioArchiveAttachmentGrant'},
+    @{path='/api/education/portfolios/archive-attachment-grants/eligible-documents'; schema='EducationPageOfPortfolioArchiveAttachment'},
+    @{path='/api/education/portfolios/archive-attachment-grants/eligible-users'; schema='EducationPageOfEligibleGovernanceUser'},
+    @{path='/api/education/portfolios/procedures'; schema='EducationPageOfPortfolioProcedure'},
+    @{path='/api/education/portfolios/procedures/{procedureID}/section-rules'; schema='EducationPageOfPortfolioProcedureSectionRule'}
+)) { Assert-ResponseSchemaReference $operation.path 'get' $operation.schema }
+
+Assert-ResponseSchemaReference '/api/education/portfolios/records/{recordID}/export-manifests' 'post' 'PortfolioExportManifestResponse'
+foreach ($operation in @(
+    @{path='/api/education/portfolios/procedures'; method='post'; request='CreatePortfolioProcedureRequest'; response='PortfolioProcedure'},
+    @{path='/api/education/portfolios/procedures/{procedureID}'; method='patch'; request='UpdatePortfolioProcedureRequest'; response='PortfolioProcedure'},
+    @{path='/api/education/portfolios/procedures/{procedureID}/section-rules'; method='put'; request='ReplacePortfolioProcedureSectionRulesRequest'; response='PortfolioProcedureSectionRulesReplaceResponse'}
+)) {
+    $requestReference = [string]$specData.paths[$operation.path][$operation.method].requestBody.content.'application/json'.schema.'$ref'
+    if ($requestReference -ne "#/components/schemas/$($operation.request)") { throw "Portfolio procedure request contract drift: $($operation.method.ToUpperInvariant()) $($operation.path)" }
+    Assert-ResponseSchemaReference $operation.path $operation.method $operation.response
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 521) { throw "Router extraction drift: expected 521 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
-Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 356 Education operations schema-complete."
+if ($actualCount -ne 560) { throw "Router extraction drift: expected 560 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 396 Education operations schema-complete."

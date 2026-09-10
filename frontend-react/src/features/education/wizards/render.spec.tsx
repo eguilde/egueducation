@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { describe, expect, it, vi } from "vitest";
-import { PersonnelRecordWizard, CaMeetingWizard } from "./index";
+import { PersonnelRecordWizard, CaMeetingWizard, PortfolioRecordWizard } from "./index";
 
 const adapter = () => ({ create: vi.fn().mockResolvedValue({ id: "1" }) });
 const renderWizard = (node: React.ReactNode) =>
@@ -37,7 +37,7 @@ describe("education wizard behavior", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
     fireEvent.click(screen.getByRole("button", { name: "Salvează" }));
     await waitFor(() => expect(api.create).toHaveBeenCalled());
-    expect(api.create.mock.calls[0][0]).toBe("/education/personnel/records");
+    expect(api.create.mock.calls[0][0]).toBe("personnel");
     expect(api.create.mock.calls[0][1]).toMatchObject({
       full_name: "Ana Pop",
       school_year: expect.any(String),
@@ -47,5 +47,26 @@ describe("education wizard behavior", () => {
     const api = adapter();
     renderWizard(<CaMeetingWizard adapter={api} canManage />);
     expect(screen.getByText(/ședință ca/i)).toBeInTheDocument();
+  });
+  it("refreshes async eligible-owner options and submits the paired identifiers", async () => {
+    let resolveOwners: ((owners: Array<{ user_id: string; personnel_id: string; display_name: string; role_title: string; employment_status: string }>) => void) | undefined;
+    const api = {
+      create: vi.fn().mockResolvedValue({ id: "portfolio-1" }),
+      eligiblePortfolioOwners: vi.fn(() => new Promise<Array<{ user_id: string; personnel_id: string; display_name: string; role_title: string; employment_status: string }>>((resolve) => { resolveOwners = resolve; })),
+    };
+    renderWizard(<PortfolioRecordWizard adapter={api} canManage />);
+    await waitFor(() => expect(api.eligiblePortfolioOwners).toHaveBeenCalled());
+    await act(async () => { resolveOwners?.([{ user_id: "user-1", personnel_id: "person-1", display_name: "Ana Pop", role_title: "Profesor", employment_status: "active" }]); });
+    const trigger = screen.getByRole("combobox", { name: "Titular *" });
+    fireEvent.pointerDown(trigger);
+    fireEvent.click(trigger);
+    const option = await screen.findByText("Ana Pop · Profesor");
+    fireEvent.click(option);
+    fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
+    fireEvent.change(screen.getByLabelText("Actualizat la"), { target: { value: "2026-09-10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuă" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvează" }));
+    await waitFor(() => expect(api.create).toHaveBeenCalledWith("portfolio", expect.objectContaining({ owner_user_id: "user-1", owner_personnel_id: "person-1", owner_name: "Ana Pop", owner_role: "Profesor" })));
   });
 });

@@ -25,12 +25,6 @@
         "name": "egueducation_rt",
         "description": "HttpOnly, Secure, SameSite=Lax refresh-session cookie scoped to /api/oidc. It cannot be read by browser JavaScript."
       },
-      "productionE2ECanaryActivation": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "Authorization",
-        "description": "Protected production-canary activation credential. The value uses the `Bearer <secret>` form and is available only to the isolated deployment verification workflow."
-      },
       "dpop": {
         "type": "apiKey",
         "in": "header",
@@ -41,15 +35,12 @@
     "schemas": {
       "Problem": {
         "type": "object",
-        "description": "RFC 9457 problem detail. `detail` is safe for users; correlation is supplied by the response `X-Request-ID` header.",
-        "required": ["type", "title", "status"],
+        "description": "Stable API error envelope emitted by backend handlers. The machine-readable code is safe for clients; correlation is supplied by the response X-Request-ID header.",
+        "additionalProperties": false,
+        "required": ["code"],
         "properties": {
-          "type": { "type": "string", "format": "uri-reference", "example": "https://egueducation.invalid/problems/validation" },
-          "title": { "type": "string", "example": "Validation failed" },
-          "status": { "type": "integer", "minimum": 400, "maximum": 599, "example": 422 },
-          "detail": { "type": "string" },
-          "instance": { "type": "string", "format": "uri-reference" },
-          "errors": { "type": "object", "additionalProperties": { "type": "string" } }
+          "code": { "type": "string", "minLength": 1, "example": "validation_failed" },
+          "permission": { "type": "string", "description": "Required permission when the backend exposes a safe authorization hint." }
         }
       },
       "Page": {
@@ -385,12 +376,12 @@
       }
       },
     "responses": {
-      "BadRequest": { "description": "Malformed request", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
-      "Unauthorized": { "description": "Authentication required or token invalid", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
-      "Forbidden": { "description": "Authenticated principal lacks the required RBAC permission or tenant access", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
-      "NotFound": { "description": "Resource not found in the active tenant", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
-      "Validation": { "description": "Input validation failed", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
-      "ServerError": { "description": "Unexpected server error", "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
+      "BadRequest": { "description": "Malformed request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Unauthorized": { "description": "Authentication required or token invalid", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Forbidden": { "description": "Authenticated principal lacks the required RBAC permission or tenant access", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "NotFound": { "description": "Resource not found in the active tenant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Validation": { "description": "Input validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "ServerError": { "description": "Unexpected server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
     },
     "parameters": {
       "Page": { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1, "default": 1 } },

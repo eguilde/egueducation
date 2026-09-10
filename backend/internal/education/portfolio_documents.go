@@ -144,7 +144,7 @@ func (s *Service) portfolioDocumentSummaryPDFLines(r *http.Request, recordID str
 	rows, err := s.pool.Query(r.Context(), `
 		select section_code, component_code, document_title, source_scope, to_char(issued_on, 'YYYY-MM-DD')
 		from education_portfolio_documents
-		where portfolio_id = $1 and institution_id = $2
+		where portfolio_id = $1 and institution_id = $2 and status = 'active'
 		order by chronological_index, issued_on, document_title
 	`, recordID, institutionID)
 	if err != nil {

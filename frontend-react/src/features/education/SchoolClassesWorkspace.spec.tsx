@@ -1,0 +1,42 @@
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { PrimeReactProvider } from "@primereact/core";
+import { vi } from "vitest";
+import { SchoolClassesWorkspace, type SchoolClassesApi } from "./SchoolClassesWorkspace";
+
+const item = { id:"class-1", class_code:"CLS-2026-a", class_name:"IV A", school_year:"2026-2027", grade_level:"IV", study_shift:"day", active:true };
+const resource = (items: unknown[] = [item]) => ({ list: vi.fn().mockResolvedValue({items,total:items.length,page:1,pageSize:20}), detail: vi.fn().mockResolvedValue(items[0]), create:vi.fn().mockResolvedValue(items[0]), update:vi.fn().mockResolvedValue(items[0]), lifecycle:vi.fn().mockResolvedValue(items[0]) });
+function api() { const classes=resource(); const assignmentOptions=vi.fn().mockImplementation(({kind}:{kind:string})=>Promise.resolve({items:kind==="students"?[{kind:"students",code:"ELV-1",name:"Ana Pop",student_id:"student-1"}]:kind==="classes"?[{kind:"classes",code:"CLS-1",name:"IV A",class_id:"class-1"}]:[{kind:"teachers",code:"P-1",name:"Prof. Ionescu",personnel_id:"personnel-1",app_user_id:"user-1"},{kind:"teachers",code:"P-2",name:"Prof. Marinescu",personnel_id:"personnel-2",app_user_id:"user-2"}],total:2,page:1,pageSize:25})); return { classes, students:resource([]), enrolments:resource([]), homerooms:resource([]), assignmentOptions } as unknown as SchoolClassesApi & { classes: ReturnType<typeof resource>; enrolments: ReturnType<typeof resource>; homerooms: ReturnType<typeof resource>; assignmentOptions: typeof assignmentOptions }; }
+function view(client: SchoolClassesApi, manage=true) { return render(<PrimeReactProvider><SchoolClassesWorkspace api={client} capabilities={{read:true,assigned:false,manage}}/></PrimeReactProvider>); }
+
+describe("SchoolClassesWorkspace", () => {
+  afterEach(cleanup);
+  it("uses server pagination, filter and sorting for classes", async () => { const client=api();const rendered=view(client);await screen.findByText("IV A");expect(client.classes.list).toHaveBeenCalledWith(expect.objectContaining({page:1,pageSize:20,filters:{}}));fireEvent.change(within(rendered.container).getAllByLabelText("Filtru Clasă")[0],{target:{value:"IV"}});await waitFor(()=>expect(client.classes.list).toHaveBeenLastCalledWith(expect.objectContaining({filters:expect.objectContaining({class_name:"IV"})})));fireEvent.click(within(rendered.container).getAllByRole("button",{name:"Sortează după Cod"})[0]);await waitFor(()=>expect(client.classes.list).toHaveBeenLastCalledWith(expect.objectContaining({sort:"class_code",direction:"asc"}))); });
+  it("keeps add in action header and creates through the resource transport", async () => { const client=api();view(client);fireEvent.click(await screen.findByRole("button",{name:"Adaugă clasă"}));const dialog=await screen.findByRole("dialog");expect(dialog).toHaveTextContent("Adaugă clasă");const inputs=within(dialog).getAllByRole("textbox");fireEvent.change(inputs[0],{target:{value:"CLS-NEW"}});fireEvent.change(inputs[1],{target:{value:"IV B"}});fireEvent.change(inputs[2],{target:{value:"2026-2027"}});fireEvent.change(inputs[3],{target:{value:"IV"}});fireEvent.click(within(dialog).getByRole("button",{name:"Salvează"}));await waitFor(()=>expect(client.classes.create).toHaveBeenCalledWith(expect.objectContaining({class_code:"CLS-NEW",class_name:"IV B"}))); });
+  it("does not expose mutations to read-assigned users", async () => { const client=api();render(<PrimeReactProvider><SchoolClassesWorkspace api={client} capabilities={{read:false,assigned:true,manage:false}}/></PrimeReactProvider>);await screen.findByText("IV A");expect(screen.queryByRole("button",{name:"Adaugă clasă"})).not.toBeInTheDocument(); });
+  it("uses server-returned assignment options instead of asking for raw enrolment IDs", async () => { const client=api();view(client);fireEvent.click(await screen.findByRole("tab",{name:"Înscrieri"}));fireEvent.click(await screen.findByRole("button",{name:"Adaugă înscriere"}));const dialog=await screen.findByRole("dialog");expect(dialog).not.toHaveTextContent("ID elev");expect(dialog).not.toHaveTextContent("ID clasă");expect(within(dialog).getByLabelText("Caută elev")).toBeInTheDocument();expect(within(dialog).getByLabelText("Caută clasă")).toBeInTheDocument();await waitFor(()=>expect(client.assignmentOptions).toHaveBeenCalledWith(expect.objectContaining({kind:"students",page:1,pageSize:25})));await waitFor(()=>expect(client.assignmentOptions).toHaveBeenCalledWith(expect.objectContaining({kind:"classes",page:1,pageSize:25}))); });
+  it("submits the selected student and class identifiers returned by the server", async () => { const client=api();view(client);fireEvent.click(await screen.findByRole("tab",{name:"Înscrieri"}));fireEvent.click(await screen.findByRole("button",{name:"Adaugă înscriere"}));const dialog=await screen.findByRole("dialog");await screen.findByLabelText("Selectează elevul");await waitFor(()=>expect(client.assignmentOptions).toHaveBeenCalled());fireEvent.click(within(dialog).getByLabelText("Selectează elevul"));fireEvent.click(await screen.findByText("Ana Pop (ELV-1)"));fireEvent.click(within(dialog).getByLabelText("Selectează clasa"));fireEvent.click(await screen.findByText("IV A (CLS-1)"));const enrolledFrom=dialog.querySelector("input[type='date']");if (!enrolledFrom) throw new Error("missing enrolled_from input");fireEvent.change(enrolledFrom,{target:{value:"2026-09-01"}});fireEvent.click(within(dialog).getByRole("button",{name:"Salvează"}));await waitFor(()=>expect(client.enrolments.create).toHaveBeenCalledWith(expect.objectContaining({student_id:"student-1",class_id:"class-1",enrolled_from:"2026-09-01"}))); });
+  it("preserves the canonical personnel/user pair when saving an existing homeroom without reselection", async () => {
+    const client=api();
+    client.homerooms.list.mockResolvedValue({items:[{id:"homeroom-1",class_id:"class-1",class_name:"IV A",personnel_id:"personnel-1",app_user_id:"user-1",teacher_name:"Prof. Ionescu",assigned_from:"2026-09-01",assigned_until:""}],total:1,page:1,pageSize:20});
+    view(client); fireEvent.click(await screen.findByRole("tab",{name:"Diriginți"}));
+    const actions=await screen.findByRole("button",{name:"Acțiuni pentru homeroom-1"}); fireEvent.pointerDown(actions); fireEvent.click(actions);
+    fireEvent.click(await screen.findByRole("button",{name:"Editează"}));
+    const dialog=await screen.findByRole("dialog",{name:/Editează Diriginți/});
+    fireEvent.click(within(dialog).getByRole("button",{name:"Salvează"}));
+    await waitFor(()=>expect(client.homerooms.update).toHaveBeenCalledWith("homeroom-1",{
+      class_id:"class-1", personnel_id:"personnel-1", app_user_id:"user-1", assigned_from:"2026-09-01", assigned_until:"",
+    }));
+  });
+  it("replaces personnel and app-user atomically when the homeroom teacher changes", async () => {
+    const client=api();
+    client.homerooms.list.mockResolvedValue({items:[{id:"homeroom-1",class_id:"class-1",class_name:"IV A",personnel_id:"personnel-1",app_user_id:"user-1",teacher_name:"Prof. Ionescu",assigned_from:"2026-09-01",assigned_until:""}],total:1,page:1,pageSize:20});
+    view(client); fireEvent.click(await screen.findByRole("tab",{name:"Diriginți"}));
+    const actions=await screen.findByRole("button",{name:"Acțiuni pentru homeroom-1"}); fireEvent.pointerDown(actions); fireEvent.click(actions); fireEvent.click(await screen.findByRole("button",{name:"Editează"}));
+    const dialog=await screen.findByRole("dialog",{name:/Editează Diriginți/});
+    await waitFor(()=>expect(client.assignmentOptions).toHaveBeenCalledWith(expect.objectContaining({kind:"teachers"})));
+    fireEvent.click(within(dialog).getByLabelText("Selectează profesorul")); fireEvent.click(await screen.findByText("Prof. Marinescu (P-2)"));
+    fireEvent.click(within(dialog).getByRole("button",{name:"Salvează"}));
+    await waitFor(()=>expect(client.homerooms.update).toHaveBeenCalledWith("homeroom-1",expect.objectContaining({personnel_id:"personnel-2",app_user_id:"user-2"})));
+    expect(client.homerooms.update).toHaveBeenCalledWith("homeroom-1",expect.not.objectContaining({teacher:expect.anything()}));
+  });
+});

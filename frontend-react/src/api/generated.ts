@@ -1080,6 +1080,150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/class-enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/class-enrolments
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_class_enrolments"];
+        put?: never;
+        /**
+         * POST /api/education/class-enrolments
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_class_enrolments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/class-enrolments/{enrolmentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/class-enrolments/{enrolmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_class_enrolments_enrolmentid"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /api/education/class-enrolments/{enrolmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        delete: operations["delete_api_education_class_enrolments_enrolmentid"];
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /api/education/class-enrolments/{enrolmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        patch: operations["patch_api_education_class_enrolments_enrolmentid"];
+        trace?: never;
+    };
+    "/api/education/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/classes
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_classes"];
+        put?: never;
+        /**
+         * POST /api/education/classes
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_classes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/classes/assignment-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/classes/assignment-options
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_classes_assignment_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/classes/{classID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/classes/{classID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_classes_classid"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /api/education/classes/{classID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        delete: operations["delete_api_education_classes_classid"];
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /api/education/classes/{classID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        patch: operations["patch_api_education_classes_classid"];
+        trace?: never;
+    };
+    "/api/education/committee/cockpit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/committee/cockpit
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_committee_cockpit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/committees/records": {
         parameters: {
             query?: never;
@@ -1573,15 +1717,35 @@ export interface paths {
         };
         /**
          * GET /api/education/delegations
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. server-side filtered and sorted delegation ledger protected by FORCE RLS
          */
         get: operations["get_api_education_delegations"];
         put?: never;
         /**
          * POST /api/education/delegations
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. strict DTO plus database validation of director authority, adjunct membership and exact resource scope
          */
         post: operations["post_api_education_delegations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/delegations/active-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/delegations/active-grants
+         * @description Handler-backed Education contract. uses the same request-time accepted-grant predicate as RequireEducationPermission; delegation-management permissions are structurally excluded; response is Cache-Control: no-store and Vary: Authorization
+         */
+        get: operations["get_api_education_delegations_active_grants"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1597,7 +1761,7 @@ export interface paths {
         };
         /**
          * GET /api/education/delegations/eligible-adjuncts
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. server-authorized principal directory without client-supplied tenant identifiers
          */
         get: operations["get_api_education_delegations_eligible_adjuncts"];
         put?: never;
@@ -1617,7 +1781,7 @@ export interface paths {
         };
         /**
          * GET /api/education/delegations/eligible-permissions
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. server-authorized delegable permission directory; delegation-management permissions are excluded
          */
         get: operations["get_api_education_delegations_eligible_permissions"];
         put?: never;
@@ -1639,7 +1803,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/delegations/{delegationID}/accept
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. bodyless server-authoritative transition with immutable acceptance evidence
          */
         post: operations["post_api_education_delegations_delegationid_accept"];
         delete?: never;
@@ -1659,7 +1823,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/delegations/{delegationID}/expire
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. bodyless expiry transition with server actor and timestamp provenance
          */
         post: operations["post_api_education_delegations_delegationid_expire"];
         delete?: never;
@@ -1679,7 +1843,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/delegations/{delegationID}/revoke
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. bodyless request-time revocation that preserves acceptance provenance
          */
         post: operations["post_api_education_delegations_delegationid_revoke"];
         delete?: never;
@@ -3084,6 +3248,98 @@ export interface paths {
         patch: operations["patch_api_education_gradatii_records_recordid_scores_itemid"];
         trace?: never;
     };
+    "/api/education/homeroom-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/homeroom-assignments
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_homeroom_assignments"];
+        put?: never;
+        /**
+         * POST /api/education/homeroom-assignments
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_homeroom_assignments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/homeroom-assignments/{assignmentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/homeroom-assignments/{assignmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_homeroom_assignments_assignmentid"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /api/education/homeroom-assignments/{assignmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        delete: operations["delete_api_education_homeroom_assignments_assignmentid"];
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /api/education/homeroom-assignments/{assignmentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        patch: operations["patch_api_education_homeroom_assignments_assignmentid"];
+        trace?: never;
+    };
+    "/api/education/hr/cockpit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/hr/cockpit
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_hr_cockpit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/inspector/cockpit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/inspector/cockpit
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_inspector_cockpit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/managerial/dashboard": {
         parameters: {
             query?: never;
@@ -4101,7 +4357,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolio-transfer-destinations
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. minimal permission-checked active-tenant routing directory; no tenant configuration or user data is disclosed
          */
         get: operations["get_api_education_portfolio_transfer_destinations"];
         put?: never;
@@ -4121,7 +4377,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolio-transfer-inbox
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. destination-scoped server-side page of sealed inter-tenant transfer packages
          */
         get: operations["get_api_education_portfolio_transfer_inbox"];
         put?: never;
@@ -4143,7 +4399,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolio-transfer-inbox/{itemID}/accept
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. destination-only state transition guarded by database routing, RLS and immutable evidence trigger
          */
         post: operations["post_api_education_portfolio_transfer_inbox_itemid_accept"];
         delete?: never;
@@ -4161,13 +4417,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/archive-attachment-grants
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. tenant-scoped grant/document/user join
          */
         get: operations["get_api_education_portfolios_archive_attachment_grants"];
         put?: never;
         /**
          * POST /api/education/portfolios/archive-attachment-grants
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. insert-select validates tenant membership and ready active stored archive evidence
          */
         post: operations["post_api_education_portfolios_archive_attachment_grants"];
         delete?: never;
@@ -4185,7 +4441,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/archive-attachment-grants/eligible-documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. tenant-scoped archive/version join with ready/active/storage predicates
          */
         get: operations["get_api_education_portfolios_archive_attachment_grants_eligible_documents"];
         put?: never;
@@ -4205,7 +4461,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/archive-attachment-grants/eligible-users
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. active membership and active tenant join constrained by current institution
          */
         get: operations["get_api_education_portfolios_archive_attachment_grants_eligible_users"];
         put?: never;
@@ -4228,7 +4484,7 @@ export interface paths {
         post?: never;
         /**
          * DELETE /api/education/portfolios/archive-attachment-grants/{grantID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. tenant-scoped guarded delete with immutable-evidence conflict
          */
         delete: operations["delete_api_education_portfolios_archive_attachment_grants_grantid"];
         options?: never;
@@ -4256,6 +4512,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/eligible-owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/eligible-owners
+         * @description Handler-backed Education contract. httpx.WritePage of EligiblePortfolioOwner
+         */
+        get: operations["get_api_education_portfolios_eligible_owners"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/me": {
         parameters: {
             query?: never;
@@ -4265,13 +4541,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner UUID resolved from authenticated subject and constrained in SQL
          */
         get: operations["get_api_education_portfolios_me"];
         put?: never;
         /**
          * POST /api/education/portfolios/me
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner UUID and draft state are server-derived
          */
         post: operations["post_api_education_portfolios_me"];
         delete?: never;
@@ -4289,7 +4565,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/archive-documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner grant plus institution-scoped archive/version join returns only id, title and current_version_no
          */
         get: operations["get_api_education_portfolios_me_archive_documents"];
         put?: never;
@@ -4309,7 +4585,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner UUID resolved from authenticated subject and constrained in SQL
          */
         get: operations["get_api_education_portfolios_me_recordid"];
         put?: never;
@@ -4319,7 +4595,7 @@ export interface paths {
         head?: never;
         /**
          * PATCH /api/education/portfolios/me/{recordID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner/status/transfer/custody are not mutable through own endpoint
          */
         patch: operations["patch_api_education_portfolios_me_recordid"];
         trace?: never;
@@ -4333,7 +4609,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}/checklist
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper delegates to checklist listing
          */
         get: operations["get_api_education_portfolios_me_recordid_checklist"];
         put?: never;
@@ -4353,7 +4629,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}/declarations
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. current server-issued templates and immutable owner acknowledgements
          */
         get: operations["get_api_education_portfolios_me_recordid_declarations"];
         put?: never;
@@ -4375,7 +4651,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. idempotent immutable acknowledgement bound to current template
          */
         post: operations["post_api_education_portfolios_me_recordid_declarations_declarationtype_acknowledgements"];
         delete?: never;
@@ -4393,13 +4669,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}/documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper delegates to validated document listing
          */
         get: operations["get_api_education_portfolios_me_recordid_documents"];
         put?: never;
         /**
          * POST /api/education/portfolios/me/{recordID}/documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper sets provenance and authenticity state server-side before validated document mutation
          */
         post: operations["post_api_education_portfolios_me_recordid_documents"];
         delete?: never;
@@ -4420,14 +4696,14 @@ export interface paths {
         post?: never;
         /**
          * DELETE /api/education/portfolios/me/{recordID}/documents/{documentID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper delegates to validated document mutation
          */
         delete: operations["delete_api_education_portfolios_me_recordid_documents_documentid"];
         options?: never;
         head?: never;
         /**
          * PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper sets provenance and authenticity state server-side before validated document mutation
          */
         patch: operations["patch_api_education_portfolios_me_recordid_documents_documentid"];
         trace?: never;
@@ -4441,7 +4717,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}/opis
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper delegates to opis listing
          */
         get: operations["get_api_education_portfolios_me_recordid_opis"];
         put?: never;
@@ -4481,7 +4757,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/me/{recordID}/reviews
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. owner wrapper delegates to review listing
          */
         get: operations["get_api_education_portfolios_me_recordid_reviews"];
         put?: never;
@@ -4503,7 +4779,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/me/{recordID}/submit
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. explicit submit transition
          */
         post: operations["post_api_education_portfolios_me_recordid_submit"];
         delete?: never;
@@ -4521,13 +4797,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/procedures
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. httpx.WritePage of PortfolioProcedure
          */
         get: operations["get_api_education_portfolios_procedures"];
         put?: never;
         /**
          * POST /api/education/portfolios/procedures
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. version number and author are server-derived
          */
         post: operations["post_api_education_portfolios_procedures"];
         delete?: never;
@@ -4545,7 +4821,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/procedures/{procedureID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. PortfolioProcedure
          */
         get: operations["get_api_education_portfolios_procedures_procedureid"];
         put?: never;
@@ -4555,7 +4831,7 @@ export interface paths {
         head?: never;
         /**
          * PATCH /api/education/portfolios/procedures/{procedureID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. draft-only update with expected_updated_at optimistic concurrency
          */
         patch: operations["patch_api_education_portfolios_procedures_procedureid"];
         trace?: never;
@@ -4571,7 +4847,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/procedures/{procedureID}/approve
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. draft to approved transition with evidence
          */
         post: operations["post_api_education_portfolios_procedures_procedureid_approve"];
         delete?: never;
@@ -4591,7 +4867,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/procedures/{procedureID}/publish
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. approved to published transition with evidence
          */
         post: operations["post_api_education_portfolios_procedures_procedureid_publish"];
         delete?: never;
@@ -4609,12 +4885,12 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/procedures/{procedureID}/section-rules
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. httpx.WritePage of PortfolioProcedureSectionRule
          */
         get: operations["get_api_education_portfolios_procedures_procedureid_section_rules"];
         /**
          * PUT /api/education/portfolios/procedures/{procedureID}/section-rules
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. transactional draft-only replacement with expected_updated_at
          */
         put: operations["put_api_education_portfolios_procedures_procedureid_section_rules"];
         post?: never;
@@ -4635,7 +4911,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/procedures/{procedureID}/supersede
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. published to superseded transition; evidence is immutable audit evidence
          */
         post: operations["post_api_education_portfolios_procedures_procedureid_supersede"];
         delete?: never;
@@ -4655,7 +4931,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/procedures/{procedureID}/withdraw
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. permitted lifecycle withdrawal with immutable audit evidence
          */
         post: operations["post_api_education_portfolios_procedures_procedureid_withdraw"];
         delete?: never;
@@ -4747,7 +5023,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/activity-cessation
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. explicit activity cessation command starts retention
          */
         post: operations["post_api_education_portfolios_records_recordid_activity_cessation"];
         delete?: never;
@@ -4869,7 +5145,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/declarations
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. reviewer receives immutable evidence only
          */
         get: operations["get_api_education_portfolios_records_recordid_declarations"];
         put?: never;
@@ -4943,7 +5219,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/export-manifests
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. concrete server-issued response DTO; no client-composed export rows are accepted
          */
         post: operations["post_api_education_portfolios_records_recordid_export_manifests"];
         delete?: never;
@@ -4963,7 +5239,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/legal-hold
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. institution lifecycle command with audited legal-hold state
          */
         post: operations["post_api_education_portfolios_records_recordid_legal_hold"];
         delete?: never;
@@ -5075,7 +5351,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/return
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. explicit administrator return transition
          */
         post: operations["post_api_education_portfolios_records_recordid_return"];
         delete?: never;
@@ -5237,13 +5513,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/valorification-packages
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. server-side page of source-bound evidentiary packages
          */
         get: operations["get_api_education_portfolios_records_recordid_valorification_packages"];
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/valorification-packages
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. strict single-source package creation
          */
         post: operations["post_api_education_portfolios_records_recordid_valorification_packages"];
         delete?: never;
@@ -5261,7 +5537,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-archive-versions
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. minimal archive evidence picker without storage credentials
          */
         get: operations["get_api_education_portfolios_records_recordid_valorification_packages_eligible_archive_versions"];
         put?: never;
@@ -5281,7 +5557,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/valorification-packages/eligible-sources
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. server-authorized canonical source picker
          */
         get: operations["get_api_education_portfolios_records_recordid_valorification_packages_eligible_sources"];
         put?: never;
@@ -5301,7 +5577,7 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. parent-scoped package detail
          */
         get: operations["get_api_education_portfolios_records_recordid_valorification_packages_itemid"];
         put?: never;
@@ -5323,7 +5599,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. database-guarded draft-submit-validate-complete lifecycle
          */
         post: operations["post_api_education_portfolios_records_recordid_valorification_packages_itemid_advance"];
         delete?: never;
@@ -5341,13 +5617,13 @@ export interface paths {
         };
         /**
          * GET /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. immutable archived-version evidence projection
          */
         get: operations["get_api_education_portfolios_records_recordid_valorification_packages_itemid_documents"];
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. browser supplies only archive IDs; immutable hash and storage provenance are copied by database trigger
          */
         post: operations["post_api_education_portfolios_records_recordid_valorification_packages_itemid_documents"];
         delete?: never;
@@ -5369,7 +5645,11 @@ export interface paths {
          */
         get: operations["get_api_education_portfolios_records_recordid_valorifications"];
         put?: never;
-        post?: never;
+        /**
+         * Create or execute Create Portfolio Valorification
+         * @description Tenant- and institution-scoped Education operation. Handler: CreatePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_valorifications"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5390,10 +5670,18 @@ export interface paths {
         get: operations["get_api_education_portfolios_records_recordid_valorifications_itemid"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Delete Portfolio Valorification
+         * @description Tenant- and institution-scoped Education operation. Handler: DeletePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage. Successful deletion returns HTTP 204 with no response body.
+         */
+        delete: operations["delete_api_education_portfolios_records_recordid_valorifications_itemid"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Update Portfolio Valorification
+         * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioValorification. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
+         */
+        patch: operations["patch_api_education_portfolios_records_recordid_valorifications_itemid"];
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/verify": {
@@ -5407,7 +5695,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/verify
-         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         * @description Handler-backed Education contract. explicit administrator verification transition
          */
         post: operations["post_api_education_portfolios_records_recordid_verify"];
         delete?: never;
@@ -5652,6 +5940,86 @@ export interface paths {
         patch: operations["patch_api_education_regulations_records_recordid_workflow_stepid"];
         trace?: never;
     };
+    "/api/education/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/reports
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_reports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/reports/{reportCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/reports/{reportCode}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_reports_reportcode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/reports/{reportCode}/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/reports/{reportCode}/csv
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_reports_reportcode_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/reports/{reportCode}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/reports/{reportCode}/pdf
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_reports_reportcode_pdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/requirements": {
         parameters: {
             query?: never;
@@ -5670,6 +6038,182 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/education/secretariat/cockpit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/secretariat/cockpit
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_secretariat_cockpit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/signatures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/signatures
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_signatures"];
+        put?: never;
+        /**
+         * POST /api/education/signatures
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_signatures"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/signatures/eligible-archive-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/signatures/eligible-archive-versions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_signatures_eligible_archive_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/signatures/eligible-artifacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/signatures/eligible-artifacts
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_signatures_eligible_artifacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/signatures/{evidenceID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/signatures/{evidenceID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_signatures_evidenceid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/signatures/{evidenceID}/revalidate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/signatures/{evidenceID}/revalidate
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_signatures_evidenceid_revalidate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/students
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_students"];
+        put?: never;
+        /**
+         * POST /api/education/students
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_education_students"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/students/{studentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/students/{studentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_education_students_studentid"];
+        put?: never;
+        post?: never;
+        /**
+         * DELETE /api/education/students/{studentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        delete: operations["delete_api_education_students_studentid"];
+        options?: never;
+        head?: never;
+        /**
+         * PATCH /api/education/students/{studentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        patch: operations["patch_api_education_students_studentid"];
         trace?: never;
     };
     "/api/education/taxonomies": {
@@ -6039,26 +6583,6 @@ export interface paths {
         get: operations["get_oidc_authorize"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/oidc/e2e-canary/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start an isolated production OIDC canary session
-         * @description Creates a short-lived, HttpOnly, interaction-bound capability used only by the protected production deployment verification workflow. The deterministic OTP remains unusable without this separate activation credential.
-         */
-        post: operations["post_api_oidc_e2e_canary_session"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7421,6 +7945,8 @@ export interface components {
             sourceDocumentId?: string;
             title: string;
         };
+        /** Format: binary */
+        BinaryCsv: string;
         /**
          * Format: binary
          * @description Binary response body. Use Content-Type and Content-Disposition response headers for media type and filename.
@@ -7435,191 +7961,204 @@ export interface components {
             oidcClientId?: string;
             oidcIssuer?: string;
         };
+        CommitteeCockpitResponse: {
+            active_members: number;
+            committees: number;
+            evidence_documents: number;
+            institution_id: string;
+            meetings: number;
+        };
         CommitteeCompletenessMemberBlock: {
             /** Format: int32 */
-            active_members?: number;
-            chairperson_covered?: boolean;
-            member_names?: string[];
-            secretary_covered?: boolean;
+            active_members: number;
+            chairperson_covered: boolean;
+            member_names: string[];
+            secretary_covered: boolean;
             /** Format: int32 */
-            voting_members?: number;
+            voting_members: number;
         };
         CommitteeCompletenessReadiness: {
-            blockers?: string[];
-            ready_for_operation?: boolean;
+            blockers: string[];
+            ready_for_operation: boolean;
         };
         CommitteeCompletenessSummary: {
-            committee?: components["schemas"]["CommitteeRecord"];
-            membership?: components["schemas"]["CommitteeCompletenessMemberBlock"];
-            readiness?: components["schemas"]["CommitteeCompletenessReadiness"];
+            committee: components["schemas"]["CommitteeRecord"];
+            membership: components["schemas"]["CommitteeCompletenessMemberBlock"];
+            readiness: components["schemas"]["CommitteeCompletenessReadiness"];
         };
         CommitteeMember: {
-            appointed_on?: string;
-            committee_id?: string;
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            member_type?: string;
-            notes?: string;
-            released_on?: string;
-            role_name?: string;
-            status?: string;
-            voting_right?: boolean;
+            appointed_on: string;
+            committee_id: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            member_type: string;
+            notes: string;
+            released_on: string;
+            role_name: string;
+            status: string;
+            voting_right: boolean;
         };
         CommitteeRecord: {
-            committee_code?: string;
-            committee_type?: string;
-            decision_reference?: string;
-            ends_on?: string;
-            evaluation_scope?: boolean;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            school_year?: string;
-            starts_on?: string;
-            status?: string;
-            title?: string;
+            committee_code: string;
+            committee_type: string;
+            decision_reference: string;
+            ends_on: string;
+            evaluation_scope: boolean;
+            id: string;
+            institution_id: string;
+            notes: string;
+            school_year: string;
+            starts_on: string;
+            status: string;
+            title: string;
         };
         CreateCommitteeMemberRequest: {
-            appointed_on?: string;
-            full_name?: string;
-            member_type?: string;
+            appointed_on: string;
+            full_name: string;
+            member_type: string;
             notes?: string;
             released_on?: string;
-            role_name?: string;
-            status?: string;
+            role_name: string;
+            status: string;
             voting_right?: boolean;
         };
         CreateCommitteeRecordRequest: {
-            committee_type?: string;
+            committee_type: string;
             decision_reference?: string;
             ends_on?: string;
             evaluation_scope?: boolean;
             notes?: string;
-            school_year?: string;
-            starts_on?: string;
-            status?: string;
-            title?: string;
+            school_year: string;
+            starts_on: string;
+            status: string;
+            title: string;
         };
         CreateDecisionIssuanceRequest: {
             acknowledged_on?: string;
             delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
             file_reference?: string;
             notes?: string;
-            recipient_name?: string;
+            recipient_name: string;
             recipient_role?: string;
             signed_on?: string;
         };
         CreateDecisionPublicationStepRequest: {
             completed_on?: string;
-            due_on?: string;
+            due_on: string;
             notes?: string;
             publication_channel?: string;
             publication_reference?: string;
-            responsible_name?: string;
-            status?: string;
+            responsible_name: string;
+            status: string;
             /** Format: int32 */
-            step_order?: number;
-            step_type?: string;
+            step_order: number;
+            step_type: string;
         };
         CreateGovernanceDecisionRequest: {
-            decision_date?: string;
+            decision_date: string;
             legal_basis?: string;
-            organism?: string;
-            publication_status?: string;
-            school_year?: string;
+            organism: string;
+            publication_status: string;
+            school_year: string;
             signed_by?: string;
-            status?: string;
+            status: string;
             summary?: string;
-            title?: string;
+            title: string;
         };
         CreateGovernanceMeetingDocumentRequest: {
             custody_owner?: string;
             document_number?: string;
-            document_type?: string;
-            issued_on?: string;
-            publication_status?: string;
+            document_type: string;
+            issued_on: string;
+            publication_status: string;
             registry_number?: string;
             signed_by?: string;
             summary?: string;
-            title?: string;
+            title: string;
         };
         CreateGovernanceMeetingParticipantRequest: {
-            attendance_status?: string;
-            full_name?: string;
-            member_type?: string;
+            attendance_status: string;
+            full_name: string;
+            member_type: string;
             notes?: string;
-            role_name?: string;
+            role_name: string;
             signature_present?: boolean;
             voting_right?: boolean;
         };
         CreateGovernanceMeetingRequest: {
             chairperson?: string;
+            /** Format: uuid */
+            chairperson_user_id: string;
             location?: string;
-            meeting_date?: string;
-            meeting_type?: string;
-            organism?: string;
+            meeting_date: string;
+            meeting_type: string;
+            organism: string;
             /** Format: int32 */
             participants_count?: number;
             /** Format: int32 */
             quorum_required?: number;
-            school_year?: string;
+            school_year: string;
             secretary_name?: string;
-            status?: string;
+            /** Format: uuid */
+            secretary_user_id: string;
+            status: string;
             summary?: string;
-            title?: string;
+            title: string;
         };
         CreateGovernanceMeetingVoteRequest: {
             /** Format: int32 */
             abstentions?: number;
             /** Format: int32 */
-            agenda_order?: number;
-            decision_type?: string;
+            agenda_order: number;
+            decision_type: string;
             legal_basis?: string;
             notes?: string;
-            outcome?: string;
+            outcome: string;
             requires_follow_up?: boolean;
-            subject_title?: string;
+            subject_title: string;
             /** Format: int32 */
             votes_against?: number;
             /** Format: int32 */
             votes_for?: number;
         };
         CreateGovernanceMembershipRequest: {
+            /** Format: uuid */
+            app_user_id: string;
             full_name?: string;
-            mandate_from?: string;
-            mandate_to?: string;
+            mandate_from: string;
+            mandate_to: string;
             notes?: string;
-            organism?: string;
-            role_name?: string;
-            school_year?: string;
-            status?: string;
+            organism: string;
+            role_name: string;
+            school_year: string;
+            status: string;
             voting_right?: boolean;
         };
         CreateGovernanceMinuteItemRequest: {
             /** Format: int32 */
-            agenda_order?: number;
-            decision_summary?: string;
-            discussion_summary?: string;
+            agenda_order: number;
+            decision_summary: string;
+            discussion_summary: string;
             due_on?: string;
-            follow_up_status?: string;
+            follow_up_status: string;
             notes?: string;
             requires_publication?: boolean;
             responsible_party?: string;
-            topic_title?: string;
+            topic_title: string;
         };
         CreateGovernanceResolutionRequest: {
-            anonymization_state?: string;
-            issued_on?: string;
+            anonymization_state: string;
+            issued_on: string;
             notes?: string;
-            publication_status?: string;
-            resolution_type?: string;
+            publication_status: string;
+            resolution_type: string;
             signed_by?: string;
-            title?: string;
-            vote_id?: string;
+            title: string;
+            vote_id: string;
         };
         CreateIntertenantPortfolioTransferRequest: {
             destination_tenant_code: string;
@@ -7631,304 +8170,309 @@ export interface components {
         };
         CreateManagerialDocumentRequest: {
             approved_on?: string;
-            document_category?: string;
-            document_status?: string;
+            document_category: string;
+            document_status: string;
             file_reference?: string;
             mandatory?: boolean;
             notes?: string;
             owner_name?: string;
             publication_required?: boolean;
-            registered_on?: string;
-            title?: string;
-            version_label?: string;
+            registered_on: string;
+            title: string;
+            version_label: string;
         };
         CreateManagerialDossierRequest: {
-            dossier_type?: string;
-            due_on?: string;
+            dossier_type: string;
+            due_on: string;
             owner_name?: string;
             publication_required?: boolean;
-            school_year?: string;
-            status?: string;
+            school_year: string;
+            status: string;
             summary?: string;
-            title?: string;
+            title: string;
         };
         CreateManagerialWorkflowStepRequest: {
-            assigned_to?: string;
+            assigned_to: string;
             completed_on?: string;
             decision_reference?: string;
-            due_on?: string;
+            due_on: string;
             outcome_note?: string;
             requires_signature?: boolean;
             /** Format: int32 */
-            stage_order?: number;
-            stage_type?: string;
-            status?: string;
+            stage_order: number;
+            stage_type: string;
+            status: string;
         };
         CreateMeritAppealRequest: {
             decision_summary?: string;
-            grounds?: string;
+            grounds: string;
             notes?: string;
             resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         CreateMeritCriterionScoreRequest: {
             /** Format: double */
             awarded_score?: number;
             contested?: boolean;
-            criterion_category?: string;
-            criterion_code?: string;
-            criterion_label?: string;
+            criterion_category: string;
+            criterion_code: string;
+            criterion_label: string;
             evidence_reference?: string;
             /** Format: double */
-            max_score?: number;
+            max_score: number;
             notes?: string;
-            panel_stage?: string;
+            panel_stage: string;
             reviewer_name?: string;
         };
         CreateMeritDocumentRequest: {
-            document_title?: string;
-            document_type?: string;
+            document_title: string;
+            document_type: string;
             mandatory?: boolean;
             notes?: string;
-            registered_on?: string;
+            registered_on: string;
             submitted_by?: string;
-            validation_status?: string;
+            validation_status: string;
         };
         CreateMeritFinalDecisionRequest: {
-            approved_on?: string;
-            decision_stage?: string;
-            effective_from?: string;
+            approved_on: string;
+            decision_stage: string;
+            effective_from: string;
             funded?: boolean;
             legal_basis?: string;
             notes?: string;
-            outcome?: string;
-            panel_name?: string;
+            outcome: string;
+            panel_name: string;
         };
         CreateMeritGrantRequest: {
-            category?: string;
+            category: string;
             committee_name?: string;
-            decision_date?: string;
-            full_name?: string;
+            decision_date: string;
+            full_name: string;
             funded?: boolean;
             notes?: string;
-            role_title?: string;
-            school_year?: string;
+            role_title: string;
+            school_year: string;
             /** Format: double */
             score?: number;
-            status?: string;
+            status: string;
         };
         CreateMeritResultIssueRequest: {
             delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            issued_on?: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            issued_on: string;
             notes?: string;
-            recipient_name?: string;
+            recipient_name: string;
             recipient_role?: string;
             registry_reference?: string;
         };
         CreateMobilityAppealRequest: {
             decision_summary?: string;
-            grounds?: string;
+            grounds: string;
             hearing_on?: string;
             notes?: string;
             resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         CreateMobilityCaseRequest: {
             destination_school?: string;
-            employee_code?: string;
-            full_name?: string;
+            employee_code: string;
+            full_name: string;
             notes?: string;
-            request_type?: string;
+            request_type: string;
             reviewed_by?: string;
-            school_year?: string;
+            school_year: string;
             source_school?: string;
-            stage?: string;
-            status?: string;
-            submitted_on?: string;
+            stage: string;
+            status: string;
+            submitted_on: string;
         };
         CreateMobilityCriterionScoreRequest: {
             /** Format: double */
             awarded_score?: number;
             contested?: boolean;
-            criterion_category?: string;
-            criterion_code?: string;
-            criterion_label?: string;
+            criterion_category: string;
+            criterion_code: string;
+            criterion_label: string;
             evidence_reference?: string;
             /** Format: double */
-            max_score?: number;
+            max_score: number;
             notes?: string;
             validated_by?: string;
         };
         CreateMobilityDocumentRequest: {
-            document_title?: string;
-            document_type?: string;
+            document_title: string;
+            document_type: string;
             mandatory?: boolean;
             notes?: string;
-            registered_on?: string;
-            stage_scope?: string;
+            registered_on: string;
+            stage_scope: string;
             submitted_by?: string;
-            validation_status?: string;
+            validation_status: string;
             verified_by?: string;
         };
         CreateMobilityFinalDecisionRequest: {
-            approved_on?: string;
-            decision_type?: string;
+            approved_on: string;
+            decision_type: string;
             destination_unit?: string;
-            effective_from?: string;
+            effective_from: string;
             legal_basis?: string;
             notes?: string;
-            outcome?: string;
-            panel_name?: string;
+            outcome: string;
+            panel_name: string;
         };
         CreateMobilityResultIssueRequest: {
             delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            issued_on?: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            issued_on: string;
             notes?: string;
-            recipient_name?: string;
+            recipient_name: string;
             recipient_role?: string;
             registry_reference?: string;
         };
         CreatePersonnelAssignmentRequest: {
-            assigned_on?: string;
-            assignment_title?: string;
-            assignment_type?: string;
+            assigned_on: string;
+            assignment_title: string;
+            assignment_type: string;
             decision_reference?: string;
             ended_on?: string;
             notes?: string;
-            status?: string;
+            status: string;
             /** Format: int32 */
             weekly_hours?: number;
         };
         CreatePersonnelDeclarationRequest: {
-            declaration_type?: string;
-            employee_code?: string;
-            full_name?: string;
-            school_year?: string;
-            status?: string;
-            submitted_on?: string;
+            declaration_type: string;
+            employee_code: string;
+            full_name: string;
+            school_year: string;
+            status: string;
+            submitted_on: string;
             summary?: string;
             valid_until?: string;
         };
         CreatePersonnelDisciplinaryCaseRequest: {
-            case_type?: string;
+            case_type: string;
             committee_name?: string;
             hearing_on?: string;
             legal_basis?: string;
             notes?: string;
-            reported_on?: string;
+            reported_on: string;
             resolved_on?: string;
             sanction?: string;
-            status?: string;
+            status: string;
         };
         CreatePersonnelEvaluationAppealRequest: {
             attached_to_personnel_file?: boolean;
             committee_note?: string;
             decision_summary?: string;
-            grounds?: string;
+            grounds: string;
             hearing_on?: string;
             resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         CreatePersonnelEvaluationCriterionRequest: {
-            criterion_category?: string;
-            criterion_label?: string;
+            criterion_category: string;
+            criterion_label: string;
             evidence_summary?: string;
             /** Format: double */
             final_score?: number;
             /** Format: double */
-            max_score?: number;
+            max_score: number;
             notes?: string;
             /** Format: double */
             reviewer_score?: number;
             /** Format: double */
             self_score?: number;
-            status?: string;
+            status: string;
         };
         CreatePersonnelEvaluationRequest: {
-            employee_code?: string;
+            employee_code: string;
             evaluator_name?: string;
             finalized_on?: string;
-            full_name?: string;
-            role_title?: string;
-            school_year?: string;
+            full_name: string;
+            role_title: string;
+            school_year: string;
             /** Format: double */
             score?: number;
-            status?: string;
+            status: string;
             summary?: string;
         };
         CreatePersonnelEvaluationResultIssueRequest: {
             acknowledged_on?: string;
             attached_to_personnel_file?: boolean;
             delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            issued_on?: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            issued_on: string;
             notes?: string;
-            recipient_name?: string;
+            recipient_name: string;
             recipient_role?: string;
             registry_reference?: string;
         };
         CreatePersonnelEvaluationSelfReviewRequest: {
             /** Format: double */
             assumed_score?: number;
-            completed_on?: string;
+            completed_on: string;
             evidence_summary?: string;
             improvement_needs?: string;
-            narrative_type?: string;
+            narrative_type: string;
             notes?: string;
-            section_title?: string;
-            status?: string;
+            section_title: string;
+            status: string;
             strengths?: string;
         };
         CreatePersonnelPersonalAccessEventRequest: {
-            access_channel?: string;
-            accessed_on?: string;
-            actor_name?: string;
-            actor_role?: string;
+            access_channel: string;
+            accessed_on: string;
+            actor_name: string;
+            actor_role: string;
             closed_on?: string;
-            event_type?: string;
+            event_type: string;
             notes?: string;
-            purpose?: string;
+            purpose: string;
             sensitive_scope?: boolean;
         };
         CreatePersonnelPersonalFileDocumentRequest: {
-            confidentiality_level?: string;
-            document_category?: string;
-            document_title?: string;
+            confidentiality_level: string;
+            document_category: string;
+            document_title: string;
             expires_on?: string;
             file_reference?: string;
-            file_scope?: string;
+            file_scope: string;
             included_in_portfolio?: boolean;
-            issued_on?: string;
+            issued_on: string;
             notes?: string;
             sensitive_data?: boolean;
         };
         CreatePersonnelRecordRequest: {
+            /**
+             * Format: uuid
+             * @description Optional canonical application account associated by an authorized personnel administrator; the server requires a current membership in the active tenant and institution.
+             */
+            app_user_id?: string;
             assigned_unit?: string;
             email?: string;
-            employment_type?: string;
-            evaluation_status?: string;
-            full_name?: string;
+            employment_type: string;
+            evaluation_status: string;
+            full_name: string;
             has_portfolio?: boolean;
-            mobility_stage?: string;
+            mobility_stage: string;
             notes?: string;
             phone?: string;
-            role_title?: string;
-            school_year?: string;
-            status?: string;
+            role_title: string;
+            school_year: string;
+            status: string;
         };
         CreatePortfolioArchiveAttachmentGrantRequest: {
             /** Format: uuid */
@@ -7940,54 +8484,54 @@ export interface components {
             checked_by?: string;
             /** Format: int32 */
             document_count?: number;
-            last_checked_on?: string;
+            last_checked_on: string;
             mandatory?: boolean;
             notes?: string;
-            requirement_code?: string;
-            requirement_label?: string;
-            section_code?: string;
-            source_scope?: string;
-            status?: string;
+            requirement_code: string;
+            requirement_label: string;
+            section_code: string;
+            source_scope: string;
+            status: string;
         };
         CreatePortfolioCustodyEventRequest: {
-            access_mode?: string;
-            access_reason?: string;
+            access_mode: string;
+            access_reason: string;
             ended_on?: string;
-            event_type?: string;
-            holder_name?: string;
-            holder_role?: string;
-            location_label?: string;
+            event_type: string;
+            holder_name: string;
+            holder_role: string;
+            location_label: string;
             notes?: string;
             sensitive_data_access?: boolean;
-            started_on?: string;
+            started_on: string;
         };
         CreatePortfolioDocumentRequest: {
-            added_on?: string;
-            authenticity_status?: string;
+            added_on: string;
+            authenticity_status: string;
             /** Format: int32 */
             chronological_index?: number;
-            component_code?: string;
-            document_title?: string;
-            evidence_type?: string;
+            component_code: string;
+            document_title: string;
+            evidence_type: string;
             file_reference?: string;
-            issued_on?: string;
+            issued_on: string;
             notes?: string;
-            section_code?: string;
+            section_code: string;
             sensitive_data?: boolean;
-            source_scope?: string;
+            source_scope: string;
         };
         CreatePortfolioOpisEntryRequest: {
             checked_by?: string;
-            checked_on?: string;
+            checked_on: string;
             /** Format: int32 */
             chronological_index?: number;
-            component_code?: string;
-            document_reference?: string;
-            entry_title?: string;
+            component_code: string;
+            document_reference: string;
+            entry_title: string;
             included_in_transfer?: boolean;
             notes?: string;
-            section_code?: string;
-            source_scope?: string;
+            section_code: string;
+            source_scope: string;
         };
         CreatePortfolioProcedureRequest: {
             accepted_formats?: {
@@ -8021,11 +8565,10 @@ export interface components {
             notes?: string;
             owner_name: string;
             /** Format: uuid */
-            owner_personnel_id?: string;
+            owner_personnel_id: string;
             owner_role: string;
             /** Format: uuid */
             owner_user_id: string;
-            retention_until: string;
             school_year: string;
             /** Format: int32 */
             section_count?: number;
@@ -8038,12 +8581,24 @@ export interface components {
             /** Format: int32 */
             missing_documents?: number;
             notes?: string;
-            outcome?: string;
-            review_stage?: string;
-            reviewed_on?: string;
-            reviewer_name?: string;
+            outcome: string;
+            review_stage: string;
+            reviewed_on: string;
+            reviewer_name: string;
+        };
+        CreatePortfolioValorificationEventRequest: {
+            completed_on?: string;
+            notes?: string;
+            requested_by?: string;
+            scope: string;
+            started_on: string;
+            status: string;
+            target_institution?: string;
+            target_reference?: string;
         };
         CreatePortfolioValorificationPackageRequest: {
+            /** @enum {string} */
+            purpose: "licentiere" | "debut" | "definitivat" | "grad_ii" | "grad_i" | "evaluare_profesionala" | "mobilitate" | "dezvoltare_profesionala" | "inspectie_scolara" | "evaluare_externa_calitate" | "gradatie_merit" | "distinctie_premiu";
             /** @enum {string} */
             scope: "evaluare_profesionala" | "mobilitate" | "gradatie_merit";
             /** Format: uuid */
@@ -8054,187 +8609,238 @@ export interface components {
             source_mobility_case_id?: string;
         };
         CreatePublicationRecordRequest: {
-            anonymization_status?: string;
-            domain?: string;
-            entity_label?: string;
-            entity_type?: string;
+            anonymization_status: string;
+            domain: string;
+            entity_label: string;
+            entity_type: string;
             mandatory?: boolean;
             notes?: string;
-            publication_channel?: string;
-            publication_status?: string;
+            publication_channel: string;
+            publication_status: string;
             published_on?: string;
             reviewed_by?: string;
         };
         CreateRegulationRecordRequest: {
-            approval_status?: string;
+            approval_status: string;
             approved_on?: string;
             owner_name?: string;
-            regulation_type?: string;
-            review_due_on?: string;
-            school_year?: string;
-            status?: string;
+            regulation_type: string;
+            review_due_on: string;
+            school_year: string;
+            status: string;
             summary?: string;
-            title?: string;
+            title: string;
         };
         CreateRegulationVersionRequest: {
             approved_on?: string;
-            change_summary?: string;
-            effective_from?: string;
+            change_summary: string;
+            effective_from: string;
             file_reference?: string;
             notes?: string;
-            prepared_by?: string;
+            prepared_by: string;
             published_on?: string;
-            version_label?: string;
-            version_status?: string;
+            version_label: string;
+            version_status: string;
         };
         CreateRegulationWorkflowStepRequest: {
-            audience?: string;
+            audience: string;
             completed_on?: string;
             decision_reference?: string;
-            due_on?: string;
+            due_on: string;
             /** Format: int32 */
             feedback_count?: number;
             notes?: string;
             /** Format: int32 */
-            phase_order?: number;
-            phase_type?: string;
-            started_on?: string;
-            status?: string;
+            phase_order: number;
+            phase_type: string;
+            started_on: string;
+            status: string;
+        };
+        CreateSchoolClassRequest: {
+            active?: boolean;
+            class_code: string;
+            class_name: string;
+            grade_level: string;
+            school_year: string;
+            /**
+             * @default day
+             * @enum {string}
+             */
+            study_shift: "day" | "afternoon" | "evening";
+        };
+        CreateSchoolEnrolmentRequest: {
+            /** Format: uuid */
+            class_id: string;
+            /** Format: date */
+            enrolled_from: string;
+            /** Format: date */
+            enrolled_until?: string;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "transferred" | "completed" | "withdrawn";
+            /** Format: uuid */
+            student_id: string;
+        };
+        CreateSchoolHomeroomAssignmentRequest: {
+            /** Format: uuid */
+            app_user_id: string;
+            /** Format: date */
+            assigned_from: string;
+            /** Format: date */
+            assigned_until?: string;
+            /** Format: uuid */
+            class_id: string;
+            /** Format: uuid */
+            personnel_id: string;
+        };
+        CreateSchoolStudentRequest: {
+            /** Format: date */
+            birth_date?: string;
+            first_name: string;
+            last_name: string;
+            /**
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "transferred" | "graduated" | "withdrawn";
+            student_code: string;
         };
         DecisionIssuance: {
-            acknowledged_on?: string;
-            decision_id?: string;
-            delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            file_reference?: string;
-            id?: string;
-            institution_id?: string;
-            issuance_code?: string;
-            notes?: string;
-            recipient_name?: string;
-            recipient_role?: string;
-            signed_on?: string;
+            acknowledged_on: string;
+            decision_id: string;
+            delivered_on: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            file_reference: string;
+            id: string;
+            institution_id: string;
+            issuance_code: string;
+            notes: string;
+            recipient_name: string;
+            recipient_role: string;
+            signed_on: string;
         };
         DecisionPublicationStep: {
-            completed_on?: string;
-            decision_id?: string;
-            due_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            publication_channel?: string;
-            publication_reference?: string;
-            responsible_name?: string;
-            status?: string;
+            completed_on: string;
+            decision_id: string;
+            due_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            publication_channel: string;
+            publication_reference: string;
+            responsible_name: string;
+            status: string;
             /** Format: int32 */
-            step_order?: number;
-            step_type?: string;
+            step_order: number;
+            step_type: string;
         };
         DirectorCockpitAlert: {
-            id?: string;
+            id: string;
             /** Format: int32 */
-            priority?: number;
-            route?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
+            priority: number;
+            route: string;
+            status: string;
+            summary: string;
+            title: string;
         };
         DirectorCockpitCompliance: {
             /** Format: int32 */
-            anonymization_pending?: number;
+            anonymization_pending: number;
             /** Format: int32 */
-            implemented_requirements?: number;
+            implemented_requirements: number;
             /** Format: int32 */
-            partial_requirements?: number;
+            partial_requirements: number;
             /** Format: int32 */
-            pending_publications?: number;
+            pending_publications: number;
             /** Format: int32 */
-            total_requirements?: number;
+            total_requirements: number;
         };
         DirectorCockpitEvaluations: {
             /** Format: int32 */
-            approved_records?: number;
+            approved_records: number;
             /** Format: int32 */
-            communicated_documents?: number;
+            communicated_documents: number;
             /** Format: int32 */
-            contested_records?: number;
+            contested_records: number;
             /** Format: int32 */
-            reviewed_records?: number;
+            reviewed_records: number;
             /** Format: int32 */
-            submitted_records?: number;
+            submitted_records: number;
             /** Format: int32 */
-            total_records?: number;
+            total_records: number;
         };
         DirectorCockpitGovernance: {
             /** Format: int32 */
-            meetings_without_minute?: number;
+            meetings_without_minute: number;
             /** Format: int32 */
-            meetings_without_vote?: number;
+            meetings_without_vote: number;
             /** Format: int32 */
-            published_resolutions?: number;
+            published_resolutions: number;
             /** Format: int32 */
-            scheduled_meetings?: number;
+            scheduled_meetings: number;
             /** Format: int32 */
-            total_meetings?: number;
+            total_meetings: number;
         };
         DirectorCockpitManagerial: {
             /** Format: int32 */
-            approved_dossiers?: number;
+            approved_dossiers: number;
             /** Format: int32 */
-            draft_dossiers?: number;
+            draft_dossiers: number;
             /** Format: int32 */
-            published_documents?: number;
+            published_documents: number;
             /** Format: int32 */
-            review_dossiers?: number;
+            review_dossiers: number;
             /** Format: int32 */
-            total_dossiers?: number;
+            total_dossiers: number;
             /** Format: int32 */
-            workflow_open_steps?: number;
+            workflow_open_steps: number;
         };
         DirectorCockpitPersonnel: {
             /** Format: int32 */
-            active_records?: number;
+            active_records: number;
             /** Format: int32 */
-            evaluation_pending?: number;
+            evaluation_pending: number;
             /** Format: int32 */
-            mobility_cases?: number;
+            mobility_cases: number;
             /** Format: int32 */
-            portfolio_enabled?: number;
+            portfolio_enabled: number;
             /** Format: int32 */
-            total_records?: number;
+            total_records: number;
         };
         DirectorCockpitPortfolios: {
             /** Format: int32 */
-            draft_records?: number;
+            draft_records: number;
             /** Format: int32 */
-            returned_records?: number;
+            returned_records: number;
             /** Format: int32 */
-            review_records?: number;
+            review_records: number;
             /** Format: int32 */
-            total_records?: number;
+            total_records: number;
             /** Format: int32 */
-            transfer_in_progress?: number;
+            transfer_in_progress: number;
             /** Format: int32 */
-            validated_records?: number;
+            validated_records: number;
         };
         DirectorCockpitQuickLink: {
-            key?: string;
-            label?: string;
-            route?: string;
+            key: string;
+            label: string;
+            route: string;
         };
         DirectorCockpitResponse: {
-            alerts?: components["schemas"]["DirectorCockpitAlert"][];
-            compliance?: components["schemas"]["DirectorCockpitCompliance"];
-            evaluations?: components["schemas"]["DirectorCockpitEvaluations"];
-            governance?: components["schemas"]["DirectorCockpitGovernance"];
-            institution_id?: string;
-            managerial?: components["schemas"]["DirectorCockpitManagerial"];
-            personnel?: components["schemas"]["DirectorCockpitPersonnel"];
-            portfolios?: components["schemas"]["DirectorCockpitPortfolios"];
-            recommended_links?: components["schemas"]["DirectorCockpitQuickLink"][];
-            school_year?: string;
+            alerts: components["schemas"]["DirectorCockpitAlert"][];
+            compliance: components["schemas"]["DirectorCockpitCompliance"];
+            evaluations: components["schemas"]["DirectorCockpitEvaluations"];
+            governance: components["schemas"]["DirectorCockpitGovernance"];
+            institution_id: string;
+            managerial: components["schemas"]["DirectorCockpitManagerial"];
+            personnel: components["schemas"]["DirectorCockpitPersonnel"];
+            portfolios: components["schemas"]["DirectorCockpitPortfolios"];
+            recommended_links: components["schemas"]["DirectorCockpitQuickLink"][];
+            school_year: string;
         };
         DocumentWorkflowActionRequest: {
             /** @enum {string} */
@@ -8245,6 +8851,20 @@ export interface components {
             note?: string;
             /** Format: uuid */
             user_id?: string;
+        };
+        EducationActiveDelegationGrant: {
+            permission_code: string;
+            resource_id: string;
+            /** @enum {string} */
+            resource_type: "institution" | "portfolio" | "meeting" | "decision" | "regulation" | "personnel";
+        };
+        EducationActiveDelegationGrantsResponse: {
+            /** Format: date-time */
+            evaluated_at: string;
+            grants: components["schemas"]["EducationActiveDelegationGrant"][];
+            institution_id: string;
+            revision: string;
+            tenant_code: string;
         };
         EducationCommitteeCompletenessResponse: components["schemas"]["CommitteeCompletenessSummary"];
         EducationDelegation: {
@@ -8320,8 +8940,32 @@ export interface components {
             pageSize: number;
             total: number;
         };
+        EducationPageOfEducationRequirement: {
+            items: components["schemas"]["EducationRequirement"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         EducationPageOfEligibleGovernanceUser: {
             items: components["schemas"]["EligibleGovernanceUser"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfEligiblePortfolioOwner: {
+            items: components["schemas"]["EligiblePortfolioOwner"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfEligibleSignatureArchiveVersion: {
+            items: components["schemas"]["EligibleSignatureArchiveVersion"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfEligibleSignedArtifact: {
+            items: components["schemas"]["EligibleSignedArtifact"][];
             page: number;
             pageSize: number;
             total: number;
@@ -8596,6 +9240,12 @@ export interface components {
             pageSize: number;
             total: number;
         };
+        EducationPageOfPortfolioSection: {
+            items: components["schemas"]["PortfolioSection"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         EducationPageOfPortfolioTransferEvent: {
             items: components["schemas"]["PortfolioTransferEvent"][];
             page: number;
@@ -8638,6 +9288,48 @@ export interface components {
             pageSize: number;
             total: number;
         };
+        EducationPageOfSchoolAssignmentOption: {
+            items: components["schemas"]["SchoolAssignmentOption"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSchoolClass: {
+            items: components["schemas"]["SchoolClass"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSchoolEnrolment: {
+            items: components["schemas"]["SchoolEnrolment"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSchoolHomeroomAssignment: {
+            items: components["schemas"]["SchoolHomeroomAssignment"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSchoolReportRow: {
+            items: components["schemas"]["SchoolReportRow"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSchoolStudent: {
+            items: components["schemas"]["SchoolStudent"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfSignedArtifactEvidence: {
+            items: components["schemas"]["SignedArtifactEvidence"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         EducationPersonnelPortfolioDossierSummaryResponse: components["schemas"]["PersonnelPortfolioDossierSummary"];
         EducationPortfolioTransferSummaryResponse: components["schemas"]["PortfolioTransferSummary"];
         EducationRegeneratePortfolioOpisResponse: {
@@ -8650,299 +9342,360 @@ export interface components {
         };
         EducationRegulationProceduralSummaryResponse: components["schemas"]["RegulationProceduralSummary"];
         EducationRequirement: {
-            code?: string;
-            domain?: string;
-            id?: string;
-            implementation_status?: string;
-            notes?: string;
+            code: string;
+            domain: string;
+            id: string;
+            implementation_status: string;
+            notes: string;
             /** Format: int32 */
-            priority?: number;
-            requirement_type?: string;
-            source_ref?: string;
-            title_en?: string;
-            title_ro?: string;
+            priority: number;
+            requirement_type: string;
+            source_ref: string;
+            title_en: string;
+            title_ro: string;
         };
         EligibleGovernanceUser: {
             /** Format: uuid */
             id: string;
             name: string;
         };
+        EligiblePortfolioOwner: {
+            display_name: string;
+            /** @constant */
+            employment_status: "active";
+            /** Format: uuid */
+            personnel_id: string;
+            role_title: string;
+            /** Format: uuid */
+            user_id: string;
+        };
+        EligibleSignatureArchiveVersion: {
+            /** Format: uuid */
+            document_id: string;
+            document_sha256: string;
+            storage_bucket: string;
+            storage_object_key: string;
+            title: string;
+            /** Format: uuid */
+            version_id: string;
+            version_no: number;
+        };
+        EligibleSignedArtifact: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** @enum {string} */
+            type: "decision" | "publication" | "managerial_document" | "meeting_document" | "meeting_minute" | "meeting_resolution";
+        };
+        EvaluationStatusReportRow: {
+            employee_code: string;
+            evaluation_code: string;
+            /** Format: date-time */
+            finalized_on: string | null;
+            full_name: string;
+            qualification: string;
+            school_year: string;
+            score: number;
+            status: string;
+        };
         GovernanceBodyCompletenessMeetingBlock: {
             /** Format: int32 */
-            held_meetings?: number;
-            last_meeting_on?: string;
-            last_meeting_title?: string;
+            held_meetings: number;
+            last_meeting_on: string;
+            last_meeting_title: string;
             /** Format: int32 */
-            published_meetings?: number;
+            published_meetings: number;
             /** Format: int32 */
-            scheduled_meetings?: number;
+            scheduled_meetings: number;
             /** Format: int32 */
-            total_meetings?: number;
+            total_meetings: number;
         };
         GovernanceBodyCompletenessMembershipBlock: {
             /** Format: int32 */
-            active_members?: number;
-            chairperson_covered?: boolean;
+            active_members: number;
+            chairperson_covered: boolean;
             /** Format: int32 */
-            expired_mandates?: number;
-            member_names?: string[];
-            secretary_covered?: boolean;
+            expired_mandates: number;
+            member_names: string[];
+            secretary_covered: boolean;
             /** Format: int32 */
-            voting_members?: number;
+            voting_members: number;
         };
         GovernanceBodyCompletenessReadiness: {
-            blockers?: string[];
-            ready_for_meetings?: boolean;
-            ready_for_operation?: boolean;
+            blockers: string[];
+            ready_for_meetings: boolean;
+            ready_for_operation: boolean;
         };
         GovernanceBodyCompletenessSummary: {
-            body?: components["schemas"]["GovernanceBodyRecord"];
-            meetings?: components["schemas"]["GovernanceBodyCompletenessMeetingBlock"];
-            membership?: components["schemas"]["GovernanceBodyCompletenessMembershipBlock"];
-            readiness?: components["schemas"]["GovernanceBodyCompletenessReadiness"];
+            body: components["schemas"]["GovernanceBodyRecord"];
+            meetings: components["schemas"]["GovernanceBodyCompletenessMeetingBlock"];
+            membership: components["schemas"]["GovernanceBodyCompletenessMembershipBlock"];
+            readiness: components["schemas"]["GovernanceBodyCompletenessReadiness"];
         };
         GovernanceBodyRecord: {
             /** Format: int32 */
-            active_members?: number;
-            chairperson_covered?: boolean;
+            active_members: number;
+            chairperson_covered: boolean;
             /** Format: int32 */
-            expired_mandates?: number;
+            expired_mandates: number;
             /** Format: int32 */
-            held_meetings?: number;
-            id?: string;
-            institution_id?: string;
-            latest_meeting_on?: string;
-            organism?: string;
+            held_meetings: number;
+            id: string;
+            institution_id: string;
+            latest_meeting_on: string;
+            organism: string;
             /** Format: int32 */
-            published_meetings?: number;
-            readiness_status?: string;
+            published_meetings: number;
+            readiness_status: string;
             /** Format: int32 */
-            scheduled_meetings?: number;
-            school_year?: string;
-            secretary_covered?: boolean;
+            scheduled_meetings: number;
+            school_year: string;
+            secretary_covered: boolean;
             /** Format: int32 */
-            total_meetings?: number;
+            total_meetings: number;
             /** Format: int32 */
-            voting_members?: number;
+            voting_members: number;
+        };
+        GovernanceComplianceReportRow: {
+            has_minute: boolean;
+            has_vote: boolean;
+            /** Format: date-time */
+            meeting_date: string;
+            organism: string;
+            status: string;
+            title: string;
         };
         GovernanceDashboardResponse: {
-            stats?: components["schemas"]["GovernanceStats"];
+            stats: components["schemas"]["GovernanceStats"];
         };
         GovernanceDecision: {
-            decision_code?: string;
-            decision_date?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            organism?: string;
-            publication_status?: string;
-            school_year?: string;
-            signed_by?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
+            decision_code: string;
+            decision_date: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            organism: string;
+            publication_status: string;
+            school_year: string;
+            signed_by: string;
+            status: string;
+            summary: string;
+            title: string;
         };
         GovernanceDecisionDashboardResponse: {
-            stats?: components["schemas"]["GovernanceDecisionStats"];
+            stats: components["schemas"]["GovernanceDecisionStats"];
         };
         GovernanceDecisionFiltersResponse: {
-            organisms?: string[];
-            publication_statuses?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            organisms: string[];
+            publication_statuses: string[];
+            school_years: string[];
+            statuses: string[];
         };
         GovernanceDecisionStats: {
             /** Format: int32 */
-            approved_decisions?: number;
+            approved_decisions: number;
             /** Format: int32 */
-            pending_publication?: number;
+            pending_publication: number;
             /** Format: int32 */
-            published_decisions?: number;
+            published_decisions: number;
             /** Format: int32 */
-            total_decisions?: number;
+            total_decisions: number;
         };
         GovernanceFiltersResponse: {
-            meeting_types?: string[];
-            organisms?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            meeting_types: string[];
+            organisms: string[];
+            school_years: string[];
+            statuses: string[];
         };
         GovernanceMeeting: {
-            chairperson?: string;
-            id?: string;
-            institution_id?: string;
-            location?: string;
-            meeting_date?: string;
-            meeting_type?: string;
-            organism?: string;
+            chairperson: string;
+            /** Format: uuid */
+            chairperson_user_id?: string;
+            id: string;
+            institution_id: string;
+            location: string;
+            meeting_date: string;
+            meeting_type: string;
+            organism: string;
             /** Format: int32 */
-            participants_count?: number;
+            participants_count: number;
             /** Format: int32 */
-            quorum_required?: number;
-            school_year?: string;
-            secretary_name?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
+            quorum_required: number;
+            school_year: string;
+            secretary_name: string;
+            /** Format: uuid */
+            secretary_user_id?: string;
+            status: string;
+            summary: string;
+            title: string;
         };
         GovernanceMeetingDocument: {
-            custody_owner?: string;
-            document_number?: string;
-            document_type?: string;
-            id?: string;
-            institution_id?: string;
-            issued_on?: string;
-            meeting_id?: string;
-            publication_status?: string;
-            registry_number?: string;
-            signed_by?: string;
-            summary?: string;
-            title?: string;
+            custody_owner: string;
+            document_number: string;
+            document_type: string;
+            id: string;
+            institution_id: string;
+            issued_on: string;
+            meeting_id: string;
+            publication_status: string;
+            registry_number: string;
+            signed_by: string;
+            summary: string;
+            title: string;
         };
         GovernanceMeetingFinalizationDocs: {
             /** Format: int32 */
-            process_verbal_documents?: number;
+            process_verbal_documents: number;
             /** Format: int32 */
-            published_process_verbals?: number;
+            published_process_verbals: number;
             /** Format: int32 */
-            total?: number;
+            total: number;
         };
         GovernanceMeetingFinalizationMinutes: {
             /** Format: int32 */
-            open_follow_up_items?: number;
+            open_follow_up_items: number;
             /** Format: int32 */
-            requires_publication?: number;
+            requires_publication: number;
             /** Format: int32 */
-            total?: number;
+            total: number;
         };
         GovernanceMeetingFinalizationPeople: {
             /** Format: int32 */
-            present_participants?: number;
+            present_participants: number;
             /** Format: int32 */
-            recorded_participants?: number;
+            recorded_participants: number;
             /** Format: int32 */
-            signed_participants?: number;
+            signed_participants: number;
             /** Format: int32 */
-            voting_participants?: number;
+            voting_participants: number;
         };
         GovernanceMeetingFinalizationReadiness: {
-            blockers?: string[];
-            ready_to_close?: boolean;
-            ready_to_publish?: boolean;
+            blockers: string[];
+            ready_to_close: boolean;
+            ready_to_publish: boolean;
         };
         GovernanceMeetingFinalizationRecords: {
             /** Format: int32 */
-            pending_anonymization?: number;
+            pending_anonymization: number;
             /** Format: int32 */
-            pending_publication?: number;
+            pending_publication: number;
             /** Format: int32 */
-            published?: number;
+            published: number;
             /** Format: int32 */
-            ready_for_publication?: number;
+            ready_for_publication: number;
             /** Format: int32 */
-            total?: number;
+            total: number;
         };
         GovernanceMeetingFinalizationSummary: {
-            documents?: components["schemas"]["GovernanceMeetingFinalizationDocs"];
-            meeting?: components["schemas"]["GovernanceMeeting"];
-            minutes?: components["schemas"]["GovernanceMeetingFinalizationMinutes"];
-            participants?: components["schemas"]["GovernanceMeetingFinalizationPeople"];
-            readiness?: components["schemas"]["GovernanceMeetingFinalizationReadiness"];
-            resolutions?: components["schemas"]["GovernanceMeetingFinalizationRecords"];
-            votes?: components["schemas"]["GovernanceMeetingFinalizationVotes"];
+            documents: components["schemas"]["GovernanceMeetingFinalizationDocs"];
+            meeting: components["schemas"]["GovernanceMeeting"];
+            minutes: components["schemas"]["GovernanceMeetingFinalizationMinutes"];
+            participants: components["schemas"]["GovernanceMeetingFinalizationPeople"];
+            readiness: components["schemas"]["GovernanceMeetingFinalizationReadiness"];
+            resolutions: components["schemas"]["GovernanceMeetingFinalizationRecords"];
+            votes: components["schemas"]["GovernanceMeetingFinalizationVotes"];
         };
         GovernanceMeetingFinalizationVotes: {
             /** Format: int32 */
-            adopted?: number;
+            adopted: number;
             /** Format: int32 */
-            missing_resolutions?: number;
+            missing_resolutions: number;
             /** Format: int32 */
-            requires_follow_up?: number;
+            requires_follow_up: number;
             /** Format: int32 */
-            total?: number;
+            total: number;
         };
         GovernanceMeetingParticipant: {
-            attendance_status?: string;
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            meeting_id?: string;
-            member_type?: string;
-            notes?: string;
-            role_name?: string;
-            signature_present?: boolean;
-            voting_right?: boolean;
+            attendance_status: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            meeting_id: string;
+            member_type: string;
+            notes: string;
+            role_name: string;
+            signature_present: boolean;
+            voting_right: boolean;
         };
         GovernanceMeetingVote: {
             /** Format: int32 */
-            abstentions?: number;
+            abstentions: number;
             /** Format: int32 */
-            agenda_order?: number;
-            decision_type?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            meeting_id?: string;
-            notes?: string;
-            outcome?: string;
-            requires_follow_up?: boolean;
-            subject_title?: string;
+            agenda_order: number;
+            decision_type: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            meeting_id: string;
+            notes: string;
+            outcome: string;
+            requires_follow_up: boolean;
+            subject_title: string;
             /** Format: int32 */
-            votes_against?: number;
+            votes_against: number;
             /** Format: int32 */
-            votes_for?: number;
+            votes_for: number;
         };
         GovernanceMembership: {
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            mandate_from?: string;
-            mandate_to?: string;
-            notes?: string;
-            organism?: string;
-            role_name?: string;
-            school_year?: string;
-            status?: string;
-            voting_right?: boolean;
+            /** Format: uuid */
+            app_user_id: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            mandate_from: string;
+            mandate_to: string;
+            notes: string;
+            organism: string;
+            role_name: string;
+            school_year: string;
+            status: string;
+            voting_right: boolean;
         };
         GovernanceMinuteItem: {
             /** Format: int32 */
-            agenda_order?: number;
-            decision_summary?: string;
-            discussion_summary?: string;
-            due_on?: string;
-            follow_up_status?: string;
-            id?: string;
-            institution_id?: string;
-            meeting_id?: string;
-            notes?: string;
-            requires_publication?: boolean;
-            responsible_party?: string;
-            topic_title?: string;
+            agenda_order: number;
+            decision_summary: string;
+            discussion_summary: string;
+            due_on: string;
+            follow_up_status: string;
+            id: string;
+            institution_id: string;
+            meeting_id: string;
+            notes: string;
+            requires_publication: boolean;
+            responsible_party: string;
+            topic_title: string;
         };
         GovernanceResolution: {
-            anonymization_state?: string;
-            id?: string;
-            institution_id?: string;
-            issued_on?: string;
-            meeting_id?: string;
-            notes?: string;
-            publication_status?: string;
-            resolution_code?: string;
-            resolution_type?: string;
-            signed_by?: string;
-            title?: string;
-            vote_id?: string;
+            anonymization_state: string;
+            id: string;
+            institution_id: string;
+            issued_on: string;
+            meeting_id: string;
+            notes: string;
+            publication_status: string;
+            resolution_code: string;
+            resolution_type: string;
+            signed_by: string;
+            title: string;
+            vote_id: string;
         };
         GovernanceStats: {
             /** Format: int32 */
-            held_meetings?: number;
+            held_meetings: number;
             /** Format: int32 */
-            published_meetings?: number;
+            published_meetings: number;
             /** Format: int32 */
-            scheduled_meetings?: number;
+            scheduled_meetings: number;
             /** Format: int32 */
-            total_meetings?: number;
+            total_meetings: number;
+        };
+        HRCockpitResponse: {
+            expired_documents: number;
+            expiring_documents: number;
+            institution_id: string;
+            pending_evaluations: number;
+            personnel: number;
         };
         Health: {
             database?: string;
@@ -8951,6 +9704,14 @@ export interface components {
             status: "ok" | "error";
             /** Format: date-time */
             time: string;
+        };
+        InspectorCockpitResponse: {
+            evaluations_in_review: number;
+            institution_id: string;
+            mandatory_publication_pending: number;
+            pending_publications: number;
+            readiness_open: number;
+            requirements_pending: number;
         };
         JsonWebKey: {
             alg: string;
@@ -8972,334 +9733,334 @@ export interface components {
             status: "signed_out";
         };
         ManagerialDocument: {
-            approved_on?: string;
-            document_category?: string;
-            document_code?: string;
-            document_status?: string;
-            dossier_id?: string;
-            file_reference?: string;
-            id?: string;
-            institution_id?: string;
-            mandatory?: boolean;
-            notes?: string;
-            owner_name?: string;
-            publication_required?: boolean;
-            registered_on?: string;
-            title?: string;
-            version_label?: string;
+            approved_on: string;
+            document_category: string;
+            document_code: string;
+            document_status: string;
+            dossier_id: string;
+            file_reference: string;
+            id: string;
+            institution_id: string;
+            mandatory: boolean;
+            notes: string;
+            owner_name: string;
+            publication_required: boolean;
+            registered_on: string;
+            title: string;
+            version_label: string;
         };
         ManagerialDossier: {
-            dossier_code?: string;
-            dossier_type?: string;
-            due_on?: string;
-            id?: string;
-            institution_id?: string;
-            owner_name?: string;
-            publication_required?: boolean;
-            school_year?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
+            dossier_code: string;
+            dossier_type: string;
+            due_on: string;
+            id: string;
+            institution_id: string;
+            owner_name: string;
+            publication_required: boolean;
+            school_year: string;
+            status: string;
+            summary: string;
+            title: string;
         };
         ManagerialDossierDashboardResponse: {
-            stats?: components["schemas"]["ManagerialDossierStats"];
+            stats: components["schemas"]["ManagerialDossierStats"];
         };
         ManagerialDossierFiltersResponse: {
-            dossier_types?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            dossier_types: string[];
+            school_years: string[];
+            statuses: string[];
         };
         ManagerialDossierStats: {
             /** Format: int32 */
-            overdue_dossiers?: number;
+            overdue_dossiers: number;
             /** Format: int32 */
-            published_dossiers?: number;
+            published_dossiers: number;
             /** Format: int32 */
-            review_dossiers?: number;
+            review_dossiers: number;
             /** Format: int32 */
-            total_dossiers?: number;
+            total_dossiers: number;
         };
         ManagerialPortfolioSummary: {
             /** Format: int32 */
-            approved_documents?: number;
-            blockers?: string[];
+            approved_documents: number;
+            blockers: string[];
             /** Format: int32 */
-            completed_signature_steps?: number;
+            completed_signature_steps: number;
             /** Format: int32 */
-            completed_steps?: number;
-            dossier_code?: string;
-            dossier_type?: string;
-            id?: string;
+            completed_steps: number;
+            dossier_code: string;
+            dossier_type: string;
+            id: string;
             /** Format: int32 */
-            management_documents?: number;
+            management_documents: number;
             /** Format: int32 */
-            managerial_documents?: number;
+            managerial_documents: number;
             /** Format: int32 */
-            mandatory_documents?: number;
+            mandatory_documents: number;
             /** Format: int32 */
-            matched_documents?: number;
+            matched_documents: number;
             /** Format: int32 */
-            matched_personnel?: number;
+            matched_personnel: number;
             /** Format: int32 */
-            mirrored_references?: number;
-            missing_mandatory_categories?: string[];
+            mirrored_references: number;
+            missing_mandatory_categories: string[];
             /** Format: int32 */
-            open_steps?: number;
-            owner_name?: string;
-            publication_required?: boolean;
+            open_steps: number;
+            owner_name: string;
+            publication_required: boolean;
             /** Format: int32 */
-            publication_required_documents?: number;
+            publication_required_documents: number;
             /** Format: int32 */
-            published_documents?: number;
-            ready_for_publication?: boolean;
-            ready_for_review?: boolean;
-            school_year?: string;
+            published_documents: number;
+            ready_for_publication: boolean;
+            ready_for_review: boolean;
+            school_year: string;
             /** Format: int32 */
-            sensitive_documents?: number;
+            sensitive_documents: number;
             /** Format: int32 */
-            signature_steps?: number;
-            status?: string;
-            title?: string;
+            signature_steps: number;
+            status: string;
+            title: string;
             /** Format: int32 */
-            total_steps?: number;
+            total_steps: number;
         };
         ManagerialWorkflowStep: {
-            assigned_to?: string;
-            completed_on?: string;
-            decision_reference?: string;
-            dossier_id?: string;
-            due_on?: string;
-            id?: string;
-            institution_id?: string;
-            outcome_note?: string;
-            requires_signature?: boolean;
+            assigned_to: string;
+            completed_on: string;
+            decision_reference: string;
+            dossier_id: string;
+            due_on: string;
+            id: string;
+            institution_id: string;
+            outcome_note: string;
+            requires_signature: boolean;
             /** Format: int32 */
-            stage_order?: number;
-            stage_type?: string;
-            status?: string;
+            stage_order: number;
+            stage_type: string;
+            status: string;
         };
         MeritAppeal: {
-            appeal_code?: string;
-            decision_summary?: string;
-            grant_id?: string;
-            grounds?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            appeal_code: string;
+            decision_summary: string;
+            grant_id: string;
+            grounds: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            resolved_on: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         MeritCriterionScore: {
             /** Format: double */
-            awarded_score?: number;
-            contested?: boolean;
-            criterion_category?: string;
-            criterion_code?: string;
-            criterion_label?: string;
-            evidence_reference?: string;
-            grant_id?: string;
-            id?: string;
-            institution_id?: string;
+            awarded_score: number;
+            contested: boolean;
+            criterion_category: string;
+            criterion_code: string;
+            criterion_label: string;
+            evidence_reference: string;
+            grant_id: string;
+            id: string;
+            institution_id: string;
             /** Format: double */
-            max_score?: number;
-            notes?: string;
-            panel_stage?: string;
-            reviewer_name?: string;
+            max_score: number;
+            notes: string;
+            panel_stage: string;
+            reviewer_name: string;
         };
         MeritDocument: {
-            document_code?: string;
-            document_title?: string;
-            document_type?: string;
-            grant_id?: string;
-            id?: string;
-            institution_id?: string;
-            mandatory?: boolean;
-            notes?: string;
-            registered_on?: string;
-            submitted_by?: string;
-            validation_status?: string;
+            document_code: string;
+            document_title: string;
+            document_type: string;
+            grant_id: string;
+            id: string;
+            institution_id: string;
+            mandatory: boolean;
+            notes: string;
+            registered_on: string;
+            submitted_by: string;
+            validation_status: string;
         };
         MeritFinalDecision: {
-            approved_on?: string;
-            decision_code?: string;
-            decision_stage?: string;
-            effective_from?: string;
-            funded?: boolean;
-            grant_id?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            outcome?: string;
-            panel_name?: string;
+            approved_on: string;
+            decision_code: string;
+            decision_stage: string;
+            effective_from: string;
+            funded: boolean;
+            grant_id: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            outcome: string;
+            panel_name: string;
         };
         MeritGrant: {
-            category?: string;
-            committee_name?: string;
-            decision_date?: string;
-            full_name?: string;
-            funded?: boolean;
-            grant_code?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            role_title?: string;
-            school_year?: string;
+            category: string;
+            committee_name: string;
+            decision_date: string;
+            full_name: string;
+            funded: boolean;
+            grant_code: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            role_title: string;
+            school_year: string;
             /** Format: double */
-            score?: number;
-            status?: string;
+            score: number;
+            status: string;
         };
         MeritGrantDashboardResponse: {
-            stats?: components["schemas"]["MeritGrantStats"];
+            stats: components["schemas"]["MeritGrantStats"];
         };
         MeritGrantFiltersResponse: {
-            categories?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            categories: string[];
+            school_years: string[];
+            statuses: string[];
         };
         MeritGrantStats: {
             /** Format: int32 */
-            approved_records?: number;
+            approved_records: number;
             /** Format: double */
-            average_score?: number;
+            average_score: number;
             /** Format: int32 */
-            communicated_results?: number;
+            communicated_results: number;
             /** Format: int32 */
-            final_decisions?: number;
+            final_decisions: number;
             /** Format: int32 */
-            funded_records?: number;
+            funded_records: number;
             /** Format: int32 */
-            total_records?: number;
+            total_records: number;
         };
         MeritResultIssue: {
-            delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            grant_id?: string;
-            id?: string;
-            institution_id?: string;
-            issue_code?: string;
-            issued_on?: string;
-            notes?: string;
-            recipient_name?: string;
-            recipient_role?: string;
-            registry_reference?: string;
+            delivered_on: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            grant_id: string;
+            id: string;
+            institution_id: string;
+            issue_code: string;
+            issued_on: string;
+            notes: string;
+            recipient_name: string;
+            recipient_role: string;
+            registry_reference: string;
         };
         MobilityAppeal: {
-            appeal_code?: string;
-            decision_summary?: string;
-            grounds?: string;
-            hearing_on?: string;
-            id?: string;
-            institution_id?: string;
-            mobility_case_id?: string;
-            notes?: string;
-            resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            appeal_code: string;
+            decision_summary: string;
+            grounds: string;
+            hearing_on: string;
+            id: string;
+            institution_id: string;
+            mobility_case_id: string;
+            notes: string;
+            resolved_on: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         MobilityCase: {
-            case_code?: string;
-            destination_school?: string;
-            employee_code?: string;
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            request_type?: string;
-            reviewed_by?: string;
-            school_year?: string;
-            source_school?: string;
-            stage?: string;
-            status?: string;
-            submitted_on?: string;
+            case_code: string;
+            destination_school: string;
+            employee_code: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            request_type: string;
+            reviewed_by: string;
+            school_year: string;
+            source_school: string;
+            stage: string;
+            status: string;
+            submitted_on: string;
         };
         MobilityCriterionScore: {
             /** Format: double */
-            awarded_score?: number;
-            contested?: boolean;
-            criterion_category?: string;
-            criterion_code?: string;
-            criterion_label?: string;
-            evidence_reference?: string;
-            id?: string;
-            institution_id?: string;
+            awarded_score: number;
+            contested: boolean;
+            criterion_category: string;
+            criterion_code: string;
+            criterion_label: string;
+            evidence_reference: string;
+            id: string;
+            institution_id: string;
             /** Format: double */
-            max_score?: number;
-            mobility_case_id?: string;
-            notes?: string;
-            validated_by?: string;
+            max_score: number;
+            mobility_case_id: string;
+            notes: string;
+            validated_by: string;
         };
         MobilityDashboardResponse: {
-            stats?: components["schemas"]["MobilityStats"];
+            stats: components["schemas"]["MobilityStats"];
         };
         MobilityDocument: {
-            document_code?: string;
-            document_title?: string;
-            document_type?: string;
-            id?: string;
-            institution_id?: string;
-            mandatory?: boolean;
-            mobility_case_id?: string;
-            notes?: string;
-            registered_on?: string;
-            stage_scope?: string;
-            submitted_by?: string;
-            validation_status?: string;
-            verified_by?: string;
+            document_code: string;
+            document_title: string;
+            document_type: string;
+            id: string;
+            institution_id: string;
+            mandatory: boolean;
+            mobility_case_id: string;
+            notes: string;
+            registered_on: string;
+            stage_scope: string;
+            submitted_by: string;
+            validation_status: string;
+            verified_by: string;
         };
         MobilityFiltersResponse: {
-            request_types?: string[];
-            school_years?: string[];
-            stages?: string[];
-            statuses?: string[];
+            request_types: string[];
+            school_years: string[];
+            stages: string[];
+            statuses: string[];
         };
         MobilityFinalDecision: {
-            approved_on?: string;
-            decision_code?: string;
-            decision_type?: string;
-            destination_unit?: string;
-            effective_from?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            mobility_case_id?: string;
-            notes?: string;
-            outcome?: string;
-            panel_name?: string;
+            approved_on: string;
+            decision_code: string;
+            decision_type: string;
+            destination_unit: string;
+            effective_from: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            mobility_case_id: string;
+            notes: string;
+            outcome: string;
+            panel_name: string;
         };
         MobilityResultIssue: {
-            delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            id?: string;
-            institution_id?: string;
-            issue_code?: string;
-            issued_on?: string;
-            mobility_case_id?: string;
-            notes?: string;
-            recipient_name?: string;
-            recipient_role?: string;
-            registry_reference?: string;
+            delivered_on: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            id: string;
+            institution_id: string;
+            issue_code: string;
+            issued_on: string;
+            mobility_case_id: string;
+            notes: string;
+            recipient_name: string;
+            recipient_role: string;
+            registry_reference: string;
         };
         MobilityStats: {
             /** Format: int32 */
-            approved_cases?: number;
+            approved_cases: number;
             /** Format: int32 */
-            communicated_results?: number;
+            communicated_results: number;
             /** Format: int32 */
-            final_decisions?: number;
+            final_decisions: number;
             /** Format: int32 */
-            open_cases?: number;
+            open_cases: number;
             /** Format: int32 */
-            total_cases?: number;
+            total_cases: number;
             /** Format: int32 */
-            transfer_cases?: number;
+            transfer_cases: number;
         };
         OfferEducationDelegationRequest: {
             /** Format: uuid */
@@ -9351,311 +10112,325 @@ export interface components {
             token_type: "Bearer";
         };
         OwnPortfolioDocumentRequest: {
-            added_on?: string;
-            chronological_index?: number;
-            component_code?: string;
-            document_title?: string;
-            evidence_type?: string;
-            file_reference?: string;
-            issued_on?: string;
-            notes?: string;
-            section_code?: string;
-            sensitive_data?: boolean;
+            added_on: string;
+            chronological_index: number;
+            component_code: string;
+            document_title: string;
+            evidence_type: string;
+            file_reference: string;
+            issued_on: string;
+            notes: string;
+            section_code: string;
+            sensitive_data: boolean;
         };
         OwnPortfolioRequest: {
-            last_updated_on?: string;
-            notes?: string;
-            school_year?: string;
+            last_updated_on: string;
+            notes: string;
+            school_year: string;
         };
         PersonnelAssignment: {
-            assigned_on?: string;
-            assignment_code?: string;
-            assignment_title?: string;
-            assignment_type?: string;
-            decision_reference?: string;
-            ended_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            personnel_id?: string;
-            status?: string;
+            assigned_on: string;
+            assignment_code: string;
+            assignment_title: string;
+            assignment_type: string;
+            decision_reference: string;
+            ended_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            personnel_id: string;
+            status: string;
             /** Format: int32 */
-            weekly_hours?: number;
+            weekly_hours: number;
         };
         PersonnelDashboardResponse: {
-            stats?: components["schemas"]["PersonnelStats"];
+            stats: components["schemas"]["PersonnelStats"];
         };
         PersonnelDeclaration: {
-            declaration_code?: string;
-            declaration_type?: string;
-            employee_code?: string;
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            school_year?: string;
-            status?: string;
-            submitted_on?: string;
-            summary?: string;
-            valid_until?: string;
+            declaration_code: string;
+            declaration_type: string;
+            employee_code: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            school_year: string;
+            status: string;
+            submitted_on: string;
+            summary: string;
+            valid_until: string;
         };
         PersonnelDeclarationDashboardResponse: {
-            stats?: components["schemas"]["PersonnelDeclarationStats"];
+            stats: components["schemas"]["PersonnelDeclarationStats"];
         };
         PersonnelDeclarationFiltersResponse: {
-            declaration_types?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            declaration_types: string[];
+            school_years: string[];
+            statuses: string[];
         };
         PersonnelDeclarationStats: {
             /** Format: int32 */
-            expired_declarations?: number;
+            expired_declarations: number;
             /** Format: int32 */
-            submitted_declarations?: number;
+            submitted_declarations: number;
             /** Format: int32 */
-            total_declarations?: number;
+            total_declarations: number;
             /** Format: int32 */
-            validated_declarations?: number;
+            validated_declarations: number;
         };
         PersonnelDisciplinaryCase: {
-            case_code?: string;
-            case_type?: string;
-            committee_name?: string;
-            hearing_on?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            personnel_id?: string;
-            reported_on?: string;
-            resolved_on?: string;
-            sanction?: string;
-            status?: string;
+            case_code: string;
+            case_type: string;
+            committee_name: string;
+            hearing_on: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            personnel_id: string;
+            reported_on: string;
+            resolved_on: string;
+            sanction: string;
+            status: string;
+        };
+        PersonnelDocumentExpiryReportRow: {
+            document_type: string;
+            employee_code: string;
+            /** Format: date-time */
+            expires_on: string | null;
+            full_name: string;
+            status: string;
+            title: string;
         };
         PersonnelEvaluation: {
-            employee_code?: string;
-            evaluation_code?: string;
-            evaluator_name?: string;
-            finalized_on?: string;
-            full_name?: string;
-            id?: string;
-            institution_id?: string;
-            qualification?: string;
-            role_title?: string;
-            school_year?: string;
+            employee_code: string;
+            evaluation_code: string;
+            evaluator_name: string;
+            finalized_on: string;
+            full_name: string;
+            id: string;
+            institution_id: string;
+            qualification: string;
+            role_title: string;
+            school_year: string;
             /** Format: double */
-            score?: number;
-            status?: string;
-            summary?: string;
+            score: number;
+            status: string;
+            summary: string;
         };
         PersonnelEvaluationAppeal: {
-            appeal_code?: string;
-            attached_to_personnel_file?: boolean;
-            committee_note?: string;
-            decision_summary?: string;
-            evaluation_id?: string;
-            grounds?: string;
-            hearing_on?: string;
-            id?: string;
-            institution_id?: string;
-            resolved_on?: string;
-            status?: string;
-            submitted_by?: string;
-            submitted_on?: string;
+            appeal_code: string;
+            attached_to_personnel_file: boolean;
+            committee_note: string;
+            decision_summary: string;
+            evaluation_id: string;
+            grounds: string;
+            hearing_on: string;
+            id: string;
+            institution_id: string;
+            resolved_on: string;
+            status: string;
+            submitted_by: string;
+            submitted_on: string;
         };
         PersonnelEvaluationCriterion: {
-            criterion_category?: string;
-            criterion_code?: string;
-            criterion_label?: string;
-            evaluation_id?: string;
-            evidence_summary?: string;
+            criterion_category: string;
+            criterion_code: string;
+            criterion_label: string;
+            evaluation_id: string;
+            evidence_summary: string;
             /** Format: double */
-            final_score?: number;
-            id?: string;
-            institution_id?: string;
+            final_score: number;
+            id: string;
+            institution_id: string;
             /** Format: double */
-            max_score?: number;
-            notes?: string;
+            max_score: number;
+            notes: string;
             /** Format: double */
-            reviewer_score?: number;
+            reviewer_score: number;
             /** Format: double */
-            self_score?: number;
-            status?: string;
+            self_score: number;
+            status: string;
         };
         PersonnelEvaluationDashboardResponse: {
-            stats?: components["schemas"]["PersonnelEvaluationStats"];
+            stats: components["schemas"]["PersonnelEvaluationStats"];
         };
         PersonnelEvaluationFiltersResponse: {
-            school_years?: string[];
-            statuses?: string[];
+            school_years: string[];
+            statuses: string[];
         };
         PersonnelEvaluationResultIssue: {
-            acknowledged_on?: string;
-            attached_to_personnel_file?: boolean;
-            delivered_on?: string;
-            delivery_channel?: string;
-            delivery_status?: string;
-            document_type?: string;
-            evaluation_id?: string;
-            id?: string;
-            institution_id?: string;
-            issue_code?: string;
-            issued_on?: string;
-            notes?: string;
-            recipient_name?: string;
-            recipient_role?: string;
-            registry_reference?: string;
+            acknowledged_on: string;
+            attached_to_personnel_file: boolean;
+            delivered_on: string;
+            delivery_channel: string;
+            delivery_status: string;
+            document_type: string;
+            evaluation_id: string;
+            id: string;
+            institution_id: string;
+            issue_code: string;
+            issued_on: string;
+            notes: string;
+            recipient_name: string;
+            recipient_role: string;
+            registry_reference: string;
         };
         PersonnelEvaluationSelfReview: {
             /** Format: double */
-            assumed_score?: number;
-            completed_on?: string;
-            evaluation_id?: string;
-            evidence_summary?: string;
-            id?: string;
-            improvement_needs?: string;
-            institution_id?: string;
-            narrative_type?: string;
-            notes?: string;
-            review_code?: string;
-            section_title?: string;
-            status?: string;
-            strengths?: string;
+            assumed_score: number;
+            completed_on: string;
+            evaluation_id: string;
+            evidence_summary: string;
+            id: string;
+            improvement_needs: string;
+            institution_id: string;
+            narrative_type: string;
+            notes: string;
+            review_code: string;
+            section_title: string;
+            status: string;
+            strengths: string;
         };
         PersonnelEvaluationStats: {
             /** Format: int32 */
-            approved_evaluations?: number;
+            approved_evaluations: number;
             /** Format: int32 */
-            communicated_results?: number;
+            communicated_results: number;
             /** Format: int32 */
-            contested_evaluations?: number;
+            contested_evaluations: number;
             /** Format: int32 */
-            submitted_evaluations?: number;
+            submitted_evaluations: number;
             /** Format: int32 */
-            total_evaluations?: number;
+            total_evaluations: number;
         };
         PersonnelFiltersResponse: {
-            employment_types?: string[];
-            evaluation_statuses?: string[];
-            mobility_stages?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            employment_types: string[];
+            evaluation_statuses: string[];
+            mobility_stages: string[];
+            school_years: string[];
+            statuses: string[];
         };
         PersonnelPersonalAccessEvent: {
-            access_channel?: string;
-            accessed_on?: string;
-            actor_name?: string;
-            actor_role?: string;
-            closed_on?: string;
-            event_type?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            personnel_id?: string;
-            purpose?: string;
-            sensitive_scope?: boolean;
+            access_channel: string;
+            accessed_on: string;
+            actor_name: string;
+            actor_role: string;
+            closed_on: string;
+            event_type: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            personnel_id: string;
+            purpose: string;
+            sensitive_scope: boolean;
         };
         PersonnelPersonalFileDocument: {
-            confidentiality_level?: string;
-            document_category?: string;
-            document_code?: string;
-            document_title?: string;
-            expires_on?: string;
-            file_reference?: string;
-            file_scope?: string;
-            id?: string;
-            included_in_portfolio?: boolean;
-            institution_id?: string;
-            issued_on?: string;
-            notes?: string;
-            personnel_id?: string;
-            sensitive_data?: boolean;
+            confidentiality_level: string;
+            document_category: string;
+            document_code: string;
+            document_title: string;
+            expires_on: string;
+            file_reference: string;
+            file_scope: string;
+            id: string;
+            included_in_portfolio: boolean;
+            institution_id: string;
+            issued_on: string;
+            notes: string;
+            personnel_id: string;
+            sensitive_data: boolean;
         };
         PersonnelPortfolioAggregate: {
-            last_updated_on?: string;
+            last_updated_on: string;
             /** Format: int32 */
-            matched_records?: number;
+            matched_records: number;
             /** Format: int32 */
-            personnel_scope_documents?: number;
+            personnel_scope_documents: number;
             /** Format: int32 */
-            portfolio_scope_documents?: number;
+            portfolio_scope_documents: number;
             /** Format: int32 */
-            total_documents?: number;
+            total_documents: number;
             /** Format: int32 */
-            validated_records?: number;
+            validated_records: number;
             /** Format: int32 */
-            verified_documents?: number;
+            verified_documents: number;
         };
         PersonnelPortfolioDossierStats: {
             /** Format: int32 */
-            adjunct_director_file_documents?: number;
+            adjunct_director_file_documents: number;
             /** Format: int32 */
-            administrative_career_documents?: number;
+            administrative_career_documents: number;
             /** Format: int32 */
-            director_file_documents?: number;
+            director_file_documents: number;
             /** Format: int32 */
-            documents_marked_for_portfolio?: number;
+            documents_marked_for_portfolio: number;
             /** Format: int32 */
-            evaluation_documents?: number;
+            evaluation_documents: number;
             /** Format: int32 */
-            personal_file_documents?: number;
+            personal_file_documents: number;
             /** Format: int32 */
-            sensitive_documents?: number;
+            sensitive_documents: number;
             /** Format: int32 */
-            total_documents?: number;
+            total_documents: number;
         };
         PersonnelPortfolioDossierSubject: {
-            full_name?: string;
-            has_portfolio?: boolean;
-            id?: string;
-            role_title?: string;
-            school_year?: string;
+            full_name: string;
+            has_portfolio: boolean;
+            id: string;
+            role_title: string;
+            school_year: string;
         };
         PersonnelPortfolioDossierSummary: {
-            dossier?: components["schemas"]["PersonnelPortfolioDossierStats"];
-            personnel?: components["schemas"]["PersonnelPortfolioDossierSubject"];
-            portfolio?: components["schemas"]["PersonnelPortfolioAggregate"];
-            readiness?: components["schemas"]["PersonnelPortfolioRelationReadiness"];
-            relation?: components["schemas"]["PersonnelPortfolioRelationRules"];
+            dossier: components["schemas"]["PersonnelPortfolioDossierStats"];
+            personnel: components["schemas"]["PersonnelPortfolioDossierSubject"];
+            portfolio: components["schemas"]["PersonnelPortfolioAggregate"];
+            readiness: components["schemas"]["PersonnelPortfolioRelationReadiness"];
+            relation: components["schemas"]["PersonnelPortfolioRelationRules"];
         };
         PersonnelPortfolioRelationReadiness: {
-            blockers?: string[];
-            clear_delimitation?: boolean;
+            blockers: string[];
+            clear_delimitation: boolean;
         };
         PersonnelPortfolioRelationRules: {
-            administrative_docs_enter_personnel_file?: boolean;
-            duplication_mode?: string;
-            evaluation_results_enter_personnel_file?: boolean;
-            institution_may_duplicate_or_separate?: boolean;
+            administrative_docs_enter_personnel_file: boolean;
+            duplication_mode: string;
+            evaluation_results_enter_personnel_file: boolean;
+            institution_may_duplicate_or_separate: boolean;
             /** Format: int32 */
-            mirrored_file_references?: number;
-            rules?: string[];
+            mirrored_file_references: number;
+            rules: string[];
         };
         PersonnelRecord: {
-            assigned_unit?: string;
-            email?: string;
-            employee_code?: string;
-            employment_type?: string;
-            evaluation_status?: string;
-            full_name?: string;
-            has_portfolio?: boolean;
-            id?: string;
-            institution_id?: string;
-            mobility_stage?: string;
-            notes?: string;
-            phone?: string;
-            role_title?: string;
-            school_year?: string;
-            status?: string;
+            /**
+             * Format: uuid
+             * @description Canonical application account linked to this institutional personnel identity, when one has been assigned.
+             */
+            app_user_id?: string;
+            assigned_unit: string;
+            email: string;
+            employee_code: string;
+            employment_type: string;
+            evaluation_status: string;
+            full_name: string;
+            has_portfolio: boolean;
+            id: string;
+            institution_id: string;
+            mobility_stage: string;
+            notes: string;
+            phone: string;
+            role_title: string;
+            school_year: string;
+            status: string;
         };
         PersonnelStats: {
             /** Format: int32 */
-            active_records?: number;
+            active_records: number;
             /** Format: int32 */
-            mobility_cases?: number;
+            mobility_cases: number;
             /** Format: int32 */
-            portfolios_enabled?: number;
+            portfolios_enabled: number;
             /** Format: int32 */
-            total_records?: number;
+            total_records: number;
         };
         PortfolioArchiveAttachment: {
             current_version_no: number;
@@ -9683,71 +10458,71 @@ export interface components {
             reason: string;
         };
         PortfolioChecklistItem: {
-            checked_by?: string;
+            checked_by: string;
             /** Format: int32 */
-            document_count?: number;
-            id?: string;
-            institution_id?: string;
-            last_checked_on?: string;
-            mandatory?: boolean;
-            notes?: string;
-            portfolio_id?: string;
-            requirement_code?: string;
-            requirement_label?: string;
-            section_code?: string;
-            source_scope?: string;
-            status?: string;
+            document_count: number;
+            id: string;
+            institution_id: string;
+            last_checked_on: string;
+            mandatory: boolean;
+            notes: string;
+            portfolio_id: string;
+            requirement_code: string;
+            requirement_label: string;
+            section_code: string;
+            source_scope: string;
+            status: string;
         };
         PortfolioCompletenessSummary: {
-            blockers?: string[];
+            blockers: string[];
             /** Format: int32 */
-            completed_checklist_items?: number;
+            completed_checklist_items: number;
             /** Format: int32 */
-            custody_events?: number;
+            custody_events: number;
             /** Format: int32 */
-            mandatory_checklist_items?: number;
+            mandatory_checklist_items: number;
             /** Format: int32 */
-            missing_checklist_items?: number;
+            missing_checklist_items: number;
             /** Format: int32 */
-            opis_entries?: number;
+            opis_entries: number;
             /** Format: int32 */
-            partial_checklist_items?: number;
+            partial_checklist_items: number;
             /** Format: int32 */
-            personnel_documents?: number;
+            personnel_documents: number;
             /** Format: int32 */
-            portfolio_documents?: number;
-            ready_for_review?: boolean;
-            ready_for_transfer?: boolean;
+            portfolio_documents: number;
+            ready_for_review: boolean;
+            ready_for_transfer: boolean;
             /** Format: int32 */
-            review_events?: number;
+            review_events: number;
             /** Format: int32 */
-            reviewing_checklist_items?: number;
+            reviewing_checklist_items: number;
             /** Format: int32 */
-            sensitive_documents?: number;
+            sensitive_documents: number;
             /** Format: int32 */
-            total_checklist_items?: number;
+            total_checklist_items: number;
             /** Format: int32 */
-            total_documents?: number;
+            total_documents: number;
             /** Format: int32 */
-            valorification_events?: number;
+            valorification_events: number;
         };
         PortfolioCustodyEvent: {
-            access_mode?: string;
-            access_reason?: string;
-            ended_on?: string;
-            event_type?: string;
-            holder_name?: string;
-            holder_role?: string;
-            id?: string;
-            institution_id?: string;
-            location_label?: string;
-            notes?: string;
-            portfolio_id?: string;
-            sensitive_data_access?: boolean;
-            started_on?: string;
+            access_mode: string;
+            access_reason: string;
+            ended_on: string;
+            event_type: string;
+            holder_name: string;
+            holder_role: string;
+            id: string;
+            institution_id: string;
+            location_label: string;
+            notes: string;
+            portfolio_id: string;
+            sensitive_data_access: boolean;
+            started_on: string;
         };
         PortfolioDashboardResponse: {
-            stats?: components["schemas"]["PortfolioStats"];
+            stats: components["schemas"]["PortfolioStats"];
         };
         PortfolioDeclarationAcknowledgement: {
             /** Format: date-time */
@@ -9788,22 +10563,22 @@ export interface components {
             source_ref: string;
         };
         PortfolioDocument: {
-            added_on?: string;
-            authenticity_status?: string;
+            added_on: string;
+            authenticity_status: string;
             /** Format: int32 */
-            chronological_index?: number;
-            component_code?: string;
-            document_title?: string;
-            evidence_type?: string;
-            file_reference?: string;
-            id?: string;
-            institution_id?: string;
-            issued_on?: string;
-            notes?: string;
-            portfolio_id?: string;
-            section_code?: string;
-            sensitive_data?: boolean;
-            source_scope?: string;
+            chronological_index: number;
+            component_code: string;
+            document_title: string;
+            evidence_type: string;
+            file_reference: string;
+            id: string;
+            institution_id: string;
+            issued_on: string;
+            notes: string;
+            portfolio_id: string;
+            section_code: string;
+            sensitive_data: boolean;
+            source_scope: string;
         };
         PortfolioExportManifest: {
             documents: components["schemas"]["PortfolioExportManifestDocument"][];
@@ -9853,29 +10628,29 @@ export interface components {
             manifest: components["schemas"]["PortfolioExportManifest"];
         };
         PortfolioFiltersResponse: {
-            school_years?: string[];
-            statuses?: string[];
-            transfer_statuses?: string[];
+            school_years: string[];
+            statuses: string[];
+            transfer_statuses: string[];
         };
         PortfolioLegalHoldRequest: {
             active: boolean;
             reason: string;
         };
         PortfolioOpisEntry: {
-            checked_by?: string;
-            checked_on?: string;
+            checked_by: string;
+            checked_on: string;
             /** Format: int32 */
-            chronological_index?: number;
-            component_code?: string;
-            document_reference?: string;
-            entry_title?: string;
-            id?: string;
-            included_in_transfer?: boolean;
-            institution_id?: string;
-            notes?: string;
-            portfolio_id?: string;
-            section_code?: string;
-            source_scope?: string;
+            chronological_index: number;
+            component_code: string;
+            document_reference: string;
+            entry_title: string;
+            id: string;
+            included_in_transfer: boolean;
+            institution_id: string;
+            notes: string;
+            portfolio_id: string;
+            section_code: string;
+            source_scope: string;
         };
         PortfolioProcedure: {
             accepted_formats: {
@@ -9951,65 +10726,83 @@ export interface components {
             rule_count: number;
         };
         PortfolioRecord: {
-            authenticity_declared?: boolean;
-            consent_captured?: boolean;
-            custodian?: string;
-            id?: string;
-            institution_id?: string;
-            last_updated_on?: string;
-            notes?: string;
-            owner_name?: string;
+            activity_ceased_on?: string;
+            /** Format: uuid */
+            applied_procedure_id?: string;
+            authenticity_declared: boolean;
+            consent_captured: boolean;
+            custodian: string;
+            id: string;
+            institution_id: string;
+            last_updated_on: string;
+            legal_hold_active: boolean;
+            legal_hold_reason?: string;
+            notes: string;
+            owner_name: string;
             /** Format: uuid */
             owner_personnel_id?: string;
-            owner_role?: string;
+            owner_role: string;
             /** Format: uuid */
             owner_user_id?: string;
-            portfolio_code?: string;
-            retention_until?: string;
-            school_year?: string;
+            portfolio_code: string;
             /** Format: int32 */
-            section_count?: number;
-            status?: string;
-            transfer_status?: string;
+            retention_period_days: number;
+            retention_until: string;
+            school_year: string;
+            /** Format: int32 */
+            section_count: number;
+            status: string;
+            transfer_status: string;
+            withdrawal_reason?: string;
+            withdrawn_at?: string;
         };
         PortfolioReviewEvent: {
             /** Format: int32 */
-            compliance_score?: number;
-            id?: string;
-            institution_id?: string;
+            compliance_score: number;
+            id: string;
+            institution_id: string;
             /** Format: int32 */
-            missing_documents?: number;
-            notes?: string;
-            outcome?: string;
-            portfolio_id?: string;
-            review_code?: string;
-            review_stage?: string;
-            reviewed_on?: string;
-            reviewer_name?: string;
+            missing_documents: number;
+            notes: string;
+            outcome: string;
+            portfolio_id: string;
+            review_code: string;
+            review_stage: string;
+            reviewed_on: string;
+            reviewer_name: string;
         };
         PortfolioSection: {
-            active?: boolean;
-            component_code?: string;
-            example_documents?: string[];
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
-            required?: boolean;
-            retention_rule?: string;
-            section_code?: string;
-            sensitive_data?: boolean;
+            active: boolean;
+            component_code: string;
+            example_documents: string[];
+            id: string;
+            label_en: string;
+            label_ro: string;
+            required: boolean;
+            retention_rule: string;
+            section_code: string;
+            sensitive_data: boolean;
             /** Format: int32 */
-            sort_order?: number;
+            sort_order: number;
         };
         PortfolioStats: {
             /** Format: int32 */
-            declared_portfolios?: number;
+            declared_portfolios: number;
             /** Format: int32 */
-            total_portfolios?: number;
+            total_portfolios: number;
             /** Format: int32 */
-            transfer_portfolios?: number;
+            transfer_portfolios: number;
             /** Format: int32 */
-            validated_portfolios?: number;
+            validated_portfolios: number;
+        };
+        PortfolioStatusReportRow: {
+            last_updated_on: string;
+            owner_name: string;
+            owner_role: string;
+            portfolio_code: string;
+            school_year: string;
+            status: string;
+            transfer_status: string;
         };
         PortfolioTransferDestination: {
             display_name: string;
@@ -10021,95 +10814,95 @@ export interface components {
         PortfolioTransferEvent: {
             closed_at?: string;
             closed_by_subject?: string;
-            destination_institution?: string;
+            destination_institution: string;
             destination_institution_id?: string;
             destination_tenant_code?: string;
             export_manifest_id?: string;
-            handover_by?: string;
-            handover_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            portfolio_id?: string;
+            handover_by: string;
+            handover_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            portfolio_id: string;
             received_at?: string;
-            received_by?: string;
+            received_by: string;
             received_by_subject?: string;
-            received_on?: string;
+            received_on: string;
             /** Format: int32 */
-            routing_version?: number;
+            routing_version: number;
             sent_at?: string;
             sent_by_subject?: string;
-            source_institution?: string;
+            source_institution: string;
             source_institution_id?: string;
             source_tenant_code?: string;
-            status?: string;
-            transfer_code?: string;
-            transfer_type?: string;
+            status: string;
+            transfer_code: string;
+            transfer_type: string;
         };
         PortfolioTransferSummary: {
-            completeness?: components["schemas"]["PortfolioCompletenessSummary"];
-            mobility?: components["schemas"]["PortfolioTransferSummaryMobility"];
-            portfolio?: components["schemas"]["PortfolioTransferSummaryPortfolio"];
-            readiness?: components["schemas"]["PortfolioTransferSummaryReadiness"];
-            transfer?: components["schemas"]["PortfolioTransferSummaryTransfer"];
-            valorification?: components["schemas"]["PortfolioValorificationSummaryBlock"];
+            completeness: components["schemas"]["PortfolioCompletenessSummary"];
+            mobility: components["schemas"]["PortfolioTransferSummaryMobility"];
+            portfolio: components["schemas"]["PortfolioTransferSummaryPortfolio"];
+            readiness: components["schemas"]["PortfolioTransferSummaryReadiness"];
+            transfer: components["schemas"]["PortfolioTransferSummaryTransfer"];
+            valorification: components["schemas"]["PortfolioValorificationSummaryBlock"];
         };
         PortfolioTransferSummaryLastEvent: {
-            destination_institution?: string;
-            handover_by?: string;
-            handover_on?: string;
-            id?: string;
-            received_by?: string;
-            received_on?: string;
-            source_institution?: string;
-            status?: string;
-            transfer_code?: string;
-            transfer_type?: string;
+            destination_institution: string;
+            handover_by: string;
+            handover_on: string;
+            id: string;
+            received_by: string;
+            received_on: string;
+            source_institution: string;
+            status: string;
+            transfer_code: string;
+            transfer_type: string;
         };
         PortfolioTransferSummaryMobility: {
             /** Format: int32 */
-            active_cases?: number;
+            active_cases: number;
             /** Format: int32 */
-            current_unit_mentions?: number;
+            current_unit_mentions: number;
             /** Format: int32 */
-            destination_mentions?: number;
+            destination_mentions: number;
             /** Format: int32 */
-            detachment_cases?: number;
+            detachment_cases: number;
             /** Format: int32 */
-            matched_cases?: number;
+            matched_cases: number;
             /** Format: int32 */
-            restriction_cases?: number;
+            restriction_cases: number;
             /** Format: int32 */
-            transfer_cases?: number;
+            transfer_cases: number;
         };
         PortfolioTransferSummaryPortfolio: {
-            id?: string;
-            owner_name?: string;
-            owner_role?: string;
-            portfolio_code?: string;
-            school_year?: string;
-            transfer_status?: string;
+            id: string;
+            owner_name: string;
+            owner_role: string;
+            portfolio_code: string;
+            school_year: string;
+            transfer_status: string;
         };
         PortfolioTransferSummaryReadiness: {
-            blockers?: string[];
-            ready_to_close?: boolean;
-            ready_to_confirm?: boolean;
-            ready_to_request?: boolean;
-            ready_to_send?: boolean;
+            blockers: string[];
+            ready_to_close: boolean;
+            ready_to_confirm: boolean;
+            ready_to_request: boolean;
+            ready_to_send: boolean;
         };
         PortfolioTransferSummaryTransfer: {
             /** Format: int32 */
-            closed_events?: number;
-            current_direction?: string;
-            last_transfer?: components["schemas"]["PortfolioTransferSummaryLastEvent"];
+            closed_events: number;
+            current_direction: string;
+            last_transfer: components["schemas"]["PortfolioTransferSummaryLastEvent"];
             /** Format: int32 */
-            prepared_events?: number;
+            prepared_events: number;
             /** Format: int32 */
-            received_events?: number;
+            received_events: number;
             /** Format: int32 */
-            sent_events?: number;
+            sent_events: number;
             /** Format: int32 */
-            total_events?: number;
+            total_events: number;
         };
         PortfolioValorificationEligibleArchiveVersion: {
             /** Format: uuid */
@@ -10129,18 +10922,18 @@ export interface components {
         };
         PortfolioValorificationEligibleSourceList: components["schemas"]["PortfolioValorificationEligibleSource"][];
         PortfolioValorificationEvent: {
-            completed_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            portfolio_id?: string;
-            requested_by?: string;
-            scope?: string;
-            started_on?: string;
-            status?: string;
-            target_institution?: string;
-            target_reference?: string;
-            valorification_code?: string;
+            completed_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            portfolio_id: string;
+            requested_by: string;
+            scope: string;
+            started_on: string;
+            status: string;
+            target_institution: string;
+            target_reference: string;
+            valorification_code: string;
         };
         PortfolioValorificationPackage: {
             completed_at?: string;
@@ -10153,6 +10946,8 @@ export interface components {
             institution_id: string;
             /** Format: uuid */
             portfolio_id: string;
+            /** @enum {string} */
+            purpose: "licentiere" | "debut" | "definitivat" | "grad_ii" | "grad_i" | "evaluare_profesionala" | "mobilitate" | "dezvoltare_profesionala" | "inspectie_scolara" | "evaluare_externa_calitate" | "gradatie_merit" | "distinctie_premiu";
             /** @enum {string} */
             scope: "evaluare_profesionala" | "mobilitate" | "gradatie_merit";
             source_evaluation_id?: string;
@@ -10190,72 +10985,73 @@ export interface components {
         PortfolioValorificationPackageDocumentList: components["schemas"]["PortfolioValorificationPackageDocument"][];
         PortfolioValorificationScopeStat: {
             /** Format: int32 */
-            completed?: number;
+            completed: number;
             /** Format: int32 */
-            open?: number;
-            scope?: string;
+            open: number;
+            scope: string;
             /** Format: int32 */
-            total?: number;
+            total: number;
         };
         PortfolioValorificationSummaryBlock: {
             /** Format: int32 */
-            completed_events?: number;
-            last_event?: components["schemas"]["PortfolioValorificationSummaryEvent"];
+            completed_events: number;
+            last_event: components["schemas"]["PortfolioValorificationSummaryEvent"];
             /** Format: int32 */
-            linked_evaluations?: number;
+            linked_evaluations: number;
             /** Format: int32 */
-            linked_merit?: number;
+            linked_merit: number;
             /** Format: int32 */
-            linked_mobility?: number;
+            linked_mobility: number;
             /** Format: int32 */
-            open_events?: number;
-            scopes?: components["schemas"]["PortfolioValorificationScopeStat"][];
+            open_events: number;
+            scopes: components["schemas"]["PortfolioValorificationScopeStat"][];
             /** Format: int32 */
-            total_events?: number;
+            total_events: number;
         };
         PortfolioValorificationSummaryEvent: {
-            completed_on?: string;
-            id?: string;
-            requested_by?: string;
-            scope?: string;
-            started_on?: string;
-            status?: string;
-            target_institution?: string;
-            target_reference?: string;
-            valorification_code?: string;
+            completed_on: string;
+            id: string;
+            requested_by: string;
+            scope: string;
+            started_on: string;
+            status: string;
+            target_institution: string;
+            target_reference: string;
+            valorification_code: string;
         };
-        /** @description RFC 9457 problem detail. `detail` is safe for users; correlation is supplied by the response `X-Request-ID` header. */
+        /** @description Stable API error envelope emitted by backend handlers. The machine-readable code is safe for clients; correlation is supplied by the response X-Request-ID header. */
         Problem: {
-            detail?: string;
-            errors?: {
-                [key: string]: string;
-            };
-            /** Format: uri-reference */
-            instance?: string;
-            /** @example 422 */
-            status: number;
-            /** @example Validation failed */
-            title: string;
-            /**
-             * Format: uri-reference
-             * @example https://egueducation.invalid/problems/validation
-             */
-            type: string;
+            /** @example validation_failed */
+            code: string;
+            /** @description Required permission when the backend exposes a safe authorization hint. */
+            permission?: string;
+        };
+        PublicationBacklogReportRow: {
+            anonymization_status: string;
+            entity_label: string;
+            entity_type: string;
+            mandatory: boolean;
+            publication_channel: string;
+            publication_code: string;
+            publication_status: string;
+            /** Format: date-time */
+            published_on: string | null;
+            reviewed_by: string;
         };
         PublicationRecord: {
-            anonymization_status?: string;
-            domain?: string;
-            entity_label?: string;
-            entity_type?: string;
-            id?: string;
-            institution_id?: string;
-            mandatory?: boolean;
-            notes?: string;
-            publication_channel?: string;
-            publication_code?: string;
-            publication_status?: string;
-            published_on?: string;
-            reviewed_by?: string;
+            anonymization_status: string;
+            domain: string;
+            entity_label: string;
+            entity_type: string;
+            id: string;
+            institution_id: string;
+            mandatory: boolean;
+            notes: string;
+            publication_channel: string;
+            publication_code: string;
+            publication_status: string;
+            published_on: string;
+            reviewed_by: string;
         };
         RegistraturaAttachment: {
             category: string;
@@ -10340,144 +11136,144 @@ export interface components {
             user_id?: string | null;
         };
         RegulationDashboardResponse: {
-            stats?: components["schemas"]["RegulationStats"];
+            stats: components["schemas"]["RegulationStats"];
         };
         RegulationFiltersResponse: {
-            approval_statuses?: string[];
-            regulation_types?: string[];
-            school_years?: string[];
-            statuses?: string[];
+            approval_statuses: string[];
+            regulation_types: string[];
+            school_years: string[];
+            statuses: string[];
         };
         RegulationProceduralSummary: {
-            readiness?: components["schemas"]["RegulationProceduralSummaryReadiness"];
-            regulation?: components["schemas"]["RegulationProceduralSummaryRegulation"];
-            versions?: components["schemas"]["RegulationProceduralSummaryVersions"];
-            workflow?: components["schemas"]["RegulationProceduralSummaryWorkflow"];
+            readiness: components["schemas"]["RegulationProceduralSummaryReadiness"];
+            regulation: components["schemas"]["RegulationProceduralSummaryRegulation"];
+            versions: components["schemas"]["RegulationProceduralSummaryVersions"];
+            workflow: components["schemas"]["RegulationProceduralSummaryWorkflow"];
         };
         RegulationProceduralSummaryLatestVersion: {
-            approved_on?: string;
-            effective_from?: string;
-            file_reference?: string;
-            id?: string;
-            prepared_by?: string;
-            published_on?: string;
-            version_label?: string;
-            version_status?: string;
+            approved_on: string;
+            effective_from: string;
+            file_reference: string;
+            id: string;
+            prepared_by: string;
+            published_on: string;
+            version_label: string;
+            version_status: string;
         };
         RegulationProceduralSummaryReadiness: {
-            blockers?: string[];
-            ready_for_ca_approval?: boolean;
-            ready_for_cp_endorsement?: boolean;
-            ready_for_publication?: boolean;
-            ready_for_review?: boolean;
+            blockers: string[];
+            ready_for_ca_approval: boolean;
+            ready_for_cp_endorsement: boolean;
+            ready_for_publication: boolean;
+            ready_for_review: boolean;
         };
         RegulationProceduralSummaryRegulation: {
-            approval_status?: string;
-            approved_on?: string;
-            id?: string;
-            regulation_code?: string;
-            regulation_type?: string;
-            review_due_on?: string;
-            school_year?: string;
-            status?: string;
-            title?: string;
+            approval_status: string;
+            approved_on: string;
+            id: string;
+            regulation_code: string;
+            regulation_type: string;
+            review_due_on: string;
+            school_year: string;
+            status: string;
+            title: string;
         };
         RegulationProceduralSummaryVersions: {
             /** Format: int32 */
-            approved_versions?: number;
+            approved_versions: number;
             /** Format: int32 */
-            consultation_versions?: number;
+            consultation_versions: number;
             /** Format: int32 */
-            endorsed_versions?: number;
-            latest_version?: components["schemas"]["RegulationProceduralSummaryLatestVersion"];
+            endorsed_versions: number;
+            latest_version: components["schemas"]["RegulationProceduralSummaryLatestVersion"];
             /** Format: int32 */
-            published_versions?: number;
+            published_versions: number;
             /** Format: int32 */
-            total_versions?: number;
+            total_versions: number;
         };
         RegulationProceduralSummaryWorkflow: {
             /** Format: int32 */
-            cancelled_phases?: number;
+            cancelled_phases: number;
             /** Format: int32 */
-            completed_phases?: number;
-            current_phase?: components["schemas"]["RegulationProceduralSummaryWorkflowPhase"];
+            completed_phases: number;
+            current_phase: components["schemas"]["RegulationProceduralSummaryWorkflowPhase"];
             /** Format: int32 */
-            feedback_count?: number;
+            feedback_count: number;
             /** Format: int32 */
-            open_phases?: number;
+            open_phases: number;
             /** Format: int32 */
-            returned_phases?: number;
+            returned_phases: number;
             /** Format: int32 */
-            total_phases?: number;
+            total_phases: number;
         };
         RegulationProceduralSummaryWorkflowPhase: {
-            audience?: string;
-            completed_on?: string;
-            decision_reference?: string;
-            due_on?: string;
+            audience: string;
+            completed_on: string;
+            decision_reference: string;
+            due_on: string;
             /** Format: int32 */
-            feedback_count?: number;
-            id?: string;
+            feedback_count: number;
+            id: string;
             /** Format: int32 */
-            phase_order?: number;
-            phase_type?: string;
-            started_on?: string;
-            status?: string;
+            phase_order: number;
+            phase_type: string;
+            started_on: string;
+            status: string;
         };
         RegulationRecord: {
-            approval_status?: string;
-            approved_on?: string;
-            id?: string;
-            institution_id?: string;
-            owner_name?: string;
-            regulation_code?: string;
-            regulation_type?: string;
-            review_due_on?: string;
-            school_year?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
+            approval_status: string;
+            approved_on: string;
+            id: string;
+            institution_id: string;
+            owner_name: string;
+            regulation_code: string;
+            regulation_type: string;
+            review_due_on: string;
+            school_year: string;
+            status: string;
+            summary: string;
+            title: string;
         };
         RegulationStats: {
             /** Format: int32 */
-            approved_regulations?: number;
+            approved_regulations: number;
             /** Format: int32 */
-            consultation_items?: number;
+            consultation_items: number;
             /** Format: int32 */
-            published_regulations?: number;
+            published_regulations: number;
             /** Format: int32 */
-            total_regulations?: number;
+            total_regulations: number;
         };
         RegulationVersion: {
-            approved_on?: string;
-            change_summary?: string;
-            effective_from?: string;
-            file_reference?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            prepared_by?: string;
-            published_on?: string;
-            regulation_id?: string;
-            version_label?: string;
-            version_status?: string;
+            approved_on: string;
+            change_summary: string;
+            effective_from: string;
+            file_reference: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            prepared_by: string;
+            published_on: string;
+            regulation_id: string;
+            version_label: string;
+            version_status: string;
         };
         RegulationWorkflowStep: {
-            audience?: string;
-            completed_on?: string;
-            decision_reference?: string;
-            due_on?: string;
+            audience: string;
+            completed_on: string;
+            decision_reference: string;
+            due_on: string;
             /** Format: int32 */
-            feedback_count?: number;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
+            feedback_count: number;
+            id: string;
+            institution_id: string;
+            notes: string;
             /** Format: int32 */
-            phase_order?: number;
-            phase_type?: string;
-            regulation_id?: string;
-            started_on?: string;
-            status?: string;
+            phase_order: number;
+            phase_type: string;
+            regulation_id: string;
+            started_on: string;
+            status: string;
         };
         ReplacePortfolioProcedureSectionRulesRequest: {
             /** Format: date-time */
@@ -10485,226 +11281,226 @@ export interface components {
             rules: components["schemas"]["PortfolioProcedureSectionRule"][];
         };
         Request_patch_api_registratura_admin_departments_id: {
-            active?: boolean | null;
-            description?: string;
-            name?: string;
-            parent_id?: string | null;
-            role_tag?: string;
+            active: boolean | null;
+            description: string;
+            name: string;
+            parent_id: string | null;
+            role_tag: string;
         };
         Request_patch_api_registratura_admin_organizations_id: {
-            active?: boolean | null;
-            department_ids?: string[];
-            description?: string;
-            is_default?: boolean | null;
-            name?: string;
+            active: boolean | null;
+            department_ids: string[];
+            description: string;
+            is_default: boolean | null;
+            name: string;
         };
         Request_patch_api_registratura_admin_registries_id: {
-            current_number?: string;
-            department_ids?: string[];
-            is_default?: boolean;
-            name?: string;
-            next_number?: string;
-            prefix?: string;
-            registry_type?: string;
-            start_number?: number;
+            current_number: string;
+            department_ids: string[];
+            is_default: boolean;
+            name: string;
+            next_number: string;
+            prefix: string;
+            registry_type: string;
+            start_number: number;
         };
         Request_patch_api_registratura_documents_documentid: {
-            activity?: string;
-            assigned_party_id?: string | null;
-            assigned_to?: string;
-            change_notes?: string;
-            confidentiality?: string;
-            correspondent?: string;
-            correspondent_party_id?: string | null;
-            department_ids?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
-            entry_at?: string | null;
-            exit_at?: string | null;
-            expected_workflow_version?: number | null;
-            external_number?: string;
-            external_number_date?: string | null;
-            record_kind?: string;
+            activity: string;
+            assigned_party_id: string | null;
+            assigned_to: string;
+            change_notes: string;
+            confidentiality: string;
+            correspondent: string;
+            correspondent_party_id: string | null;
+            department_ids: string[];
+            direction: string;
+            document_type: string;
+            due_date: string | null;
+            entry_at: string | null;
+            exit_at: string | null;
+            expected_workflow_version: number | null;
+            external_number: string;
+            external_number_date: string | null;
+            record_kind: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            status: string;
+            subject: string;
+            summary: string;
         };
         Request_patch_api_registratura_parties_id: {
-            active?: boolean | null;
-            address_line1?: string | null;
-            address_line2?: string | null;
-            birth_date?: string | null;
-            birth_place?: string | null;
-            code?: string | null;
-            country?: string | null;
-            county?: string | null;
-            display_name?: string | null;
-            email?: string | null;
-            first_name?: string | null;
-            identifier_code?: string | null;
-            institution_level?: string | null;
-            institution_type?: string | null;
-            is_default_organization?: boolean | null;
-            last_name?: string | null;
-            legal_form?: string | null;
-            legal_name?: string | null;
-            legal_representative?: string | null;
-            locality?: string | null;
-            notes?: string | null;
-            party_type?: string | null;
-            phone_number?: string | null;
+            active: boolean | null;
+            address_line1: string | null;
+            address_line2: string | null;
+            birth_date: string | null;
+            birth_place: string | null;
+            code: string | null;
+            country: string | null;
+            county: string | null;
+            display_name: string | null;
+            email: string | null;
+            first_name: string | null;
+            identifier_code: string | null;
+            institution_level: string | null;
+            institution_type: string | null;
+            is_default_organization: boolean | null;
+            last_name: string | null;
+            legal_form: string | null;
+            legal_name: string | null;
+            legal_representative: string | null;
+            locality: string | null;
+            notes: string | null;
+            party_type: string | null;
+            phone_number: string | null;
             /** Format: double */
-            share_capital?: number | null;
-            short_name?: string | null;
-            tax_id?: string | null;
-            trade_register_no?: string | null;
-            website?: string | null;
+            share_capital: number | null;
+            short_name: string | null;
+            tax_id: string | null;
+            trade_register_no: string | null;
+            website: string | null;
         };
         Request_patch_api_registratura_registre_id: {
-            data_resetare?: string | null;
-            isDefault?: boolean | null;
-            nr_curent?: string | null;
-            nr_inceput?: number | null;
-            nr_urmator?: string | null;
-            nume?: string | null;
-            prefix_nr?: string | null;
-            tip_registru?: string | null;
+            data_resetare: string | null;
+            isDefault: boolean | null;
+            nr_curent: string | null;
+            nr_inceput: number | null;
+            nr_urmator: string | null;
+            nume: string | null;
+            prefix_nr: string | null;
+            tip_registru: string | null;
         };
         Request_post_api_admin_auth_methods: {
-            code?: string;
-            enabled?: boolean;
-            primary_method?: boolean;
-            sort_order?: number;
+            code: string;
+            enabled: boolean;
+            primary_method: boolean;
+            sort_order: number;
         };
         Request_post_api_admin_dossier_requirements: {
-            min_count?: number;
-            relation_type?: string;
-            required_for_approve?: boolean;
-            required_for_readiness?: boolean;
-            required_for_submit?: boolean;
-            source_module?: string;
+            min_count: number;
+            relation_type: string;
+            required_for_approve: boolean;
+            required_for_readiness: boolean;
+            required_for_submit: boolean;
+            source_module: string;
         };
         Request_post_api_admin_education_taxonomies: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         Request_post_api_admin_gdpr_settings: {
-            code?: string;
-            value_bool?: boolean;
-            value_int?: number;
-            value_text?: string;
-            value_type?: string;
+            code: string;
+            value_bool: boolean;
+            value_int: number;
+            value_text: string;
+            value_type: string;
         };
         Request_post_api_admin_memberships: {
-            active?: boolean;
-            end_date?: string;
-            id?: string;
-            is_primary?: boolean;
-            org_unit_code?: string;
-            organization_name?: string;
-            position_code?: string;
-            start_date?: string;
-            user_id?: string;
+            active: boolean;
+            end_date: string;
+            id: string;
+            is_primary: boolean;
+            org_unit_code: string;
+            organization_name: string;
+            position_code: string;
+            start_date: string;
+            user_id: string;
         };
         Request_post_api_admin_modules: {
-            active?: boolean;
-            code?: string;
+            active: boolean;
+            code: string;
         };
         Request_post_api_admin_nomenclatures: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         Request_post_api_admin_oidc_clients: {
-            active?: boolean;
-            client_id?: string;
-            client_name?: string;
-            public_client?: boolean;
-            redirect_uris?: string[];
-            require_pkce?: boolean;
+            active: boolean;
+            client_id: string;
+            client_name: string;
+            public_client: boolean;
+            redirect_uris: string[];
+            require_pkce: boolean;
         };
         Request_post_api_admin_org_units: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            parent_code?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            parent_code: string;
+            sort_order: number;
         };
         Request_post_api_admin_permissions_assignments: {
-            assigned?: boolean;
-            permission_code?: string;
-            position_code?: string;
+            assigned: boolean;
+            permission_code: string;
+            position_code: string;
         };
         Request_post_api_admin_position_roles: {
-            assigned?: boolean;
-            position_code?: string;
-            role_code?: string;
+            assigned: boolean;
+            position_code: string;
+            role_code: string;
         };
         Request_post_api_admin_positions: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            scope_module?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            scope_module: string;
+            sort_order: number;
         };
         Request_post_api_admin_role_assignments: {
-            assigned?: boolean;
-            role_code?: string;
-            user_id?: string;
+            assigned: boolean;
+            role_code: string;
+            user_id: string;
         };
         Request_post_api_admin_role_permissions: {
-            assigned?: boolean;
-            permission_code?: string;
-            role_code?: string;
+            assigned: boolean;
+            permission_code: string;
+            role_code: string;
         };
         Request_post_api_admin_roles: {
-            code?: string;
-            label?: string;
+            code: string;
+            label: string;
         };
         Request_post_api_admin_users: {
-            email?: string;
+            email: string;
             email_verified?: boolean | null;
-            id?: string;
-            locale?: string;
-            name?: string;
-            phone?: string;
+            id: string;
+            locale: string;
+            name: string;
+            phone: string;
             phone_verified?: boolean | null;
-            preferred_otp_channel?: string;
-            status?: string;
+            preferred_otp_channel: string;
+            status: string;
         };
         Request_post_api_admin_workflow_definitions: {
-            active?: boolean;
-            category?: string;
-            code?: string;
-            initial_step?: string;
-            name?: string;
-            sla_hours?: number;
+            active: boolean;
+            category: string;
+            code: string;
+            initial_step: string;
+            name: string;
+            sla_hours: number;
         };
         Request_post_api_earchiva_classification_reviews_reviewid_approve: {
-            note?: string;
-            revision?: number;
+            note: string;
+            revision: number;
         };
         Request_post_api_earchiva_classification_reviews_reviewid_correct: {
-            classification?: {
-                category?: string;
+            classification: {
+                category: string;
                 document_date?: string;
                 document_number?: string;
-                document_type?: string;
-                fond?: string;
-                series?: string;
+                document_type: string;
+                fond: string;
+                series: string;
             };
-            note?: string;
-            revision?: number;
+            note: string;
+            revision: number;
         };
         Request_post_api_earchiva_documents: {
             document_date?: string;
@@ -10722,53 +11518,53 @@ export interface components {
             title?: string;
         };
         Request_post_api_gdpr_exports: {
-            approved_by?: string;
-            approved_on?: string;
-            export_format?: string;
-            generated_on?: string;
-            notes?: string;
-            package_summary?: string;
-            request_id?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
+            approved_by: string;
+            approved_on: string;
+            export_format: string;
+            generated_on: string;
+            notes: string;
+            package_summary: string;
+            request_id: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
         };
         Request_post_api_gdpr_publication_reviews: {
-            anonymization_status?: string;
-            legal_basis?: string;
-            notes?: string;
-            publication_status?: string;
-            reviewed_by?: string;
-            reviewed_on?: string;
-            source_label?: string;
-            source_module?: string;
-            source_record_id?: string;
+            anonymization_status: string;
+            legal_basis: string;
+            notes: string;
+            publication_status: string;
+            reviewed_by: string;
+            reviewed_on: string;
+            source_label: string;
+            source_module: string;
+            source_record_id: string;
         };
         Request_post_api_gdpr_retention_policies: {
-            domain_code?: string;
-            legal_basis?: string;
-            notes?: string;
-            owner_name?: string;
-            record_category?: string;
-            retention_years?: number;
-            review_due_on?: string;
-            status?: string;
+            domain_code: string;
+            legal_basis: string;
+            notes: string;
+            owner_name: string;
+            record_category: string;
+            retention_years: number;
+            review_due_on: string;
+            status: string;
         };
         Request_post_api_gdpr_subject_requests: {
-            anonymization_required?: boolean;
-            due_on?: string;
-            handled_by?: string;
-            notes?: string;
-            request_type?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
-            submitted_on?: string;
+            anonymization_required: boolean;
+            due_on: string;
+            handled_by: string;
+            notes: string;
+            request_type: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
+            submitted_on: string;
         };
         Request_post_api_passkeys_login_finish: {
-            challenge?: string;
-            credential_id?: string;
-            response?: {
+            challenge: string;
+            credential_id: string;
+            response: {
                 [key: string]: string;
             };
         };
@@ -10776,10 +11572,10 @@ export interface components {
             user_verification?: string;
         };
         Request_post_api_passkeys_register_finish: {
-            challenge?: string;
-            credential_id?: string;
-            device_name?: string;
-            response?: {
+            challenge: string;
+            credential_id: string;
+            device_name: string;
+            response: {
                 [key: string]: string;
             };
         };
@@ -10787,151 +11583,246 @@ export interface components {
             device_name?: string;
         };
         Request_post_api_registratura_admin_departments: {
-            active?: boolean | null;
-            description?: string;
-            name?: string;
-            parent_id?: string | null;
-            role_tag?: string;
+            active: boolean | null;
+            description: string;
+            name: string;
+            parent_id: string | null;
+            role_tag: string;
         };
         Request_post_api_registratura_admin_organizations: {
-            active?: boolean | null;
-            department_ids?: string[];
-            description?: string;
-            is_default?: boolean | null;
-            name?: string;
+            active: boolean | null;
+            department_ids: string[];
+            description: string;
+            is_default: boolean | null;
+            name: string;
         };
         Request_post_api_registratura_admin_registries: {
-            current_number?: string;
-            department_ids?: string[];
-            is_default?: boolean;
-            name?: string;
-            next_number?: string;
-            prefix?: string;
-            registry_type?: string;
-            start_number?: number;
+            current_number: string;
+            department_ids: string[];
+            is_default: boolean;
+            name: string;
+            next_number: string;
+            prefix: string;
+            registry_type: string;
+            start_number: number;
         };
         Request_post_api_registratura_document_links: {
-            document_id?: string;
-            relation_type?: string;
-            source_module?: string;
-            source_record_id?: string;
+            document_id: string;
+            relation_type: string;
+            source_module: string;
+            source_record_id: string;
         };
         Request_post_api_registratura_documents: {
-            activity?: string;
-            assigned_party_id?: string | null;
-            assigned_to?: string;
-            confidentiality?: string;
-            correspondent?: string;
-            correspondent_party_id?: string | null;
-            department_ids?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
-            entry_at?: string | null;
-            exit_at?: string | null;
-            external_number?: string;
-            external_number_date?: string | null;
-            record_kind?: string;
+            activity: string;
+            assigned_party_id: string | null;
+            assigned_to: string;
+            confidentiality: string;
+            correspondent: string;
+            correspondent_party_id: string | null;
+            department_ids: string[];
+            direction: string;
+            document_type: string;
+            due_date: string | null;
+            entry_at: string | null;
+            exit_at: string | null;
+            external_number: string;
+            external_number_date: string | null;
+            record_kind: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            status: string;
+            subject: string;
+            summary: string;
         };
         Request_post_api_registratura_documents_batch: {
-            assigned_party_id?: string | null;
-            assigned_to?: string;
-            confidentiality?: string;
-            correspondent?: string;
-            correspondent_party_id?: string | null;
-            count?: number;
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
-            entry_at?: string | null;
+            assigned_party_id: string | null;
+            assigned_to: string;
+            confidentiality: string;
+            correspondent: string;
+            correspondent_party_id: string | null;
+            count: number;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
+            entry_at: string | null;
             /** Format: int64 */
-            registru_id?: number;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number;
+            status: string;
+            subject: string;
+            summary: string;
         };
         Request_post_api_registratura_documents_documentid_attachments: {
-            category?: string;
-            file_name?: string;
-            mime_type?: string;
+            category: string;
+            file_name: string;
+            mime_type: string;
             /** Format: int64 */
-            size_bytes?: number;
-            status?: string;
-            storage_key?: string;
-            title?: string;
-            uploaded_by?: string;
+            size_bytes: number;
+            status: string;
+            storage_key: string;
+            title: string;
+            uploaded_by: string;
         };
         Request_post_api_registratura_documents_documentid_versions: {
-            assigned_to?: string;
-            change_notes?: string;
-            confidentiality?: string;
-            due_date?: string | null;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            assigned_to: string;
+            change_notes: string;
+            confidentiality: string;
+            due_date: string | null;
+            status: string;
+            subject: string;
+            summary: string;
         };
         Request_post_api_registratura_documents_export_pdf: {
-            end_date?: string | null;
+            end_date: string | null;
             /** Format: int64 */
-            registru_id?: number | null;
-            start_date?: string | null;
+            registru_id: number | null;
+            start_date: string | null;
         };
         Request_post_api_registratura_parties: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
-            birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            identifier_code?: string;
-            institution_id?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
+            birth_date: string | null;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            identifier_code: string;
+            institution_id: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
-            share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            website?: string;
+            share_capital: number | null;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            website: string;
         };
         Request_post_api_registratura_registre: {
-            data_resetare?: string | null;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
+            data_resetare: string | null;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
         };
         Request_put_api_profile: {
-            locale?: string;
-            name?: string;
-            phone_number?: string;
+            locale: string;
+            name: string;
+            phone_number: string;
         };
         Request_put_api_registratura_admin_users_id_assignments: {
-            department_ids?: string[];
-            organization_id?: string | null;
-            primary_department_id?: string | null;
+            department_ids: string[];
+            organization_id: string | null;
+            primary_department_id: string | null;
+        };
+        SchoolAssignmentOption: {
+            /** Format: uuid */
+            app_user_id?: string;
+            /** Format: uuid */
+            class_id?: string;
+            code: string;
+            /** @enum {string} */
+            kind: "classes" | "students" | "teachers";
+            name: string;
+            /** Format: uuid */
+            personnel_id?: string;
+            /** Format: uuid */
+            student_id?: string;
+        };
+        SchoolClass: {
+            active: boolean;
+            class_code: string;
+            class_name: string;
+            grade_level: string;
+            /** Format: uuid */
+            id: string;
+            institution_id: string;
+            school_year: string;
+            /** @enum {string} */
+            study_shift: "day" | "afternoon" | "evening";
+            tenant_code: string;
+        };
+        SchoolEnrolment: {
+            /** Format: uuid */
+            class_id: string;
+            class_name?: string;
+            /** Format: date */
+            enrolled_from: string;
+            /** Format: date */
+            enrolled_until?: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "active" | "transferred" | "completed" | "withdrawn";
+            /** Format: uuid */
+            student_id: string;
+            student_name?: string;
+        };
+        SchoolHomeroomAssignment: {
+            /** Format: uuid */
+            app_user_id: string;
+            /** Format: date */
+            assigned_from: string;
+            /** Format: date */
+            assigned_until?: string;
+            /** Format: uuid */
+            class_id: string;
+            class_name?: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            personnel_id: string;
+            teacher_name?: string;
+        };
+        SchoolReportCatalogItem: {
+            /** @enum {string} */
+            code: "portfolio-status" | "evaluation-status" | "governance-compliance" | "personnel-document-expiry" | "publication-backlog";
+            columns: components["schemas"]["SchoolReportColumn"][];
+            description: string;
+            formats: ("json" | "csv" | "pdf")[];
+            label: string;
+        };
+        SchoolReportCatalogResponse: {
+            items: components["schemas"]["SchoolReportCatalogItem"][];
+        };
+        SchoolReportColumn: {
+            key: string;
+            label: string;
+        };
+        SchoolReportRow: components["schemas"]["PortfolioStatusReportRow"] | components["schemas"]["EvaluationStatusReportRow"] | components["schemas"]["GovernanceComplianceReportRow"] | components["schemas"]["PersonnelDocumentExpiryReportRow"] | components["schemas"]["PublicationBacklogReportRow"];
+        SchoolStudent: {
+            /** Format: date */
+            birth_date?: string;
+            first_name: string;
+            /** Format: uuid */
+            id: string;
+            institution_id: string;
+            last_name: string;
+            /** @enum {string} */
+            status: "active" | "transferred" | "graduated" | "withdrawn";
+            student_code: string;
+            tenant_code: string;
+        };
+        SecretariatCockpitResponse: {
+            active_enrolments: number;
+            classes: number;
+            institution_id: string;
+            portfolios_in_review: number;
+            students: number;
         };
         SessionContext: {
             authentication: string[];
@@ -10965,19 +11856,107 @@ export interface components {
             roles: string[];
             sub: string;
         };
+        SignedArtifactEvidence: {
+            /** Format: uuid */
+            artifact_id: string;
+            artifact_type: string;
+            certificate_issuer: string;
+            certificate_serial: string;
+            /** Format: date-time */
+            certificate_valid_from: string;
+            /** Format: date-time */
+            certificate_valid_until: string;
+            document_sha256: string;
+            /** Format: uuid */
+            id: string;
+            latest_validation?: components["schemas"]["SignedArtifactValidation"];
+            signature_format: string;
+            signature_level: string;
+            signature_subject: string;
+            storage_bucket?: string;
+            /** Format: uuid */
+            storage_document_id?: string;
+            storage_object_key?: string;
+            /** Format: uuid */
+            storage_version_id?: string;
+            /** Format: date-time */
+            submitted_at: string;
+            submitted_by_subject: string;
+        };
+        SignedArtifactValidation: {
+            findings: {
+                [key: string]: unknown;
+            };
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            timestamp_at?: string;
+            timestamp_authority?: string;
+            timestamp_token_sha256?: string;
+            trusted_list_provider: string;
+            /** Format: date-time */
+            validated_at: string;
+            validated_by_subject: string;
+            /** @enum {string} */
+            validation_status: "pending" | "valid" | "invalid" | "error";
+        };
+        SubmitSignedArtifactEvidenceRequest: {
+            /** Format: uuid */
+            artifact_id: string;
+            /** @enum {string} */
+            artifact_type: "decision" | "publication" | "managerial_document" | "meeting_document" | "meeting_minute" | "meeting_resolution";
+            certificate_issuer: string;
+            certificate_serial: string;
+            /** Format: date-time */
+            certificate_valid_from: string;
+            /** Format: date-time */
+            certificate_valid_until: string;
+            /** @enum {string} */
+            signature_format: "PAdES" | "XAdES" | "CAdES";
+            /** @enum {string} */
+            signature_level: "advanced" | "qualified";
+            signature_subject: string;
+            /** Format: uuid */
+            storage_document_id: string;
+            /** Format: uuid */
+            storage_version_id: string;
+        };
+        TaxonomyCatalogResponse: {
+            items: {
+                [key: string]: components["schemas"]["TaxonomyItem"][];
+            };
+        };
         TaxonomyItem: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
+            active: boolean;
+            code: string;
+            domain: string;
+            id: string;
+            label_en: string;
+            label_ro: string;
             /** Format: int32 */
-            sort_order?: number;
+            sort_order: number;
         };
         UpdatePortfolioProcedureRequest: components["schemas"]["CreatePortfolioProcedureRequest"] & {
             /** Format: date-time */
             expected_updated_at: string;
+        };
+        UpdatePortfolioRecordRequest: {
+            authenticity_declared?: boolean;
+            consent_captured?: boolean;
+            custodian?: string;
+            last_updated_on: string;
+            notes?: string;
+            owner_name: string;
+            /** Format: uuid */
+            owner_personnel_id?: string;
+            owner_role: string;
+            /** Format: uuid */
+            owner_user_id?: string;
+            school_year: string;
+            /** Format: int32 */
+            section_count?: number;
+            status: string;
+            transfer_status: string;
         };
         UpdatePreparedPortfolioTransferRequest: {
             /** Format: date */
@@ -11016,15 +11995,15 @@ export interface components {
             target_types?: string[];
         };
         get_api_admin_audit_item: {
-            action?: string;
-            actor_subject?: string;
-            created_at?: string;
-            domain?: string;
-            id?: string;
-            status?: string;
-            summary?: string;
-            target_id?: string;
-            target_type?: string;
+            action: string;
+            actor_subject: string;
+            created_at: string;
+            domain: string;
+            id: string;
+            status: string;
+            summary: string;
+            target_id: string;
+            target_type: string;
         };
         get_api_admin_audit_response: {
             items: components["schemas"]["get_api_admin_audit_item"][];
@@ -11033,10 +12012,10 @@ export interface components {
             total: number;
         };
         get_api_admin_auth_methods_item: {
-            code?: string;
-            enabled?: boolean;
-            primary_method?: boolean;
-            sort_order?: number;
+            code: string;
+            enabled: boolean;
+            primary_method: boolean;
+            sort_order: number;
         };
         get_api_admin_auth_methods_response: {
             items: components["schemas"]["get_api_admin_auth_methods_item"][];
@@ -11067,13 +12046,13 @@ export interface components {
             source_modules?: string[];
         };
         get_api_admin_dossier_requirements_item: {
-            id?: string;
-            min_count?: number;
-            relation_type?: string;
-            required_for_approve?: boolean;
-            required_for_readiness?: boolean;
-            required_for_submit?: boolean;
-            source_module?: string;
+            id: string;
+            min_count: number;
+            relation_type: string;
+            required_for_approve: boolean;
+            required_for_readiness: boolean;
+            required_for_submit: boolean;
+            source_module: string;
         };
         get_api_admin_dossier_requirements_response: {
             items: components["schemas"]["get_api_admin_dossier_requirements_item"][];
@@ -11085,13 +12064,13 @@ export interface components {
             domains?: string[];
         };
         get_api_admin_education_taxonomies_item: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            id: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         get_api_admin_education_taxonomies_response: {
             items: components["schemas"]["get_api_admin_education_taxonomies_item"][];
@@ -11100,11 +12079,11 @@ export interface components {
             total?: number;
         };
         get_api_admin_gdpr_settings_item: {
-            code?: string;
-            value_bool?: boolean;
-            value_int?: number;
-            value_text?: string;
-            value_type?: string;
+            code: string;
+            value_bool: boolean;
+            value_int: number;
+            value_text: string;
+            value_type: string;
         };
         get_api_admin_gdpr_settings_response: {
             items: components["schemas"]["get_api_admin_gdpr_settings_item"][];
@@ -11113,18 +12092,18 @@ export interface components {
             total?: number;
         };
         get_api_admin_memberships_item: {
-            active?: boolean;
-            end_date?: string;
-            id?: string;
-            is_primary?: boolean;
-            org_unit_code?: string;
-            organization_name?: string;
-            position_code?: string;
-            position_name?: string;
-            start_date?: string;
-            user_email?: string;
-            user_id?: string;
-            user_name?: string;
+            active: boolean;
+            end_date: string;
+            id: string;
+            is_primary: boolean;
+            org_unit_code: string;
+            organization_name: string;
+            position_code: string;
+            position_name: string;
+            start_date: string;
+            user_email: string;
+            user_id: string;
+            user_name: string;
         };
         get_api_admin_memberships_response: {
             items: components["schemas"]["get_api_admin_memberships_item"][];
@@ -11133,8 +12112,8 @@ export interface components {
             total?: number;
         };
         get_api_admin_modules_item: {
-            active?: boolean;
-            code?: string;
+            active: boolean;
+            code: string;
         };
         get_api_admin_modules_response: {
             items: components["schemas"]["get_api_admin_modules_item"][];
@@ -11146,13 +12125,13 @@ export interface components {
             domains?: string[];
         };
         get_api_admin_nomenclatures_item: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            id: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         get_api_admin_nomenclatures_response: {
             items: components["schemas"]["get_api_admin_nomenclatures_item"][];
@@ -11161,13 +12140,13 @@ export interface components {
             total?: number;
         };
         get_api_admin_oidc_clients_item: {
-            active?: boolean;
-            client_id?: string;
-            client_name?: string;
-            created_at?: string;
-            public_client?: boolean;
-            redirect_uris?: string[];
-            require_pkce?: boolean;
+            active: boolean;
+            client_id: string;
+            client_name: string;
+            created_at: string;
+            public_client: boolean;
+            redirect_uris: string[];
+            require_pkce: boolean;
         };
         get_api_admin_oidc_clients_response: {
             items: components["schemas"]["get_api_admin_oidc_clients_item"][];
@@ -11176,12 +12155,12 @@ export interface components {
             total?: number;
         };
         get_api_admin_org_units_item: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            parent_code?: string;
-            parent_name?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            parent_code: string;
+            parent_name: string;
+            sort_order: number;
         };
         get_api_admin_org_units_response: {
             items: components["schemas"]["get_api_admin_org_units_item"][];
@@ -11200,12 +12179,12 @@ export interface components {
             }[];
         };
         get_api_admin_permissions_assignments_item: {
-            id?: string;
-            permission_code?: string;
-            permission_label?: string;
-            position_code?: string;
-            position_name?: string;
-            scope_module?: string;
+            id: string;
+            permission_code: string;
+            permission_label: string;
+            position_code: string;
+            position_name: string;
+            scope_module: string;
         };
         get_api_admin_permissions_assignments_response: {
             items: components["schemas"]["get_api_admin_permissions_assignments_item"][];
@@ -11214,10 +12193,10 @@ export interface components {
             total?: number;
         };
         get_api_admin_permissions_item: {
-            code?: string;
-            label?: string;
-            role_count?: number;
-            user_count?: number;
+            code: string;
+            label: string;
+            role_count: number;
+            user_count: number;
         };
         get_api_admin_permissions_response: {
             items: components["schemas"]["get_api_admin_permissions_item"][];
@@ -11236,11 +12215,11 @@ export interface components {
             }[];
         };
         get_api_admin_position_roles_item: {
-            id?: string;
-            position_code?: string;
-            position_name?: string;
-            role_code?: string;
-            role_label?: string;
+            id: string;
+            position_code: string;
+            position_name: string;
+            role_code: string;
+            role_label: string;
         };
         get_api_admin_position_roles_response: {
             items: components["schemas"]["get_api_admin_position_roles_item"][];
@@ -11249,11 +12228,11 @@ export interface components {
             total?: number;
         };
         get_api_admin_positions_item: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            scope_module?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            scope_module: string;
+            sort_order: number;
         };
         get_api_admin_positions_response: {
             items: components["schemas"]["get_api_admin_positions_item"][];
@@ -11262,12 +12241,12 @@ export interface components {
             total?: number;
         };
         get_api_admin_role_assignments_item: {
-            id?: string;
-            role_code?: string;
-            role_label?: string;
-            user_email?: string;
-            user_id?: string;
-            user_name?: string;
+            id: string;
+            role_code: string;
+            role_label: string;
+            user_email: string;
+            user_id: string;
+            user_name: string;
         };
         get_api_admin_role_assignments_response: {
             items: components["schemas"]["get_api_admin_role_assignments_item"][];
@@ -11286,11 +12265,11 @@ export interface components {
             }[];
         };
         get_api_admin_role_permissions_item: {
-            id?: string;
-            permission_code?: string;
-            permission_label?: string;
-            role_code?: string;
-            role_label?: string;
+            id: string;
+            permission_code: string;
+            permission_label: string;
+            role_code: string;
+            role_label: string;
         };
         get_api_admin_role_permissions_response: {
             items: components["schemas"]["get_api_admin_role_permissions_item"][];
@@ -11299,8 +12278,8 @@ export interface components {
             total?: number;
         };
         get_api_admin_roles_item: {
-            code?: string;
-            label?: string;
+            code: string;
+            label: string;
         };
         get_api_admin_roles_response: {
             items: components["schemas"]["get_api_admin_roles_item"][];
@@ -11314,18 +12293,18 @@ export interface components {
             statuses?: string[];
         };
         get_api_admin_users_item: {
-            email?: string;
-            email_verified?: boolean;
-            id?: string;
-            last_login_at?: string;
-            locale?: string;
-            name?: string;
-            phone?: string;
-            phone_verified?: boolean;
-            position?: string;
-            preferred_otp_channel?: string;
-            status?: string;
-            sub?: string;
+            email: string;
+            email_verified: boolean;
+            id: string;
+            last_login_at: string;
+            locale: string;
+            name: string;
+            phone: string;
+            phone_verified: boolean;
+            position: string;
+            preferred_otp_channel: string;
+            status: string;
+            sub: string;
         };
         get_api_admin_users_response: {
             items: components["schemas"]["get_api_admin_users_item"][];
@@ -11337,12 +12316,12 @@ export interface components {
             categories?: string[];
         };
         get_api_admin_workflow_definitions_item: {
-            active?: boolean;
-            category?: string;
-            code?: string;
-            initial_step?: string;
-            name?: string;
-            sla_hours?: number;
+            active: boolean;
+            category: string;
+            code: string;
+            initial_step: string;
+            name: string;
+            sla_hours: number;
         };
         get_api_admin_workflow_definitions_response: {
             items: components["schemas"]["get_api_admin_workflow_definitions_item"][];
@@ -11359,20 +12338,20 @@ export interface components {
             }[];
         };
         get_api_auth_role_catalog_response: {
-            roles?: {
-                code?: string;
-                description?: string;
-                label?: string;
+            roles: {
+                code: string;
+                description: string;
+                label: string;
                 permissions?: string[];
                 positions?: string[];
             }[];
         };
         get_api_auth_role_positions_response: {
-            items?: {
-                position_code?: string;
-                position_name?: string;
-                role_code?: string;
-                role_label?: string;
+            items: {
+                position_code: string;
+                position_name: string;
+                role_code: string;
+                role_label: string;
             }[];
         };
         get_api_auth_ui_config_response: {
@@ -11391,141 +12370,141 @@ export interface components {
             theme_family?: string;
         };
         get_api_earchiva_admin_health_response: {
-            ocr?: {
-                configured?: boolean;
+            ocr: {
+                configured: boolean;
                 message?: string;
-                provider?: string;
-                status?: string;
+                provider: string;
+                status: string;
             };
-            queue?: {
+            queue: {
                 /** Format: int64 */
-                failed?: number;
+                failed: number;
                 /** Format: int64 */
-                pending?: number;
+                pending: number;
                 /** Format: int64 */
-                running?: number;
+                running: number;
                 /** Format: int64 */
-                succeeded?: number;
+                succeeded: number;
             };
-            storage?: {
+            storage: {
                 message?: string;
-                status?: string;
+                status: string;
             };
-            storage_enabled?: boolean;
+            storage_enabled: boolean;
         };
         get_api_earchiva_admin_jobs_response: {
-            items?: {
-                attempts?: number;
-                available_at?: string;
-                created_at?: string;
-                document_id?: string;
+            items: {
+                attempts: number;
+                available_at: string;
+                created_at: string;
+                document_id: string;
                 error?: string;
                 error_summary?: string;
                 finished_at?: string;
-                has_error?: boolean;
-                id?: string;
-                job_type?: string;
-                stage?: string;
+                has_error: boolean;
+                id: string;
+                job_type: string;
+                stage: string;
                 started_at?: string;
-                status?: string;
-                updated_at?: string;
+                status: string;
+                updated_at: string;
             }[];
-            page?: number;
-            pageSize?: number;
+            page: number;
+            pageSize: number;
             /** Format: int64 */
-            total?: number;
+            total: number;
         };
         get_api_earchiva_admin_stats_response: {
             /** Format: int64 */
-            completed?: number;
-            documents_by_status?: {
+            completed: number;
+            documents_by_status: {
                 [key: string]: number;
             };
             /** Format: int64 */
-            failed?: number;
-            jobs_by_status?: {
+            failed: number;
+            jobs_by_status: {
                 [key: string]: number;
             };
             /** Format: int64 */
-            processing?: number;
+            processing: number;
             /** Format: int64 */
-            queued?: number;
+            queued: number;
             /** Format: int64 */
-            total_bytes?: number;
+            total_bytes: number;
             /** Format: int64 */
-            total_documents?: number;
+            total_documents: number;
             /** Format: int64 */
-            total_jobs?: number;
+            total_jobs: number;
             /** Format: int64 */
-            total_pages?: number;
+            total_pages: number;
         };
         get_api_earchiva_classification_reviews_response: {
-            items?: {
-                document_id?: string;
+            items: {
+                document_id: string;
                 final_classification?: {
                     [key: string]: string;
                 };
-                generated_at?: string;
-                id?: string;
-                requires_human_review?: boolean;
+                generated_at: string;
+                id: string;
+                requires_human_review: boolean;
                 review_note?: string;
                 reviewed_at?: string;
                 reviewed_by?: string;
-                revision?: number;
-                state?: string;
-                suggestion?: {
-                    category?: {
+                revision: number;
+                state: string;
+                suggestion: {
+                    category: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
-                    document_date?: {
+                    document_date: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
-                    document_number?: {
+                    document_number: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
-                    document_type?: {
+                    document_type: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
-                    fond?: {
+                    fond: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
-                    series?: {
+                    series: {
                         /** Format: double */
-                        confidence?: number;
+                        confidence: number;
                         evidence?: string;
-                        source?: string;
+                        source: string;
                         value?: string;
                     };
                 };
                 /** Format: double */
-                suggestion_confidence?: number;
-                suggestion_source?: string;
-                version_id?: string;
+                suggestion_confidence: number;
+                suggestion_source: string;
+                version_id: string;
             }[];
-            page?: number;
-            page_size?: number;
+            page: number;
+            page_size: number;
             /** Format: int64 */
-            total?: number;
+            total: number;
         };
         get_api_earchiva_dashboard_response: {
             stats: {
@@ -11536,75 +12515,75 @@ export interface components {
             };
         };
         get_api_earchiva_documents_documentid_response: {
-            created_at?: string;
-            current_version_no?: number;
+            created_at: string;
+            current_version_no: number;
             document_date?: string | null;
-            external_reference?: string;
-            id?: string;
-            institution_id?: string;
+            external_reference: string;
+            id: string;
+            institution_id: string;
             latest_version?: {
-                created_at?: string;
-                document_id?: string;
-                id?: string;
-                page_count?: number;
-                source_sha256?: string;
+                created_at: string;
+                document_id: string;
+                id: string;
+                page_count: number;
+                source_sha256: string;
                 /** Format: int64 */
-                source_size_bytes?: number;
-                text_status?: string;
-                version_no?: number;
+                source_size_bytes: number;
+                text_status: string;
+                version_no: number;
             } | null;
             metadata?: {
                 [key: string]: string;
             };
-            mime_type?: string;
-            original_file_name?: string;
-            received_at?: string;
-            source_kind?: string;
-            source_system?: string;
-            status?: string;
+            mime_type: string;
+            original_file_name: string;
+            received_at: string;
+            source_kind: string;
+            source_system: string;
+            status: string;
             taxonomy_code?: string | null;
             taxonomy_label?: string | null;
             taxonomy_node_id?: string | null;
-            title?: string;
-            updated_at?: string;
+            title: string;
+            updated_at: string;
         };
         get_api_earchiva_documents_documentid_versions_item: {
-            chunk_count?: number;
-            created_at?: string;
-            document_id?: string;
-            id?: string;
-            page_count?: number;
-            source_sha256?: string;
+            chunk_count: number;
+            created_at: string;
+            document_id: string;
+            id: string;
+            page_count: number;
+            source_sha256: string;
             /** Format: int64 */
-            source_size_bytes?: number;
-            text_status?: string;
-            version_no?: number;
+            source_size_bytes: number;
+            text_status: string;
+            version_no: number;
         };
         get_api_earchiva_documents_documentid_versions_response: components["schemas"]["get_api_earchiva_documents_documentid_versions_item"][];
         get_api_earchiva_documents_item: {
-            created_at?: string;
-            current_version_no?: number;
+            created_at: string;
+            current_version_no: number;
             document_date?: string | null;
-            external_reference?: string;
-            id?: string;
-            institution_id?: string;
+            external_reference: string;
+            id: string;
+            institution_id: string;
             metadata?: {
                 [key: string]: string;
             };
-            mime_type?: string;
-            original_file_name?: string;
-            received_at?: string;
+            mime_type: string;
+            original_file_name: string;
+            received_at: string;
             /** Format: double */
-            score?: number;
+            score: number;
             snippet?: string;
-            source_kind?: string;
-            source_system?: string;
-            status?: string;
+            source_kind: string;
+            source_system: string;
+            status: string;
             taxonomy_code?: string | null;
             taxonomy_label?: string | null;
             taxonomy_node_id?: string | null;
-            title?: string;
-            updated_at?: string;
+            title: string;
+            updated_at: string;
         };
         get_api_earchiva_documents_response: {
             items: components["schemas"]["get_api_earchiva_documents_item"][];
@@ -11613,35 +12592,35 @@ export interface components {
             total: number;
         };
         get_api_earchiva_nomenclatures_response: {
-            archivists?: string[];
-            fonds?: string[];
-            series?: string[];
-            source_modules?: string[];
-            statuses?: string[];
+            archivists: string[];
+            fonds: string[];
+            series: string[];
+            source_modules: string[];
+            statuses: string[];
         };
         get_api_earchiva_records_filters_response: {
-            archivists?: string[];
-            fonds?: string[];
-            series?: string[];
-            source_modules?: string[];
-            statuses?: string[];
+            archivists: string[];
+            fonds: string[];
+            series: string[];
+            source_modules: string[];
+            statuses: string[];
         };
         get_api_earchiva_records_item: {
-            archived_at?: string;
-            assigned_archivist?: string;
-            box_number?: string;
-            fond?: string;
-            id?: string;
-            institution_id?: string;
-            location_code?: string;
-            notes?: string;
-            record_number?: string;
-            retention_years?: number;
-            series?: string;
-            source_module?: string;
-            source_reference?: string;
-            status?: string;
-            title?: string;
+            archived_at: string;
+            assigned_archivist: string;
+            box_number: string;
+            fond: string;
+            id: string;
+            institution_id: string;
+            location_code: string;
+            notes: string;
+            record_number: string;
+            retention_years: number;
+            series: string;
+            source_module: string;
+            source_reference: string;
+            status: string;
+            title: string;
         };
         get_api_earchiva_records_response: {
             items: components["schemas"]["get_api_earchiva_records_item"][];
@@ -11650,16 +12629,16 @@ export interface components {
             total: number;
         };
         get_api_earchiva_taxonomy_item: {
-            active?: boolean;
-            code?: string;
-            created_at?: string;
-            description?: string;
-            id?: string;
-            label?: string;
+            active: boolean;
+            code: string;
+            created_at: string;
+            description: string;
+            id: string;
+            label: string;
             parent_id?: string | null;
-            path?: string;
-            sort_order?: number;
-            updated_at?: string;
+            path: string;
+            sort_order: number;
+            updated_at: string;
         };
         get_api_earchiva_taxonomy_response: components["schemas"]["get_api_earchiva_taxonomy_item"][];
         get_api_education_governance_eligible_users_response: {
@@ -11669,57 +12648,57 @@ export interface components {
             }[];
         };
         get_api_gdpr_config_response: {
-            catalogs?: {
-                domains?: string[];
-                policy_status?: string[];
-                request_status?: string[];
-                request_types?: string[];
-                source_modules?: string[];
+            catalogs: {
+                domains: string[];
+                policy_status: string[];
+                request_status: string[];
+                request_types: string[];
+                source_modules: string[];
             };
-            settings?: {
-                default_response_sla_days?: number;
-                portfolio_authenticity_required?: boolean;
-                portfolio_consent_required?: boolean;
-                publication_anonymization_required?: boolean;
-                retention_review_notice_days?: number;
-                subject_export_requires_approval?: boolean;
+            settings: {
+                default_response_sla_days: number;
+                portfolio_authenticity_required: boolean;
+                portfolio_consent_required: boolean;
+                publication_anonymization_required: boolean;
+                retention_review_notice_days: number;
+                subject_export_requires_approval: boolean;
             };
         };
         get_api_gdpr_dashboard_response: {
-            stats?: {
-                active_policies?: number;
-                anonymization_cases?: number;
-                overdue_requests?: number;
-                pending_requests?: number;
+            stats: {
+                active_policies: number;
+                anonymization_cases: number;
+                overdue_requests: number;
+                pending_requests: number;
             };
         };
         get_api_gdpr_exports_dashboard_response: {
-            stats?: {
-                delivered_exports?: number;
-                generated_exports?: number;
-                pending_approval?: number;
-                total_exports?: number;
+            stats: {
+                delivered_exports: number;
+                generated_exports: number;
+                pending_approval: number;
+                total_exports: number;
             };
         };
         get_api_gdpr_exports_filters_response: {
-            export_formats?: string[];
-            source_modules?: string[];
-            statuses?: string[];
+            export_formats: string[];
+            source_modules: string[];
+            statuses: string[];
         };
         get_api_gdpr_exports_item: {
-            approved_by?: string;
-            approved_on?: string;
-            export_code?: string;
-            export_format?: string;
-            generated_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            package_summary?: string;
-            request_id?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
+            approved_by: string;
+            approved_on: string;
+            export_code: string;
+            export_format: string;
+            generated_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            package_summary: string;
+            request_id: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
         };
         get_api_gdpr_exports_response: {
             items: components["schemas"]["get_api_gdpr_exports_item"][];
@@ -11728,31 +12707,31 @@ export interface components {
             total?: number;
         };
         get_api_gdpr_publication_reviews_dashboard_response: {
-            stats?: {
-                pending_anonymization?: number;
-                published_items?: number;
-                ready_for_publication?: number;
-                total_reviews?: number;
+            stats: {
+                pending_anonymization: number;
+                published_items: number;
+                ready_for_publication: number;
+                total_reviews: number;
             };
         };
         get_api_gdpr_publication_reviews_filters_response: {
-            anonymization_statuses?: string[];
-            publication_statuses?: string[];
-            source_modules?: string[];
+            anonymization_statuses: string[];
+            publication_statuses: string[];
+            source_modules: string[];
         };
         get_api_gdpr_publication_reviews_item: {
-            anonymization_status?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            publication_status?: string;
-            review_code?: string;
-            reviewed_by?: string;
-            reviewed_on?: string;
-            source_label?: string;
-            source_module?: string;
-            source_record_id?: string;
+            anonymization_status: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            publication_status: string;
+            review_code: string;
+            reviewed_by: string;
+            reviewed_on: string;
+            source_label: string;
+            source_module: string;
+            source_record_id: string;
         };
         get_api_gdpr_publication_reviews_response: {
             items: components["schemas"]["get_api_gdpr_publication_reviews_item"][];
@@ -11761,21 +12740,21 @@ export interface components {
             total?: number;
         };
         get_api_gdpr_retention_policies_filters_response: {
-            domains?: string[];
-            statuses?: string[];
+            domains: string[];
+            statuses: string[];
         };
         get_api_gdpr_retention_policies_item: {
-            domain_code?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            owner_name?: string;
-            policy_code?: string;
-            record_category?: string;
-            retention_years?: number;
-            review_due_on?: string;
-            status?: string;
+            domain_code: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            owner_name: string;
+            policy_code: string;
+            record_category: string;
+            retention_years: number;
+            review_due_on: string;
+            status: string;
         };
         get_api_gdpr_retention_policies_response: {
             items: components["schemas"]["get_api_gdpr_retention_policies_item"][];
@@ -11784,23 +12763,23 @@ export interface components {
             total?: number;
         };
         get_api_gdpr_subject_requests_filters_response: {
-            request_types?: string[];
-            source_modules?: string[];
-            statuses?: string[];
+            request_types: string[];
+            source_modules: string[];
+            statuses: string[];
         };
         get_api_gdpr_subject_requests_item: {
-            anonymization_required?: boolean;
-            due_on?: string;
-            handled_by?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            request_code?: string;
-            request_type?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
-            submitted_on?: string;
+            anonymization_required: boolean;
+            due_on: string;
+            handled_by: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            request_code: string;
+            request_type: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
+            submitted_on: string;
         };
         get_api_gdpr_subject_requests_response: {
             items: components["schemas"]["get_api_gdpr_subject_requests_item"][];
@@ -11809,21 +12788,21 @@ export interface components {
             total?: number;
         };
         get_api_passkeys_item: {
-            created_at?: string;
-            credential_id?: string;
-            device_name?: string;
-            id?: string;
+            created_at: string;
+            credential_id: string;
+            device_name: string;
+            id: string;
             last_used_at?: string;
         };
         get_api_passkeys_response: components["schemas"]["get_api_passkeys_item"][];
         get_api_registratura_admin_departments_item: {
-            active?: boolean;
-            description?: string;
-            id?: string;
-            name?: string;
+            active: boolean;
+            description: string;
+            id: string;
+            name: string;
             parent_id?: string | null;
-            role_tag?: string;
-            user_count?: number;
+            role_tag: string;
+            user_count: number;
         };
         get_api_registratura_admin_departments_response: {
             items: components["schemas"]["get_api_registratura_admin_departments_item"][];
@@ -11853,25 +12832,25 @@ export interface components {
             }[];
         }[];
         get_api_registratura_admin_organizations_item: {
-            active?: boolean;
-            department_ids?: string[];
-            description?: string;
-            id?: string;
-            is_default?: boolean;
-            name?: string;
+            active: boolean;
+            department_ids: string[];
+            description: string;
+            id: string;
+            is_default: boolean;
+            name: string;
         };
         get_api_registratura_admin_organizations_response: components["schemas"]["get_api_registratura_admin_organizations_item"][];
         get_api_registratura_admin_registries_item: {
-            current_number?: string;
-            department_ids?: string[];
+            current_number: string;
+            department_ids: string[];
             /** Format: int64 */
-            id?: number;
-            is_default?: boolean;
-            name?: string;
-            next_number?: string;
-            prefix?: string;
-            registry_type?: string;
-            start_number?: number;
+            id: number;
+            is_default: boolean;
+            name: string;
+            next_number: string;
+            prefix: string;
+            registry_type: string;
+            start_number: number;
         };
         get_api_registratura_admin_registries_response: {
             items: components["schemas"]["get_api_registratura_admin_registries_item"][];
@@ -11886,161 +12865,161 @@ export interface components {
             user_id?: string;
         };
         get_api_registratura_document_links_item: {
-            confidentiality?: string;
-            document_id?: string;
-            document_type?: string;
-            link_id?: string;
-            registered_at?: string;
-            registry_number?: string;
-            relation_type?: string;
-            status?: string;
-            subject?: string;
+            confidentiality: string;
+            document_id: string;
+            document_type: string;
+            link_id: string;
+            registered_at: string;
+            registry_number: string;
+            relation_type: string;
+            status: string;
+            subject: string;
         };
         get_api_registratura_document_links_response: components["schemas"]["get_api_registratura_document_links_item"][];
         get_api_registratura_documents_documentid_attachments_item: {
-            category?: string;
-            document_id?: string;
-            file_name?: string;
-            id?: string;
-            mime_type?: string;
+            category: string;
+            document_id: string;
+            file_name: string;
+            id: string;
+            mime_type: string;
             /** Format: int64 */
-            size_bytes?: number;
-            status?: string;
-            storage_key?: string;
-            title?: string;
-            uploaded_at?: string;
-            uploaded_by?: string;
+            size_bytes: number;
+            status: string;
+            storage_key: string;
+            title: string;
+            uploaded_at: string;
+            uploaded_by: string;
         };
         get_api_registratura_documents_documentid_attachments_response: components["schemas"]["get_api_registratura_documents_documentid_attachments_item"][];
         get_api_registratura_documents_documentid_response: {
-            activity?: string;
+            activity: string;
             assigned_party_id?: string | null;
-            assigned_to?: string;
+            assigned_to: string;
             cancellation_reason?: string;
             cancelled_at?: string | null;
             cancelled_by?: string;
-            confidentiality?: string;
-            correspondent?: string;
+            confidentiality: string;
+            correspondent: string;
             correspondent_party_id?: string | null;
             department_ids?: string[];
             department_names?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
             entry_at?: string | null;
             exit_at?: string | null;
-            external_number?: string;
+            external_number: string;
             external_number_date?: string | null;
-            id?: string;
-            institution_id?: string;
-            record_kind?: string;
-            registered_at?: string;
+            id: string;
+            institution_id: string;
+            record_kind: string;
+            registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            registry_number: string;
+            status: string;
+            subject: string;
+            summary: string;
             workflow_assignment?: {
                 department_id?: string | null;
                 target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         get_api_registratura_documents_documentid_versions_item: {
-            assigned_to?: string;
-            change_notes?: string;
-            confidentiality?: string;
-            correspondent?: string;
-            created_at?: string;
-            created_by?: string;
-            direction?: string;
-            document_id?: string;
-            document_type?: string;
-            due_date?: string | null;
-            id?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
-            version_no?: number;
+            assigned_to: string;
+            change_notes: string;
+            confidentiality: string;
+            correspondent: string;
+            created_at: string;
+            created_by: string;
+            direction: string;
+            document_id: string;
+            document_type: string;
+            due_date: string | null;
+            id: string;
+            status: string;
+            subject: string;
+            summary: string;
+            version_no: number;
         };
         get_api_registratura_documents_documentid_versions_response: components["schemas"]["get_api_registratura_documents_documentid_versions_item"][];
         get_api_registratura_documents_documentid_workflow_history_item: {
-            action?: string;
-            actor_subject?: string;
+            action: string;
+            actor_subject: string;
             assigned_user_id?: string | null;
-            created_at?: string;
+            created_at: string;
             department_id?: string | null;
-            document_id?: string;
-            from_status?: string;
-            id?: string;
-            note?: string;
-            to_status?: string;
+            document_id: string;
+            from_status: string;
+            id: string;
+            note: string;
+            to_status: string;
         };
         get_api_registratura_documents_documentid_workflow_history_response: components["schemas"]["get_api_registratura_documents_documentid_workflow_history_item"][];
         get_api_registratura_documents_filters_response: {
-            confidentialities?: string[];
-            directions?: string[];
-            document_types?: string[];
+            confidentialities: string[];
+            directions: string[];
+            document_types: string[];
             registries?: {
-                created_at?: string;
+                created_at: string;
                 data_resetare?: string | null;
                 /** Format: int64 */
-                id?: number;
-                isDefault?: boolean;
-                nr_curent?: string;
-                nr_inceput?: number;
-                nr_urmator?: string;
-                nume?: string;
-                prefix_nr?: string;
-                tip_registru?: string;
-                updated_at?: string;
+                id: number;
+                isDefault: boolean;
+                nr_curent: string;
+                nr_inceput: number;
+                nr_urmator: string;
+                nume: string;
+                prefix_nr: string;
+                tip_registru: string;
+                updated_at: string;
             }[];
-            statuses?: string[];
+            statuses: string[];
         };
         get_api_registratura_documents_item: {
-            activity?: string;
+            activity: string;
             assigned_party_id?: string | null;
-            assigned_to?: string;
+            assigned_to: string;
             cancellation_reason?: string;
             cancelled_at?: string | null;
             cancelled_by?: string;
-            confidentiality?: string;
-            correspondent?: string;
+            confidentiality: string;
+            correspondent: string;
             correspondent_party_id?: string | null;
             department_ids?: string[];
             department_names?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
             entry_at?: string | null;
             exit_at?: string | null;
-            external_number?: string;
+            external_number: string;
             external_number_date?: string | null;
-            id?: string;
-            institution_id?: string;
-            record_kind?: string;
-            registered_at?: string;
+            id: string;
+            institution_id: string;
+            record_kind: string;
+            registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            registry_number: string;
+            status: string;
+            subject: string;
+            summary: string;
             workflow_assignment?: {
                 department_id?: string | null;
                 target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         get_api_registratura_documents_lookup_item: {
-            document_type?: string;
-            id?: string;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
+            document_type: string;
+            id: string;
+            registry_number: string;
+            status: string;
+            subject: string;
         };
         get_api_registratura_documents_lookup_response: components["schemas"]["get_api_registratura_documents_lookup_item"][];
         get_api_registratura_documents_response: {
@@ -12052,21 +13031,21 @@ export interface components {
         get_api_registratura_flux_mapa_item: {
             assigned_user_id?: string | null;
             assigned_user_name?: string | null;
-            correspondent?: string;
+            correspondent: string;
             department_id?: string | null;
             department_name?: string | null;
-            direction?: string;
-            document_type?: string;
+            direction: string;
+            document_type: string;
             entry_at?: string | null;
-            id?: string;
-            registered_at?: string;
-            registry_number?: string;
-            rejection_count?: number;
-            status?: string;
-            subject?: string;
+            id: string;
+            registered_at: string;
+            registry_number: string;
+            rejection_count: number;
+            status: string;
+            subject: string;
             target_approver_id?: string | null;
             target_approver_name?: string | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         get_api_registratura_flux_mapa_response: {
             items: components["schemas"]["get_api_registratura_flux_mapa_item"][];
@@ -12077,21 +13056,21 @@ export interface components {
         get_api_registratura_flux_pipeline_item: {
             assigned_user_id?: string | null;
             assigned_user_name?: string | null;
-            correspondent?: string;
+            correspondent: string;
             department_id?: string | null;
             department_name?: string | null;
-            direction?: string;
-            document_type?: string;
+            direction: string;
+            document_type: string;
             entry_at?: string | null;
-            id?: string;
-            registered_at?: string;
-            registry_number?: string;
-            rejection_count?: number;
-            status?: string;
-            subject?: string;
+            id: string;
+            registered_at: string;
+            registry_number: string;
+            rejection_count: number;
+            status: string;
+            subject: string;
             target_approver_id?: string | null;
             target_approver_name?: string | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         get_api_registratura_flux_pipeline_response: {
             items: components["schemas"]["get_api_registratura_flux_pipeline_item"][];
@@ -12100,28 +13079,28 @@ export interface components {
             total: number;
         };
         get_api_registratura_flux_pipeline_stats_item: {
-            count?: number;
-            status?: string;
+            count: number;
+            status: string;
         };
         get_api_registratura_flux_pipeline_stats_response: components["schemas"]["get_api_registratura_flux_pipeline_stats_item"][];
         get_api_registratura_flux_queue_item: {
             assigned_user_id?: string | null;
             assigned_user_name?: string | null;
-            correspondent?: string;
+            correspondent: string;
             department_id?: string | null;
             department_name?: string | null;
-            direction?: string;
-            document_type?: string;
+            direction: string;
+            document_type: string;
             entry_at?: string | null;
-            id?: string;
-            registered_at?: string;
-            registry_number?: string;
-            rejection_count?: number;
-            status?: string;
-            subject?: string;
+            id: string;
+            registered_at: string;
+            registry_number: string;
+            rejection_count: number;
+            status: string;
+            subject: string;
             target_approver_id?: string | null;
             target_approver_name?: string | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         get_api_registratura_flux_queue_response: {
             items: components["schemas"]["get_api_registratura_flux_queue_item"][];
@@ -12130,160 +13109,160 @@ export interface components {
             total: number;
         };
         get_api_registratura_nomenclatures_response: {
-            confidentialities?: string[];
-            directions?: string[];
-            document_types?: string[];
+            confidentialities: string[];
+            directions: string[];
+            document_types: string[];
             registries?: {
-                created_at?: string;
+                created_at: string;
                 data_resetare?: string | null;
                 /** Format: int64 */
-                id?: number;
-                isDefault?: boolean;
-                nr_curent?: string;
-                nr_inceput?: number;
-                nr_urmator?: string;
-                nume?: string;
-                prefix_nr?: string;
-                tip_registru?: string;
-                updated_at?: string;
+                id: number;
+                isDefault: boolean;
+                nr_curent: string;
+                nr_inceput: number;
+                nr_urmator: string;
+                nume: string;
+                prefix_nr: string;
+                tip_registru: string;
+                updated_at: string;
             }[];
-            statuses?: string[];
+            statuses: string[];
         };
         get_api_registratura_parties_default_organization_response: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         get_api_registratura_parties_id_response: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         get_api_registratura_parties_item: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         get_api_registratura_parties_lookup_item: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         get_api_registratura_parties_lookup_response: components["schemas"]["get_api_registratura_parties_lookup_item"][];
         get_api_registratura_parties_response: {
@@ -12293,32 +13272,32 @@ export interface components {
             total: number;
         };
         get_api_registratura_registre_id_response: {
-            created_at?: string;
+            created_at: string;
             data_resetare?: string | null;
             /** Format: int64 */
-            id?: number;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
-            updated_at?: string;
+            id: number;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
+            updated_at: string;
         };
         get_api_registratura_registre_item: {
-            created_at?: string;
+            created_at: string;
             data_resetare?: string | null;
             /** Format: int64 */
-            id?: number;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
-            updated_at?: string;
+            id: number;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
+            updated_at: string;
         };
         get_api_registratura_registre_response: {
             items: components["schemas"]["get_api_registratura_registre_item"][];
@@ -12348,40 +13327,40 @@ export interface components {
             };
         };
         get_api_workflow_definitions_item: {
-            active?: boolean;
-            category?: string;
-            code?: string;
-            initial_step?: string;
-            name?: string;
-            sla_hours?: number;
+            active: boolean;
+            category: string;
+            code: string;
+            initial_step: string;
+            name: string;
+            sla_hours: number;
         };
         get_api_workflow_definitions_response: components["schemas"]["get_api_workflow_definitions_item"][];
         get_api_workflow_tasks_filters_response: {
-            assignees?: string[];
-            priorities?: string[];
-            statuses?: string[];
+            assignees: string[];
+            priorities: string[];
+            statuses: string[];
         };
         get_api_workflow_tasks_item: {
-            assigned_to?: string;
-            available_actions?: string[];
-            current_step?: string;
-            definition_code?: string;
-            definition_name?: string;
-            document_number?: string;
-            dossier_ready?: boolean;
-            due_at?: string | null;
-            id?: string;
-            institution_id?: string;
-            linked_documents_count?: number;
-            missing_relations?: string[];
-            priority?: string;
-            source_module?: string;
-            source_record_id?: string | null;
-            started_at?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
-            updated_at?: string;
+            assigned_to: string;
+            available_actions: string[];
+            current_step: string;
+            definition_code: string;
+            definition_name: string;
+            document_number: string;
+            dossier_ready: boolean;
+            due_at: string | null;
+            id: string;
+            institution_id: string;
+            linked_documents_count: number;
+            missing_relations: string[];
+            priority: string;
+            source_module: string;
+            source_record_id: string | null;
+            started_at: string;
+            status: string;
+            summary: string;
+            title: string;
+            updated_at: string;
         };
         get_api_workflow_tasks_response: {
             items: components["schemas"]["get_api_workflow_tasks_item"][];
@@ -12390,137 +13369,137 @@ export interface components {
             total: number;
         };
         patch_api_registratura_admin_departments_id_response: {
-            active?: boolean;
-            description?: string;
-            id?: string;
-            name?: string;
+            active: boolean;
+            description: string;
+            id: string;
+            name: string;
             parent_id?: string | null;
-            role_tag?: string;
-            user_count?: number;
+            role_tag: string;
+            user_count: number;
         };
         patch_api_registratura_admin_organizations_id_response: {
-            active?: boolean;
-            department_ids?: string[];
-            description?: string;
-            id?: string;
-            is_default?: boolean;
-            name?: string;
+            active: boolean;
+            department_ids: string[];
+            description: string;
+            id: string;
+            is_default: boolean;
+            name: string;
         };
         patch_api_registratura_admin_registries_id_response: {
-            current_number?: string;
-            department_ids?: string[];
+            current_number: string;
+            department_ids: string[];
             /** Format: int64 */
-            id?: number;
-            is_default?: boolean;
-            name?: string;
-            next_number?: string;
-            prefix?: string;
-            registry_type?: string;
-            start_number?: number;
+            id: number;
+            is_default: boolean;
+            name: string;
+            next_number: string;
+            prefix: string;
+            registry_type: string;
+            start_number: number;
         };
         patch_api_registratura_documents_documentid_response: {
-            activity?: string;
+            activity: string;
             assigned_party_id?: string | null;
-            assigned_to?: string;
+            assigned_to: string;
             cancellation_reason?: string;
             cancelled_at?: string | null;
             cancelled_by?: string;
-            confidentiality?: string;
-            correspondent?: string;
+            confidentiality: string;
+            correspondent: string;
             correspondent_party_id?: string | null;
             department_ids?: string[];
             department_names?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
             entry_at?: string | null;
             exit_at?: string | null;
-            external_number?: string;
+            external_number: string;
             external_number_date?: string | null;
-            id?: string;
-            institution_id?: string;
-            record_kind?: string;
-            registered_at?: string;
+            id: string;
+            institution_id: string;
+            record_kind: string;
+            registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            registry_number: string;
+            status: string;
+            subject: string;
+            summary: string;
             workflow_assignment?: {
                 department_id?: string | null;
                 target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         patch_api_registratura_parties_id_response: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         patch_api_registratura_registre_id_response: {
-            created_at?: string;
+            created_at: string;
             data_resetare?: string | null;
             /** Format: int64 */
-            id?: number;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
-            updated_at?: string;
+            id: number;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
+            updated_at: string;
         };
         patch_api_registratura_registre_id_set_default_response: {
-            created_at?: string;
+            created_at: string;
             data_resetare?: string | null;
             /** Format: int64 */
-            id?: number;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
-            updated_at?: string;
+            id: number;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
+            updated_at: string;
         };
         post_api_admin_auth_methods_item: {
-            code?: string;
-            enabled?: boolean;
-            primary_method?: boolean;
-            sort_order?: number;
+            code: string;
+            enabled: boolean;
+            primary_method: boolean;
+            sort_order: number;
         };
         post_api_admin_auth_methods_response: {
             items: components["schemas"]["post_api_admin_auth_methods_item"][];
@@ -12529,13 +13508,13 @@ export interface components {
             total?: number;
         };
         post_api_admin_dossier_requirements_item: {
-            id?: string;
-            min_count?: number;
-            relation_type?: string;
-            required_for_approve?: boolean;
-            required_for_readiness?: boolean;
-            required_for_submit?: boolean;
-            source_module?: string;
+            id: string;
+            min_count: number;
+            relation_type: string;
+            required_for_approve: boolean;
+            required_for_readiness: boolean;
+            required_for_submit: boolean;
+            source_module: string;
         };
         post_api_admin_dossier_requirements_response: {
             items: components["schemas"]["post_api_admin_dossier_requirements_item"][];
@@ -12544,13 +13523,13 @@ export interface components {
             total?: number;
         };
         post_api_admin_education_taxonomies_item: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            id: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         post_api_admin_education_taxonomies_response: {
             items: components["schemas"]["post_api_admin_education_taxonomies_item"][];
@@ -12559,11 +13538,11 @@ export interface components {
             total?: number;
         };
         post_api_admin_gdpr_settings_item: {
-            code?: string;
-            value_bool?: boolean;
-            value_int?: number;
-            value_text?: string;
-            value_type?: string;
+            code: string;
+            value_bool: boolean;
+            value_int: number;
+            value_text: string;
+            value_type: string;
         };
         post_api_admin_gdpr_settings_response: {
             items: components["schemas"]["post_api_admin_gdpr_settings_item"][];
@@ -12572,18 +13551,18 @@ export interface components {
             total?: number;
         };
         post_api_admin_memberships_item: {
-            active?: boolean;
-            end_date?: string;
-            id?: string;
-            is_primary?: boolean;
-            org_unit_code?: string;
-            organization_name?: string;
-            position_code?: string;
-            position_name?: string;
-            start_date?: string;
-            user_email?: string;
-            user_id?: string;
-            user_name?: string;
+            active: boolean;
+            end_date: string;
+            id: string;
+            is_primary: boolean;
+            org_unit_code: string;
+            organization_name: string;
+            position_code: string;
+            position_name: string;
+            start_date: string;
+            user_email: string;
+            user_id: string;
+            user_name: string;
         };
         post_api_admin_memberships_response: {
             items: components["schemas"]["post_api_admin_memberships_item"][];
@@ -12592,8 +13571,8 @@ export interface components {
             total?: number;
         };
         post_api_admin_modules_item: {
-            active?: boolean;
-            code?: string;
+            active: boolean;
+            code: string;
         };
         post_api_admin_modules_response: {
             items: components["schemas"]["post_api_admin_modules_item"][];
@@ -12602,13 +13581,13 @@ export interface components {
             total?: number;
         };
         post_api_admin_nomenclatures_item: {
-            active?: boolean;
-            code?: string;
-            domain?: string;
-            id?: string;
-            label_en?: string;
-            label_ro?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            domain: string;
+            id: string;
+            label_en: string;
+            label_ro: string;
+            sort_order: number;
         };
         post_api_admin_nomenclatures_response: {
             items: components["schemas"]["post_api_admin_nomenclatures_item"][];
@@ -12617,13 +13596,13 @@ export interface components {
             total?: number;
         };
         post_api_admin_oidc_clients_item: {
-            active?: boolean;
-            client_id?: string;
-            client_name?: string;
-            created_at?: string;
-            public_client?: boolean;
-            redirect_uris?: string[];
-            require_pkce?: boolean;
+            active: boolean;
+            client_id: string;
+            client_name: string;
+            created_at: string;
+            public_client: boolean;
+            redirect_uris: string[];
+            require_pkce: boolean;
         };
         post_api_admin_oidc_clients_response: {
             items: components["schemas"]["post_api_admin_oidc_clients_item"][];
@@ -12632,12 +13611,12 @@ export interface components {
             total?: number;
         };
         post_api_admin_org_units_item: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            parent_code?: string;
-            parent_name?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            parent_code: string;
+            parent_name: string;
+            sort_order: number;
         };
         post_api_admin_org_units_response: {
             items: components["schemas"]["post_api_admin_org_units_item"][];
@@ -12646,12 +13625,12 @@ export interface components {
             total?: number;
         };
         post_api_admin_permissions_assignments_item: {
-            id?: string;
-            permission_code?: string;
-            permission_label?: string;
-            position_code?: string;
-            position_name?: string;
-            scope_module?: string;
+            id: string;
+            permission_code: string;
+            permission_label: string;
+            position_code: string;
+            position_name: string;
+            scope_module: string;
         };
         post_api_admin_permissions_assignments_response: {
             items: components["schemas"]["post_api_admin_permissions_assignments_item"][];
@@ -12660,11 +13639,11 @@ export interface components {
             total?: number;
         };
         post_api_admin_position_roles_item: {
-            id?: string;
-            position_code?: string;
-            position_name?: string;
-            role_code?: string;
-            role_label?: string;
+            id: string;
+            position_code: string;
+            position_name: string;
+            role_code: string;
+            role_label: string;
         };
         post_api_admin_position_roles_response: {
             items: components["schemas"]["post_api_admin_position_roles_item"][];
@@ -12673,11 +13652,11 @@ export interface components {
             total?: number;
         };
         post_api_admin_positions_item: {
-            active?: boolean;
-            code?: string;
-            name?: string;
-            scope_module?: string;
-            sort_order?: number;
+            active: boolean;
+            code: string;
+            name: string;
+            scope_module: string;
+            sort_order: number;
         };
         post_api_admin_positions_response: {
             items: components["schemas"]["post_api_admin_positions_item"][];
@@ -12686,12 +13665,12 @@ export interface components {
             total?: number;
         };
         post_api_admin_role_assignments_item: {
-            id?: string;
-            role_code?: string;
-            role_label?: string;
-            user_email?: string;
-            user_id?: string;
-            user_name?: string;
+            id: string;
+            role_code: string;
+            role_label: string;
+            user_email: string;
+            user_id: string;
+            user_name: string;
         };
         post_api_admin_role_assignments_response: {
             items: components["schemas"]["post_api_admin_role_assignments_item"][];
@@ -12700,11 +13679,11 @@ export interface components {
             total?: number;
         };
         post_api_admin_role_permissions_item: {
-            id?: string;
-            permission_code?: string;
-            permission_label?: string;
-            role_code?: string;
-            role_label?: string;
+            id: string;
+            permission_code: string;
+            permission_label: string;
+            role_code: string;
+            role_label: string;
         };
         post_api_admin_role_permissions_response: {
             items: components["schemas"]["post_api_admin_role_permissions_item"][];
@@ -12713,8 +13692,8 @@ export interface components {
             total?: number;
         };
         post_api_admin_roles_item: {
-            code?: string;
-            label?: string;
+            code: string;
+            label: string;
         };
         post_api_admin_roles_response: {
             items: components["schemas"]["post_api_admin_roles_item"][];
@@ -12723,18 +13702,18 @@ export interface components {
             total?: number;
         };
         post_api_admin_users_item: {
-            email?: string;
-            email_verified?: boolean;
-            id?: string;
-            last_login_at?: string;
-            locale?: string;
-            name?: string;
-            phone?: string;
-            phone_verified?: boolean;
-            position?: string;
-            preferred_otp_channel?: string;
-            status?: string;
-            sub?: string;
+            email: string;
+            email_verified: boolean;
+            id: string;
+            last_login_at: string;
+            locale: string;
+            name: string;
+            phone: string;
+            phone_verified: boolean;
+            position: string;
+            preferred_otp_channel: string;
+            status: string;
+            sub: string;
         };
         post_api_admin_users_response: {
             items: components["schemas"]["post_api_admin_users_item"][];
@@ -12743,12 +13722,12 @@ export interface components {
             total?: number;
         };
         post_api_admin_workflow_definitions_item: {
-            active?: boolean;
-            category?: string;
-            code?: string;
-            initial_step?: string;
-            name?: string;
-            sla_hours?: number;
+            active: boolean;
+            category: string;
+            code: string;
+            initial_step: string;
+            name: string;
+            sla_hours: number;
         };
         post_api_admin_workflow_definitions_response: {
             items: components["schemas"]["post_api_admin_workflow_definitions_item"][];
@@ -12757,163 +13736,163 @@ export interface components {
             total?: number;
         };
         post_api_earchiva_admin_jobs_jobid_retry_response: {
-            attempts?: number;
-            available_at?: string;
-            created_at?: string;
-            document_id?: string;
+            attempts: number;
+            available_at: string;
+            created_at: string;
+            document_id: string;
             error?: string;
             error_summary?: string;
             finished_at?: string;
-            has_error?: boolean;
-            id?: string;
-            job_type?: string;
-            stage?: string;
+            has_error: boolean;
+            id: string;
+            job_type: string;
+            stage: string;
             started_at?: string;
-            status?: string;
-            updated_at?: string;
+            status: string;
+            updated_at: string;
         };
         post_api_earchiva_classification_reviews_reviewid_approve_response: {
-            document_id?: string;
+            document_id: string;
             final_classification?: {
                 [key: string]: string;
             };
-            generated_at?: string;
-            id?: string;
-            requires_human_review?: boolean;
+            generated_at: string;
+            id: string;
+            requires_human_review: boolean;
             review_note?: string;
             reviewed_at?: string;
             reviewed_by?: string;
-            revision?: number;
-            state?: string;
-            suggestion?: {
-                category?: {
+            revision: number;
+            state: string;
+            suggestion: {
+                category: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_date?: {
+                document_date: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_number?: {
+                document_number: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_type?: {
+                document_type: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                fond?: {
+                fond: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                series?: {
+                series: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
             };
             /** Format: double */
-            suggestion_confidence?: number;
-            suggestion_source?: string;
-            version_id?: string;
+            suggestion_confidence: number;
+            suggestion_source: string;
+            version_id: string;
         };
         post_api_earchiva_classification_reviews_reviewid_correct_response: {
-            document_id?: string;
+            document_id: string;
             final_classification?: {
                 [key: string]: string;
             };
-            generated_at?: string;
-            id?: string;
-            requires_human_review?: boolean;
+            generated_at: string;
+            id: string;
+            requires_human_review: boolean;
             review_note?: string;
             reviewed_at?: string;
             reviewed_by?: string;
-            revision?: number;
-            state?: string;
-            suggestion?: {
-                category?: {
+            revision: number;
+            state: string;
+            suggestion: {
+                category: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_date?: {
+                document_date: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_number?: {
+                document_number: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                document_type?: {
+                document_type: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                fond?: {
+                fond: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
-                series?: {
+                series: {
                     /** Format: double */
-                    confidence?: number;
+                    confidence: number;
                     evidence?: string;
-                    source?: string;
+                    source: string;
                     value?: string;
                 };
             };
             /** Format: double */
-            suggestion_confidence?: number;
-            suggestion_source?: string;
-            version_id?: string;
+            suggestion_confidence: number;
+            suggestion_source: string;
+            version_id: string;
         };
         post_api_eudi_wallet_activate_response: {
             /** @enum {string} */
             status: "active";
         };
         post_api_gdpr_exports_item: {
-            approved_by?: string;
-            approved_on?: string;
-            export_code?: string;
-            export_format?: string;
-            generated_on?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            package_summary?: string;
-            request_id?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
+            approved_by: string;
+            approved_on: string;
+            export_code: string;
+            export_format: string;
+            generated_on: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            package_summary: string;
+            request_id: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
         };
         post_api_gdpr_exports_response: {
             items: components["schemas"]["post_api_gdpr_exports_item"][];
@@ -12922,18 +13901,18 @@ export interface components {
             total?: number;
         };
         post_api_gdpr_publication_reviews_item: {
-            anonymization_status?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            publication_status?: string;
-            review_code?: string;
-            reviewed_by?: string;
-            reviewed_on?: string;
-            source_label?: string;
-            source_module?: string;
-            source_record_id?: string;
+            anonymization_status: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            publication_status: string;
+            review_code: string;
+            reviewed_by: string;
+            reviewed_on: string;
+            source_label: string;
+            source_module: string;
+            source_record_id: string;
         };
         post_api_gdpr_publication_reviews_response: {
             items: components["schemas"]["post_api_gdpr_publication_reviews_item"][];
@@ -12942,17 +13921,17 @@ export interface components {
             total?: number;
         };
         post_api_gdpr_retention_policies_item: {
-            domain_code?: string;
-            id?: string;
-            institution_id?: string;
-            legal_basis?: string;
-            notes?: string;
-            owner_name?: string;
-            policy_code?: string;
-            record_category?: string;
-            retention_years?: number;
-            review_due_on?: string;
-            status?: string;
+            domain_code: string;
+            id: string;
+            institution_id: string;
+            legal_basis: string;
+            notes: string;
+            owner_name: string;
+            policy_code: string;
+            record_category: string;
+            retention_years: number;
+            review_due_on: string;
+            status: string;
         };
         post_api_gdpr_retention_policies_response: {
             items: components["schemas"]["post_api_gdpr_retention_policies_item"][];
@@ -12961,18 +13940,18 @@ export interface components {
             total?: number;
         };
         post_api_gdpr_subject_requests_item: {
-            anonymization_required?: boolean;
-            due_on?: string;
-            handled_by?: string;
-            id?: string;
-            institution_id?: string;
-            notes?: string;
-            request_code?: string;
-            request_type?: string;
-            source_module?: string;
-            status?: string;
-            subject_name?: string;
-            submitted_on?: string;
+            anonymization_required: boolean;
+            due_on: string;
+            handled_by: string;
+            id: string;
+            institution_id: string;
+            notes: string;
+            request_code: string;
+            request_type: string;
+            source_module: string;
+            status: string;
+            subject_name: string;
+            submitted_on: string;
         };
         post_api_gdpr_subject_requests_response: {
             items: components["schemas"]["post_api_gdpr_subject_requests_item"][];
@@ -12997,10 +13976,10 @@ export interface components {
             status: string;
         };
         post_api_passkeys_register_finish_response: {
-            created_at?: string;
-            credential_id?: string;
-            device_name?: string;
-            id?: string;
+            created_at: string;
+            credential_id: string;
+            device_name: string;
+            id: string;
             last_used_at?: string;
         };
         post_api_passkeys_register_options_response: {
@@ -13027,217 +14006,217 @@ export interface components {
             };
         };
         post_api_registratura_admin_departments_response: {
-            active?: boolean;
-            description?: string;
-            id?: string;
-            name?: string;
+            active: boolean;
+            description: string;
+            id: string;
+            name: string;
             parent_id?: string | null;
-            role_tag?: string;
-            user_count?: number;
+            role_tag: string;
+            user_count: number;
         };
         post_api_registratura_admin_organizations_response: {
-            active?: boolean;
-            department_ids?: string[];
-            description?: string;
-            id?: string;
-            is_default?: boolean;
-            name?: string;
+            active: boolean;
+            department_ids: string[];
+            description: string;
+            id: string;
+            is_default: boolean;
+            name: string;
         };
         post_api_registratura_admin_registries_response: {
-            current_number?: string;
-            department_ids?: string[];
+            current_number: string;
+            department_ids: string[];
             /** Format: int64 */
-            id?: number;
-            is_default?: boolean;
-            name?: string;
-            next_number?: string;
-            prefix?: string;
-            registry_type?: string;
-            start_number?: number;
+            id: number;
+            is_default: boolean;
+            name: string;
+            next_number: string;
+            prefix: string;
+            registry_type: string;
+            start_number: number;
         };
         post_api_registratura_document_links_response: {
-            confidentiality?: string;
-            document_id?: string;
-            document_type?: string;
-            link_id?: string;
-            registered_at?: string;
-            registry_number?: string;
-            relation_type?: string;
-            status?: string;
-            subject?: string;
+            confidentiality: string;
+            document_id: string;
+            document_type: string;
+            link_id: string;
+            registered_at: string;
+            registry_number: string;
+            relation_type: string;
+            status: string;
+            subject: string;
         };
         post_api_registratura_documents_documentid_attachments_response: {
-            category?: string;
-            document_id?: string;
-            file_name?: string;
-            id?: string;
-            mime_type?: string;
+            category: string;
+            document_id: string;
+            file_name: string;
+            id: string;
+            mime_type: string;
             /** Format: int64 */
-            size_bytes?: number;
-            status?: string;
-            storage_key?: string;
-            title?: string;
-            uploaded_at?: string;
-            uploaded_by?: string;
+            size_bytes: number;
+            status: string;
+            storage_key: string;
+            title: string;
+            uploaded_at: string;
+            uploaded_by: string;
         };
         post_api_registratura_documents_documentid_cancel_response: {
-            activity?: string;
+            activity: string;
             assigned_party_id?: string | null;
-            assigned_to?: string;
+            assigned_to: string;
             cancellation_reason?: string;
             cancelled_at?: string | null;
             cancelled_by?: string;
-            confidentiality?: string;
-            correspondent?: string;
+            confidentiality: string;
+            correspondent: string;
             correspondent_party_id?: string | null;
             department_ids?: string[];
             department_names?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
             entry_at?: string | null;
             exit_at?: string | null;
-            external_number?: string;
+            external_number: string;
             external_number_date?: string | null;
-            id?: string;
-            institution_id?: string;
-            record_kind?: string;
-            registered_at?: string;
+            id: string;
+            institution_id: string;
+            record_kind: string;
+            registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            registry_number: string;
+            status: string;
+            subject: string;
+            summary: string;
             workflow_assignment?: {
                 department_id?: string | null;
                 target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         post_api_registratura_documents_documentid_versions_response: {
-            assigned_to?: string;
-            change_notes?: string;
-            confidentiality?: string;
-            correspondent?: string;
-            created_at?: string;
-            created_by?: string;
-            direction?: string;
-            document_id?: string;
-            document_type?: string;
-            due_date?: string | null;
-            id?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
-            version_no?: number;
+            assigned_to: string;
+            change_notes: string;
+            confidentiality: string;
+            correspondent: string;
+            created_at: string;
+            created_by: string;
+            direction: string;
+            document_id: string;
+            document_type: string;
+            due_date: string | null;
+            id: string;
+            status: string;
+            subject: string;
+            summary: string;
+            version_no: number;
         };
         post_api_registratura_documents_response: {
-            activity?: string;
+            activity: string;
             assigned_party_id?: string | null;
-            assigned_to?: string;
+            assigned_to: string;
             cancellation_reason?: string;
             cancelled_at?: string | null;
             cancelled_by?: string;
-            confidentiality?: string;
-            correspondent?: string;
+            confidentiality: string;
+            correspondent: string;
             correspondent_party_id?: string | null;
             department_ids?: string[];
             department_names?: string[];
-            direction?: string;
-            document_type?: string;
-            due_date?: string | null;
+            direction: string;
+            document_type: string;
+            due_date: string | null;
             entry_at?: string | null;
             exit_at?: string | null;
-            external_number?: string;
+            external_number: string;
             external_number_date?: string | null;
-            id?: string;
-            institution_id?: string;
-            record_kind?: string;
-            registered_at?: string;
+            id: string;
+            institution_id: string;
+            record_kind: string;
+            registered_at: string;
             /** Format: int64 */
-            registru_id?: number | null;
-            registry_number?: string;
-            status?: string;
-            subject?: string;
-            summary?: string;
+            registru_id: number | null;
+            registry_number: string;
+            status: string;
+            subject: string;
+            summary: string;
             workflow_assignment?: {
                 department_id?: string | null;
                 target_approver_id?: string | null;
                 user_id?: string | null;
             } | null;
-            workflow_version?: number;
+            workflow_version: number;
         };
         post_api_registratura_parties_response: {
-            active?: boolean;
-            address_line1?: string;
-            address_line2?: string;
+            active: boolean;
+            address_line1: string;
+            address_line2: string;
             birth_date?: string | null;
-            birth_place?: string;
-            code?: string;
-            country?: string;
-            county?: string;
-            created_at?: string;
-            display_name?: string;
-            email?: string;
-            first_name?: string;
-            id?: string;
-            identifier_code?: string;
-            institution_level?: string;
-            institution_type?: string;
-            is_default_organization?: boolean;
-            last_name?: string;
-            legal_form?: string;
-            legal_name?: string;
-            legal_representative?: string;
-            locality?: string;
-            notes?: string;
-            party_type?: string;
-            phone_number?: string;
+            birth_place: string;
+            code: string;
+            country: string;
+            county: string;
+            created_at: string;
+            display_name: string;
+            email: string;
+            first_name: string;
+            id: string;
+            identifier_code: string;
+            institution_level: string;
+            institution_type: string;
+            is_default_organization: boolean;
+            last_name: string;
+            legal_form: string;
+            legal_name: string;
+            legal_representative: string;
+            locality: string;
+            notes: string;
+            party_type: string;
+            phone_number: string;
             /** Format: double */
             share_capital?: number | null;
-            short_name?: string;
-            tax_id?: string;
-            trade_register_no?: string;
-            updated_at?: string;
-            website?: string;
+            short_name: string;
+            tax_id: string;
+            trade_register_no: string;
+            updated_at: string;
+            website: string;
         };
         post_api_registratura_registre_response: {
-            created_at?: string;
+            created_at: string;
             data_resetare?: string | null;
             /** Format: int64 */
-            id?: number;
-            isDefault?: boolean;
-            nr_curent?: string;
-            nr_inceput?: number;
-            nr_urmator?: string;
-            nume?: string;
-            prefix_nr?: string;
-            tip_registru?: string;
-            updated_at?: string;
+            id: number;
+            isDefault: boolean;
+            nr_curent: string;
+            nr_inceput: number;
+            nr_urmator: string;
+            nume: string;
+            prefix_nr: string;
+            tip_registru: string;
+            updated_at: string;
         };
         post_api_workflow_tasks_response: {
-            assigned_to?: string;
-            available_actions?: string[];
-            current_step?: string;
-            definition_code?: string;
-            definition_name?: string;
-            document_number?: string;
-            dossier_ready?: boolean;
-            due_at?: string | null;
-            id?: string;
-            institution_id?: string;
-            linked_documents_count?: number;
-            missing_relations?: string[];
-            priority?: string;
-            source_module?: string;
-            source_record_id?: string | null;
-            started_at?: string;
-            status?: string;
-            summary?: string;
-            title?: string;
-            updated_at?: string;
+            assigned_to: string;
+            available_actions: string[];
+            current_step: string;
+            definition_code: string;
+            definition_name: string;
+            document_number: string;
+            dossier_ready: boolean;
+            due_at: string | null;
+            id: string;
+            institution_id: string;
+            linked_documents_count: number;
+            missing_relations: string[];
+            priority: string;
+            source_module: string;
+            source_record_id: string | null;
+            started_at: string;
+            status: string;
+            summary: string;
+            title: string;
+            updated_at: string;
         };
         put_api_registratura_admin_users_id_assignments_response: {
             department_ids?: string[];
@@ -13253,7 +14232,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
         /** @description Authenticated principal lacks the required RBAC permission or tenant access */
@@ -13262,7 +14241,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
         /** @description Resource not found in the active tenant */
@@ -13271,7 +14250,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
         /** @description Unexpected server error */
@@ -13280,7 +14259,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
         /** @description Authentication required or token invalid */
@@ -13289,7 +14268,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
         /** @description Input validation failed */
@@ -13298,7 +14277,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/problem+json": components["schemas"]["Problem"];
+                "application/json": components["schemas"]["Problem"];
             };
         };
     };
@@ -15435,6 +16414,364 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_class_enrolments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "student_name" | "class_name" | "enrolled_from" | "enrolled_until" | "status";
+                direction?: "asc" | "desc";
+                "filter.enrolled_from"?: string;
+                "filter.enrolled_until"?: string;
+                "filter.status"?: string;
+                "filter.student_name"?: string;
+                "filter.class_name"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolEnrolment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_class_enrolments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolEnrolmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolEnrolment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_class_enrolments_enrolmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrolmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolEnrolment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    delete_api_education_class_enrolments_enrolmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrolmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolEnrolment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_class_enrolments_enrolmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                enrolmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolEnrolmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolEnrolment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_classes: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "class_code" | "class_name" | "school_year" | "grade_level" | "active";
+                direction?: "asc" | "desc";
+                "filter.class_code"?: string;
+                "filter.class_name"?: string;
+                "filter.school_year"?: string;
+                "filter.grade_level"?: string;
+                "filter.active"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_classes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolClassRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_classes_assignment_options: {
+        parameters: {
+            query: {
+                kind: "classes" | "students" | "teachers";
+                q?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolAssignmentOption"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_classes_classid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    delete_api_education_classes_classid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_classes_classid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                classID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolClassRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolClass"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_committee_cockpit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommitteeCockpitResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_committees_records: {
         parameters: {
             query?: {
@@ -15481,7 +16818,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15616,9 +16953,13 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "full_name" | "role_name" | "member_type" | "status" | "appointed_on";
+                direction?: "asc" | "desc";
                 "filter.full_name"?: string;
+                "filter.role_name"?: string;
+                "filter.member_type"?: string;
+                "filter.status"?: string;
+                "filter.appointed_on"?: string;
             };
             header?: never;
             path: {
@@ -15661,7 +17002,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15812,7 +17153,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16012,7 +17353,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16145,9 +17486,16 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "issuance_code" | "document_type" | "recipient_name" | "recipient_role" | "delivery_channel" | "delivery_status";
+                direction?: "asc" | "desc";
                 "filter.issuance_code"?: string;
+                "filter.document_type"?: string;
+                "filter.recipient_name"?: string;
+                "filter.recipient_role"?: string;
+                "filter.delivery_channel"?: string;
+                "filter.delivery_status"?: string;
+                "filter.signed_on"?: string;
+                "filter.delivered_on"?: string;
             };
             header?: never;
             path: {
@@ -16190,7 +17538,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16300,9 +17648,15 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "step_order" | "step_type" | "status" | "responsible_name" | "publication_channel" | "due_on" | "completed_on";
+                direction?: "asc" | "desc";
+                "filter.step_order"?: string;
                 "filter.step_type"?: string;
+                "filter.status"?: string;
+                "filter.responsible_name"?: string;
+                "filter.publication_channel"?: string;
+                "filter.due_on"?: string;
+                "filter.completed_on"?: string;
             };
             header?: never;
             path: {
@@ -16345,7 +17699,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16522,7 +17876,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16712,6 +18066,29 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_delegations_active_grants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationActiveDelegationGrantsResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
             500: components["responses"]["ServerError"];
         };
     };
@@ -16949,7 +18326,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17127,7 +18504,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17311,7 +18688,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17494,7 +18871,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17678,7 +19055,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17840,9 +19217,10 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "school_year" | "organism" | "active_members" | "voting_members" | "held_meetings" | "latest_meeting_on";
+                direction?: "asc" | "desc";
                 "filter.school_year"?: string;
+                "filter.organism"?: string;
             };
             header?: never;
             path?: never;
@@ -17925,7 +19303,13 @@ export interface operations {
     };
     get_api_education_governance_eligible_users: {
         parameters: {
-            query?: never;
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.name"?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -17995,7 +19379,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18128,9 +19512,15 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "document_type" | "title" | "document_number" | "registry_number" | "publication_status" | "issued_on" | "custody_owner";
+                direction?: "asc" | "desc";
                 "filter.document_type"?: string;
+                "filter.title"?: string;
+                "filter.document_number"?: string;
+                "filter.registry_number"?: string;
+                "filter.publication_status"?: string;
+                "filter.issued_on"?: string;
+                "filter.custody_owner"?: string;
             };
             header?: never;
             path: {
@@ -18173,7 +19563,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18340,9 +19730,17 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "agenda_order" | "topic_title" | "discussion_summary" | "decision_summary" | "follow_up_status" | "responsible_party" | "due_on" | "requires_publication" | "notes";
+                direction?: "asc" | "desc";
+                "filter.agenda_order"?: string;
                 "filter.topic_title"?: string;
+                "filter.discussion_summary"?: string;
+                "filter.decision_summary"?: string;
+                "filter.follow_up_status"?: string;
+                "filter.responsible_party"?: string;
+                "filter.due_on"?: string;
+                "filter.requires_publication"?: string;
+                "filter.notes"?: string;
             };
             header?: never;
             path: {
@@ -18385,7 +19783,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18524,9 +19922,14 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "full_name" | "role_name" | "member_type" | "attendance_status" | "signature_present" | "voting_right";
+                direction?: "asc" | "desc";
                 "filter.full_name"?: string;
+                "filter.role_name"?: string;
+                "filter.member_type"?: string;
+                "filter.attendance_status"?: string;
+                "filter.signature_present"?: string;
+                "filter.voting_right"?: string;
             };
             header?: never;
             path: {
@@ -18569,7 +19972,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18679,9 +20082,13 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "resolution_code" | "title" | "resolution_type" | "publication_status" | "anonymization_state";
+                direction?: "asc" | "desc";
                 "filter.resolution_code"?: string;
+                "filter.title"?: string;
+                "filter.resolution_type"?: string;
+                "filter.publication_status"?: string;
+                "filter.anonymization_state"?: string;
             };
             header?: never;
             path: {
@@ -18724,7 +20131,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -18863,9 +20270,13 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "subject_title" | "agenda_order" | "decision_type" | "outcome" | "requires_follow_up";
+                direction?: "asc" | "desc";
                 "filter.subject_title"?: string;
+                "filter.agenda_order"?: string;
+                "filter.decision_type"?: string;
+                "filter.outcome"?: string;
+                "filter.requires_follow_up"?: string;
             };
             header?: never;
             path: {
@@ -18908,7 +20319,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19018,9 +20429,13 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "school_year" | "organism" | "full_name" | "role_name" | "status";
+                direction?: "asc" | "desc";
                 "filter.school_year"?: string;
+                "filter.organism"?: string;
+                "filter.full_name"?: string;
+                "filter.role_name"?: string;
+                "filter.status"?: string;
             };
             header?: never;
             path?: never;
@@ -19059,7 +20474,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19233,7 +20648,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19411,7 +20826,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19595,7 +21010,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19750,7 +21165,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -19962,7 +21377,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20146,7 +21561,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20251,6 +21666,204 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_homeroom_assignments: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "teacher_name" | "class_name" | "assigned_from" | "assigned_until";
+                direction?: "asc" | "desc";
+                "filter.assigned_from"?: string;
+                "filter.assigned_until"?: string;
+                "filter.teacher_name"?: string;
+                "filter.class_name"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolHomeroomAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_homeroom_assignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolHomeroomAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolHomeroomAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_homeroom_assignments_assignmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolHomeroomAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    delete_api_education_homeroom_assignments_assignmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolHomeroomAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_homeroom_assignments_assignmentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignmentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolHomeroomAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolHomeroomAssignment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_hr_cockpit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HRCockpitResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_inspector_cockpit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectorCockpitResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_managerial_dashboard: {
         parameters: {
             query?: never;
@@ -20323,7 +21936,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20456,9 +22069,14 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "document_code" | "document_category" | "title" | "document_status" | "version_label" | "owner_name";
+                direction?: "asc" | "desc";
                 "filter.document_code"?: string;
+                "filter.document_category"?: string;
+                "filter.title"?: string;
+                "filter.document_status"?: string;
+                "filter.version_label"?: string;
+                "filter.owner_name"?: string;
             };
             header?: never;
             path: {
@@ -20501,7 +22119,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20696,9 +22314,14 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "stage_order" | "stage_type" | "status" | "assigned_to" | "due_on" | "completed_on";
+                direction?: "asc" | "desc";
+                "filter.stage_order"?: string;
                 "filter.stage_type"?: string;
+                "filter.status"?: string;
+                "filter.assigned_to"?: string;
+                "filter.due_on"?: string;
+                "filter.completed_on"?: string;
             };
             header?: never;
             path: {
@@ -20741,7 +22364,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -20918,7 +22541,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21096,7 +22719,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21280,7 +22903,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21435,7 +23058,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21647,7 +23270,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -21831,7 +23454,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22008,7 +23631,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22186,7 +23809,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22341,7 +23964,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22496,7 +24119,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -22651,7 +24274,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -23038,6 +24661,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioDashboardResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_eligible_owners: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.display_name"?: string;
+                "filter.role_title"?: string;
+                "filter.employment_status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfEligiblePortfolioOwner"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -24018,7 +25675,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePortfolioRecordRequest"];
+                "application/json": components["schemas"]["UpdatePortfolioRecordRequest"];
             };
         };
         responses: {
@@ -24076,8 +25733,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "requirement_code" | "requirement_label" | "section_code" | "status" | "document_count";
+                direction?: "asc" | "desc";
                 "filter.requirement_code"?: string;
             };
             header?: never;
@@ -24121,7 +25778,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -24231,8 +25888,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "event_type" | "holder_name" | "holder_role" | "started_on" | "ended_on";
+                direction?: "asc" | "desc";
                 "filter.event_type"?: string;
             };
             header?: never;
@@ -24276,7 +25933,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -24414,8 +26071,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "document_title" | "evidence_type" | "section_code" | "authenticity_status" | "issued_on";
+                direction?: "asc" | "desc";
                 "filter.section_code"?: string;
             };
             header?: never;
@@ -24459,7 +26116,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -24629,8 +26286,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "section_code" | "component_code" | "entry_title" | "chronological_index" | "document_reference";
+                direction?: "asc" | "desc";
                 "filter.section_code"?: string;
             };
             header?: never;
@@ -24674,7 +26331,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -24868,8 +26525,8 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "review_code" | "review_stage" | "outcome" | "reviewer_name" | "reviewed_on";
+                direction?: "asc" | "desc";
                 "filter.review_code"?: string;
             };
             header?: never;
@@ -24913,7 +26570,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -25239,9 +26896,10 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "created_at" | "scope" | "purpose" | "status";
+                direction?: "asc" | "desc";
                 "filter.scope"?: string;
+                "filter.purpose"?: string;
                 "filter.status"?: string;
             };
             header?: never;
@@ -25517,6 +27175,38 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    post_api_education_portfolios_records_recordid_valorifications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortfolioValorificationEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_records_recordid_valorifications_itemid: {
         parameters: {
             query?: never;
@@ -25528,6 +27218,66 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioValorificationEvent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    delete_api_education_portfolios_records_recordid_valorifications_itemid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_portfolios_records_recordid_valorifications_itemid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                itemID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortfolioValorificationEventRequest"];
+            };
+        };
         responses: {
             /** @description Successful response */
             200: {
@@ -25582,6 +27332,8 @@ export interface operations {
                 sort?: string;
                 direction?: string;
                 "filter.section_code"?: string;
+                "filter.component_code"?: string;
+                "filter.label"?: string;
             };
             header?: never;
             path?: never;
@@ -25595,7 +27347,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortfolioSection"];
+                    "application/json": components["schemas"]["EducationPageOfPortfolioSection"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -25678,7 +27430,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -25839,9 +27591,14 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "version_label" | "version_status" | "prepared_by" | "approved_on" | "effective_from" | "published_on";
+                direction?: "asc" | "desc";
                 "filter.version_label"?: string;
+                "filter.version_status"?: string;
+                "filter.prepared_by"?: string;
+                "filter.approved_on"?: string;
+                "filter.effective_from"?: string;
+                "filter.published_on"?: string;
             };
             header?: never;
             path: {
@@ -25884,7 +27641,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -25994,9 +27751,16 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "phase_order" | "phase_type" | "status" | "audience" | "started_on" | "due_on" | "completed_on" | "feedback_count";
+                direction?: "asc" | "desc";
+                "filter.phase_order"?: string;
                 "filter.phase_type"?: string;
+                "filter.status"?: string;
+                "filter.audience"?: string;
+                "filter.started_on"?: string;
+                "filter.due_on"?: string;
+                "filter.completed_on"?: string;
+                "filter.feedback_count"?: string;
             };
             header?: never;
             path: {
@@ -26039,7 +27803,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -26144,6 +27908,210 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_reports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolReportCatalogResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_reports_reportcode: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.portfolio_code"?: string;
+                "filter.owner_name"?: string;
+                "filter.owner_role"?: string;
+                "filter.school_year"?: string;
+                "filter.status"?: string;
+                "filter.transfer_status"?: string;
+                "filter.last_updated_on"?: string;
+                "filter.evaluation_code"?: string;
+                "filter.employee_code"?: string;
+                "filter.full_name"?: string;
+                "filter.score"?: string;
+                "filter.qualification"?: string;
+                "filter.finalized_on"?: string;
+                "filter.title"?: string;
+                "filter.organism"?: string;
+                "filter.meeting_date"?: string;
+                "filter.has_minute"?: string;
+                "filter.has_vote"?: string;
+                "filter.document_type"?: string;
+                "filter.expires_on"?: string;
+                "filter.publication_code"?: string;
+                "filter.entity_type"?: string;
+                "filter.entity_label"?: string;
+                "filter.publication_channel"?: string;
+                "filter.publication_status"?: string;
+                "filter.anonymization_status"?: string;
+                "filter.mandatory"?: string;
+                "filter.published_on"?: string;
+                "filter.reviewed_by"?: string;
+            };
+            header?: never;
+            path: {
+                reportCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolReportRow"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_reports_reportcode_csv: {
+        parameters: {
+            query?: {
+                "filter.portfolio_code"?: string;
+                "filter.owner_name"?: string;
+                "filter.owner_role"?: string;
+                "filter.school_year"?: string;
+                "filter.status"?: string;
+                "filter.transfer_status"?: string;
+                "filter.last_updated_on"?: string;
+                "filter.evaluation_code"?: string;
+                "filter.employee_code"?: string;
+                "filter.full_name"?: string;
+                "filter.score"?: string;
+                "filter.qualification"?: string;
+                "filter.finalized_on"?: string;
+                "filter.title"?: string;
+                "filter.organism"?: string;
+                "filter.meeting_date"?: string;
+                "filter.has_minute"?: string;
+                "filter.has_vote"?: string;
+                "filter.document_type"?: string;
+                "filter.expires_on"?: string;
+                "filter.publication_code"?: string;
+                "filter.entity_type"?: string;
+                "filter.entity_label"?: string;
+                "filter.publication_channel"?: string;
+                "filter.publication_status"?: string;
+                "filter.anonymization_status"?: string;
+                "filter.mandatory"?: string;
+                "filter.published_on"?: string;
+                "filter.reviewed_by"?: string;
+            };
+            header?: never;
+            path: {
+                reportCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": components["schemas"]["BinaryCsv"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_reports_reportcode_pdf: {
+        parameters: {
+            query?: {
+                "filter.portfolio_code"?: string;
+                "filter.owner_name"?: string;
+                "filter.owner_role"?: string;
+                "filter.school_year"?: string;
+                "filter.status"?: string;
+                "filter.transfer_status"?: string;
+                "filter.last_updated_on"?: string;
+                "filter.evaluation_code"?: string;
+                "filter.employee_code"?: string;
+                "filter.full_name"?: string;
+                "filter.score"?: string;
+                "filter.qualification"?: string;
+                "filter.finalized_on"?: string;
+                "filter.title"?: string;
+                "filter.organism"?: string;
+                "filter.meeting_date"?: string;
+                "filter.has_minute"?: string;
+                "filter.has_vote"?: string;
+                "filter.document_type"?: string;
+                "filter.expires_on"?: string;
+                "filter.publication_code"?: string;
+                "filter.entity_type"?: string;
+                "filter.entity_label"?: string;
+                "filter.publication_channel"?: string;
+                "filter.publication_status"?: string;
+                "filter.anonymization_status"?: string;
+                "filter.mandatory"?: string;
+                "filter.published_on"?: string;
+                "filter.reviewed_by"?: string;
+            };
+            header?: never;
+            path: {
+                reportCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": components["schemas"]["BinaryPdf"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_requirements: {
         parameters: {
             query?: {
@@ -26152,6 +28120,9 @@ export interface operations {
                 sort?: string;
                 direction?: string;
                 "filter.domain"?: string;
+                "filter.priority"?: string;
+                "filter.implementation_status"?: string;
+                "filter.requirement_type"?: string;
             };
             header?: never;
             path?: never;
@@ -26165,7 +28136,364 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EducationRequirement"];
+                    "application/json": components["schemas"]["EducationPageOfEducationRequirement"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_secretariat_cockpit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SecretariatCockpitResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_signatures: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.submitted_at"?: string;
+                "filter.artifact_type"?: string;
+                "filter.artifact_id"?: string;
+                "filter.signature_format"?: string;
+                "filter.signature_level"?: string;
+                "filter.signature_subject"?: string;
+                "filter.validation_status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSignedArtifactEvidence"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_signatures: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitSignedArtifactEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedArtifactEvidence"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_signatures_eligible_archive_versions: {
+        parameters: {
+            query?: {
+                q?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfEligibleSignatureArchiveVersion"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_signatures_eligible_artifacts: {
+        parameters: {
+            query: {
+                artifactType: "decision" | "publication" | "managerial_document" | "meeting_document" | "meeting_minute" | "meeting_resolution";
+                q?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfEligibleSignedArtifact"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_signatures_evidenceid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidenceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedArtifactEvidence"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_signatures_evidenceid_revalidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                evidenceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignedArtifactValidation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_students: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "student_code" | "first_name" | "last_name" | "status" | "birth_date";
+                direction?: "asc" | "desc";
+                "filter.student_code"?: string;
+                "filter.first_name"?: string;
+                "filter.last_name"?: string;
+                "filter.status"?: string;
+                "filter.birth_date"?: string;
+                "filter.class_id"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfSchoolStudent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_students: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolStudent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_students_studentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolStudent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    delete_api_education_students_studentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolStudent"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_education_students_studentid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolStudentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SchoolStudent"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -26193,7 +28521,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaxonomyItem"];
+                    "application/json": components["schemas"]["TaxonomyCatalogResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -26833,27 +29161,6 @@ export interface operations {
                 };
                 content?: never;
             };
-        };
-    };
-    post_api_oidc_e2e_canary_session: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            500: components["responses"]["ServerError"];
         };
     };
     get_oidc_jwks: {

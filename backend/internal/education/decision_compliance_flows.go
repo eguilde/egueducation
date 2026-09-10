@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -194,7 +193,7 @@ func (s *Service) CreateDecisionIssuance(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	code := fmt.Sprintf("DEC-OUT-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("DEC-OUT")
 	var item DecisionIssuance
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_decision_issuances (
@@ -808,6 +807,8 @@ func decisionIssuanceSortColumn(value string) string {
 		return "edi.delivery_channel"
 	case "delivery_status":
 		return "edi.delivery_status"
+	case "signed_on":
+		return "edi.signed_on"
 	case "delivered_on":
 		return "edi.delivered_on"
 	default:
@@ -827,6 +828,8 @@ func decisionPublicationStepSortColumn(value string) string {
 		return "edps.responsible_name"
 	case "publication_channel":
 		return "edps.publication_channel"
+	case "due_on":
+		return "edps.due_on"
 	case "completed_on":
 		return "edps.completed_on"
 	default:

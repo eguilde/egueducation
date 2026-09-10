@@ -86,7 +86,7 @@ async function authenticatedSchool(page: Page, sessionOverride?: Record<string, 
       }),
     }),
   );
-  await page.route("**/api/education/governance/eligible-users", (route) =>
+  await page.route("**/api/education/governance/eligible-users?**", (route) =>
     route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({

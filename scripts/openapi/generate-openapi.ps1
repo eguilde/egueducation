@@ -47,8 +47,7 @@ function New-ClosedRequestSchema([string]$operationKey) {
 		'POST /api/education/portfolios/me'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'PATCH /api/education/portfolios/me/{recordID}'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'POST /api/education/portfolios/me/{recordID}/documents'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements'='backend/internal/education/portfolio_declarations.go|PortfolioDeclarationAcknowledgementRequest'; 'POST /api/education/portfolios/records/{recordID}/activity-cessation'='backend/internal/education/portfolio_models.go|PortfolioCessationRequest'; 'POST /api/education/portfolios/records/{recordID}/legal-hold'='backend/internal/education/portfolio_models.go|PortfolioLegalHoldRequest'
 	}
 	if ($dtoMap.ContainsKey($operationKey)) {
-		$parts=$dtoMap[$operationKey].Split('|'); $previousGo111Module=$env:GO111MODULE; $env:GO111MODULE='off'; $json=& go run ./scripts/openapi/go-schema-helper -- $parts[0] $parts[1]; $env:GO111MODULE=$previousGo111Module
-		if($LASTEXITCODE -ne 0){throw "DTO schema helper failed for ${operationKey}"}; return ($json -join "`n" | ConvertFrom-Json -AsHashtable)
+		return Get-GoDTOObjectSchema ([string]$dtoMap[$operationKey])
 	}
 	if ($operationKey -eq 'POST /api/earchiva/documents') {
 		# The archive upload handler consumes a multipart PDF plus scalar metadata.
@@ -186,7 +185,101 @@ function Add-ExactResponseSchema([hashtable]$schemas, [string]$operationId, [str
     throw "Unknown exact response kind '$kind'"
 }
 
+function Get-EducationHandlerCreatedStatus([hashtable]$coverageOperation) {
+    if (-not $coverageOperation -or [string]$coverageOperation.operationKey -notlike 'POST *' -or -not $coverageOperation.handler -or -not $coverageOperation.source) { return $null }
+    $sourcePath = ([string]$coverageOperation.source) -replace ':\d+$', ''
+    if (-not (Test-Path $sourcePath)) { return $null }
+    $handler = [regex]::Escape([string]$coverageOperation.handler)
+    if (-not $script:educationHandlerSources) { $script:educationHandlerSources = @{} }
+    if (-not $script:educationHandlerSources.ContainsKey($sourcePath)) { $script:educationHandlerSources[$sourcePath] = Get-Content -Raw $sourcePath }
+    $source = $script:educationHandlerSources[$sourcePath]
+    $functionMatch = [regex]::Match($source, "(?ms)^func\s+\(s\s+\*Service\)\s+$handler\s*\(.*?(?=^func\s|\z)")
+    if ($functionMatch.Success -and $functionMatch.Value -match 'http\.StatusCreated') { return '201' }
+    return $null
+}
+
 function New-QueryParameter([string]$operationKey, [string]$parameterName) {
+    # Keep the generated client honest: these are the exact sort allowlists
+    # passed to httpx.ParsePageQuery by the governance/managerial handlers.
+    $educationListSorts = @{
+		'GET /api/education/classes' = @('class_code', 'class_name', 'school_year', 'grade_level', 'active')
+		'GET /api/education/students' = @('student_code', 'first_name', 'last_name', 'status', 'birth_date')
+		'GET /api/education/class-enrolments' = @('student_name', 'class_name', 'enrolled_from', 'enrolled_until', 'status')
+		'GET /api/education/homeroom-assignments' = @('teacher_name', 'class_name', 'assigned_from', 'assigned_until')
+        'GET /api/education/governance/memberships' = @('school_year', 'organism', 'full_name', 'role_name', 'status')
+        'GET /api/education/governance/bodies' = @('school_year', 'organism', 'active_members', 'voting_members', 'held_meetings', 'latest_meeting_on')
+        'GET /api/education/governance/meetings/{meetingID}/participants' = @('full_name', 'role_name', 'member_type', 'attendance_status', 'signature_present', 'voting_right')
+        'GET /api/education/governance/meetings/{meetingID}/documents' = @('document_type', 'title', 'document_number', 'registry_number', 'publication_status', 'issued_on', 'custody_owner')
+        'GET /api/education/governance/meetings/{meetingID}/votes' = @('subject_title', 'agenda_order', 'decision_type', 'outcome', 'requires_follow_up')
+        'GET /api/education/governance/meetings/{meetingID}/minutes' = @('agenda_order', 'topic_title', 'discussion_summary', 'decision_summary', 'follow_up_status', 'responsible_party', 'due_on', 'requires_publication', 'notes')
+        'GET /api/education/governance/meetings/{meetingID}/resolutions' = @('resolution_code', 'title', 'resolution_type', 'publication_status', 'anonymization_state')
+        'GET /api/education/decisions/records/{decisionID}/issuances' = @('issuance_code', 'document_type', 'recipient_name', 'recipient_role', 'delivery_channel', 'delivery_status')
+        'GET /api/education/decisions/records/{decisionID}/publication-steps' = @('step_order', 'step_type', 'status', 'responsible_name', 'publication_channel', 'due_on', 'completed_on')
+        'GET /api/education/regulations/records/{recordID}/versions' = @('version_label', 'version_status', 'prepared_by', 'approved_on', 'effective_from', 'published_on')
+        'GET /api/education/regulations/records/{recordID}/workflow' = @('phase_order', 'phase_type', 'status', 'audience', 'started_on', 'due_on', 'completed_on', 'feedback_count')
+        'GET /api/education/committees/records/{recordID}/members' = @('full_name', 'role_name', 'member_type', 'status', 'appointed_on')
+        'GET /api/education/managerial/records/{recordID}/documents' = @('document_code', 'document_category', 'title', 'document_status', 'version_label', 'owner_name')
+        'GET /api/education/managerial/records/{recordID}/workflow' = @('stage_order', 'stage_type', 'status', 'assigned_to', 'due_on', 'completed_on')
+    }
+    if ($educationListSorts.ContainsKey($operationKey)) {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = if ($parameterName -eq 'sort') { [ordered]@{ type = 'string'; enum = $educationListSorts[$operationKey] } } elseif ($parameterName -eq 'direction') { [ordered]@{ type = 'string'; enum = @('asc', 'desc') } } else { [ordered]@{ type = 'string' } }
+        return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
+    }
+    $portfolioRelationSorts = @{
+        'GET /api/education/portfolios/records/{recordID}/documents' = @('document_title', 'evidence_type', 'section_code', 'authenticity_status', 'issued_on')
+        'GET /api/education/portfolios/records/{recordID}/checklist' = @('requirement_code', 'requirement_label', 'section_code', 'status', 'document_count')
+        'GET /api/education/portfolios/records/{recordID}/opis' = @('section_code', 'component_code', 'entry_title', 'chronological_index', 'document_reference')
+        'GET /api/education/portfolios/records/{recordID}/custody' = @('event_type', 'holder_name', 'holder_role', 'started_on', 'ended_on')
+        'GET /api/education/portfolios/records/{recordID}/reviews' = @('review_code', 'review_stage', 'outcome', 'reviewer_name', 'reviewed_on')
+    }
+    if ($portfolioRelationSorts.ContainsKey($operationKey)) {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = if ($parameterName -eq 'sort') {
+            [ordered]@{ type = 'string'; enum = $portfolioRelationSorts[$operationKey] }
+        } elseif ($parameterName -eq 'direction') {
+            [ordered]@{ type = 'string'; enum = @('asc', 'desc') }
+        } else {
+            [ordered]@{ type = 'string' }
+        }
+        return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
+    }
+
+    if ($operationKey -eq 'GET /api/education/signatures/eligible-artifacts') {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = if ($parameterName -eq 'artifactType') {
+            [ordered]@{ type = 'string'; enum = @('decision', 'publication', 'managerial_document', 'meeting_document', 'meeting_minute', 'meeting_resolution') }
+        } else { [ordered]@{ type = 'string' } }
+        return [ordered]@{ name = $parameterName; in = 'query'; required = ($parameterName -eq 'artifactType'); schema = $schema }
+    }
+
+    if ($operationKey -eq 'GET /api/education/classes/assignment-options') {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = if ($parameterName -eq 'kind') {
+            [ordered]@{ type = 'string'; enum = @('classes', 'students', 'teachers') }
+        } else {
+            [ordered]@{ type = 'string' }
+        }
+        return [ordered]@{ name = $parameterName; in = 'query'; required = ($parameterName -eq 'kind'); schema = $schema }
+    }
+
+    if ($operationKey -eq 'GET /api/education/portfolios/records/{recordID}/valorification-packages') {
+        $schema = if ($parameterName -eq 'sort') {
+            [ordered]@{ type = 'string'; enum = @('created_at', 'scope', 'purpose', 'status') }
+        } elseif ($parameterName -eq 'direction') {
+            [ordered]@{ type = 'string'; enum = @('asc', 'desc') }
+        } else {
+            [ordered]@{ type = 'string' }
+        }
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
+    }
+
     if ($operationKey -eq 'GET /api/registratura/documents') {
         $pagination = [ordered]@{ type = 'integer'; minimum = 1; maximum = 100; default = 25 }
         $sortFields = @('registry_number', 'external_number', 'subject', 'document_type', 'direction', 'status', 'correspondent', 'assigned_to', 'confidentiality', 'registered_at', 'entry_at', 'exit_at')
@@ -219,6 +312,7 @@ $common = Get-Content -Raw 'openapi/components/common.json' | ConvertFrom-Json -
 $overrides = Get-Content -Raw 'openapi/overrides.json' | ConvertFrom-Json -AsHashtable
 $domainRules = @()
 $domainCoverage = @{}
+$educationRequestSchemas = @{}
 
 # Domain fragments are deliberately kept separate so individual backend areas can be
 # audited without creating merge conflicts. Generation is the single deterministic
@@ -255,8 +349,81 @@ Get-ChildItem 'openapi/domains/*.coverage.json' | Sort-Object Name | ForEach-Obj
         foreach ($coveredOperation in $coverage.operations) {
             if ($domainCoverage.Contains($coveredOperation.operationKey)) { throw "Duplicate domain coverage '$($coveredOperation.operationKey)'" }
             $domainCoverage[$coveredOperation.operationKey] = $coveredOperation
+            if ($coveredOperation.operationKey -like '* /api/education/*' -and $coveredOperation.requestBody -and $coveredOperation.requestBody.schema) {
+                $educationRequestSchemas[[string]$coveredOperation.requestBody.schema] = $true
+            }
         }
     }
+}
+
+# Response requiredness is derived from the Go JSON contract, not maintained by
+# hand in the generated catalogue. A field without `omitempty` is always emitted
+# by encoding/json and is therefore required in response schemas. Request DTOs
+# are excluded because their semantic requiredness comes from handler validation.
+$educationRequestRequiredFields = @{
+    'CreateGovernanceMeetingParticipantRequest' = @('full_name','role_name','member_type','attendance_status')
+    'CreateGovernanceMeetingDocumentRequest' = @('document_type','title','publication_status','issued_on')
+    'CreateGovernanceMeetingVoteRequest' = @('agenda_order','subject_title','decision_type','outcome')
+    'CreateGovernanceMinuteItemRequest' = @('agenda_order','topic_title','discussion_summary','decision_summary','follow_up_status')
+    'CreateGovernanceResolutionRequest' = @('vote_id','title','resolution_type','publication_status','anonymization_state','issued_on')
+    'CreateDecisionIssuanceRequest' = @('document_type','recipient_name','delivery_channel','delivery_status')
+    'CreateDecisionPublicationStepRequest' = @('step_order','step_type','status','responsible_name','due_on')
+    'CreateRegulationVersionRequest' = @('version_label','version_status','change_summary','effective_from','prepared_by')
+    'CreateRegulationWorkflowStepRequest' = @('phase_order','phase_type','status','audience','started_on','due_on')
+    'CreateCommitteeMemberRequest' = @('full_name','role_name','member_type','status','appointed_on')
+    'CreateManagerialDocumentRequest' = @('document_category','title','document_status','version_label','registered_on')
+    'CreateManagerialWorkflowStepRequest' = @('stage_order','stage_type','status','assigned_to','due_on')
+    'CreatePersonnelAssignmentRequest' = @('assignment_type','assignment_title','status','assigned_on')
+    'CreatePersonnelPersonalFileDocumentRequest' = @('document_category','document_title','file_scope','confidentiality_level','issued_on')
+    'CreatePersonnelDisciplinaryCaseRequest' = @('case_type','status','reported_on')
+    'CreatePersonnelPersonalAccessEventRequest' = @('event_type','actor_name','actor_role','purpose','access_channel','accessed_on')
+    'CreatePersonnelEvaluationSelfReviewRequest' = @('section_title','narrative_type','status','completed_on')
+    'CreatePersonnelEvaluationCriterionRequest' = @('criterion_category','criterion_label','status','max_score')
+    'CreatePersonnelEvaluationAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreatePersonnelEvaluationResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreateMobilityDocumentRequest' = @('document_type','stage_scope','document_title','registered_on','validation_status')
+    'CreateMobilityCriterionScoreRequest' = @('criterion_code','criterion_label','criterion_category','max_score')
+    'CreateMobilityAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreateMobilityFinalDecisionRequest' = @('decision_type','outcome','approved_on','effective_from','panel_name')
+    'CreateMobilityResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreateMeritDocumentRequest' = @('document_type','document_title','registered_on','validation_status')
+    'CreateMeritCriterionScoreRequest' = @('criterion_code','criterion_label','criterion_category','panel_stage','max_score')
+    'CreateMeritAppealRequest' = @('submitted_by','submitted_on','status','grounds')
+    'CreateMeritFinalDecisionRequest' = @('decision_stage','outcome','approved_on','effective_from','panel_name')
+    'CreateMeritResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
+    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','source_scope','evidence_type','issued_on','added_on','authenticity_status')
+    'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
+    'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
+    'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
+    'CreatePortfolioReviewEventRequest' = @('review_stage','outcome','reviewer_name','reviewed_on')
+}
+$educationSources = @(Get-ChildItem 'backend/internal/education/*.go' | Where-Object { $_.Name -notlike '*_test.go' })
+foreach ($schemaName in @($common.components.schemas.Keys)) {
+    $schema = $common.components.schemas[$schemaName]
+    if (-not $schema -or -not $schema.Contains('x-go-model') -or -not $schema.Contains('properties')) { continue }
+    $schema.additionalProperties = $false
+    if ($educationRequestSchemas.ContainsKey([string]$schemaName)) {
+        if ($educationRequestRequiredFields.ContainsKey([string]$schemaName)) {
+            $required = @($educationRequestRequiredFields[[string]$schemaName])
+            $unknownRequired = @($required | Where-Object { -not $schema.properties.Contains($_) })
+            if ($unknownRequired.Count -gt 0) { throw "Education request required-field catalogue names unknown properties on ${schemaName}: $($unknownRequired -join ', ')" }
+            $schema.required = $required
+            [void]$schema.Remove('x-requiredness')
+        }
+        continue
+    }
+    $modelName = [string]$schema['x-go-model']
+    if ([string]::IsNullOrWhiteSpace($modelName)) { continue }
+    $declarations = @($educationSources | Select-String -Pattern ("^type\s+{0}\s+struct\s*\{{" -f [regex]::Escape($modelName)))
+    if ($declarations.Count -ne 1) { continue }
+    $modelSource = Get-Content -Raw $declarations[0].Path
+    $modelBlock = [regex]::Match($modelSource, ("(?ms)^type\s+{0}\s+struct\s*\{{(.*?)^\}}" -f [regex]::Escape($modelName)))
+    if (-not $modelBlock.Success) { continue }
+    $required = @([regex]::Matches($modelBlock.Groups[1].Value, 'json:"([^",]+)([^"]*)"') |
+        Where-Object { $_.Groups[1].Value -ne '-' -and $_.Groups[2].Value -notmatch 'omitempty' -and $schema.properties.Contains($_.Groups[1].Value) } |
+        ForEach-Object { $_.Groups[1].Value })
+    if ($required.Count -gt 0) { $schema.required = $required }
+    [void]$schema.Remove('x-requiredness')
 }
 # These compatibility envelopes must not leak into any generated operation.
 # Per-operation response schemas are installed below from handler DTOs.
@@ -318,6 +485,8 @@ foreach ($match in $routePattern.Matches($routerSource)) {
         $override.queryParameters = @($coverage.queryParameters)
         $override.errors = @($coverage.errors)
         $override.responseStatus = [string]$coverage.success.status
+        $createdStatus = Get-EducationHandlerCreatedStatus $coverage
+        if ($createdStatus) { $override.responseStatus = $createdStatus }
         $override.responseContentType = [string]$coverage.success.contentType
         # Coverage is handler-backed.  Carry its concrete request/response model
         # into the generated operation rather than falling back to a family-wide
@@ -356,7 +525,10 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     $operation = [ordered]@{
         operationId = $operationId
         summary = if ($override -and $override.summary) { [string]$override.summary } else { "$(($method.ToUpperInvariant())) $path" }
-        description = if ($override -and $override.description) { [string]$override.description } elseif ($isDetailedFamily) { "Tenant-scoped $family operation. The backend is authoritative for RBAC, resource visibility, transition state and validation." } else { 'Generated router contract. Request and response field detail is pending endpoint-level schema review.' }
+        # A coverage entry is a reviewed, handler-backed contract. Do not retain
+        # the old "pending endpoint-level schema review" wording for a route
+        # whose request, response, RBAC and tenant scope are already explicit.
+        description = if ($override -and $override.description) { [string]$override.description } elseif ($coverage -and $coverage.modelEvidence) { "Handler-backed Education contract. $([string]$coverage.modelEvidence)" } elseif ($isDetailedFamily) { "Tenant-scoped $family operation. The backend is authoritative for RBAC, resource visibility, transition state and validation." } else { 'Generated router contract. Request and response field detail is pending endpoint-level schema review.' }
         tags = $tag
         'x-contract-status' = if ($override -and $override.status) { [string]$override.status } elseif ($isDetailedFamily) { 'detailed' } else { 'generated' }
         responses = [ordered]@{}
@@ -383,8 +555,6 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if ($requiresSecurity) {
         if ($override -and $override.security -eq 'refreshCookie') {
             $operation.security = @(@{ refreshCookie = @() })
-        } elseif ($override -and $override.security -eq 'productionE2ECanaryActivation') {
-            $operation.security = @(@{ productionE2ECanaryActivation = @() })
         } else {
             $operation.security = @(@{ oidcAuthorizationCode = @() })
         }

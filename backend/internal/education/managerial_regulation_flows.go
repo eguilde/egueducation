@@ -185,7 +185,7 @@ func (s *Service) CreateManagerialDocument(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	documentCode := fmt.Sprintf("MDOC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	documentCode := newEducationCode("MDOC")
 	var item ManagerialDocument
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_managerial_documents (

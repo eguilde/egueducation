@@ -83,12 +83,14 @@ func (s *Service) PersonnelPortfolioDossierSummary(w http.ResponseWriter, r *htt
 				from education_portfolio_documents epd
 				where epd.institution_id = $1
 					and epd.portfolio_id in (select id from matched_portfolios)
+					and epd.status = 'active'
 			), 0) as total_documents,
 			coalesce((
 				select count(*)
 				from education_portfolio_documents epd
 				where epd.institution_id = $1
 					and epd.portfolio_id in (select id from matched_portfolios)
+					and epd.status = 'active'
 					and epd.source_scope = 'portofoliu'
 			), 0) as portfolio_scope_documents,
 			coalesce((
@@ -96,6 +98,7 @@ func (s *Service) PersonnelPortfolioDossierSummary(w http.ResponseWriter, r *htt
 				from education_portfolio_documents epd
 				where epd.institution_id = $1
 					and epd.portfolio_id in (select id from matched_portfolios)
+					and epd.status = 'active'
 					and epd.source_scope = 'dosar_personal'
 			), 0) as personnel_scope_documents,
 			coalesce((
@@ -103,6 +106,7 @@ func (s *Service) PersonnelPortfolioDossierSummary(w http.ResponseWriter, r *htt
 				from education_portfolio_documents epd
 				where epd.institution_id = $1
 					and epd.portfolio_id in (select id from matched_portfolios)
+					and epd.status = 'active'
 					and epd.authenticity_status = 'verificat'
 			), 0) as verified_documents,
 			coalesce(to_char(max(last_updated_on), 'YYYY-MM-DD'), '') as last_updated_on
@@ -138,6 +142,7 @@ func (s *Service) PersonnelPortfolioDossierSummary(w http.ResponseWriter, r *htt
 				and epfd.institution_id = $1
 				and epd.institution_id = $1
 				and epd.portfolio_id in (select id from matched_portfolios)
+				and epd.status = 'active'
 				and trim(coalesce(epfd.file_reference, '')) <> ''
 		) mirrored
 	`, institutionID, summary.Personnel.SchoolYear, summary.Personnel.FullName, recordID).Scan(&summary.Relation.MirroredFileReferences); err != nil {

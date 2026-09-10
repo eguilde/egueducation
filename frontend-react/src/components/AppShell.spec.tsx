@@ -8,9 +8,15 @@ vi.mock('../auth/AuthProvider', () => ({
     useAuth: () => ({ user: null, session: null, login: vi.fn(), logout: vi.fn(), has: () => false })
 }));
 
-import { AppShell } from './AppShell';
+import { AppShell, hasActiveDelegatedEducationGrant } from './AppShell';
 
 describe('AppShell', () => {
+    it('shows the delegated-resources navigation condition for every exact resource grant, but not an institution grant', () => {
+        expect(hasActiveDelegatedEducationGrant([{ resource_type: 'institution' }])).toBe(false);
+        for (const resource_type of ['portfolio', 'meeting', 'decision', 'regulation', 'personnel']) {
+            expect(hasActiveDelegatedEducationGrant([{ resource_type }])).toBe(true);
+        }
+    });
     beforeEach(() => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
             institutionName: 'Școala Balotești',

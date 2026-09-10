@@ -23,16 +23,24 @@ import { validateSessionContext } from '../api/runtime-validators';
 
 export type User = components['schemas']['SessionUser'];
 export type SessionContext = components['schemas']['SessionContext'];
+export type EducationDelegationGrant = components['schemas']['EducationActiveDelegationGrant'];
+export type EducationAuthorizationScope =
+    | { resourceType: 'institution' }
+    | { resourceType: Exclude<EducationDelegationGrant['resource_type'], 'institution'>; resourceId: string };
 
 interface AuthValue {
     user: User | null;
     session: SessionContext | null;
     ready: boolean;
+    authorizationReady: boolean;
+    educationGrants: readonly EducationDelegationGrant[];
     login: () => Promise<void>;
     logout: () => Promise<void>;
     complete: () => Promise<string>;
     completeLogout: () => void;
     has: (permission: string) => boolean;
+    canEducation: (permission: string, scope?: EducationAuthorizationScope) => boolean;
+    refreshEducationAuthorization: () => Promise<void>;
     updateLocalProfile: (profile: Pick<User, 'id' | 'name' | 'email' | 'email_verified' | 'phone_number' | 'phone_number_verified' | 'locale'>) => void;
     apiFetch: typeof fetch;
     apiClient: ContractClient;
@@ -57,24 +65,86 @@ async function loadMe(accessToken: string): Promise<SessionContext> {
     return data;
 }
 
+function isActiveGrantResponse(value: unknown, session: SessionContext): value is components['schemas']['EducationActiveDelegationGrantsResponse'] {
+    if (!value || typeof value !== 'object') return false;
+    const response = value as Record<string, unknown>;
+    if (response.tenant_code !== session.tenant_code || response.institution_id !== session.institution_id ||
+        typeof response.revision !== 'string' || typeof response.evaluated_at !== 'string' || !Array.isArray(response.grants)) return false;
+    return response.grants.every((grant) => {
+        if (!grant || typeof grant !== 'object') return false;
+        const entry = grant as Record<string, unknown>;
+        return typeof entry.permission_code === 'string' && typeof entry.resource_id === 'string' &&
+            (entry.resource_type === 'institution' || entry.resource_type === 'portfolio' || entry.resource_type === 'meeting' ||
+                entry.resource_type === 'decision' || entry.resource_type === 'regulation' || entry.resource_type === 'personnel');
+    });
+}
+
+async function loadActiveEducationGrants(accessToken: string, session: SessionContext): Promise<EducationDelegationGrant[]> {
+    const client = createContractClient(async (request) => {
+        const headers = new Headers(request.headers);
+        headers.set('Authorization', `Bearer ${accessToken}`);
+        return fetch(new Request(request, { credentials: 'include', headers }));
+    }, config.apiBaseUrl);
+    const { data, response } = await client.GET('/api/education/delegations/active-grants');
+    if (!response.ok || !isActiveGrantResponse(data, session)) throw new Error('Snapshot-ul de delegări educaționale nu este valid.');
+    return data.grants;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
     const [session, setSession] = useState<SessionContext | null>(null);
     const [ready, setReady] = useState(false);
+    const [authorizationReady, setAuthorizationReady] = useState(false);
+    const [educationGrants, setEducationGrants] = useState<EducationDelegationGrant[]>([]);
     const [tokens, setTokens] = useState<Tokens | null>(null);
     const tokensRef = useRef<Tokens | null>(null);
+    const sessionRef = useRef<SessionContext | null>(null);
+    const clearAuthorization = useCallback(() => { setEducationGrants([]); setAuthorizationReady(true); }, []);
 
     const apply = useCallback(async (next: Tokens) => {
         const validatedSession = await loadMe(next.accessToken);
         tokensRef.current = next;
+        sessionRef.current = validatedSession;
         setTokens(next);
+        setAuthorizationReady(false);
         setSession(validatedSession);
+        try {
+            const grants = await loadActiveEducationGrants(next.accessToken, validatedSession);
+            if (sessionRef.current === validatedSession) setEducationGrants(grants);
+        } catch {
+            if (sessionRef.current === validatedSession) setEducationGrants([]);
+        } finally {
+            if (sessionRef.current === validatedSession) setAuthorizationReady(true);
+        }
     }, []);
+    const refreshEducationAuthorization = useCallback(async () => {
+        const activeTokens = tokensRef.current;
+        const currentSession = sessionRef.current;
+        if (!activeTokens || !currentSession) { clearAuthorization(); return; }
+        setAuthorizationReady(false);
+        try {
+            const grants = await loadActiveEducationGrants(activeTokens.accessToken, currentSession);
+            if (sessionRef.current === currentSession) setEducationGrants(grants);
+        } catch {
+            if (sessionRef.current === currentSession) setEducationGrants([]);
+        } finally {
+            if (sessionRef.current === currentSession) setAuthorizationReady(true);
+        }
+    }, [clearAuthorization]);
 
     useEffect(() => {
         void refreshWithCookie(config)
-            .then((next) => next ? apply(next).catch(() => setSession(null)) : undefined)
+            .then((next) => next ? apply(next).catch(() => { sessionRef.current = null; setSession(null); clearAuthorization(); }) : clearAuthorization())
             .finally(() => setReady(true));
-    }, [apply]);
+    }, [apply, clearAuthorization]);
+    useEffect(() => {
+        if (!session || !tokens) return;
+        const refresh = () => { void refreshEducationAuthorization(); };
+        const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+        window.addEventListener('focus', refresh);
+        document.addEventListener('visibilitychange', onVisibility);
+        const interval = window.setInterval(refresh, 15_000);
+        return () => { window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', onVisibility); window.clearInterval(interval); };
+    }, [refreshEducationAuthorization, session, tokens]);
 
     const login = useCallback(
         () => beginAuthorization(config, `${location.pathname}${location.search}`),
@@ -91,7 +161,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
         setTokens(null);
         tokensRef.current = null;
+        sessionRef.current = null;
         setSession(null);
+        clearAuthorization();
         // The internal endpoint is a fail-safe for cookie revocation. Complete
         // the standards flow as well when an ID token is available in memory.
         if (idToken) await beginLogout(config, idToken);
@@ -105,6 +177,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const has = useCallback((permission: string) => Boolean(
         session?.permissions.includes(permission)
     ), [session]);
+    const canEducation = useCallback<AuthValue['canEducation']>((permission, scope = { resourceType: 'institution' }) => {
+        if (session?.permissions.includes(permission)) return true;
+        if (!authorizationReady) return false;
+        if (scope.resourceType === 'institution') return educationGrants.some((grant) => grant.permission_code === permission && grant.resource_type === 'institution');
+        return educationGrants.some((grant) => grant.permission_code === permission && grant.resource_type === scope.resourceType && grant.resource_id === scope.resourceId);
+    }, [authorizationReady, educationGrants, session?.permissions]);
     const updateLocalProfile = useCallback<AuthValue['updateLocalProfile']>((profile) => {
         setSession((current) => current ? {
             ...current,
@@ -122,16 +200,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
             activeTokens = await refreshWithCookie(config);
             if (!activeTokens) {
                 tokensRef.current = null;
+                sessionRef.current = null;
                 setTokens(null);
                 setSession(null);
+                clearAuthorization();
                 throw new Error('Sesiunea a expirat. Autentificați-vă din nou.');
             }
             try {
                 await apply(activeTokens);
             } catch (error) {
                 tokensRef.current = null;
+                sessionRef.current = null;
                 setTokens(null);
                 setSession(null);
+                clearAuthorization();
                 throw error;
             }
         }
@@ -145,26 +227,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
         };
 
         let response = await execute(activeTokens.accessToken);
+        if (response.status === 403 && requestTemplate instanceof Request && new URL(requestTemplate.url, window.location.origin).pathname.startsWith('/api/education/')) void refreshEducationAuthorization();
         if (response.status !== 401) return response;
 
         const refreshed = await refreshWithCookie(config);
         if (!refreshed) {
             tokensRef.current = null;
+            sessionRef.current = null;
             setTokens(null);
             setSession(null);
+            clearAuthorization();
             return response;
         }
         try {
             await apply(refreshed);
         } catch (error) {
             tokensRef.current = null;
+            sessionRef.current = null;
             setTokens(null);
             setSession(null);
+            clearAuthorization();
             throw error;
         }
         response = await execute(refreshed.accessToken);
         return response;
-    }, [apply]);
+    }, [apply, clearAuthorization, refreshEducationAuthorization]);
     const apiClient = useMemo(
         () => createContractClient((request) => apiFetch(request), config.apiBaseUrl),
         [apiFetch]
@@ -174,15 +261,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
         user: session?.user ?? null,
         session,
         ready,
+        authorizationReady,
+        educationGrants,
         login,
         logout,
         complete,
         completeLogout: finishLogout,
         has,
+        canEducation,
+        refreshEducationAuthorization,
         updateLocalProfile,
         apiFetch,
         apiClient
-    }), [apiClient, apiFetch, complete, finishLogout, has, login, logout, ready, session, updateLocalProfile]);
+    }), [apiClient, apiFetch, authorizationReady, canEducation, complete, educationGrants, finishLogout, has, login, logout, ready, refreshEducationAuthorization, session, updateLocalProfile]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

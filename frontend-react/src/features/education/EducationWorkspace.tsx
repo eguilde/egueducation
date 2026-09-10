@@ -21,7 +21,7 @@ import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
 import { Tag } from "@primereact/ui/tag";
-import { useAuth } from "../../auth/AuthProvider";
+import { useAuth, type EducationDelegationGrant } from "../../auth/AuthProvider";
 import type { ContractClient } from "../../api/client";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { visibleEducationAreas } from "./catalog";
@@ -29,7 +29,6 @@ import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
 import {
   createEducationDelegationApi,
   EducationDelegationManager,
-  type EducationDelegation,
   type EducationDelegationApi,
 } from "./EducationDelegationManager";
 import {
@@ -39,17 +38,31 @@ import {
 } from "./PortfolioIntertenantTransfer";
 import { PortfolioValorificationPackageManager } from "./PortfolioValorificationPackageManager";
 import { PortfolioProcedureManager, type PortfolioProcedureApi, type PortfolioProcedure as ProcedureView, type PortfolioProcedureRule as ProcedureRuleView } from "./PortfolioProcedureManager";
+import { RoleCockpit, type RoleCockpitKind } from "./RoleCockpits";
+import { createRoleCockpitsApi, roleCockpitLoader } from "./role-cockpits-api";
 import type {
   EducationApi,
   DirectorCockpit,
   EducationArea,
   EducationModule,
+  EducationMetadataResource,
   EducationPage,
   EducationPdfRecordsDomain,
   EducationRecord,
   EducationRecordInput,
+  EducationRelatedResource,
   EducationRecordsDomain,
+  EducationRootCreateInputByDomain,
+  EducationRootUpdateInputByDomain,
+  EducationRequirement,
+  CreatePortfolioChecklistItemInput,
+  CreatePortfolioCustodyEventInput,
+  CreatePortfolioDocumentInput,
+  CreatePortfolioOpisEntryInput,
+  CreatePortfolioReviewEventInput,
   GovernanceMeeting,
+  GovernanceMeetingInput,
+  PortfolioSection,
 } from "./types";
 
 const Spinner = () => (
@@ -63,7 +76,7 @@ const Spinner = () => (
 
 export function educationPermissionAllows(
   directPermissions: readonly string[],
-  activeDelegations: ReadonlyArray<Pick<EducationDelegation, "permission_code" | "resource_type" | "resource_id">>,
+  activeDelegations: ReadonlyArray<Pick<EducationDelegationGrant, "permission_code" | "resource_type" | "resource_id">>,
   permission: string,
   resourceType = "institution",
   resourceID?: string,
@@ -71,8 +84,9 @@ export function educationPermissionAllows(
   if (directPermissions.includes(permission)) return true;
   return activeDelegations.some((item) =>
     item.permission_code === permission &&
-    (item.resource_type === "institution" ||
-      (item.resource_type === resourceType && Boolean(resourceID) && item.resource_id === resourceID)),
+    (resourceType === "institution"
+      ? item.resource_type === "institution"
+      : item.resource_type === resourceType && Boolean(resourceID) && item.resource_id === resourceID),
   );
 }
 
@@ -82,7 +96,8 @@ const procedureView = (item: import("./types").PortfolioProcedure): ProcedureVie
 });
 const procedureRuleView = (item: import("./types").PortfolioProcedureRule): ProcedureRuleView => ({
   id: item.id, legal_section_code: item.section_code, label: item.label_ro,
-  required: item.required, minimum_evidence_count: 1, sort_order: item.sort_order,
+  label_en: item.label_en, source_catalog_version: item.source_catalog_version, active: item.active,
+  required: item.required, sort_order: item.sort_order,
 });
 function portfolioProcedureAdapter(api: EducationApi): PortfolioProcedureApi {
   return {
@@ -93,7 +108,19 @@ function portfolioProcedureAdapter(api: EducationApi): PortfolioProcedureApi {
       const current = await api.portfolioProcedure(id);
       return procedureView(await api.updatePortfolioProcedure(id, { procedure_code: input.code, title: input.title, source_ref: input.description ?? current.source_ref, effective_from: current.effective_from, effective_to: current.effective_to, calendar_rules: current.calendar_rules, access_rules: current.access_rules, accepted_formats: current.accepted_formats, retention_rules: current.retention_rules, transfer_rules: current.transfer_rules, expected_updated_at: input.expected_updated_at ?? current.updated_at }));
     },
-    rules: async (id) => (await api.portfolioProcedureRules(id)).items.map(procedureRuleView),
+    rules: async (id, query) => {
+      const result = await api.portfolioProcedureRules(id, query);
+      return { ...result, items: result.items.map(procedureRuleView) };
+    },
+    replaceRules: async (id, input) => api.replacePortfolioProcedureRules(id, {
+      expected_updated_at: input.expected_updated_at,
+      rules: input.rules.map((rule) => ({
+        id: rule.id ?? globalThis.crypto.randomUUID(), procedure_id: id,
+        section_code: rule.legal_section_code, label_ro: rule.label ?? "", label_en: rule.label_en ?? "",
+        source_catalog_version: rule.source_catalog_version ?? "", required: rule.required,
+        sort_order: rule.sort_order ?? 0, active: rule.active ?? true,
+      })),
+    }),
     transition: async (id, input) => procedureView(await api.transitionPortfolioProcedure(id, input.transition, { expected_updated_at: input.expected_updated_at, evidence: { reference: input.evidence } })),
   };
 }
@@ -170,6 +197,10 @@ export interface EducationListPanelProps<T extends { id: string }> {
   emptyMessage: string;
   onAdd?: () => void;
   addLabel?: string;
+  /** Only expose documented server-side header filters. Defaults preserve existing registry contracts. */
+  filterableFields?: readonly string[];
+  /** Only expose sorting where the endpoint contract accepts it. Defaults preserve existing registry contracts. */
+  sortableFields?: readonly string[];
 }
 
 /** Reusable authenticated list state for all paginated Education resources. */
@@ -181,6 +212,8 @@ export function EducationListPanel<T extends { id: string }>({
   emptyMessage,
   onAdd,
   addLabel = "înregistrare",
+  filterableFields,
+  sortableFields,
 }: EducationListPanelProps<T>) {
   // Backend list contracts expose documented field filters; `q` is not a
   // supported Education query parameter, so never offer a misleading global
@@ -302,7 +335,7 @@ export function EducationListPanel<T extends { id: string }>({
                           frozen={column.action || undefined}
                           alignFrozen={column.action ? "right" : undefined}
                         >
-                          {column.field ? (
+                          {column.field && (sortableFields === undefined || sortableFields.includes(column.field)) ? (
                             <Button
                               variant="text"
                               size="small"
@@ -348,7 +381,7 @@ export function EducationListPanel<T extends { id: string }>({
                           ) : (
                             <span>{column.header}</span>
                           )}
-                          {column.field && (
+                          {column.field && (filterableFields === undefined || filterableFields.includes(column.field)) && (
                             <InputText
                               aria-label={`Filtru ${column.header}`}
                               className="mt-1 w-full"
@@ -701,7 +734,7 @@ function GovernanceMeetingsPage({
         onSave={() =>
           editing &&
           action(async () => {
-            await api.saveGovernanceMeeting(editing.input, editing.id);
+            await api.saveGovernanceMeeting(governanceMeetingInput(editing.input), editing.id);
           })
         }
       />
@@ -731,7 +764,7 @@ function GovernanceMeetingsPage({
           {
             id: "memberships",
             label: "Membri",
-            path: () => "/education/governance/memberships",
+            resource: "governance-memberships",
             fields: [
               { key: "school_year", label: "An școlar" },
               { key: "organism", label: "Organism" },
@@ -756,7 +789,7 @@ function GovernanceMeetingsPage({
       />
       <EducationMetadata
         api={api}
-        paths={["/education/governance/meetings/filters"]}
+        resources={["governance-meeting-filters"]}
       />
       <GovernanceMeetingRelations
         api={api}
@@ -767,9 +800,9 @@ function GovernanceMeetingsPage({
           {
             id: "bodies",
             label: "Organisme",
-            path: () => "/education/governance/bodies",
-            summary: (_, id) =>
-              `/education/governance/bodies/${encodeURIComponent(id)}/completeness-summary`,
+            resource: "governance-bodies",
+            readOnly: true,
+            summary: "governance-body-completeness",
             fields: [
               { key: "school_year", label: "An școlar" },
               { key: "organism", label: "Denumire" },
@@ -794,9 +827,8 @@ function GovernanceMeetingsPage({
       {selectedMeetingId && (
         <EducationMetadata
           api={api}
-          paths={[
-            `/education/governance/meetings/${encodeURIComponent(selectedMeetingId)}/finalization-summary`,
-          ]}
+          resources={["governance-meeting-finalization"]}
+          parentID={selectedMeetingId}
         />
       )}
     </div>
@@ -806,7 +838,7 @@ function GovernanceMeetingsPage({
 type RelatedConfig = {
   id: string;
   label: string;
-  path: (parentId: string) => string;
+  resource: EducationRelatedResource;
   fields: RecordField[];
   /**
    * A subresource may deliberately be governed by a narrower permission than
@@ -814,16 +846,18 @@ type RelatedConfig = {
    * from offering an action that the backend will reject.
    */
   managePermission?: string;
+  /** A governed projection may be inspected but not edited generically. */
+  readOnly?: boolean;
   pdf?: boolean;
-  advance?: (parentId: string, itemId: string) => string;
-  summary?: (parentId: string, itemId: string) => string;
+  /** The sole handler-declared server-side filter for this related endpoint. */
+  filterKey?: string;
+  summary?: EducationMetadataResource;
 };
 const meetingRelations: RelatedConfig[] = [
   {
     id: "participants",
     label: "Participanți",
-    path: (id) =>
-      `/education/governance/meetings/${encodeURIComponent(id)}/participants`,
+    resource: "meeting-participants",
     fields: [
       { key: "full_name", label: "Nume" },
       { key: "role_name", label: "Rol" },
@@ -837,8 +871,7 @@ const meetingRelations: RelatedConfig[] = [
   {
     id: "documents",
     label: "Documente",
-    path: (id) =>
-      `/education/governance/meetings/${encodeURIComponent(id)}/documents`,
+    resource: "meeting-documents",
     pdf: true,
     fields: [
       { key: "document_type", label: "Tip document" },
@@ -855,8 +888,7 @@ const meetingRelations: RelatedConfig[] = [
   {
     id: "votes",
     label: "Voturi",
-    path: (id) =>
-      `/education/governance/meetings/${encodeURIComponent(id)}/votes`,
+    resource: "meeting-votes",
     fields: [
       { key: "subject_title", label: "Subiect" },
       { key: "agenda_order", label: "Ordine", kind: "number" },
@@ -873,8 +905,7 @@ const meetingRelations: RelatedConfig[] = [
   {
     id: "minutes",
     label: "Minute",
-    path: (id) =>
-      `/education/governance/meetings/${encodeURIComponent(id)}/minutes`,
+    resource: "meeting-minutes",
     pdf: true,
     fields: [
       { key: "agenda_order", label: "Ordine", kind: "number" },
@@ -891,8 +922,7 @@ const meetingRelations: RelatedConfig[] = [
   {
     id: "resolutions",
     label: "Hotărâri",
-    path: (id) =>
-      `/education/governance/meetings/${encodeURIComponent(id)}/resolutions`,
+    resource: "meeting-resolutions",
     pdf: true,
     fields: [
       { key: "vote_id", label: "Vot" },
@@ -914,15 +944,17 @@ const domainRelations: Partial<
     id: "issuances",
     label: "Emiteri",
     managePermission: "education.decisions.issuance.manage",
-      path: (id) =>
-        `/education/decisions/records/${encodeURIComponent(id)}/issuances`,
+      resource: "decision-issuances",
       fields: [
-        { key: "issuance_code", label: "Cod emitere" },
-        { key: "issuance_type", label: "Tip" },
-        { key: "status", label: "Stare" },
-        { key: "issued_on", label: "Emis la", kind: "date" },
-        { key: "signed_by", label: "Semnat de" },
+        { key: "document_type", label: "Tip document" },
         { key: "recipient_name", label: "Destinatar" },
+        { key: "recipient_role", label: "Funcție destinatar" },
+        { key: "delivery_channel", label: "Canal transmitere" },
+        { key: "delivery_status", label: "Stare transmitere" },
+        { key: "signed_on", label: "Semnat la", kind: "date" },
+        { key: "delivered_on", label: "Predat la", kind: "date" },
+        { key: "acknowledged_on", label: "Confirmat la", kind: "date" },
+        { key: "file_reference", label: "Referință fișier" },
         { key: "notes", label: "Note" },
       ],
     },
@@ -930,8 +962,7 @@ const domainRelations: Partial<
     id: "publication-steps",
     label: "Pași publicare",
     managePermission: "education.compliance.manage",
-      path: (id) =>
-        `/education/decisions/records/${encodeURIComponent(id)}/publication-steps`,
+      resource: "decision-publication-steps",
       fields: [
         { key: "step_order", label: "Ordine", kind: "number" },
         { key: "step_type", label: "Tip pas" },
@@ -949,8 +980,7 @@ const domainRelations: Partial<
     {
       id: "versions",
       label: "Versiuni",
-      path: (id) =>
-        `/education/regulations/records/${encodeURIComponent(id)}/versions`,
+      resource: "regulation-versions",
       fields: [
         { key: "version_label", label: "Versiune" },
         { key: "version_status", label: "Stare" },
@@ -959,21 +989,24 @@ const domainRelations: Partial<
         { key: "effective_from", label: "Aplicabil de la", kind: "date" },
         { key: "published_on", label: "Publicat la", kind: "date" },
         { key: "file_reference", label: "Referință fișier" },
+        { key: "change_summary", label: "Sinteza modificărilor" },
       ],
     },
     {
       id: "workflow",
       label: "Pași flux",
-      path: (id) =>
-        `/education/regulations/records/${encodeURIComponent(id)}/workflow`,
+      resource: "regulation-workflow",
       fields: [
-        { key: "stage_order", label: "Ordine", kind: "number" },
-        { key: "stage_type", label: "Etapă" },
+        { key: "phase_order", label: "Ordine", kind: "number" },
+        { key: "phase_type", label: "Etapă" },
+        { key: "audience", label: "Destinatari" },
+        { key: "started_on", label: "Început la", kind: "date" },
         { key: "status", label: "Stare" },
-        { key: "assigned_to", label: "Alocat" },
         { key: "due_on", label: "Termen", kind: "date" },
         { key: "completed_on", label: "Finalizat la", kind: "date" },
-        { key: "outcome_note", label: "Rezultat" },
+        { key: "decision_reference", label: "Referință decizie" },
+        { key: "feedback_count", label: "Observații", kind: "number" },
+        { key: "notes", label: "Note" },
       ],
     },
   ],
@@ -982,14 +1015,14 @@ const domainRelations: Partial<
     id: "members",
     label: "Membri comisie",
     managePermission: "education.governance.manage",
-      path: (id) =>
-        `/education/committees/records/${encodeURIComponent(id)}/members`,
+      resource: "committee-members",
       fields: [
         { key: "full_name", label: "Nume complet" },
         { key: "role_name", label: "Rol" },
         { key: "member_type", label: "Tip" },
-        { key: "mandate_from", label: "Mandat de la", kind: "date" },
-        { key: "mandate_to", label: "Mandat până la", kind: "date" },
+        { key: "appointed_on", label: "Numit la", kind: "date" },
+        { key: "released_on", label: "Eliberat la", kind: "date" },
+        { key: "voting_right", label: "Drept vot", kind: "boolean" },
         { key: "status", label: "Stare" },
         { key: "notes", label: "Note" },
       ],
@@ -999,8 +1032,7 @@ const domainRelations: Partial<
     {
       id: "documents",
       label: "Documente dosar",
-      path: (id) =>
-        `/education/managerial/records/${encodeURIComponent(id)}/documents`,
+      resource: "managerial-documents",
       pdf: true,
       fields: [
         { key: "document_category", label: "Categorie" },
@@ -1019,8 +1051,7 @@ const domainRelations: Partial<
     {
       id: "workflow",
       label: "Pași flux",
-      path: (id) =>
-        `/education/managerial/records/${encodeURIComponent(id)}/workflow`,
+      resource: "managerial-workflow",
       fields: [
         { key: "stage_order", label: "Ordine", kind: "number" },
         { key: "stage_type", label: "Etapă" },
@@ -1038,16 +1069,16 @@ const domainRelations: Partial<
     {
       id: "assignments",
       label: "Încadrări",
-      path: (id) =>
-        `/education/personnel/records/${encodeURIComponent(id)}/assignments`,
+      resource: "personnel-assignments",
       fields: [
-        { key: "position_title", label: "Funcție" },
-        { key: "organizational_unit", label: "Unitate" },
+        { key: "assignment_code", label: "Cod încadrare", form: false },
+        { key: "assignment_title", label: "Titlu încadrare" },
         { key: "assignment_type", label: "Tip" },
         { key: "status", label: "Stare" },
-        { key: "start_date", label: "De la", kind: "date" },
-        { key: "end_date", label: "Până la", kind: "date" },
-        { key: "workload", label: "Normă", kind: "number" },
+        { key: "assigned_on", label: "Atribuit la", kind: "date" },
+        { key: "ended_on", label: "Încheiat la", kind: "date" },
+        { key: "weekly_hours", label: "Ore săptămânale", kind: "number" },
+        { key: "decision_reference", label: "Referință decizie" },
         { key: "notes", label: "Note" },
       ],
     },
@@ -1055,43 +1086,52 @@ const domainRelations: Partial<
     id: "file-documents",
     label: "Documente dosar",
     managePermission: "education.personnel.files.manage",
-      path: (id) =>
-        `/education/personnel/records/${encodeURIComponent(id)}/file-documents`,
+      resource: "personnel-file-documents",
       fields: [
-        { key: "document_type", label: "Tip document" },
-        { key: "title", label: "Titlu" },
-        { key: "status", label: "Stare" },
+        { key: "document_code", label: "Cod document", form: false },
+        { key: "document_category", label: "Categorie document" },
+        { key: "document_title", label: "Titlu" },
+        { key: "confidentiality_level", label: "Nivel confidențialitate" },
+        { key: "file_scope", label: "Domeniu fișier" },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "expires_on", label: "Expiră la", kind: "date" },
         { key: "file_reference", label: "Referință fișier" },
+        { key: "included_in_portfolio", label: "Inclus în portofoliu", kind: "boolean" },
+        { key: "sensitive_data", label: "Date sensibile", kind: "boolean" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "disciplinary-cases",
       label: "Cazuri disciplinare",
-      path: (id) =>
-        `/education/personnel/records/${encodeURIComponent(id)}/disciplinary-cases`,
+      resource: "personnel-disciplinary-cases",
       fields: [
-        { key: "case_code", label: "Cod" },
+        { key: "case_code", label: "Cod caz", form: false },
+        { key: "case_type", label: "Tip caz" },
         { key: "status", label: "Stare" },
-        { key: "opened_on", label: "Deschis la", kind: "date" },
-        { key: "closed_on", label: "Închis la", kind: "date" },
-        { key: "summary", label: "Rezumat" },
-        { key: "outcome", label: "Rezultat" },
+        { key: "reported_on", label: "Raportat la", kind: "date" },
+        { key: "hearing_on", label: "Audiere la", kind: "date" },
+        { key: "resolved_on", label: "Soluționat la", kind: "date" },
+        { key: "committee_name", label: "Comisie" },
+        { key: "legal_basis", label: "Temei legal" },
+        { key: "sanction", label: "Sancțiune" },
+        { key: "notes", label: "Note" },
       ],
     },
   {
     id: "access-events",
     label: "Evenimente acces",
     managePermission: "education.personnel.access.manage",
-      path: (id) =>
-        `/education/personnel/records/${encodeURIComponent(id)}/access-events`,
+      resource: "personnel-access-events",
       fields: [
         { key: "event_type", label: "Tip" },
-        { key: "occurred_on", label: "Data", kind: "date" },
+        { key: "accessed_on", label: "Accesat la", kind: "date" },
+        { key: "closed_on", label: "Închis la", kind: "date" },
         { key: "actor_name", label: "Operator" },
-        { key: "reason", label: "Motiv" },
+        { key: "actor_role", label: "Rol operator" },
+        { key: "access_channel", label: "Canal acces" },
+        { key: "purpose", label: "Scop" },
+        { key: "sensitive_scope", label: "Domeniu sensibil", kind: "boolean" },
         { key: "notes", label: "Note" },
       ],
     },
@@ -1100,59 +1140,72 @@ const domainRelations: Partial<
     {
       id: "self-reviews",
       label: "Autoevaluări",
-      path: (id) =>
-        `/education/evaluations/records/${encodeURIComponent(id)}/self-reviews`,
+      resource: "evaluation-self-reviews",
       fields: [
-        { key: "submitted_on", label: "Depus la", kind: "date" },
+        { key: "review_code", label: "Cod autoevaluare", form: false },
+        { key: "completed_on", label: "Finalizat la", kind: "date" },
+        { key: "narrative_type", label: "Tip relatare" },
+        { key: "section_title", label: "Secțiune" },
         { key: "status", label: "Stare" },
-        { key: "score", label: "Punctaj", kind: "number" },
-        { key: "summary", label: "Rezumat" },
+        { key: "assumed_score", label: "Punctaj asumat", kind: "number" },
+        { key: "evidence_summary", label: "Sinteză dovezi" },
+        { key: "strengths", label: "Puncte forte" },
+        { key: "improvement_needs", label: "Nevoi îmbunătățire" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "criteria",
       label: "Criterii",
-      path: (id) =>
-        `/education/evaluations/records/${encodeURIComponent(id)}/criteria`,
+      resource: "evaluation-criteria",
       fields: [
-        { key: "criterion_code", label: "Cod" },
+        { key: "criterion_code", label: "Cod criteriu", form: false },
+        { key: "criterion_category", label: "Categorie" },
         { key: "criterion_label", label: "Criteriu" },
         { key: "max_score", label: "Maxim", kind: "number" },
-        { key: "awarded_score", label: "Acordat", kind: "number" },
+        { key: "self_score", label: "Autoevaluare", kind: "number" },
+        { key: "reviewer_score", label: "Evaluator", kind: "number" },
+        { key: "final_score", label: "Final", kind: "number" },
         { key: "status", label: "Stare" },
+        { key: "evidence_summary", label: "Sinteză dovezi" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "appeals",
       label: "Contestații",
-      path: (id) =>
-        `/education/evaluations/records/${encodeURIComponent(id)}/appeals`,
+      resource: "evaluation-appeals",
       pdf: true,
       fields: [
+        { key: "appeal_code", label: "Cod contestație", form: false },
         { key: "submitted_by", label: "Depus de" },
         { key: "submitted_on", label: "Depus la", kind: "date" },
         { key: "status", label: "Stare" },
         { key: "grounds", label: "Motive" },
+        { key: "hearing_on", label: "Audiere la", kind: "date" },
         { key: "resolved_on", label: "Soluționat la", kind: "date" },
         { key: "decision_summary", label: "Decizie" },
-        { key: "notes", label: "Note" },
+        { key: "committee_note", label: "Notă comisie" },
+        { key: "attached_to_personnel_file", label: "Atașat dosar personal", kind: "boolean" },
       ],
     },
     {
       id: "result-issues",
       label: "Comunicări rezultat",
-      path: (id) =>
-        `/education/evaluations/records/${encodeURIComponent(id)}/result-issues`,
+      resource: "evaluation-result-issues",
       pdf: true,
       fields: [
+        { key: "issue_code", label: "Cod comunicare", form: false },
         { key: "document_type", label: "Tip document" },
         { key: "recipient_name", label: "Destinatar" },
+        { key: "recipient_role", label: "Rol destinatar" },
         { key: "delivery_channel", label: "Canal" },
         { key: "delivery_status", label: "Stare livrare" },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "delivered_on", label: "Livrat la", kind: "date" },
+        { key: "acknowledged_on", label: "Confirmat la", kind: "date" },
+        { key: "registry_reference", label: "Referință registratură" },
+        { key: "attached_to_personnel_file", label: "Atașat dosar personal", kind: "boolean" },
         { key: "notes", label: "Note" },
       ],
     },
@@ -1161,13 +1214,17 @@ const domainRelations: Partial<
     {
       id: "documents",
       label: "Documente",
-      path: (id) =>
-        `/education/mobility/records/${encodeURIComponent(id)}/documents`,
+      resource: "mobility-documents",
+      filterKey: "document_code",
       fields: [
+        { key: "document_code", label: "Cod document", form: false },
         { key: "document_type", label: "Tip" },
         { key: "document_title", label: "Titlu" },
         { key: "registered_on", label: "Înregistrat la", kind: "date" },
         { key: "validation_status", label: "Validare" },
+        { key: "stage_scope", label: "Etapă document" },
+        { key: "submitted_by", label: "Depus de" },
+        { key: "verified_by", label: "Verificat de" },
         { key: "mandatory", label: "Obligatoriu", kind: "boolean" },
         { key: "notes", label: "Note" },
       ],
@@ -1175,28 +1232,33 @@ const domainRelations: Partial<
     {
       id: "scores",
       label: "Punctaje",
-      path: (id) =>
-        `/education/mobility/records/${encodeURIComponent(id)}/scores`,
+      resource: "mobility-scores",
+      filterKey: "criterion_code",
       fields: [
+        { key: "criterion_category", label: "Categorie criteriu" },
         { key: "criterion_code", label: "Cod criteriu" },
         { key: "criterion_label", label: "Criteriu" },
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "awarded_score", label: "Acordat", kind: "number" },
-        { key: "reviewer_name", label: "Evaluator" },
+        { key: "contested", label: "Contestat", kind: "boolean" },
+        { key: "evidence_reference", label: "Referință dovezi" },
+        { key: "validated_by", label: "Validat de" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "appeals",
       label: "Contestații",
-      path: (id) =>
-        `/education/mobility/records/${encodeURIComponent(id)}/appeals`,
+      resource: "mobility-appeals",
       pdf: true,
+      filterKey: "appeal_code",
       fields: [
+        { key: "appeal_code", label: "Cod contestație", form: false },
         { key: "submitted_by", label: "Depus de" },
         { key: "submitted_on", label: "Depus la", kind: "date" },
         { key: "status", label: "Stare" },
         { key: "grounds", label: "Motive" },
+        { key: "hearing_on", label: "Audiere la", kind: "date" },
         { key: "resolved_on", label: "Soluționat la", kind: "date" },
         { key: "decision_summary", label: "Decizie" },
         { key: "notes", label: "Note" },
@@ -1205,15 +1267,17 @@ const domainRelations: Partial<
     {
       id: "final-decisions",
       label: "Decizii finale",
-      path: (id) =>
-        `/education/mobility/records/${encodeURIComponent(id)}/final-decisions`,
+      resource: "mobility-final-decisions",
       pdf: true,
+      filterKey: "decision_code",
       fields: [
-        { key: "decision_stage", label: "Etapă" },
+        { key: "decision_code", label: "Cod decizie", form: false },
+        { key: "decision_type", label: "Tip decizie" },
         { key: "outcome", label: "Rezultat" },
         { key: "approved_on", label: "Aprobat la", kind: "date" },
         { key: "effective_from", label: "Aplicabil de la", kind: "date" },
         { key: "panel_name", label: "Comisie" },
+        { key: "destination_unit", label: "Unitate destinație" },
         { key: "legal_basis", label: "Temei legal" },
         { key: "notes", label: "Note" },
       ],
@@ -1221,10 +1285,11 @@ const domainRelations: Partial<
     {
       id: "result-issues",
       label: "Comunicări rezultat",
-      path: (id) =>
-        `/education/mobility/records/${encodeURIComponent(id)}/result-issues`,
+      resource: "mobility-result-issues",
       pdf: true,
+      filterKey: "issue_code",
       fields: [
+        { key: "issue_code", label: "Cod comunicare", form: false },
         { key: "document_type", label: "Tip document" },
         { key: "recipient_name", label: "Destinatar" },
         { key: "recipient_role", label: "Funcție" },
@@ -1232,6 +1297,7 @@ const domainRelations: Partial<
         { key: "delivery_status", label: "Stare livrare" },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "delivered_on", label: "Livrat la", kind: "date" },
+        { key: "registry_reference", label: "Referință registratură" },
         { key: "notes", label: "Note" },
       ],
     },
@@ -1240,13 +1306,15 @@ const domainRelations: Partial<
     {
       id: "documents",
       label: "Documente",
-      path: (id) =>
-        `/education/gradatii/records/${encodeURIComponent(id)}/documents`,
+      resource: "merit-documents",
+      filterKey: "document_code",
       fields: [
+        { key: "document_code", label: "Cod document", form: false },
         { key: "document_type", label: "Tip" },
         { key: "document_title", label: "Titlu" },
         { key: "registered_on", label: "Înregistrat la", kind: "date" },
         { key: "validation_status", label: "Validare" },
+        { key: "submitted_by", label: "Depus de" },
         { key: "mandatory", label: "Obligatoriu", kind: "boolean" },
         { key: "notes", label: "Note" },
       ],
@@ -1254,8 +1322,8 @@ const domainRelations: Partial<
     {
       id: "scores",
       label: "Punctaje",
-      path: (id) =>
-        `/education/gradatii/records/${encodeURIComponent(id)}/scores`,
+      resource: "merit-scores",
+      filterKey: "criterion_code",
       fields: [
         { key: "criterion_code", label: "Cod criteriu" },
         { key: "criterion_label", label: "Criteriu" },
@@ -1263,16 +1331,20 @@ const domainRelations: Partial<
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "awarded_score", label: "Acordat", kind: "number" },
         { key: "reviewer_name", label: "Evaluator" },
+        { key: "panel_stage", label: "Etapă comisie" },
+        { key: "contested", label: "Contestat", kind: "boolean" },
+        { key: "evidence_reference", label: "Referință dovezi" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "appeals",
       label: "Contestații",
-      path: (id) =>
-        `/education/gradatii/records/${encodeURIComponent(id)}/appeals`,
+      resource: "merit-appeals",
       pdf: true,
+      filterKey: "appeal_code",
       fields: [
+        { key: "appeal_code", label: "Cod contestație", form: false },
         { key: "submitted_by", label: "Depus de" },
         { key: "submitted_on", label: "Depus la", kind: "date" },
         { key: "status", label: "Stare" },
@@ -1285,26 +1357,29 @@ const domainRelations: Partial<
     {
       id: "final-decisions",
       label: "Decizii finale",
-      path: (id) =>
-        `/education/gradatii/records/${encodeURIComponent(id)}/final-decisions`,
+      resource: "merit-final-decisions",
       pdf: true,
+      filterKey: "decision_code",
       fields: [
+        { key: "decision_code", label: "Cod decizie", form: false },
         { key: "decision_stage", label: "Etapă" },
         { key: "outcome", label: "Rezultat" },
         { key: "approved_on", label: "Aprobat la", kind: "date" },
         { key: "effective_from", label: "Aplicabil de la", kind: "date" },
         { key: "panel_name", label: "Comisie" },
         { key: "funded", label: "Finanțat", kind: "boolean" },
+        { key: "legal_basis", label: "Temei legal" },
         { key: "notes", label: "Note" },
       ],
     },
     {
       id: "result-issues",
       label: "Comunicări rezultat",
-      path: (id) =>
-        `/education/gradatii/records/${encodeURIComponent(id)}/result-issues`,
+      resource: "merit-result-issues",
       pdf: true,
+      filterKey: "issue_code",
       fields: [
+        { key: "issue_code", label: "Cod comunicare", form: false },
         { key: "document_type", label: "Tip document" },
         { key: "recipient_name", label: "Destinatar" },
         { key: "recipient_role", label: "Funcție" },
@@ -1312,116 +1387,15 @@ const domainRelations: Partial<
         { key: "delivery_status", label: "Stare livrare" },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "delivered_on", label: "Livrat la", kind: "date" },
+        { key: "registry_reference", label: "Referință registratură" },
         { key: "notes", label: "Note" },
       ],
     },
   ],
-  portfolios: [
-    {
-      id: "documents",
-      label: "Documente",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/documents`,
-      fields: [
-        { key: "document_type", label: "Tip" },
-        { key: "document_title", label: "Titlu" },
-        { key: "section_code", label: "Secțiune" },
-        { key: "status", label: "Stare" },
-        { key: "issued_on", label: "Emis la", kind: "date" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-    {
-      id: "checklist",
-      label: "Checklist",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/checklist`,
-      fields: [
-        { key: "requirement_code", label: "Cod cerință" },
-        { key: "requirement_label", label: "Cerință" },
-        { key: "section_code", label: "Secțiune" },
-        { key: "mandatory", label: "Obligatoriu", kind: "boolean" },
-        { key: "status", label: "Stare" },
-        { key: "document_count", label: "Documente", kind: "number" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-    {
-      id: "opis",
-      label: "Opis",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/opis`,
-      fields: [
-        { key: "section_code", label: "Secțiune" },
-        { key: "component_code", label: "Componentă" },
-        { key: "entry_title", label: "Titlu" },
-        { key: "chronological_index", label: "Ordine", kind: "number" },
-        { key: "document_reference", label: "Referință" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-    {
-      id: "custody",
-      label: "Custodie",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/custody`,
-      fields: [
-        { key: "event_type", label: "Tip eveniment" },
-        { key: "custodian", label: "Custode" },
-        { key: "occurred_on", label: "Data", kind: "date" },
-        { key: "status", label: "Stare" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-    {
-      id: "reviews",
-      label: "Revizuiri",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/reviews`,
-      fields: [
-        { key: "review_code", label: "Cod" },
-        { key: "review_stage", label: "Etapă" },
-        { key: "outcome", label: "Rezultat" },
-        { key: "reviewer_name", label: "Evaluator" },
-        { key: "reviewed_on", label: "Data", kind: "date" },
-        { key: "compliance_score", label: "Punctaj", kind: "number" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-  {
-    id: "transfers",
-    label: "Transferuri",
-    managePermission: "education.portfolios.transfer",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/transfers`,
-      advance: (parentId, itemId) =>
-        `/education/portfolios/records/${encodeURIComponent(parentId)}/transfers/${encodeURIComponent(itemId)}/advance`,
-      fields: [
-        { key: "transfer_code", label: "Cod" },
-        { key: "transfer_type", label: "Tip" },
-        { key: "status", label: "Stare" },
-        { key: "requested_on", label: "Solicitat la", kind: "date" },
-        { key: "target_institution", label: "Instituție țintă" },
-        { key: "requested_by", label: "Solicitat de" },
-        { key: "notes", label: "Note" },
-      ],
-    },
-    {
-      id: "valorifications",
-      label: "Valorificări",
-      path: (id) =>
-        `/education/portfolios/records/${encodeURIComponent(id)}/valorifications`,
-      fields: [
-        { key: "valorification_code", label: "Cod" },
-        { key: "scope", label: "Domeniu" },
-        { key: "status", label: "Stare" },
-        { key: "requested_by", label: "Solicitat de" },
-        { key: "target_institution", label: "Instituție țintă" },
-        { key: "started_on", label: "Început la", kind: "date" },
-        { key: "completed_on", label: "Finalizat la", kind: "date" },
-      ],
-    },
-  ],
+  // Portfolio relations use their own generated contracts below. They cannot
+  // use the generic related-record editor because each has a distinct body,
+  // query allow-list and lifecycle policy.
+  portfolios: [],
 };
 
 function GovernanceMeetingRelations({
@@ -1459,8 +1433,8 @@ function GovernanceMeetingRelations({
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [refresh, setRefresh] = useState(0);
   const filterEffectReady = useRef(false);
-  const relationCanManage = canManage(relation);
-  const path = relation.path(meetingId);
+  const relationCanManage = !relation.readOnly && canManage(relation);
+  const parentID = meetingId || undefined;
   const load = useCallback(async (
     nextPage = 1,
     nextPageSize = 20,
@@ -1470,7 +1444,7 @@ function GovernanceMeetingRelations({
     setLoading(true);
     setError(undefined);
     try {
-      const result = await api.relatedRecords(path, {
+      const result = await api.relatedRecords(relation.resource, parentID, {
         page: nextPage,
         pageSize: nextPageSize,
         sort: nextSort.field,
@@ -1485,7 +1459,7 @@ function GovernanceMeetingRelations({
     } finally {
       setLoading(false);
     }
-  }, [api, path]);
+  }, [api, parentID, relation.resource]);
   useEffect(() => {
     void load(1, 20, {}, {});
   }, [load, refresh]);
@@ -1562,50 +1536,33 @@ function GovernanceMeetingRelations({
                 <DataTable.Table>
                   <DataTable.THead className="sticky top-0 z-10">
                     <DataTable.THeadRow>
-                      <DataTable.THeadCell>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => {
-                            const field = relation.fields[0]?.key ?? "title";
-                            const direction = sort.field === field && sort.direction === "asc" ? "desc" : "asc";
-                            setSort({ field, direction });
-                            void load(1, pageSize, { field, direction }, filters);
-                          }}
-                        >
-                          Înregistrare{sort.field === (relation.fields[0]?.key ?? "title") ? sort.direction === "asc" ? " ↑" : " ↓" : ""}
-                        </Button>
-                        <InputText
-                          aria-label="Filtru Înregistrare"
-                          className="mt-1 w-full"
-                          value={filters[relation.fields[0]?.key ?? "title"] ?? ""}
-                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            setFilters((current) => ({ ...current, [relation.fields[0]?.key ?? "title"]: event.target.value }))
-                          }
-                        />
-                      </DataTable.THeadCell>
-                      <DataTable.THeadCell>
-                        <Button
-                          size="small"
-                          variant="text"
-                          onClick={() => {
-                            const field = "status";
-                            const direction = sort.field === field && sort.direction === "asc" ? "desc" : "asc";
-                            setSort({ field, direction });
-                            void load(1, pageSize, { field, direction }, filters);
-                          }}
-                        >
-                          Stare{sort.field === "status" ? sort.direction === "asc" ? " ↑" : " ↓" : ""}
-                        </Button>
-                        <InputText
-                          aria-label="Filtru Stare"
-                          className="mt-1 w-full"
-                          value={filters.status ?? ""}
-                          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            setFilters((current) => ({ ...current, status: event.target.value }))
-                          }
-                        />
-                      </DataTable.THeadCell>
+                      {relation.fields.map((field) => (
+                        <DataTable.THeadCell key={field.key}>
+                          <div className="flex min-w-36 flex-col gap-1">
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => {
+                                const direction = sort.field === field.key && sort.direction === "asc" ? "desc" : "asc";
+                                setSort({ field: field.key, direction });
+                                void load(1, pageSize, { field: field.key, direction }, filters);
+                              }}
+                            >
+                              {field.label}{sort.field === field.key ? sort.direction === "asc" ? " ↑" : " ↓" : ""}
+                            </Button>
+                            {relation.filterKey === field.key && (
+                              <InputText
+                                aria-label={`Filtru ${field.label}`}
+                                className="w-full"
+                                value={filters[field.key] ?? ""}
+                                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                                  setFilters((current) => ({ ...current, [field.key]: event.target.value }))
+                                }
+                              />
+                            )}
+                          </div>
+                        </DataTable.THeadCell>
+                      ))}
                       <DataTable.THeadCell frozen alignFrozen="right">
                         <span className="flex items-center justify-between gap-2">
                           <span>Acțiuni</span>
@@ -1634,12 +1591,15 @@ function GovernanceMeetingRelations({
                       const record = item as EducationRecord;
                       return (
                         <DataTable.Row key={record.id} index={index}>
-                          <DataTable.Cell>
-                            {displayRecord(record, recordPrimaryKeys)}
-                          </DataTable.Cell>
-                          <DataTable.Cell>
-                            {displayRecord(record, recordStatusKeys)}
-                          </DataTable.Cell>
+                          {relation.fields.map((field) => (
+                            <DataTable.Cell key={field.key}>
+                              {field.kind === "boolean"
+                                ? <Tag value={record[field.key] ? "Da" : "Nu"} severity={record[field.key] ? "success" : "secondary"} />
+                                : field.key.includes("status")
+                                  ? <Tag value={String(record[field.key] ?? "—")} severity="secondary" />
+                                  : displayRecord(record, [field.key])}
+                            </DataTable.Cell>
+                          ))}
                           <DataTable.Cell frozen alignFrozen="right">
                             <SchoolRowActionMenu
                               actions={[
@@ -1648,7 +1608,7 @@ function GovernanceMeetingRelations({
                                   icon: "pi pi-eye",
                                   onSelect: () =>
                                   void api
-                                    .relatedDetail(path, record.id)
+                                    .relatedDetail(relation.resource, parentID, record.id)
                                     .then((value) => {
                                       setDetail(value);
                                       setSelectedRelatedId(record.id);
@@ -1659,33 +1619,13 @@ function GovernanceMeetingRelations({
                                       ),
                                     ),
                                   },
-                                ...(relationCanManage && relation.advance
-                                  ? [{
-                                      label: "Avansează",
-                                      icon: "pi pi-arrow-right",
-                                      onSelect: () =>
-                                    void api
-                                      .command(
-                                        relation.advance?.(
-                                          meetingId,
-                                          record.id,
-                                        ) ?? "",
-                                      )
-                                      .then(() => setRefresh((value) => value + 1))
-                                      .catch(() =>
-                                        setError(
-                                          "Transferul nu a putut fi avansat.",
-                                          ),
-                                      ),
-                                      }]
-                                  : []),
                                 ...(relation.pdf
                                   ? [{
                                       label: "PDF",
                                       icon: "pi pi-file-pdf",
                                       onSelect: () =>
                                     viewPdf(
-                                      api.relatedPdf(path, record.id),
+                                      api.relatedPdf(relation.resource, parentID, record.id),
                                       () =>
                                         setError(
                                           "PDF-ul nu a putut fi încărcat.",
@@ -1755,7 +1695,7 @@ function GovernanceMeetingRelations({
                 </Message.Content>
               </Message.Root>
             )}
-            <RecordFormDialog
+            {relationCanManage && <RecordFormDialog
               open={editing}
               title={`${editing?.id ? "Editează" : "Adaugă"} ${relation.label.toLowerCase()}`}
               fields={relation.fields}
@@ -1768,10 +1708,10 @@ function GovernanceMeetingRelations({
               onSave={() =>
                 editing &&
                 void action(async () => {
-                  await api.saveRelated(path, editing.input, editing.id);
+                  await api.saveRelated(relation.resource, parentID, editing.input, editing.id);
                 })
               }
-            />
+            />}
             <RecordDetailDialog
               record={detail}
               title={relation.label}
@@ -1781,20 +1721,22 @@ function GovernanceMeetingRelations({
             {selectedRelatedId && relation.summary && (
               <EducationMetadata
                 api={api}
-                paths={[relation.summary(meetingId, selectedRelatedId)]}
+                resources={[relation.summary]}
+                parentID={selectedRelatedId}
               />
             )}
-            <DeleteDialog
+            {relationCanManage && <DeleteDialog
               open={pendingDelete}
               onClose={() => setPendingDelete(undefined)}
               onConfirm={() =>
                 pendingDelete &&
                 void action(async () => {
-                  await api.deleteRelated(path, pendingDelete);
+                  await api.deleteRelated(relation.resource, parentID, pendingDelete);
                   setPendingDelete(undefined);
                 })
               }
             />
+            }
           </div>
         </Card.Content>
       </Card.Body>
@@ -1826,8 +1768,10 @@ function displayRecord(record: EducationRecord, keys: readonly string[]) {
 type RecordField = {
   key: string;
   label: string;
-  kind?: "date" | "number" | "boolean" | "select";
+  kind?: "text" | "date" | "number" | "boolean" | "select";
   options?: Array<{ label: string; value: string }>;
+  /** Server-generated/list-only values are visible but never editable. */
+  form?: boolean;
 };
 const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
   decisions: [
@@ -1867,6 +1811,7 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "summary", label: "Rezumat" },
   ],
   committees: [
+    { key: "committee_code", label: "Cod comisie", form: false },
     { key: "school_year", label: "An școlar" },
     { key: "committee_type", label: "Tip" },
     { key: "title", label: "Denumire comisie" },
@@ -1969,6 +1914,77 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "notes", label: "Note" },
   ],
 };
+
+type DomainListCapabilities = {
+  /** Fields that the list endpoint documents as accepted header filters. */
+  filterableFields: readonly string[];
+  /** Fields that the list endpoint documents as accepted sorting keys. */
+  sortableFields: readonly string[];
+};
+
+/**
+ * Header controls are an API capability, not a presentation default.  Keeping
+ * this beside the field catalogue makes an unsupported query impossible to
+ * emit from a root registry.  Domains which have not yet tightened their
+ * generated list contract deliberately retain their current full-column UI;
+ * Comisii mirrors its backend allowlist exactly.
+ */
+export const domainListCapabilities: Record<
+  EducationRecordsDomain,
+  DomainListCapabilities
+> = {
+  decisions: {
+    filterableFields: domainFields.decisions.map((field) => field.key),
+    sortableFields: domainFields.decisions.map((field) => field.key),
+  },
+  managerial: {
+    filterableFields: domainFields.managerial.map((field) => field.key),
+    sortableFields: domainFields.managerial.map((field) => field.key),
+  },
+  regulations: {
+    filterableFields: domainFields.regulations.map((field) => field.key),
+    sortableFields: domainFields.regulations.map((field) => field.key),
+  },
+  committees: {
+    filterableFields: ["school_year", "committee_type", "title", "status"],
+    sortableFields: [
+      "school_year",
+      "committee_type",
+      "title",
+      "status",
+      "committee_code",
+      "starts_on",
+    ],
+  },
+  personnel: {
+    filterableFields: domainFields.personnel.map((field) => field.key),
+    sortableFields: domainFields.personnel.map((field) => field.key),
+  },
+  evaluations: {
+    filterableFields: domainFields.evaluations.map((field) => field.key),
+    sortableFields: domainFields.evaluations.map((field) => field.key),
+  },
+  declarations: {
+    filterableFields: domainFields.declarations.map((field) => field.key),
+    sortableFields: domainFields.declarations.map((field) => field.key),
+  },
+  mobility: {
+    filterableFields: domainFields.mobility.map((field) => field.key),
+    sortableFields: domainFields.mobility.map((field) => field.key),
+  },
+  merit: {
+    filterableFields: domainFields.merit.map((field) => field.key),
+    sortableFields: domainFields.merit.map((field) => field.key),
+  },
+  portfolios: {
+    filterableFields: domainFields.portfolios.map((field) => field.key),
+    sortableFields: domainFields.portfolios.map((field) => field.key),
+  },
+  compliance: {
+    filterableFields: domainFields.compliance.map((field) => field.key),
+    sortableFields: domainFields.compliance.map((field) => field.key),
+  },
+};
 function permissionForDomain(domain: EducationRecordsDomain) {
   return `education.${domain === "merit" ? "gradatii" : domain}.manage`;
 }
@@ -1987,7 +2003,7 @@ function delegationResourceTypeForDomain(domain: EducationRecordsDomain) {
     default: return "institution";
   }
 }
-const domainWizardRoutes: Partial<Record<EducationRecordsDomain, string>> = {
+export const domainWizardRoutes: Partial<Record<EducationRecordsDomain, string>> = {
   managerial: "/scoala/governance/managerial-wizard",
   personnel: "/scoala/personnel/wizard",
   evaluations: "/scoala/personnel/evaluations-wizard",
@@ -1995,22 +2011,6 @@ const domainWizardRoutes: Partial<Record<EducationRecordsDomain, string>> = {
   mobility: "/scoala/personnel/mobility-wizard",
   merit: "/scoala/personnel/merit-wizard",
   portfolios: "/scoala/portfolio/wizard",
-};
-const domainTableFields: Record<
-  EducationRecordsDomain,
-  { primary: string; status: string }
-> = {
-  decisions: { primary: "title", status: "status" },
-  managerial: { primary: "title", status: "status" },
-  regulations: { primary: "title", status: "status" },
-  committees: { primary: "title", status: "status" },
-  personnel: { primary: "full_name", status: "status" },
-  evaluations: { primary: "full_name", status: "status" },
-  declarations: { primary: "full_name", status: "status" },
-  mobility: { primary: "full_name", status: "status" },
-  merit: { primary: "full_name", status: "status" },
-  portfolios: { primary: "owner_name", status: "status" },
-  compliance: { primary: "entity_label", status: "publication_status" },
 };
 function supportsPdf(
   domain: EducationRecordsDomain,
@@ -2044,6 +2044,55 @@ function inputFromRecord(
       kind === "boolean" ? Boolean(record?.[key]) : (record?.[key] ?? ""),
     ]),
   ) as EducationRecordInput;
+}
+
+const stringInput = (input: EducationRecordInput, key: string) => typeof input[key] === "string" ? input[key] as string : "";
+const optionalStringInput = (input: EducationRecordInput, key: string) => typeof input[key] === "string" && input[key] !== "" ? input[key] as string : undefined;
+const optionalBooleanInput = (input: EducationRecordInput, key: string) => typeof input[key] === "boolean" ? input[key] as boolean : undefined;
+const optionalNumberInput = (input: EducationRecordInput, key: string) => typeof input[key] === "number" ? input[key] as number : undefined;
+const governanceMeetingInput = (input: EducationRecordInput): GovernanceMeetingInput => ({
+  chairperson: optionalStringInput(input, "chairperson"),
+  chairperson_user_id: stringInput(input, "chairperson_user_id"),
+  location: optionalStringInput(input, "location"),
+  meeting_date: stringInput(input, "meeting_date"),
+  meeting_type: stringInput(input, "meeting_type"),
+  organism: stringInput(input, "organism"),
+  participants_count: optionalNumberInput(input, "participants_count"),
+  quorum_required: optionalNumberInput(input, "quorum_required"),
+  school_year: stringInput(input, "school_year"),
+  secretary_name: optionalStringInput(input, "secretary_name"),
+  secretary_user_id: stringInput(input, "secretary_user_id"),
+  status: stringInput(input, "status"),
+  summary: optionalStringInput(input, "summary"),
+  title: stringInput(input, "title"),
+});
+
+/**
+ * A generic form may display a record projection, but it never becomes a
+ * transport body. Each case deliberately picks the create DTO allow-list, so
+ * ids, generated codes, retention and lifecycle fields cannot be submitted.
+ */
+export function createInputForDomain<D extends EducationRecordsDomain>(domain: D, input: EducationRecordInput): EducationRootCreateInputByDomain[D] {
+  switch (domain) {
+    case "decisions": { const dto: EducationRootCreateInputByDomain["decisions"] = { decision_date: stringInput(input, "decision_date"), legal_basis: optionalStringInput(input, "legal_basis"), organism: stringInput(input, "organism"), publication_status: stringInput(input, "publication_status"), school_year: stringInput(input, "school_year"), signed_by: optionalStringInput(input, "signed_by"), status: stringInput(input, "status"), summary: optionalStringInput(input, "summary"), title: stringInput(input, "title") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "managerial": { const dto: EducationRootCreateInputByDomain["managerial"] = { dossier_type: stringInput(input, "dossier_type"), due_on: stringInput(input, "due_on"), owner_name: optionalStringInput(input, "owner_name"), publication_required: optionalBooleanInput(input, "publication_required"), school_year: stringInput(input, "school_year"), status: stringInput(input, "status"), summary: optionalStringInput(input, "summary"), title: stringInput(input, "title") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "regulations": { const dto: EducationRootCreateInputByDomain["regulations"] = { approval_status: stringInput(input, "approval_status"), approved_on: optionalStringInput(input, "approved_on"), owner_name: optionalStringInput(input, "owner_name"), regulation_type: stringInput(input, "regulation_type"), review_due_on: stringInput(input, "review_due_on"), school_year: stringInput(input, "school_year"), status: stringInput(input, "status"), summary: optionalStringInput(input, "summary"), title: stringInput(input, "title") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "committees": { const dto: EducationRootCreateInputByDomain["committees"] = { committee_type: stringInput(input, "committee_type"), decision_reference: optionalStringInput(input, "decision_reference"), ends_on: optionalStringInput(input, "ends_on"), evaluation_scope: optionalBooleanInput(input, "evaluation_scope"), notes: optionalStringInput(input, "notes"), school_year: stringInput(input, "school_year"), starts_on: stringInput(input, "starts_on"), status: stringInput(input, "status"), title: stringInput(input, "title") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "personnel": { const dto: EducationRootCreateInputByDomain["personnel"] = { app_user_id: optionalStringInput(input, "app_user_id"), assigned_unit: optionalStringInput(input, "assigned_unit"), email: optionalStringInput(input, "email"), employment_type: stringInput(input, "employment_type"), evaluation_status: stringInput(input, "evaluation_status"), full_name: stringInput(input, "full_name"), has_portfolio: optionalBooleanInput(input, "has_portfolio"), mobility_stage: stringInput(input, "mobility_stage"), notes: optionalStringInput(input, "notes"), phone: optionalStringInput(input, "phone"), role_title: stringInput(input, "role_title"), school_year: stringInput(input, "school_year"), status: stringInput(input, "status") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "evaluations": { const dto: EducationRootCreateInputByDomain["evaluations"] = { employee_code: stringInput(input, "employee_code"), evaluator_name: optionalStringInput(input, "evaluator_name"), finalized_on: optionalStringInput(input, "finalized_on"), full_name: stringInput(input, "full_name"), role_title: stringInput(input, "role_title"), school_year: stringInput(input, "school_year"), score: optionalNumberInput(input, "score"), status: stringInput(input, "status"), summary: optionalStringInput(input, "summary") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "declarations": { const dto: EducationRootCreateInputByDomain["declarations"] = { declaration_type: stringInput(input, "declaration_type"), employee_code: stringInput(input, "employee_code"), full_name: stringInput(input, "full_name"), school_year: stringInput(input, "school_year"), status: stringInput(input, "status"), submitted_on: stringInput(input, "submitted_on"), summary: optionalStringInput(input, "summary"), valid_until: optionalStringInput(input, "valid_until") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "mobility": { const dto: EducationRootCreateInputByDomain["mobility"] = { destination_school: optionalStringInput(input, "destination_school"), employee_code: stringInput(input, "employee_code"), full_name: stringInput(input, "full_name"), notes: optionalStringInput(input, "notes"), request_type: stringInput(input, "request_type"), reviewed_by: optionalStringInput(input, "reviewed_by"), school_year: stringInput(input, "school_year"), source_school: optionalStringInput(input, "source_school"), stage: stringInput(input, "stage"), status: stringInput(input, "status"), submitted_on: stringInput(input, "submitted_on") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "merit": { const dto: EducationRootCreateInputByDomain["merit"] = { category: stringInput(input, "category"), committee_name: optionalStringInput(input, "committee_name"), decision_date: stringInput(input, "decision_date"), full_name: stringInput(input, "full_name"), funded: optionalBooleanInput(input, "funded"), notes: optionalStringInput(input, "notes"), role_title: stringInput(input, "role_title"), school_year: stringInput(input, "school_year"), score: optionalNumberInput(input, "score"), status: stringInput(input, "status") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "portfolios": { const dto: EducationRootCreateInputByDomain["portfolios"] = { authenticity_declared: optionalBooleanInput(input, "authenticity_declared"), consent_captured: optionalBooleanInput(input, "consent_captured"), custodian: optionalStringInput(input, "custodian"), last_updated_on: stringInput(input, "last_updated_on"), notes: optionalStringInput(input, "notes"), owner_name: stringInput(input, "owner_name"), owner_personnel_id: stringInput(input, "owner_personnel_id"), owner_role: stringInput(input, "owner_role"), owner_user_id: stringInput(input, "owner_user_id"), school_year: stringInput(input, "school_year"), section_count: optionalNumberInput(input, "section_count"), status: stringInput(input, "status"), transfer_status: stringInput(input, "transfer_status") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "compliance": { const dto: EducationRootCreateInputByDomain["compliance"] = { anonymization_status: stringInput(input, "anonymization_status"), domain: stringInput(input, "domain"), entity_label: stringInput(input, "entity_label"), entity_type: stringInput(input, "entity_type"), mandatory: optionalBooleanInput(input, "mandatory"), notes: optionalStringInput(input, "notes"), publication_channel: stringInput(input, "publication_channel"), publication_status: stringInput(input, "publication_status"), published_on: optionalStringInput(input, "published_on"), reviewed_by: optionalStringInput(input, "reviewed_by") }; return dto as EducationRootCreateInputByDomain[D]; }
+  }
+}
+
+/** Portfolio PATCH has a deliberately smaller allow-list than its lifecycle record. */
+export function updateInputForDomain<D extends EducationRecordsDomain>(domain: D, input: EducationRecordInput): EducationRootUpdateInputByDomain[D] {
+  if (domain !== "portfolios") return createInputForDomain(domain, input) as EducationRootUpdateInputByDomain[D];
+  const dto: EducationRootUpdateInputByDomain["portfolios"] = { authenticity_declared: optionalBooleanInput(input, "authenticity_declared"), consent_captured: optionalBooleanInput(input, "consent_captured"), custodian: optionalStringInput(input, "custodian"), last_updated_on: stringInput(input, "last_updated_on"), notes: optionalStringInput(input, "notes"), owner_name: stringInput(input, "owner_name"), owner_personnel_id: optionalStringInput(input, "owner_personnel_id"), owner_role: stringInput(input, "owner_role"), owner_user_id: optionalStringInput(input, "owner_user_id"), school_year: stringInput(input, "school_year"), section_count: optionalNumberInput(input, "section_count"), status: stringInput(input, "status"), transfer_status: stringInput(input, "transfer_status") };
+  return dto as EducationRootUpdateInputByDomain[D];
 }
 function DomainRecordsPage({
   api,
@@ -2122,7 +2171,6 @@ function DomainRecordsPage({
     active: boolean;
   }>();
   const fields = domainFields[domain];
-  const tableFields = domainTableFields[domain];
   const metadata = domainMetadata[domain];
   const action = async (fn: () => Promise<void>) => {
     setError(undefined);
@@ -2158,40 +2206,29 @@ function DomainRecordsPage({
           </Message.Content>
         </Message.Root>
       )}
-      {canManage && (
-        <div className="flex flex-wrap gap-2">
-          {domainWizardRoutes[domain] && (
-            <Button
-              variant="outlined"
-              onClick={() => navigate(domainWizardRoutes[domain] as string)}
-            >
-              Creează prin ghid
-            </Button>
-          )}
-        </div>
-      )}
-      {metadata && <EducationMetadata api={api} paths={metadata} />}
+      {metadata && <EducationMetadata api={api} resources={metadata} />}
       <EducationListPanel<EducationRecord>
         title={area.label}
         description={area.description}
         load={wrappedLoad}
         emptyMessage="Nu există înregistrări care corespund filtrului ales."
+        filterableFields={domainListCapabilities[domain].filterableFields}
+        sortableFields={domainListCapabilities[domain].sortableFields}
         columns={[
-          {
-            field: tableFields.primary,
-            header: "Înregistrare",
-            render: (item) => displayRecord(item, recordPrimaryKeys),
-          },
-          {
-            field: tableFields.status,
-            header: "Stare",
-            render: (item) => (
-              <Tag
-                value={displayRecord(item, recordStatusKeys)}
-                severity="secondary"
-              />
-            ),
-          },
+          ...fields.map((field) => ({
+            field: field.key,
+            header: field.label,
+            render: (item: EducationRecord) => {
+              const value = item[field.key];
+              if (field.kind === "boolean") {
+                return <Tag value={value ? "Da" : "Nu"} severity={value ? "success" : "secondary"} />;
+              }
+              if (field.key.includes("status")) {
+                return <Tag value={String(value ?? "—")} severity="secondary" />;
+              }
+              return displayRecord(item, [field.key]);
+            },
+          })),
           {
             header: "Acțiuni",
             action: true,
@@ -2245,7 +2282,7 @@ function DomainRecordsPage({
                         label: "Regenerare opis",
                         icon: "pi pi-refresh",
                         onSelect: () => void action(async () => {
-                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/opis/regenerate`);
+                          await api.command("portfolio-opis-regenerate", item.id);
                         }),
                       }, {
                         label: "Solicită completări",
@@ -2253,7 +2290,7 @@ function DomainRecordsPage({
                         severity: "warn" as const,
                         disabled: String(item.status ?? "") !== "submitted",
                         onSelect: () => void action(async () => {
-                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/return`);
+                          await api.command("portfolio-return", item.id);
                         }),
                       }]
                     : []),
@@ -2264,7 +2301,7 @@ function DomainRecordsPage({
                         severity: "success" as const,
                         disabled: String(item.status ?? "") !== "submitted",
                         onSelect: () => void action(async () => {
-                          await api.command(`/education/portfolios/records/${encodeURIComponent(item.id)}/verify`);
+                          await api.command("portfolio-verify", item.id);
                         }),
                       }]
                     : []),
@@ -2288,7 +2325,14 @@ function DomainRecordsPage({
         ]}
         onAdd={
           canManage
-            ? () => setEditing({ input: inputFromRecord(undefined, fields) })
+            ? () => {
+                const wizardRoute = domainWizardRoutes[domain];
+                if (wizardRoute) {
+                  navigate(wizardRoute);
+                  return;
+                }
+                setEditing({ input: inputFromRecord(undefined, fields) });
+              }
             : undefined
         }
         addLabel="înregistrare"
@@ -2304,7 +2348,11 @@ function DomainRecordsPage({
         onSave={() =>
           editing &&
           action(async () => {
-            await api.saveRecord(domain, editing.input, editing.id);
+            if (editing.id) {
+              await api.updateRecord(domain, editing.id, updateInputForDomain(domain, editing.input));
+            } else {
+              await api.createRecord(domain, createInputForDomain(domain, editing.input));
+            }
           })
         }
       />
@@ -2335,13 +2383,14 @@ function DomainRecordsPage({
           relations={domainRelations[domain]}
         />
       )}
+      {domain === "portfolios" && selectedRecordId && (
+        <PortfolioRelationsPanel api={api} recordID={selectedRecordId} canManage={canManageSchoolPortfolios || Boolean(canManageSchoolPortfolioRecord?.(selectedRecordId))} />
+      )}
       {selectedRecordId && domainDetailMetadata[domain] && (
         <EducationMetadata
           api={api}
-          paths={domainDetailMetadata[domain].map(
-            (suffix) =>
-              `${recordsBasePath(domain)}/${encodeURIComponent(selectedRecordId)}${suffix}`,
-          )}
+          resources={domainDetailMetadata[domain]}
+          parentID={selectedRecordId}
         />
       )}
       {domain === "portfolios" && selectedRecordId && portfolioTransferApi && (
@@ -2372,69 +2421,40 @@ function DomainRecordsPage({
   );
 }
 
-const domainMetadata: Partial<Record<EducationRecordsDomain, string[]>> = {
+const domainMetadata: Partial<Record<EducationRecordsDomain, EducationMetadataResource[]>> = {
   decisions: [
-    "/education/decisions/dashboard",
-    "/education/decisions/records/filters",
+    "decisions-dashboard", "decisions-filters",
   ],
   managerial: [
-    "/education/managerial/dashboard",
-    "/education/managerial/records/filters",
+    "managerial-dashboard", "managerial-filters",
   ],
   regulations: [
-    "/education/regulations/dashboard",
-    "/education/regulations/records/filters",
+    "regulations-dashboard", "regulations-filters",
   ],
   personnel: [
-    "/education/personnel/dashboard",
-    "/education/personnel/records/filters",
+    "personnel-dashboard", "personnel-filters",
   ],
   evaluations: [
-    "/education/evaluations/dashboard",
-    "/education/evaluations/records/filters",
+    "evaluations-dashboard", "evaluations-filters",
   ],
   declarations: [
-    "/education/declarations/dashboard",
-    "/education/declarations/records/filters",
+    "declarations-dashboard", "declarations-filters",
   ],
   mobility: [
-    "/education/mobility/dashboard",
-    "/education/mobility/records/filters",
+    "mobility-dashboard", "mobility-filters",
   ],
   merit: [
-    "/education/gradatii/dashboard",
-    "/education/gradatii/records/filters",
+    "merit-dashboard", "merit-filters",
   ],
   portfolios: [
-    "/education/portfolios/dashboard",
-    "/education/portfolios/records/filters",
+    "portfolios-dashboard", "portfolios-filters",
   ],
 };
-const domainDetailMetadata: Partial<Record<EducationRecordsDomain, string[]>> =
+const domainDetailMetadata: Partial<Record<EducationRecordsDomain, EducationMetadataResource[]>> =
   {
-    committees: ["/completeness-summary"],
-    managerial: ["/portfolio-summary"],
-    personnel: ["/portfolio-dossier-summary"],
-    portfolios: ["/transfer-summary"],
-    regulations: ["/procedural-summary"],
+    committees: ["committee-completeness"], managerial: ["managerial-portfolio-summary"],
+    personnel: ["personnel-portfolio-dossier-summary"], portfolios: ["portfolio-transfer-summary"], regulations: ["regulation-procedural-summary"],
   };
-function recordsBasePath(domain: EducationRecordsDomain) {
-  return (
-    {
-      decisions: "/education/decisions/records",
-      managerial: "/education/managerial/records",
-      regulations: "/education/regulations/records",
-      committees: "/education/committees/records",
-      personnel: "/education/personnel/records",
-      evaluations: "/education/evaluations/records",
-      declarations: "/education/declarations/records",
-      mobility: "/education/mobility/records",
-      merit: "/education/gradatii/records",
-      portfolios: "/education/portfolios/records",
-      compliance: "/education/compliance/publications",
-    } as Record<EducationRecordsDomain, string>
-  )[domain];
-}
 function readable(value: string) {
   if (value === "school_year") return "An școlar";
   return value
@@ -2454,20 +2474,22 @@ function isDisplayableMetadataValue(value: unknown) {
 }
 function EducationMetadata({
   api,
-  paths,
+  resources,
+  parentID,
 }: {
   api: EducationApi;
-  paths: string[];
+  resources: EducationMetadataResource[];
+  parentID?: string;
 }) {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [error, setError] = useState<string>();
   useEffect(() => {
-    void Promise.all(paths.map((path) => api.metadata(path)))
+    void Promise.all(resources.map((resource) => api.metadata(resource, parentID)))
       .then(setItems)
       .catch(() =>
         setError("Indicatorii sau filtrele nu au putut fi încărcate."),
       );
-  }, [api, paths]);
+  }, [api, parentID, resources]);
   if (error)
     return (
       <Message.Root severity="warn">
@@ -2551,7 +2573,7 @@ function RecordFormDialog({
             </Dialog.Header>
             <Dialog.Content>
               <div className="flex flex-col gap-3">
-                {fields.map((field) => (
+                {fields.filter((field) => field.form !== false).map((field) => (
                   <label className="flex flex-col gap-1" key={field.key}>
                     <span>{field.label}</span>
                     {field.kind === "boolean" || field.kind === "select" ? (
@@ -2748,13 +2770,13 @@ function DirectorDashboard({
 }: {
   api: EducationApi;
   reports: boolean;
-  endpoint?: string;
+  endpoint?: EducationMetadataResource;
   title?: string;
 }) {
   const [data, setData] = useState<Record<string, unknown>>();
   const [error, setError] = useState<string>();
   useEffect(() => {
-    void (endpoint ? api.dashboardAt(endpoint) : api.directorCockpit())
+    void (endpoint ? api.metadata(endpoint) : api.directorCockpit())
       .then(setData)
       .catch(() => setError("Dashboard-ul nu a putut fi încărcat."));
   }, [api, endpoint]);
@@ -2800,57 +2822,17 @@ function DirectorDashboard({
 
 function SchoolRoleDashboard({
   kind,
-  areas,
   permissions,
+  client,
 }: {
-  kind: "secretariat" | "compliance";
-  areas: EducationArea[];
+  kind: RoleCockpitKind;
   permissions: readonly string[];
+  client: ContractClient;
 }) {
-  const title =
-    kind === "secretariat" ? "Cockpit secretariat" : "Cockpit conformitate";
-  const description =
-    kind === "secretariat"
-      ? "Acces rapid la registrele școlare și operațiunile administrative permise."
-      : "Monitorizare și acces la registrele de conformitate permise pentru instituția curentă.";
-  const cards = [
-    ["Domenii vizibile", areas.length],
-    [
-      "Registre disponibile",
-      areas.filter((area) => area.id !== "overview").length,
-    ],
-    [
-      "Operațiuni de administrare",
-      permissions.filter(
-        (permission) =>
-          permission.startsWith("education.") && permission.endsWith(".manage"),
-      ).length,
-    ],
-  ];
-  return (
-    <Card.Root>
-      <Card.Body>
-        <Card.Title>{title}</Card.Title>
-        <Card.Content>
-          <div className="flex flex-col gap-4">
-            <p>{description}</p>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {cards.map(([label, value]) => (
-                <Card.Root key={String(label)}>
-                  <Card.Body>
-                    <Card.Title>{label}</Card.Title>
-                    <Card.Content>
-                      <strong>{value}</strong>
-                    </Card.Content>
-                  </Card.Body>
-                </Card.Root>
-              ))}
-            </div>
-          </div>
-        </Card.Content>
-      </Card.Body>
-    </Card.Root>
-  );
+  const permission = `education.cockpit.${kind}.read`;
+  const api = useMemo(() => createRoleCockpitsApi(client), [client]);
+  const load = useMemo(() => roleCockpitLoader(api, kind), [api, kind]);
+  return <RoleCockpit kind={kind} allowed={permissions.includes(permission)} load={load} />;
 }
 
 function Overview({
@@ -2919,7 +2901,7 @@ function Overview({
           </Card.Root>
         ))}
       </div>
-      <EducationMetadata api={api} paths={["/education/director/cockpit"]} />
+      <EducationMetadata api={api} resources={["director-cockpit"]} />
       <EducationCatalogs api={api} />
     </div>
   );
@@ -2927,49 +2909,196 @@ function Overview({
 
 function EducationCatalogs({ api }: { api: EducationApi }) {
   const [selected, setSelected] = useState("Taxonomii");
-  const catalogs: Record<string, { path: string; columns: EducationListPanelProps<EducationRecord>["columns"] }> = {
-    Taxonomii: {
-      path: "/education/taxonomies",
-      columns: [
-        { header: "Element", render: (record) => displayRecord(record, ["label_ro", "label", "name", "title", "code"]) },
-        { header: "Cod", render: (record) => String(record.code ?? record.id ?? "—") },
-      ],
-    },
-    Cerințe: {
-      path: "/education/requirements",
-      columns: [
-        { field: "domain", header: "Domeniu", render: (record) => String(record.domain ?? "—") },
-        { header: "Cod", render: (record) => String(record.code ?? "—") },
-        { header: "Cerință", render: (record) => String(record.title_ro ?? record.title ?? "—") },
-        { field: "implementation_status", header: "Stare", render: (record) => <Tag value={String(record.implementation_status ?? "—")} severity={record.implementation_status === "implemented" ? "success" : "secondary"} /> },
-      ],
-    },
-    "Secțiuni portofoliu": {
-      path: "/education/portfolios/sections",
-      columns: [
-        { field: "section_code", header: "Secțiune", render: (record) => String(record.section_code ?? "—") },
-        { field: "component_code", header: "Componentă", render: (record) => String(record.component_code ?? "—") },
-        { field: "label", header: "Denumire", render: (record) => String(record.label_ro ?? "—") },
-        { header: "Obligatoriu", render: (record) => <Tag value={record.required ? "Da" : "Nu"} severity={record.required ? "info" : "secondary"} /> },
-      ],
-    },
-  };
-  const catalog = catalogs[selected] as (typeof catalogs)[string];
   return (
     <div className="flex flex-col gap-3">
       <nav aria-label="Cataloge educaționale" className="flex flex-wrap gap-2">
-        {Object.keys(catalogs).map((label) => <Button key={label} size="small" variant={label === selected ? undefined : "outlined"} severity={label === selected ? undefined : "secondary"} onClick={() => setSelected(label)}>{label}</Button>)}
+        {["Taxonomii", "Cerințe", "Secțiuni portofoliu"].map((label) => <Button key={label} size="small" variant={label === selected ? undefined : "outlined"} severity={label === selected ? undefined : "secondary"} onClick={() => setSelected(label)}>{label}</Button>)}
       </nav>
-      <EducationListPanel
-        key={selected}
-        title={selected}
-        description="Catalog operațional utilizat de fluxurile Școală. Filtrele, sortarea și paginarea sunt procesate de server."
-        load={(_query, page, pageSize, sort, filters) => api.relatedRecords(catalog.path, { page, pageSize, sort: sort?.field, direction: sort?.direction, filters })}
-        columns={catalog.columns}
-        emptyMessage="Nu există elemente în catalog pentru filtrele curente."
-      />
+      {selected === "Taxonomii" && <TaxonomyCatalogPanel api={api} />}
+      {selected === "Cerințe" && <EducationListPanel<EducationRequirement> title="Cerințe" description="Catalog legal în regim de consultare. Filtrarea permisă este numai după domeniu." load={(_query, page, pageSize, sort, filters) => api.educationRequirements({ page, pageSize, sort: sort?.field, direction: sort?.direction, domain: filters?.domain })} columns={[{ field: "domain", header: "Domeniu", render: (item) => item.domain }, { field: "code", header: "Cod", render: (item) => item.code }, { field: "title_ro", header: "Cerință", render: (item) => item.title_ro }, { field: "implementation_status", header: "Stare", render: (item) => <Tag value={item.implementation_status} severity={item.implementation_status === "implemented" ? "success" : "secondary"} /> }]} emptyMessage="Nu există cerințe pentru filtrul curent." />}
+      {selected === "Secțiuni portofoliu" && <EducationListPanel<PortfolioSection> title="Secțiuni portofoliu" description="Catalog oficial în regim de consultare. Filtrarea permisă este numai după secțiune." load={(_query, page, pageSize, sort, filters) => api.portfolioSections({ page, pageSize, sort: sort?.field, direction: sort?.direction, sectionCode: filters?.section_code })} columns={[{ field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "component_code", header: "Componentă", render: (item) => item.component_code }, { field: "label_ro", header: "Denumire", render: (item) => item.label_ro }, { field: "required", header: "Obligatoriu", render: (item) => <Tag value={item.required ? "Da" : "Nu"} severity={item.required ? "info" : "secondary"} /> }]} emptyMessage="Nu există secțiuni pentru filtrul curent." />}
     </div>
   );
+}
+
+function TaxonomyCatalogPanel({ api }: { api: EducationApi }) {
+  const [items, setItems] = useState<Record<string, Array<{ id: string; code: string; label_ro: string; active: boolean }>>>( {} );
+  const [error, setError] = useState(false);
+  useEffect(() => { let live = true; void api.taxonomyCatalog().then((result) => { if (live) setItems(result.items); }).catch(() => { if (live) setError(true); }); return () => { live = false; }; }, [api]);
+  if (error) return <Message.Root severity="error"><Message.Content><Message.Text>Taxonomiile nu au putut fi încărcate.</Message.Text></Message.Content></Message.Root>;
+  return <div className="flex flex-col gap-3">{Object.entries(items).map(([domain, entries]) => <Card.Root key={domain}><Card.Body><Card.Title>{domain}</Card.Title><Card.Content><ul className="m-0 flex list-none flex-col gap-1 p-0">{entries.map((entry) => <li key={entry.id}>{entry.code} — {entry.label_ro} {!entry.active && <Tag value="inactiv" severity="secondary" />}</li>)}</ul></Card.Content></Card.Body></Card.Root>)}{Object.keys(items).length === 0 && <Message.Root severity="info"><Message.Content><Message.Text>Nu există taxonomii disponibile.</Message.Text></Message.Content></Message.Root>}</div>;
+}
+
+type PortfolioRelationTab = "documents" | "checklist" | "opis" | "custody" | "reviews" | "transfers" | "valorifications";
+
+type PortfolioRelationItem = { id: string; [key: string]: string | number | boolean | undefined };
+type PortfolioRelationInput = Record<string, string | number | boolean | undefined>;
+
+const portfolioRelationString = (input: PortfolioRelationInput, key: string) => String(input[key] ?? "").trim();
+const portfolioRelationOptionalString = (input: PortfolioRelationInput, key: string) => {
+  const value = portfolioRelationString(input, key);
+  return value || undefined;
+};
+const portfolioRelationOptionalNumber = (input: PortfolioRelationInput, key: string) => {
+  const value = portfolioRelationString(input, key);
+  return value ? Number(value) : undefined;
+};
+const portfolioRelationOptionalBoolean = (input: PortfolioRelationInput, key: string) =>
+  typeof input[key] === "boolean" ? input[key] : undefined;
+
+function portfolioDocumentInput(input: PortfolioRelationInput): CreatePortfolioDocumentInput {
+  return {
+    added_on: portfolioRelationString(input, "added_on"),
+    authenticity_status: portfolioRelationString(input, "authenticity_status"),
+    chronological_index: portfolioRelationOptionalNumber(input, "chronological_index"),
+    component_code: portfolioRelationString(input, "component_code"),
+    document_title: portfolioRelationString(input, "document_title"),
+    evidence_type: portfolioRelationString(input, "evidence_type"),
+    file_reference: portfolioRelationOptionalString(input, "file_reference"),
+    issued_on: portfolioRelationString(input, "issued_on"),
+    notes: portfolioRelationOptionalString(input, "notes"),
+    section_code: portfolioRelationString(input, "section_code"),
+    sensitive_data: portfolioRelationOptionalBoolean(input, "sensitive_data"),
+    source_scope: portfolioRelationString(input, "source_scope"),
+  };
+}
+function portfolioChecklistInput(input: PortfolioRelationInput): CreatePortfolioChecklistItemInput {
+  return {
+    checked_by: portfolioRelationOptionalString(input, "checked_by"),
+    document_count: portfolioRelationOptionalNumber(input, "document_count"),
+    last_checked_on: portfolioRelationString(input, "last_checked_on"),
+    mandatory: portfolioRelationOptionalBoolean(input, "mandatory"),
+    notes: portfolioRelationOptionalString(input, "notes"),
+    requirement_code: portfolioRelationString(input, "requirement_code"),
+    requirement_label: portfolioRelationString(input, "requirement_label"),
+    section_code: portfolioRelationString(input, "section_code"),
+    source_scope: portfolioRelationString(input, "source_scope"),
+    status: portfolioRelationString(input, "status"),
+  };
+}
+function portfolioOpisInput(input: PortfolioRelationInput): CreatePortfolioOpisEntryInput {
+  return {
+    checked_by: portfolioRelationOptionalString(input, "checked_by"),
+    checked_on: portfolioRelationString(input, "checked_on"),
+    chronological_index: portfolioRelationOptionalNumber(input, "chronological_index"),
+    component_code: portfolioRelationString(input, "component_code"),
+    document_reference: portfolioRelationString(input, "document_reference"),
+    entry_title: portfolioRelationString(input, "entry_title"),
+    included_in_transfer: portfolioRelationOptionalBoolean(input, "included_in_transfer"),
+    notes: portfolioRelationOptionalString(input, "notes"),
+    section_code: portfolioRelationString(input, "section_code"),
+    source_scope: portfolioRelationString(input, "source_scope"),
+  };
+}
+function portfolioCustodyInput(input: PortfolioRelationInput): CreatePortfolioCustodyEventInput {
+  return {
+    access_mode: portfolioRelationString(input, "access_mode"),
+    access_reason: portfolioRelationString(input, "access_reason"),
+    ended_on: portfolioRelationOptionalString(input, "ended_on"),
+    event_type: portfolioRelationString(input, "event_type"),
+    holder_name: portfolioRelationString(input, "holder_name"),
+    holder_role: portfolioRelationString(input, "holder_role"),
+    location_label: portfolioRelationString(input, "location_label"),
+    notes: portfolioRelationOptionalString(input, "notes"),
+    sensitive_data_access: portfolioRelationOptionalBoolean(input, "sensitive_data_access"),
+    started_on: portfolioRelationString(input, "started_on"),
+  };
+}
+function portfolioReviewInput(input: PortfolioRelationInput): CreatePortfolioReviewEventInput {
+  return {
+    compliance_score: portfolioRelationOptionalNumber(input, "compliance_score"),
+    missing_documents: portfolioRelationOptionalNumber(input, "missing_documents"),
+    notes: portfolioRelationOptionalString(input, "notes"),
+    outcome: portfolioRelationString(input, "outcome"),
+    review_stage: portfolioRelationString(input, "review_stage"),
+    reviewed_on: portfolioRelationString(input, "reviewed_on"),
+    reviewer_name: portfolioRelationString(input, "reviewer_name"),
+  };
+}
+
+type PortfolioRelationManagerConfig = {
+  title: string;
+  itemLabel: string;
+  fields: RecordField[];
+  filterField: string;
+  /** Exact server-declared sort allowlist; no browser-side sorting. */
+  sortableFields: readonly string[];
+  columns: EducationListPanelProps<PortfolioRelationItem>["columns"];
+  load: (page: number, pageSize: number, sort?: { field?: string; direction?: "asc" | "desc" }, filter?: string) => Promise<EducationPage<{ id: string }>>;
+  create: (input: PortfolioRelationInput) => Promise<{ id: string }>;
+  update: (id: string, input: PortfolioRelationInput) => Promise<{ id: string }>;
+  remove: (id: string) => Promise<void>;
+};
+
+function relationInputFromItem(item: PortfolioRelationItem): PortfolioRelationInput {
+  const input: PortfolioRelationInput = {};
+  for (const [key, value] of Object.entries(item)) {
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") input[key] = value;
+  }
+  return input;
+}
+
+function PortfolioRelationManager({ config, canManage }: { config: PortfolioRelationManagerConfig; canManage: boolean }) {
+  const [editing, setEditing] = useState<{ id?: string; input: PortfolioRelationInput }>();
+  const [detail, setDetail] = useState<PortfolioRelationItem>();
+  const [pendingDelete, setPendingDelete] = useState<string>();
+  const [revision, setRevision] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>();
+  const action = async (run: () => Promise<void>) => {
+    setSaving(true); setError(undefined);
+    try { await run(); setRevision((current) => current + 1); setEditing(undefined); }
+    catch { setError("Operația nu a putut fi finalizată. Verificați datele și drepturile de acces."); }
+    finally { setSaving(false); }
+  };
+  const load = useCallback(async (_query: string, page = 1, pageSize = 20, sort?: { field?: string; direction?: "asc" | "desc" }, filters?: Record<string, string>) => config.load(page, pageSize, sort, filters?.[config.filterField]), [config]);
+  const columns: EducationListPanelProps<PortfolioRelationItem>["columns"] = [
+    ...config.columns,
+    { header: "Acțiuni", action: true, render: (item) => <SchoolRowActionMenu actions={[
+      { label: "Detalii", icon: "pi pi-eye", onSelect: () => setDetail(item) },
+      ...(canManage ? [{ label: "Editează", icon: "pi pi-pencil", onSelect: () => setEditing({ id: item.id, input: relationInputFromItem(item) }) }, { label: "Șterge", icon: "pi pi-trash", severity: "danger" as const, onSelect: () => setPendingDelete(item.id) }] : []),
+    ]} /> },
+  ];
+  return <div className="flex flex-col gap-3">
+    {error && <Message.Root severity="error"><Message.Content><Message.Text>{error}</Message.Text></Message.Content></Message.Root>}
+    <EducationListPanel key={revision} title={config.title} description="Date contractuale ale portofoliului; filtrarea, sortarea și paginarea sunt executate de server." emptyMessage="Nu există înregistrări pentru filtrul curent." load={load} columns={columns} onAdd={canManage ? () => setEditing({ input: {} }) : undefined} addLabel={config.itemLabel} filterableFields={[config.filterField]} sortableFields={config.sortableFields} />
+    <RecordFormDialog open={editing ? { id: editing.id, input: editing.input as EducationRecordInput } : undefined} title={`${editing?.id ? "Editează" : "Adaugă"} — ${config.title}`} fields={config.fields} onClose={() => !saving && setEditing(undefined)} onChange={(input) => setEditing((current) => current ? { ...current, input: input as PortfolioRelationInput } : current)} onSave={() => editing && void action(async () => { if (editing.id) await config.update(editing.id, editing.input); else await config.create(editing.input); })} />
+    <PortfolioRelationDetailDialog title={config.title} record={detail} fields={config.fields} onClose={() => setDetail(undefined)} />
+    <DeleteDialog open={pendingDelete} onClose={() => !saving && setPendingDelete(undefined)} onConfirm={() => pendingDelete && void action(async () => { await config.remove(pendingDelete); setPendingDelete(undefined); })} />
+  </div>;
+}
+
+function PortfolioRelationDetailDialog({ title, record, fields, onClose }: { title: string; record?: PortfolioRelationItem; fields: RecordField[]; onClose: () => void }) {
+  return <Dialog.Root open={Boolean(record)} onOpenChange={(event: { value?: boolean }) => !event.value && onClose()}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>{title}</Dialog.Title><Dialog.Close aria-label="Închide detaliile" /></Dialog.Header><Dialog.Content><dl className="grid gap-3 sm:grid-cols-2">{fields.filter((field) => record?.[field.key as keyof PortfolioRelationItem] !== undefined).map((field) => <div key={field.key}><dt>{field.label.replace(" *", "")}</dt><dd>{String(record?.[field.key as keyof PortfolioRelationItem] ?? "")}</dd></div>)}</dl></Dialog.Content></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>;
+}
+
+/**
+ * The managerial Portfolio projections deliberately select named generated
+ * operations.  Transfers stay history-only here: their creation and state
+ * transitions are handled by the dedicated inter-tenant workflow below.
+ */
+export function PortfolioRelationsPanel({ api, recordID, canManage = false }: { api: EducationApi; recordID: string; canManage?: boolean }) {
+  const [tab, setTab] = useState<PortfolioRelationTab>("documents");
+  const tabs: Array<{ id: PortfolioRelationTab; label: string }> = [
+    { id: "documents", label: "Documente" }, { id: "checklist", label: "Checklist" }, { id: "opis", label: "Opis" }, { id: "custody", label: "Custodie" }, { id: "reviews", label: "Revizuiri" }, { id: "transfers", label: "Istoric transferuri" }, { id: "valorifications", label: "Istoric valorificări" },
+  ];
+  const common = { description: "Date preluate din contractul Portfolio; filtrarea, sortarea și paginarea sunt executate de server.", emptyMessage: "Nu există înregistrări pentru filtrul curent." };
+  const managers: Record<Extract<PortfolioRelationTab, "documents" | "checklist" | "opis" | "custody" | "reviews">, PortfolioRelationManagerConfig> = {
+    documents: { title: "Documente", itemLabel: "document", filterField: "section_code", fields: [{ key: "document_title", label: "Titlu *", kind: "text" }, { key: "evidence_type", label: "Tip dovadă *", kind: "text" }, { key: "section_code", label: "Secțiune *", kind: "text" }, { key: "component_code", label: "Componentă *", kind: "text" }, { key: "source_scope", label: "Domeniu sursă *", kind: "text" }, { key: "authenticity_status", label: "Autenticitate *", kind: "text" }, { key: "issued_on", label: "Data emiterii *", kind: "date" }, { key: "added_on", label: "Data adăugării *", kind: "date" }, { key: "chronological_index", label: "Ordine cronologică", kind: "number" }, { key: "file_reference", label: "Referință arhivă", kind: "text" }, { key: "sensitive_data", label: "Conține date sensibile", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "document_title", header: "Titlu", render: (item) => item.document_title }, { field: "evidence_type", header: "Tip dovadă", render: (item) => item.evidence_type }, { field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "authenticity_status", header: "Autenticitate", render: (item) => <Tag value={item.authenticity_status} severity="secondary" /> }, { field: "issued_on", header: "Emis la", render: (item) => item.issued_on }], sortableFields: ["document_title", "evidence_type", "section_code", "authenticity_status", "issued_on"], load: (page, pageSize, sort, sectionCode) => api.portfolioDocuments(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, sectionCode }), create: async (input) => api.createPortfolioDocument(recordID, portfolioDocumentInput(input)), update: async (id, input) => api.updatePortfolioDocument(recordID, id, portfolioDocumentInput(input)), remove: (id) => api.deletePortfolioDocument(recordID, id) },
+    checklist: { title: "Checklist", itemLabel: "cerință", filterField: "requirement_code", fields: [{ key: "requirement_code", label: "Cod cerință *", kind: "text" }, { key: "requirement_label", label: "Cerință *", kind: "text" }, { key: "section_code", label: "Secțiune *", kind: "text" }, { key: "source_scope", label: "Domeniu sursă *", kind: "text" }, { key: "status", label: "Stare *", kind: "text" }, { key: "last_checked_on", label: "Ultima verificare *", kind: "date" }, { key: "checked_by", label: "Verificat de", kind: "text" }, { key: "document_count", label: "Număr documente", kind: "number" }, { key: "mandatory", label: "Obligatoriu", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "requirement_code", header: "Cod cerință", render: (item) => item.requirement_code }, { field: "requirement_label", header: "Cerință", render: (item) => item.requirement_label }, { field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "status", header: "Stare", render: (item) => <Tag value={item.status} severity="secondary" /> }, { field: "document_count", header: "Documente", render: (item) => String(item.document_count) }], sortableFields: ["requirement_code", "requirement_label", "section_code", "status", "document_count"], load: (page, pageSize, sort, requirementCode) => api.portfolioChecklist(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, requirementCode }), create: async (input) => api.createPortfolioChecklistItem(recordID, portfolioChecklistInput(input)), update: async (id, input) => api.updatePortfolioChecklistItem(recordID, id, portfolioChecklistInput(input)), remove: (id) => api.deletePortfolioChecklistItem(recordID, id) },
+    opis: { title: "Opis", itemLabel: "poziție opis", filterField: "section_code", fields: [{ key: "section_code", label: "Secțiune *", kind: "text" }, { key: "component_code", label: "Componentă *", kind: "text" }, { key: "entry_title", label: "Titlu *", kind: "text" }, { key: "document_reference", label: "Referință document *", kind: "text" }, { key: "source_scope", label: "Domeniu sursă *", kind: "text" }, { key: "checked_on", label: "Data verificării *", kind: "date" }, { key: "checked_by", label: "Verificat de", kind: "text" }, { key: "chronological_index", label: "Ordine cronologică", kind: "number" }, { key: "included_in_transfer", label: "Inclus în transfer", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "component_code", header: "Componentă", render: (item) => item.component_code }, { field: "entry_title", header: "Titlu", render: (item) => item.entry_title }, { field: "chronological_index", header: "Ordine", render: (item) => String(item.chronological_index) }, { field: "document_reference", header: "Referință", render: (item) => item.document_reference }], sortableFields: ["section_code", "component_code", "entry_title", "chronological_index", "document_reference"], load: (page, pageSize, sort, sectionCode) => api.portfolioOpis(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, sectionCode }), create: async (input) => api.createPortfolioOpisEntry(recordID, portfolioOpisInput(input)), update: async (id, input) => api.updatePortfolioOpisEntry(recordID, id, portfolioOpisInput(input)), remove: (id) => api.deletePortfolioOpisEntry(recordID, id) },
+    custody: { title: "Custodie", itemLabel: "eveniment de custodie", filterField: "event_type", fields: [{ key: "event_type", label: "Tip eveniment *", kind: "text" }, { key: "holder_name", label: "Custode *", kind: "text" }, { key: "holder_role", label: "Rol custode *", kind: "text" }, { key: "location_label", label: "Locație *", kind: "text" }, { key: "access_mode", label: "Mod acces *", kind: "text" }, { key: "access_reason", label: "Motiv acces *", kind: "text" }, { key: "started_on", label: "Început *", kind: "date" }, { key: "ended_on", label: "Sfârșit", kind: "date" }, { key: "sensitive_data_access", label: "Acces date sensibile", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "event_type", header: "Tip eveniment", render: (item) => item.event_type }, { field: "holder_name", header: "Custode", render: (item) => item.holder_name }, { field: "holder_role", header: "Rol custode", render: (item) => item.holder_role }, { field: "started_on", header: "Început", render: (item) => item.started_on }, { field: "ended_on", header: "Sfârșit", render: (item) => item.ended_on }], sortableFields: ["event_type", "holder_name", "holder_role", "started_on", "ended_on"], load: (page, pageSize, sort, eventType) => api.portfolioCustody(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, eventType }), create: async (input) => api.createPortfolioCustodyEvent(recordID, portfolioCustodyInput(input)), update: async (id, input) => api.updatePortfolioCustodyEvent(recordID, id, portfolioCustodyInput(input)), remove: (id) => api.deletePortfolioCustodyEvent(recordID, id) },
+    reviews: { title: "Revizuiri", itemLabel: "revizuire", filterField: "review_code", fields: [{ key: "review_stage", label: "Etapă *", kind: "text" }, { key: "outcome", label: "Rezultat *", kind: "text" }, { key: "reviewer_name", label: "Evaluator *", kind: "text" }, { key: "reviewed_on", label: "Data revizuirii *", kind: "date" }, { key: "compliance_score", label: "Scor conformitate", kind: "number" }, { key: "missing_documents", label: "Documente lipsă", kind: "number" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "review_code", header: "Cod", render: (item) => item.review_code }, { field: "review_stage", header: "Etapă", render: (item) => item.review_stage }, { field: "outcome", header: "Rezultat", render: (item) => item.outcome }, { field: "reviewer_name", header: "Evaluator", render: (item) => item.reviewer_name }, { field: "reviewed_on", header: "Data", render: (item) => item.reviewed_on }], sortableFields: ["review_code", "review_stage", "outcome", "reviewer_name", "reviewed_on"], load: (page, pageSize, sort, reviewCode) => api.portfolioReviews(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, reviewCode }), create: async (input) => api.createPortfolioReview(recordID, portfolioReviewInput(input)), update: async (id, input) => api.updatePortfolioReview(recordID, id, portfolioReviewInput(input)), remove: (id) => api.deletePortfolioReview(recordID, id) },
+  };
+  return <Card.Root><Card.Body><Card.Title>Portofoliu — operațiuni dosar</Card.Title><Card.Content><div className="flex flex-col gap-3"><nav aria-label="Relații portofoliu" className="flex flex-wrap gap-2">{tabs.map((item) => <Button key={item.id} size="small" variant={tab === item.id ? undefined : "outlined"} severity={tab === item.id ? undefined : "secondary"} onClick={() => setTab(item.id)}>{item.label}</Button>)}</nav>
+    {tab === "documents" && <PortfolioRelationManager config={managers.documents} canManage={canManage} />}
+    {tab === "checklist" && <PortfolioRelationManager config={managers.checklist} canManage={canManage} />}
+    {tab === "opis" && <PortfolioRelationManager config={managers.opis} canManage={canManage} />}
+    {tab === "custody" && <PortfolioRelationManager config={managers.custody} canManage={canManage} />}
+    {tab === "reviews" && <PortfolioRelationManager config={managers.reviews} canManage={canManage} />}
+    {tab === "transfers" && <EducationListPanel title="Istoric transferuri" {...common} load={(_q, page, pageSize, sort, filters) => api.portfolioTransferHistory(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, transferCode: filters?.transfer_code })} columns={[{ field: "transfer_code", header: "Cod", render: (item) => item.transfer_code }, { field: "transfer_type", header: "Tip", render: (item) => item.transfer_type }, { field: "status", header: "Stare", render: (item) => <Tag value={item.status} severity="secondary" /> }, { field: "destination_institution", header: "Instituție destinație", render: (item) => item.destination_institution }, { field: "handover_on", header: "Predare", render: (item) => item.handover_on }]} />}
+    {tab === "valorifications" && <EducationListPanel title="Istoric valorificări" {...common} load={(_q, page, pageSize, sort, filters) => api.portfolioValorifications(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, valorificationCode: filters?.valorification_code })} columns={[{ field: "valorification_code", header: "Cod", render: (item) => item.valorification_code }, { field: "scope", header: "Domeniu", render: (item) => item.scope }, { field: "status", header: "Stare", render: (item) => <Tag value={item.status} severity="secondary" /> }, { field: "target_institution", header: "Instituție țintă", render: (item) => item.target_institution }, { field: "started_on", header: "Început", render: (item) => item.started_on }]} />}
+  </div></Card.Content></Card.Body></Card.Root>;
 }
 
 export interface EducationWorkspaceProps {
@@ -3007,67 +3136,49 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
     () => props.delegationApi ?? createEducationDelegationApi(auth.apiClient),
     [auth.apiClient, props.delegationApi],
   );
-  const [activeDelegations, setActiveDelegations] = useState<EducationDelegation[]>([]);
-  const loadActiveDelegations = useCallback(async () => {
-    if (!directPermissions.includes("education.delegations.read") || !auth.user?.id) {
-      setActiveDelegations([]);
-      return;
-    }
-    const collected: EducationDelegation[] = [];
-    let pageNumber = 1;
-    let total = 0;
-    do {
-      const page = await delegationApi.list({
-        page: pageNumber,
-        pageSize: 100,
-        filters: { status: "accepted", delegate_user_id: auth.user.id },
-      });
-      collected.push(...page.items);
-      total = page.total;
-      pageNumber += 1;
-    } while (collected.length < total && pageNumber <= 100);
-    const today = new Date().toISOString().slice(0, 10);
-    setActiveDelegations(collected.filter((item) =>
-      item.delegate_user_id === auth.user?.id &&
-      item.status === "accepted" &&
-      item.valid_from <= today &&
-      (!item.valid_until || item.valid_until >= today),
-    ));
-  }, [auth.user?.id, delegationApi, directPermissions]);
-  useEffect(() => {
-    let active = true;
-    void loadActiveDelegations().catch(() => {
-      if (active) setActiveDelegations([]);
-    });
-    return () => { active = false; };
-  }, [loadActiveDelegations]);
+  // Delegation validity is evaluated by the backend for the current tenant and
+  // subject. Do not re-create this decision from the paginated delegation
+  // ledger or browser time.
+  const activeDelegations = props.permissions ? [] : auth.educationGrants;
   const permissions = useMemo(
-    () => [...new Set([...directPermissions, ...activeDelegations.map((item) => item.permission_code)])],
+    () => [...new Set([...directPermissions, ...activeDelegations.filter((item) => item.resource_type === "institution").map((item) => item.permission_code)])],
     [activeDelegations, directPermissions],
   );
   const allows = useCallback((permission: string, resourceType = "institution", resourceID?: string) => {
-    return educationPermissionAllows(directPermissions, activeDelegations, permission, resourceType, resourceID);
-  }, [activeDelegations, directPermissions]);
+    if (directPermissions.includes(permission)) return true;
+    if (props.permissions) return false;
+    return resourceType === "institution"
+      ? auth.canEducation(permission)
+      : auth.canEducation(permission, { resourceType: resourceType as Exclude<typeof activeDelegations[number]["resource_type"], "institution">, resourceId: resourceID ?? "" });
+  }, [activeDelegations, auth, directPermissions, props.permissions]);
   const location = useLocation();
   const areas = useMemo(
     () => visibleEducationAreas(permissions, modules),
     [modules, permissions],
   );
-  const routeActive = location.pathname.includes("/governance")
-    ? "governance"
-    : location.pathname.includes("/personnel")
-      ? "personnel"
-      : location.pathname.includes("/portfolio")
-        ? "portfolios"
-        : location.pathname.includes("/compliance")
-          ? "compliance"
-          : "overview";
+  const routeSegment = ([
+    "governance", "decisions", "managerial", "regulations", "committees",
+    "personnel", "evaluations", "declarations", "mobility", "merit",
+    "portfolio", "compliance",
+  ] as const).find((segment) => location.pathname.includes(`/${segment}`));
+  const routeActive = routeSegment === "portfolio" ? "portfolios" : routeSegment ?? "overview";
+  const roleCockpitKind: RoleCockpitKind | undefined = location.pathname.includes("/secretariat")
+    ? "secretariat"
+    : location.pathname.includes("/hr")
+      ? "hr"
+      : location.pathname.includes("/committee-cockpit")
+        ? "committee"
+        : location.pathname.includes("/inspector")
+          ? "inspector"
+          : undefined;
   const [active, setActive] = useState(routeActive);
   useEffect(() => {
-    setActive(routeActive);
-    if (!areas.some((area) => area.id === active))
-      setActive(areas[0]?.id ?? "overview");
-  }, [active, areas, routeActive]);
+    setActive((current) => {
+      if (areas.some((area) => area.id === routeActive)) return routeActive;
+      if (areas.some((area) => area.id === current)) return current;
+      return areas[0]?.id ?? "overview";
+    });
+  }, [areas, routeActive]);
 
   if (!institutionId)
     return (
@@ -3090,7 +3201,7 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
         </Message.Content>
       </Message.Root>
     );
-  if (areas.length === 0)
+  if (areas.length === 0 && !roleCockpitKind)
     return (
       <Message.Root severity="warn">
         <Message.Content>
@@ -3137,20 +3248,14 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
         <DirectorDashboard
           api={api}
           reports={false}
-          endpoint="/education/portfolios/dashboard"
+          endpoint="portfolios-dashboard"
           title="Dashboard cadru didactic"
         />
-      ) : location.pathname.includes("/secretariat") ? (
+      ) : roleCockpitKind ? (
         <SchoolRoleDashboard
-          kind="secretariat"
-          areas={areas}
+          kind={roleCockpitKind}
           permissions={permissions}
-        />
-      ) : location.pathname.includes("/compliance") ? (
-        <SchoolRoleDashboard
-          kind="compliance"
-          areas={areas}
-          permissions={permissions}
+          client={auth.apiClient}
         />
       ) : active === "overview" ? (
         <>
@@ -3158,16 +3263,16 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
             api={api}
             canReadGovernance={permissions.includes("education.governance.read")}
           />
-          {permissions.includes("education.delegations.read") && (
+          {directPermissions.includes("education.delegations.read") && (
             <EducationDelegationManager
               api={delegationApi}
-              onChanged={loadActiveDelegations}
+              onChanged={auth.refreshEducationAuthorization}
               capabilities={{
                 read: true,
-                offer: permissions.includes("education.delegations.offer"),
-                accept: permissions.includes("education.delegations.accept"),
-                revoke: permissions.includes("education.delegations.revoke"),
-                expire: permissions.includes("education.delegations.revoke"),
+                offer: directPermissions.includes("education.delegations.offer"),
+                accept: directPermissions.includes("education.delegations.accept"),
+                revoke: directPermissions.includes("education.delegations.revoke"),
+                expire: directPermissions.includes("education.delegations.revoke"),
               }}
             />
           )}

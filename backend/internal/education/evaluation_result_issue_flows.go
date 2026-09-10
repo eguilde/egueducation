@@ -257,7 +257,7 @@ func (s *Service) CreateEvaluationResultIssue(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	issueCode := fmt.Sprintf("EVRES-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	issueCode := newEducationCode("EVRES")
 	var item PersonnelEvaluationResultIssue
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_evaluation_result_issues (
@@ -603,7 +603,7 @@ func (s *Service) upsertEvaluationResultIssueDocument(ctx context.Context, evalu
 		where personnel_id = $1 and institution_id = $2 and file_reference = $3 and document_category = 'evaluare'
 	`, evaluation.PersonnelID, institutionID, fileReference).Scan(&existingID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		documentCode := fmt.Sprintf("PFD-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+		documentCode := newEducationCode("PFD")
 		if _, err := s.pool.Exec(ctx, `
 			insert into education_personnel_file_documents (
 				personnel_id, document_code, document_category, document_title, file_scope, confidentiality_level,

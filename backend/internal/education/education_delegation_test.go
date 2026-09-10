@@ -44,3 +44,32 @@ func TestDelegationActiveAtHonorsDates(t *testing.T) {
 		t.Fatal("revoked delegation must not authorize")
 	}
 }
+
+func TestActiveDelegationGrantRevisionIsStableAndOrderSensitive(t *testing.T) {
+	grants := []EducationActiveDelegationGrant{
+		{PermissionCode: "education.portfolios.transfer", ResourceType: "institution", ResourceID: ""},
+		{PermissionCode: "education.governance.read", ResourceType: "meeting", ResourceID: "11111111-1111-1111-1111-111111111111"},
+	}
+	first := activeDelegationGrantRevision(grants)
+	if len(first) != 64 {
+		t.Fatalf("revision must be a SHA-256 hex digest, got %q", first)
+	}
+	if got := activeDelegationGrantRevision(append([]EducationActiveDelegationGrant(nil), grants...)); got != first {
+		t.Fatalf("same ordered grants must produce same revision: got %q want %q", got, first)
+	}
+	if got := activeDelegationGrantRevision([]EducationActiveDelegationGrant{grants[1], grants[0]}); got == first {
+		t.Fatal("ordered grant serialization must not treat reordered grants as the same snapshot")
+	}
+}
+
+func TestDelegableEducationPermissionExcludesManagement(t *testing.T) {
+	if !isDelegableEducationPermission("education.portfolios.transfer") {
+		t.Fatal("operational education permission should be delegable")
+	}
+	if isDelegableEducationPermission("education.delegations.offer") {
+		t.Fatal("delegation management permission must never be delegable")
+	}
+	if isDelegableEducationPermission("registratura.read") {
+		t.Fatal("non-Education permission must not be delegable through School grants")
+	}
+}

@@ -62,6 +62,25 @@ type CreatePortfolioRecordRequest struct {
 	Notes                string `json:"notes"`
 }
 
+// UpdatePortfolioRecordRequest is deliberately separate from creation. The
+// owner identifiers are optional assertions of the immutable stored pairing;
+// lifecycle, retention and transfer changes remain dedicated commands.
+type UpdatePortfolioRecordRequest struct {
+	OwnerUserID          string `json:"owner_user_id,omitempty"`
+	OwnerPersonnelID     string `json:"owner_personnel_id,omitempty"`
+	OwnerName            string `json:"owner_name"`
+	OwnerRole            string `json:"owner_role"`
+	SchoolYear           string `json:"school_year"`
+	Status               string `json:"status"`
+	SectionCount         int    `json:"section_count"`
+	LastUpdatedOn        string `json:"last_updated_on"`
+	TransferStatus       string `json:"transfer_status"`
+	AuthenticityDeclared bool   `json:"authenticity_declared"`
+	ConsentCaptured      bool   `json:"consent_captured"`
+	Custodian            string `json:"custodian"`
+	Notes                string `json:"notes"`
+}
+
 // PortfolioCessationRequest is an institution-controlled lifecycle command.
 // Retention is calculated in persistence from this event; it is never an
 // input supplied by a portfolio client.

@@ -39,6 +39,17 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	ownerCtx, ownerRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
 	defer ownerRelease()
 
+	// Institution administrators cannot pair one user's login with a different
+	// teacher's personnel identity. This is tested through the real handler
+	// before any workflow/procedure lookup can mask the semantic failure.
+	forgedOwner := httptest.NewRecorder()
+	service.CreatePortfolioRecord(forgedOwner, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, fmt.Sprintf(`{
+		"owner_user_id":%q,"owner_personnel_id":%q,"owner_name":"Governance Integration Member","owner_role":"Profesor",
+		"school_year":"2027-2028","status":"draft","section_count":0,"last_updated_on":"2027-09-01",
+		"transfer_status":"none","authenticity_declared":false,"consent_captured":false,"custodian":"","notes":""
+	}`, fixture.memberUserID, fixture.foreignPersonnelID), nil))
+	assertHandlerCode(t, forgedOwner, http.StatusUnprocessableEntity, "portfolio_owner_identity_mismatch")
+
 	// A portfolio must not be created merely because an owner has the normal
 	// RBAC permission: the institution must have published a valid procedure.
 	missingProcedure := httptest.NewRecorder()
@@ -57,6 +68,9 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	}
 	if portfolio.AppliedProcedureID != procedureID {
 		t.Fatalf("created portfolio procedure=%q, want institution procedure %q", portfolio.AppliedProcedureID, procedureID)
+	}
+	if portfolio.OwnerPersonnelID != fixture.memberPersonnelID {
+		t.Fatalf("self-service portfolio personnel=%q, want canonical owner %q", portfolio.OwnerPersonnelID, fixture.memberPersonnelID)
 	}
 
 	// A browser flag cannot make a portfolio ready.  Both current, server-issued
@@ -100,7 +114,9 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	foreignCtx, foreignRelease := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, foreignSubject)
 	defer foreignRelease()
 	foreign := httptest.NewRecorder()
-	service.PortfolioOwnSubmit(foreign, legalWorkflowRequest(foreignCtx, fixture, http.MethodPost, "", map[string]string{"recordID": portfolio.ID}))
+	foreignFixture := fixture
+	foreignFixture.memberSubject = foreignSubject
+	service.PortfolioOwnSubmit(foreign, legalWorkflowRequest(foreignCtx, foreignFixture, http.MethodPost, "", map[string]string{"recordID": portfolio.ID}))
 	assertHandlerCode(t, foreign, http.StatusForbidden, "education_portfolio_access_denied")
 	foreignRelease()
 

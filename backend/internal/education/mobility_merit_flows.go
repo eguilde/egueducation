@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -23,7 +22,9 @@ func (s *Service) MobilityDocuments(w http.ResponseWriter, r *http.Request) {
 		"document_title":    {},
 		"validation_status": {},
 		"submitted_by":      {},
-	}, []string{"document_code", "document_type", "stage_scope", "document_title", "validation_status", "registered_on"})
+		"mandatory":         {},
+		"notes":             {},
+	}, []string{"document_code", "document_type", "stage_scope", "document_title", "validation_status", "registered_on", "mandatory", "notes"})
 	if query.Sort == "" {
 		query.Sort = "registered_on"
 	}
@@ -109,7 +110,7 @@ func (s *Service) CreateMobilityDocument(w http.ResponseWriter, r *http.Request)
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_mobility_document_registered_on"})
 		return
 	}
-	code := fmt.Sprintf("MOBDOC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MOBDOC")
 	var item MobilityDocument
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_mobility_documents (
@@ -200,6 +201,10 @@ func (s *Service) MobilityCriterionScores(w http.ResponseWriter, r *http.Request
 		"criterion_label":    {},
 		"validated_by":       {},
 		"contested":          {},
+		"reviewer_name":      {},
+		"awarded_score":      {},
+		"max_score":          {},
+		"notes":              {},
 	}, []string{"criterion_code", "criterion_category", "criterion_label", "awarded_score", "max_score"})
 	if query.Sort == "" {
 		query.Sort = "criterion_code"
@@ -355,9 +360,12 @@ func (s *Service) DeleteMobilityCriterionScore(w http.ResponseWriter, r *http.Re
 func (s *Service) MobilityAppeals(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
-		"appeal_code":  {},
-		"submitted_by": {},
-		"status":       {},
+		"appeal_code":      {},
+		"submitted_by":     {},
+		"status":           {},
+		"grounds":          {},
+		"decision_summary": {},
+		"notes":            {},
 	}, []string{"appeal_code", "submitted_by", "status", "submitted_on", "hearing_on", "resolved_on"})
 	if query.Sort == "" {
 		query.Sort = "submitted_on"
@@ -452,7 +460,7 @@ func (s *Service) CreateMobilityAppeal(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_mobility_appeal_resolved_on"})
 		return
 	}
-	code := fmt.Sprintf("MOBAPL-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("MOBAPL")
 	var item MobilityAppeal
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_mobility_appeals (
@@ -551,7 +559,9 @@ func (s *Service) MeritDocuments(w http.ResponseWriter, r *http.Request) {
 		"document_title":    {},
 		"validation_status": {},
 		"submitted_by":      {},
-	}, []string{"document_code", "document_type", "document_title", "validation_status", "registered_on"})
+		"mandatory":         {},
+		"notes":             {},
+	}, []string{"document_code", "document_type", "document_title", "validation_status", "registered_on", "mandatory", "notes"})
 	if query.Sort == "" {
 		query.Sort = "registered_on"
 	}
@@ -634,7 +644,7 @@ func (s *Service) CreateMeritDocument(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_merit_document_registered_on"})
 		return
 	}
-	code := fmt.Sprintf("GRDOC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("GRDOC")
 	var item MeritDocument
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_merit_documents (
@@ -722,6 +732,10 @@ func (s *Service) MeritCriterionScores(w http.ResponseWriter, r *http.Request) {
 		"panel_stage":        {},
 		"reviewer_name":      {},
 		"contested":          {},
+		"criterion_label":    {},
+		"awarded_score":      {},
+		"max_score":          {},
+		"notes":              {},
 	}, []string{"criterion_code", "criterion_category", "panel_stage", "awarded_score", "max_score"})
 	if query.Sort == "" {
 		query.Sort = "criterion_code"
@@ -879,9 +893,12 @@ func (s *Service) DeleteMeritCriterionScore(w http.ResponseWriter, r *http.Reque
 func (s *Service) MeritAppeals(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{
-		"appeal_code":  {},
-		"submitted_by": {},
-		"status":       {},
+		"appeal_code":      {},
+		"submitted_by":     {},
+		"status":           {},
+		"grounds":          {},
+		"decision_summary": {},
+		"notes":            {},
 	}, []string{"appeal_code", "submitted_by", "status", "submitted_on", "resolved_on"})
 	if query.Sort == "" {
 		query.Sort = "submitted_on"
@@ -969,7 +986,7 @@ func (s *Service) CreateMeritAppeal(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_merit_appeal_resolved_on"})
 		return
 	}
-	code := fmt.Sprintf("GRAPL-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("GRAPL")
 	var item MeritAppeal
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_merit_appeals (
@@ -1063,11 +1080,16 @@ func buildMobilityDocumentFilters(filters map[string]string, recordID string, in
 		"document_title":    "emd.document_title",
 		"validation_status": "emd.validation_status",
 		"submitted_by":      "emd.submitted_by",
+		"notes":             "emd.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
 			where = append(where, fmt.Sprintf("lower(%s) like $%d", column, len(args)))
 		}
+	}
+	if value := strings.TrimSpace(filters["mandatory"]); value != "" {
+		args = append(args, value == "true")
+		where = append(where, fmt.Sprintf("emd.mandatory = $%d", len(args)))
 	}
 	return "where " + strings.Join(where, " and "), args
 }
@@ -1080,6 +1102,10 @@ func buildMobilityScoreFilters(filters map[string]string, recordID string, insti
 		"criterion_category": "ems.criterion_category",
 		"criterion_label":    "ems.criterion_label",
 		"validated_by":       "ems.validated_by",
+		"reviewer_name":      "ems.validated_by",
+		"awarded_score":      "ems.awarded_score::text",
+		"max_score":          "ems.max_score::text",
+		"notes":              "ems.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1097,9 +1123,12 @@ func buildMobilityAppealFilters(filters map[string]string, recordID string, inst
 	where := []string{"ema.mobility_case_id = $1", "ema.institution_id = $2"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
-		"appeal_code":  "ema.appeal_code",
-		"submitted_by": "ema.submitted_by",
-		"status":       "ema.status",
+		"appeal_code":      "ema.appeal_code",
+		"submitted_by":     "ema.submitted_by",
+		"status":           "ema.status",
+		"grounds":          "ema.grounds",
+		"decision_summary": "ema.decision_summary",
+		"notes":            "ema.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1118,11 +1147,16 @@ func buildMeritDocumentFilters(filters map[string]string, recordID string, insti
 		"document_title":    "emd.document_title",
 		"validation_status": "emd.validation_status",
 		"submitted_by":      "emd.submitted_by",
+		"notes":             "emd.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
 			where = append(where, fmt.Sprintf("lower(%s) like $%d", column, len(args)))
 		}
+	}
+	if value := strings.TrimSpace(filters["mandatory"]); value != "" {
+		args = append(args, value == "true")
+		where = append(where, fmt.Sprintf("emd.mandatory = $%d", len(args)))
 	}
 	return "where " + strings.Join(where, " and "), args
 }
@@ -1135,6 +1169,10 @@ func buildMeritScoreFilters(filters map[string]string, recordID string, institut
 		"criterion_category": "ems.criterion_category",
 		"panel_stage":        "ems.panel_stage",
 		"reviewer_name":      "ems.reviewer_name",
+		"criterion_label":    "ems.criterion_label",
+		"awarded_score":      "ems.awarded_score::text",
+		"max_score":          "ems.max_score::text",
+		"notes":              "ems.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1152,9 +1190,12 @@ func buildMeritAppealFilters(filters map[string]string, recordID string, institu
 	where := []string{"ema.grant_id = $1", "ema.institution_id = $2"}
 	args := []any{recordID, institutionID}
 	for key, column := range map[string]string{
-		"appeal_code":  "ema.appeal_code",
-		"submitted_by": "ema.submitted_by",
-		"status":       "ema.status",
+		"appeal_code":      "ema.appeal_code",
+		"submitted_by":     "ema.submitted_by",
+		"status":           "ema.status",
+		"grounds":          "ema.grounds",
+		"decision_summary": "ema.decision_summary",
+		"notes":            "ema.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -1178,6 +1219,10 @@ func mobilityDocumentSortColumn(value string) string {
 		return "emd.validation_status"
 	case "registered_on":
 		return "emd.registered_on"
+	case "mandatory":
+		return "emd.mandatory"
+	case "notes":
+		return "emd.notes"
 	default:
 		return "emd.registered_on"
 	}
@@ -1195,6 +1240,8 @@ func mobilityScoreSortColumn(value string) string {
 		return "ems.max_score"
 	case "awarded_score":
 		return "ems.awarded_score"
+	case "notes":
+		return "ems.notes"
 	default:
 		return "ems.criterion_code"
 	}
@@ -1214,6 +1261,12 @@ func mobilityAppealSortColumn(value string) string {
 		return "ema.hearing_on"
 	case "resolved_on":
 		return "ema.resolved_on"
+	case "grounds":
+		return "ema.grounds"
+	case "decision_summary":
+		return "ema.decision_summary"
+	case "notes":
+		return "ema.notes"
 	default:
 		return "ema.submitted_on"
 	}
@@ -1231,6 +1284,10 @@ func meritDocumentSortColumn(value string) string {
 		return "emd.validation_status"
 	case "registered_on":
 		return "emd.registered_on"
+	case "mandatory":
+		return "emd.mandatory"
+	case "notes":
+		return "emd.notes"
 	default:
 		return "emd.registered_on"
 	}
@@ -1248,6 +1305,8 @@ func meritScoreSortColumn(value string) string {
 		return "ems.max_score"
 	case "awarded_score":
 		return "ems.awarded_score"
+	case "notes":
+		return "ems.notes"
 	default:
 		return "ems.criterion_code"
 	}
@@ -1265,6 +1324,12 @@ func meritAppealSortColumn(value string) string {
 		return "ema.submitted_on"
 	case "resolved_on":
 		return "ema.resolved_on"
+	case "grounds":
+		return "ema.grounds"
+	case "decision_summary":
+		return "ema.decision_summary"
+	case "notes":
+		return "ema.notes"
 	default:
 		return "ema.submitted_on"
 	}

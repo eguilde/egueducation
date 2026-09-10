@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -121,6 +122,7 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	if reprovisioned != user {
 		t.Fatalf("reprovisioned fixture = %#v, want %#v", reprovisioned, user)
 	}
+	assertOIDCMembershipEligibility(t, ctx, adminPool, pool, service, cfg, user)
 	var fixturePhoneIdentityCount, fixtureVerifiedPhoneCount int
 	if err := pool.QueryRow(ctx, `
 		select count(*), count(*) filter (where verified_at is not null)
@@ -545,6 +547,63 @@ func TestOIDCPostgresIntegration(t *testing.T) {
 	}
 
 	assertPooledTenantIsolation(t, ctx, pool, user.ID)
+}
+
+func assertOIDCMembershipEligibility(t *testing.T, ctx context.Context, adminPool, applicationPool *pgxpool.Pool, service *Service, cfg config.Config, user OIDCTestFixtureUser) {
+	t.Helper()
+	tenantCode := cfg.TestOTPFixtureTenantCode
+	assertRejected := func(label string) {
+		t.Helper()
+		if _, err := findLoginUser(ctx, applicationPool, user.Identifier, tenantCode); !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatalf("%s membership login lookup error=%v, want pgx.ErrNoRows", label, err)
+		}
+		if _, err := service.loadSessionContext(ctx, "egueducation.egueducation.test", user.Subject); err == nil {
+			t.Fatalf("%s membership must not create a session", label)
+		}
+
+		tx, err := beginTenantReadTx(ctx, applicationPool, tenantCode, label+" membership authorization lookup")
+		if err != nil {
+			t.Fatalf("begin %s role/permission lookup: %v", label, err)
+		}
+		roles, rolesErr := loadRolesForSubject(ctx, tx, user.Subject, tenantCode)
+		permissions, permissionsErr := loadPermissionsForSubject(ctx, tx, user.Subject, tenantCode)
+		_ = tx.Rollback(ctx)
+		if rolesErr != nil || permissionsErr != nil {
+			t.Fatalf("load %s role/permission claims: roles=%v permissions=%v", label, rolesErr, permissionsErr)
+		}
+		if len(roles) != 0 || len(permissions) != 0 {
+			t.Fatalf("%s position membership leaked claims: roles=%v permissions=%v", label, roles, permissions)
+		}
+	}
+
+	if _, err := adminPool.Exec(ctx, `
+		update app_memberships
+		set start_date=current_date+1, end_date=null
+		where user_id=$1 and tenant_code=$2
+	`, user.ID, tenantCode); err != nil {
+		t.Fatalf("make fixture membership future-dated: %v", err)
+	}
+	assertRejected("future-dated")
+
+	if _, err := adminPool.Exec(ctx, `
+		update app_memberships
+		set start_date=current_date-2, end_date=current_date-1
+		where user_id=$1 and tenant_code=$2
+	`, user.ID, tenantCode); err != nil {
+		t.Fatalf("make fixture membership expired: %v", err)
+	}
+	assertRejected("expired")
+
+	if _, err := adminPool.Exec(ctx, `
+		update app_memberships
+		set start_date=current_date, end_date=null
+		where user_id=$1 and tenant_code=$2
+	`, user.ID, tenantCode); err != nil {
+		t.Fatalf("restore fixture membership eligibility: %v", err)
+	}
+	if _, err := findLoginUser(ctx, applicationPool, user.Identifier, tenantCode); err != nil {
+		t.Fatalf("restored membership login lookup: %v", err)
+	}
 }
 
 func provisionOIDCIntegrationRole(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {

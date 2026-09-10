@@ -145,7 +145,7 @@ func (s *Service) GovernanceMeetings(w http.ResponseWriter, r *http.Request) {
 			"chairperson":    {},
 			"secretary_name": {},
 		},
-		[]string{"title", "school_year", "organism", "meeting_type", "status", "meeting_date"},
+		[]string{"title", "school_year", "organism", "meeting_type", "status", "meeting_date", "chairperson", "secretary_name"},
 	)
 
 	whereClause, args := buildMeetingFilters(query.Filters, s.institutionID(r))
@@ -449,9 +449,11 @@ func (s *Service) GovernanceDecisions(w http.ResponseWriter, r *http.Request) {
 			"status":             {},
 			"publication_status": {},
 			"decision_date":      {},
+			"legal_basis":        {},
 			"signed_by":          {},
+			"summary":            {},
 		},
-		[]string{"decision_code", "title", "school_year", "organism", "status", "publication_status", "decision_date"},
+		[]string{"decision_code", "title", "school_year", "organism", "status", "publication_status", "decision_date", "legal_basis", "signed_by", "summary"},
 	)
 
 	whereClause, args := buildDecisionFilters(query.Filters, s.institutionID(r))
@@ -604,7 +606,7 @@ func (s *Service) CreateGovernanceDecision(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	decisionCode := fmt.Sprintf("DEC-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	decisionCode := newEducationCode("DEC")
 
 	var item GovernanceDecision
 	err = s.pool.QueryRow(r.Context(), `
@@ -714,8 +716,9 @@ func (s *Service) ManagerialDossiers(w http.ResponseWriter, r *http.Request) {
 			"due_on":               {},
 			"publication_required": {},
 			"owner_name":           {},
+			"summary":              {},
 		},
-		[]string{"dossier_code", "title", "school_year", "dossier_type", "status", "due_on"},
+		[]string{"dossier_code", "title", "school_year", "dossier_type", "status", "due_on", "publication_required", "owner_name", "summary"},
 	)
 
 	whereClause, args := buildManagerialFilters(query.Filters, s.institutionID(r))
@@ -854,7 +857,7 @@ func (s *Service) CreateManagerialDossier(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dossierCode := fmt.Sprintf("MGR-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	dossierCode := newEducationCode("MGR")
 
 	var item ManagerialDossier
 	err = s.pool.QueryRow(r.Context(), `
@@ -959,9 +962,11 @@ func (s *Service) Regulations(w http.ResponseWriter, r *http.Request) {
 			"status":          {},
 			"approval_status": {},
 			"review_due_on":   {},
+			"approved_on":     {},
 			"owner_name":      {},
+			"summary":         {},
 		},
-		[]string{"regulation_code", "title", "school_year", "regulation_type", "status", "approval_status", "review_due_on"},
+		[]string{"regulation_code", "title", "school_year", "regulation_type", "status", "approval_status", "review_due_on", "approved_on", "owner_name", "summary"},
 	)
 
 	whereClause, args := buildRegulationFilters(query.Filters, s.institutionID(r))
@@ -1120,7 +1125,7 @@ func (s *Service) CreateRegulation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	regulationCode := fmt.Sprintf("REGL-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	regulationCode := newEducationCode("REGL")
 
 	var item RegulationRecord
 	err = s.pool.QueryRow(r.Context(), `
@@ -1230,9 +1235,13 @@ func (s *Service) PersonnelRecords(w http.ResponseWriter, r *http.Request) {
 			"evaluation_status": {},
 			"mobility_stage":    {},
 			"school_year":       {},
+			"assigned_unit":     {},
+			"phone":             {},
+			"email":             {},
 			"has_portfolio":     {},
+			"notes":             {},
 		},
-		[]string{"employee_code", "full_name", "employment_type", "status", "evaluation_status", "mobility_stage", "school_year", "has_portfolio"},
+		[]string{"employee_code", "full_name", "role_title", "employment_type", "status", "evaluation_status", "mobility_stage", "school_year", "assigned_unit", "phone", "email", "has_portfolio", "notes"},
 	)
 
 	whereClause, args := buildPersonnelFilters(query.Filters, s.institutionID(r))
@@ -1251,6 +1260,7 @@ func (s *Service) PersonnelRecords(w http.ResponseWriter, r *http.Request) {
 	sql := fmt.Sprintf(`
 		select
 			ep.id::text,
+			coalesce(ep.app_user_id::text, ''),
 			ep.employee_code,
 			ep.full_name,
 			ep.role_title,
@@ -1283,6 +1293,7 @@ func (s *Service) PersonnelRecords(w http.ResponseWriter, r *http.Request) {
 		var item PersonnelRecord
 		if err := rows.Scan(
 			&item.ID,
+			&item.AppUserID,
 			&item.EmployeeCode,
 			&item.FullName,
 			&item.RoleTitle,
@@ -1373,6 +1384,7 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 	}
 
 	req.FullName = strings.TrimSpace(req.FullName)
+	req.AppUserID = strings.TrimSpace(req.AppUserID)
 	req.RoleTitle = strings.TrimSpace(req.RoleTitle)
 	req.EmploymentType = strings.TrimSpace(req.EmploymentType)
 	req.Status = strings.TrimSpace(req.Status)
@@ -1395,12 +1407,16 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_personnel_fields"})
 		return
 	}
+	if !s.validatePersonnelAppUserAssociation(w, r, req.AppUserID) {
+		return
+	}
 
-	employeeCode := fmt.Sprintf("PER-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	employeeCode := newEducationCode("PER")
 
 	var item PersonnelRecord
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_personnel (
+			app_user_id,
 			employee_code,
 			full_name,
 			role_title,
@@ -1415,9 +1431,10 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 			has_portfolio,
 			institution_id,
 			notes
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+		) values (nullif($1, '')::uuid,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
 		returning
 			id::text,
+			coalesce(app_user_id::text, ''),
 			employee_code,
 			full_name,
 			role_title,
@@ -1433,6 +1450,7 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 			institution_id,
 			notes
 	`,
+		req.AppUserID,
 		employeeCode,
 		req.FullName,
 		req.RoleTitle,
@@ -1449,6 +1467,7 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 		req.Notes,
 	).Scan(
 		&item.ID,
+		&item.AppUserID,
 		&item.EmployeeCode,
 		&item.FullName,
 		&item.RoleTitle,
@@ -1470,6 +1489,7 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 	}
 
 	s.logAudit(r, "education.personnel.create", "personnel_record", item.ID, "Personnel record created.", map[string]any{
+		"app_user_id":       item.AppUserID,
 		"employee_code":     item.EmployeeCode,
 		"full_name":         item.FullName,
 		"role_title":        item.RoleTitle,
@@ -1482,6 +1502,43 @@ func (s *Service) CreatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 	})
 
 	httpx.JSON(w, http.StatusCreated, item)
+}
+
+// validatePersonnelAppUserAssociation is the administrator command boundary
+// for the durable institutional personnel/user link.  The user must already
+// be an active member of this host-derived tenant; raw phone/email matching is
+// deliberately never accepted as an association command.
+func (s *Service) validatePersonnelAppUserAssociation(w http.ResponseWriter, r *http.Request, userID string) bool {
+	if userID == "" {
+		return true
+	}
+	if _, err := uuid.Parse(userID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_personnel_app_user"})
+		return false
+	}
+	var activeMembership bool
+	err := s.pool.QueryRow(r.Context(), `
+		select exists(
+			select 1 from app_memberships membership
+			join app_tenants tenant on tenant.code = membership.tenant_code
+			join app_users user_row on user_row.id = membership.user_id and user_row.status = 'active'
+			where membership.user_id = $1::uuid
+				and membership.active and tenant.active
+				and membership.start_date <= current_date
+				and (membership.end_date is null or membership.end_date >= current_date)
+				and membership.tenant_code = public.current_tenant_code()
+				and tenant.institution_id = $2
+		)
+	`, userID, s.institutionID(r)).Scan(&activeMembership)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "personnel_app_user_association_lookup_failed"})
+		return false
+	}
+	if !activeMembership {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "personnel_app_user_active_membership_required"})
+		return false
+	}
+	return true
 }
 
 const evaluationDashboardQuery = `
@@ -1526,13 +1583,16 @@ func (s *Service) Evaluations(w http.ResponseWriter, r *http.Request) {
 			"evaluation_code": {},
 			"employee_code":   {},
 			"full_name":       {},
+			"role_title":      {},
 			"school_year":     {},
 			"status":          {},
+			"score":           {},
 			"qualification":   {},
 			"finalized_on":    {},
 			"evaluator_name":  {},
+			"summary":         {},
 		},
-		[]string{"evaluation_code", "employee_code", "full_name", "school_year", "status", "qualification", "finalized_on", "score"},
+		[]string{"evaluation_code", "employee_code", "full_name", "role_title", "school_year", "status", "score", "qualification", "finalized_on", "evaluator_name", "summary"},
 	)
 
 	whereClause, args := buildEvaluationFilters(query.Filters, s.institutionID(r))
@@ -1676,7 +1736,7 @@ func (s *Service) CreateEvaluation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	evaluationCode := fmt.Sprintf("EVAL-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	evaluationCode := newEducationCode("EVAL")
 	qualification := evaluationQualification(req.Score)
 
 	var item PersonnelEvaluation
@@ -1802,8 +1862,9 @@ func (s *Service) Declarations(w http.ResponseWriter, r *http.Request) {
 			"school_year":      {},
 			"submitted_on":     {},
 			"valid_until":      {},
+			"summary":          {},
 		},
-		[]string{"declaration_code", "employee_code", "full_name", "declaration_type", "status", "school_year", "submitted_on", "valid_until"},
+		[]string{"declaration_code", "employee_code", "full_name", "declaration_type", "status", "school_year", "submitted_on", "valid_until", "summary"},
 	)
 
 	whereClause, args := buildDeclarationFilters(query.Filters, s.institutionID(r))
@@ -1949,7 +2010,7 @@ func (s *Service) CreateDeclaration(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	declarationCode := fmt.Sprintf("DECL-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	declarationCode := newEducationCode("DECL")
 
 	var item PersonnelDeclaration
 	err = s.pool.QueryRow(r.Context(), `
@@ -2048,14 +2109,19 @@ func (s *Service) PortfolioRecords(w http.ResponseWriter, r *http.Request) {
 		map[string]struct{}{
 			"portfolio_code":        {},
 			"owner_name":            {},
+			"owner_role":            {},
 			"school_year":           {},
 			"status":                {},
+			"section_count":         {},
+			"last_updated_on":       {},
 			"transfer_status":       {},
 			"authenticity_declared": {},
 			"consent_captured":      {},
 			"retention_until":       {},
+			"custodian":             {},
+			"notes":                 {},
 		},
-		[]string{"portfolio_code", "owner_name", "school_year", "status", "transfer_status", "authenticity_declared", "consent_captured", "retention_until"},
+		[]string{"portfolio_code", "owner_name", "owner_role", "school_year", "status", "section_count", "last_updated_on", "transfer_status", "authenticity_declared", "consent_captured", "retention_until", "custodian", "notes"},
 	)
 
 	whereClause, args := buildPortfolioFilters(query.Filters, s.institutionID(r))
@@ -2196,7 +2262,7 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	req.Custodian = strings.TrimSpace(req.Custodian)
 	req.Notes = strings.TrimSpace(req.Notes)
 
-	if req.OwnerUserID == "" || req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.TransferStatus == "" {
+	if req.OwnerUserID == "" || req.OwnerPersonnelID == "" || req.OwnerName == "" || req.OwnerRole == "" || req.SchoolYear == "" || req.Status == "" || req.LastUpdatedOn == "" || req.TransferStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_fields"})
 		return
 	}
@@ -2204,11 +2270,21 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_user"})
 		return
 	}
-	if req.OwnerPersonnelID != "" {
-		if _, err := uuid.Parse(req.OwnerPersonnelID); err != nil {
-			httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_personnel"})
+	if _, err := uuid.Parse(req.OwnerPersonnelID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_owner_personnel"})
+		return
+	}
+	canonicalPersonnelID, err := s.resolvePortfolioPersonnelID(r, req.OwnerUserID)
+	if err != nil {
+		if writePortfolioPersonnelAssociationFailure(w, err) {
 			return
 		}
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_owner_identity_resolve_failed"})
+		return
+	}
+	if req.OwnerPersonnelID != canonicalPersonnelID {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_owner_identity_mismatch"})
+		return
 	}
 	if !contains([]string{"draft", "submitted", "returned", "validated", "transferred", "archived"}, req.Status) ||
 		!contains([]string{"none", "prepared", "sent", "received"}, req.TransferStatus) {
@@ -2231,7 +2307,7 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	portfolioCode := fmt.Sprintf("PORT-CD-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	portfolioCode := newEducationCode("PORT-CD")
 	appliedProcedureID, err := s.resolvePublishedPortfolioProcedure(r)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_published_procedure_required"})
@@ -2262,7 +2338,7 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 			institution_id,
 			notes,
 			applied_procedure_id
-		) values ($1,$2::uuid,nullif($3, '')::uuid,$4,$5,$6,$7,$8,$9,null,$10,$11,$12,$13,$14,$15,$16::uuid)
+		) values ($1,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9,null,$10,$11,$12,$13,$14,$15,$16::uuid)
 		returning `+portfolioRecordColumns,
 		portfolioCode,
 		req.OwnerUserID,
@@ -2304,7 +2380,7 @@ func (s *Service) CreatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 // decodePortfolioRecordRequest explicitly rejects retention_until. This is
 // intentional even though the generic JSON decoder normally ignores unknown
 // fields: a client must not be able to suggest a retention deadline.
-func decodePortfolioRecordRequest(r *http.Request, target *CreatePortfolioRecordRequest) error {
+func decodePortfolioRecordRequest(r *http.Request, target any) error {
 	var raw json.RawMessage
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		return err
@@ -2352,16 +2428,20 @@ func (s *Service) MobilityCases(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"case_code":     {},
-			"employee_code": {},
-			"full_name":     {},
-			"school_year":   {},
-			"request_type":  {},
-			"stage":         {},
-			"status":        {},
-			"submitted_on":  {},
+			"case_code":          {},
+			"employee_code":      {},
+			"full_name":          {},
+			"school_year":        {},
+			"request_type":       {},
+			"stage":              {},
+			"status":             {},
+			"source_school":      {},
+			"destination_school": {},
+			"submitted_on":       {},
+			"reviewed_by":        {},
+			"notes":              {},
 		},
-		[]string{"case_code", "employee_code", "full_name", "school_year", "request_type", "stage", "status", "submitted_on"},
+		[]string{"case_code", "employee_code", "full_name", "school_year", "request_type", "stage", "status", "source_school", "destination_school", "submitted_on", "reviewed_by", "notes"},
 	)
 
 	whereClause, args := buildMobilityFilters(query.Filters, s.institutionID(r))
@@ -2520,7 +2600,7 @@ func (s *Service) CreateMobilityCase(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	caseCode := fmt.Sprintf("MOB-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	caseCode := newEducationCode("MOB")
 
 	var item MobilityCase
 	err := s.pool.QueryRow(r.Context(), `
@@ -2637,15 +2717,19 @@ func (s *Service) MeritGrants(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"grant_code":    {},
-			"full_name":     {},
-			"school_year":   {},
-			"category":      {},
-			"status":        {},
-			"decision_date": {},
-			"funded":        {},
+			"grant_code":     {},
+			"full_name":      {},
+			"role_title":     {},
+			"school_year":    {},
+			"category":       {},
+			"status":         {},
+			"score":          {},
+			"committee_name": {},
+			"decision_date":  {},
+			"funded":         {},
+			"notes":          {},
 		},
-		[]string{"grant_code", "full_name", "school_year", "category", "status", "decision_date", "funded"},
+		[]string{"grant_code", "full_name", "role_title", "school_year", "category", "status", "score", "committee_name", "decision_date", "funded", "notes"},
 	)
 
 	whereClause, args := buildMeritFilters(query.Filters, s.institutionID(r))
@@ -2797,7 +2881,7 @@ func (s *Service) CreateMeritGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	grantCode := fmt.Sprintf("GRM-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	grantCode := newEducationCode("GRM")
 
 	var item MeritGrant
 	err := s.pool.QueryRow(r.Context(), `
@@ -3551,6 +3635,7 @@ func (s *Service) UpdatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	req.AppUserID = strings.TrimSpace(req.AppUserID)
 	req.FullName = strings.TrimSpace(req.FullName)
 	req.RoleTitle = strings.TrimSpace(req.RoleTitle)
 	req.EmploymentType = strings.TrimSpace(req.EmploymentType)
@@ -3574,27 +3659,32 @@ func (s *Service) UpdatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_personnel_fields"})
 		return
 	}
+	if !s.validatePersonnelAppUserAssociation(w, r, req.AppUserID) {
+		return
+	}
 
 	var item PersonnelRecord
 	err := s.pool.QueryRow(r.Context(), `
 		update education_personnel
 		set
-			full_name = $1,
-			role_title = $2,
-			employment_type = $3,
-			status = $4,
-			evaluation_status = $5,
-			mobility_stage = $6,
-			school_year = $7,
-			assigned_unit = $8,
-			phone = $9,
-			email = $10,
-			has_portfolio = $11,
-			notes = $12,
+			app_user_id = case when nullif($1, '') is null then app_user_id else $1::uuid end,
+			full_name = $2,
+			role_title = $3,
+			employment_type = $4,
+			status = $5,
+			evaluation_status = $6,
+			mobility_stage = $7,
+			school_year = $8,
+			assigned_unit = $9,
+			phone = $10,
+			email = $11,
+			has_portfolio = $12,
+			notes = $13,
 			updated_at = now()
-		where id = $13::uuid and institution_id = $14
+		where id = $14::uuid and institution_id = $15
 		returning
 			id::text,
+			coalesce(app_user_id::text, ''),
 			employee_code,
 			full_name,
 			role_title,
@@ -3610,6 +3700,7 @@ func (s *Service) UpdatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 			institution_id,
 			notes
 	`,
+		req.AppUserID,
 		req.FullName,
 		req.RoleTitle,
 		req.EmploymentType,
@@ -3626,6 +3717,7 @@ func (s *Service) UpdatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 		institutionID,
 	).Scan(
 		&item.ID,
+		&item.AppUserID,
 		&item.EmployeeCode,
 		&item.FullName,
 		&item.RoleTitle,
@@ -3651,6 +3743,7 @@ func (s *Service) UpdatePersonnelRecord(w http.ResponseWriter, r *http.Request) 
 	}
 
 	s.logAudit(r, "education.personnel.update", "personnel_record", item.ID, "Personnel record updated.", map[string]any{
+		"app_user_id":       item.AppUserID,
 		"employee_code":     item.EmployeeCode,
 		"full_name":         item.FullName,
 		"role_title":        item.RoleTitle,
@@ -4040,7 +4133,7 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	}
 
 	institutionID := s.institutionID(r)
-	var req CreatePortfolioRecordRequest
+	var req UpdatePortfolioRecordRequest
 	if err := decodePortfolioRecordRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_payload"})
 		return
@@ -4112,31 +4205,43 @@ func (s *Service) UpdatePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_last_updated"})
 		return
 	}
-	// Ownership is immutable. Admin clients may echo it for optimistic-concurrency
-	// checks, but an update can never silently reassign a professional portfolio.
-	if req.OwnerUserID != "" || req.OwnerPersonnelID != "" {
-		var currentOwnerUserID, currentOwnerPersonnelID string
-		err := s.pool.QueryRow(r.Context(), `
-			select coalesce(owner_user_id::text, ''), coalesce(owner_personnel_id::text, '')
-			from education_portfolios where id = $1::uuid and institution_id = $2
-		`, recordID, institutionID).Scan(&currentOwnerUserID, &currentOwnerPersonnelID)
-		if errors.Is(err, pgx.ErrNoRows) {
-			writeEducationNotFound(w, "portfolio_not_found")
+	// Ownership is immutable. Every administrator update nevertheless resolves
+	// the stored user to the same institutional personnel identity, so a stale
+	// or forged owner/personnel pairing is never silently retained.
+	var currentOwnerUserID, currentOwnerPersonnelID string
+	err := s.pool.QueryRow(r.Context(), `
+		select coalesce(owner_user_id::text, ''), coalesce(owner_personnel_id::text, '')
+		from education_portfolios where id = $1::uuid and institution_id = $2
+	`, recordID, institutionID).Scan(&currentOwnerUserID, &currentOwnerPersonnelID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "portfolio_not_found")
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_owner_load_failed"})
+		return
+	}
+	if currentOwnerUserID == "" || currentOwnerPersonnelID == "" {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_owner_personnel_required"})
+		return
+	}
+	canonicalPersonnelID, err := s.resolvePortfolioPersonnelID(r, currentOwnerUserID)
+	if err != nil {
+		if writePortfolioPersonnelAssociationFailure(w, err) {
 			return
 		}
-		if err != nil {
-			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_owner_load_failed"})
-			return
-		}
-		if (req.OwnerUserID != "" && req.OwnerUserID != currentOwnerUserID) ||
-			(req.OwnerPersonnelID != "" && req.OwnerPersonnelID != currentOwnerPersonnelID) {
-			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_owner_immutable"})
-			return
-		}
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_owner_identity_resolve_failed"})
+		return
+	}
+	if currentOwnerPersonnelID != canonicalPersonnelID ||
+		(req.OwnerUserID != "" && req.OwnerUserID != currentOwnerUserID) ||
+		(req.OwnerPersonnelID != "" && req.OwnerPersonnelID != canonicalPersonnelID) {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_owner_identity_mismatch"})
+		return
 	}
 
 	var item PortfolioRecord
-	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
+	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		update education_portfolios
 		set
 			owner_name = $1,
@@ -5278,6 +5383,12 @@ func buildMeetingFilters(filters map[string]string, institutionID string) (strin
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("em.meeting_date = $%d::date", len(args)))
 	}
+	if value := strings.TrimSpace(filters["chairperson"]); value != "" {
+		addContains("em.chairperson", value)
+	}
+	if value := strings.TrimSpace(filters["secretary_name"]); value != "" {
+		addContains("em.secretary_name", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5373,6 +5484,12 @@ func buildDecisionFilters(filters map[string]string, institutionID string) (stri
 	if value := strings.TrimSpace(filters["signed_by"]); value != "" {
 		addContains("ed.signed_by", value)
 	}
+	if value := strings.TrimSpace(filters["legal_basis"]); value != "" {
+		addContains("ed.legal_basis", value)
+	}
+	if value := strings.TrimSpace(filters["summary"]); value != "" {
+		addContains("ed.summary", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5393,6 +5510,12 @@ func decisionSortColumn(field string) string {
 		return "ed.publication_status"
 	case "decision_date":
 		return "ed.decision_date"
+	case "legal_basis":
+		return "ed.legal_basis"
+	case "signed_by":
+		return "ed.signed_by"
+	case "summary":
+		return "ed.summary"
 	default:
 		return "ed.decision_date"
 	}
@@ -5436,6 +5559,9 @@ func buildManagerialFilters(filters map[string]string, institutionID string) (st
 	if value := strings.TrimSpace(filters["owner_name"]); value != "" {
 		addContains("emd.owner_name", value)
 	}
+	if value := strings.TrimSpace(filters["summary"]); value != "" {
+		addContains("emd.summary", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5454,6 +5580,12 @@ func managerialSortColumn(field string) string {
 		return "emd.status"
 	case "due_on":
 		return "emd.due_on"
+	case "publication_required":
+		return "emd.publication_required"
+	case "owner_name":
+		return "emd.owner_name"
+	case "summary":
+		return "emd.summary"
 	default:
 		return "emd.due_on"
 	}
@@ -5473,6 +5605,10 @@ func meetingSortColumn(field string) string {
 		return "em.status"
 	case "meeting_date":
 		return "em.meeting_date"
+	case "chairperson":
+		return "em.chairperson"
+	case "secretary_name":
+		return "em.secretary_name"
 	default:
 		return "em.meeting_date"
 	}
@@ -5497,6 +5633,9 @@ func buildPersonnelFilters(filters map[string]string, institutionID string) (str
 	if value := filters["full_name"]; value != "" {
 		addContains("ep.full_name", value)
 	}
+	if value := filters["role_title"]; value != "" {
+		addContains("ep.role_title", value)
+	}
 	if value := filters["employment_type"]; value != "" {
 		addEqual("ep.employment_type", value)
 	}
@@ -5512,9 +5651,21 @@ func buildPersonnelFilters(filters map[string]string, institutionID string) (str
 	if value := filters["school_year"]; value != "" {
 		addEqual("ep.school_year", value)
 	}
+	if value := filters["assigned_unit"]; value != "" {
+		addContains("ep.assigned_unit", value)
+	}
+	if value := filters["phone"]; value != "" {
+		addContains("ep.phone", value)
+	}
+	if value := filters["email"]; value != "" {
+		addContains("ep.email", value)
+	}
 	if value := filters["has_portfolio"]; value != "" {
 		args = append(args, value == "true")
 		clauses = append(clauses, fmt.Sprintf("ep.has_portfolio = $%d", len(args)))
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("ep.notes", value)
 	}
 
 	return "where " + strings.Join(clauses, " and "), args
@@ -5538,6 +5689,16 @@ func personnelSortColumn(field string) string {
 		return "ep.mobility_stage"
 	case "school_year":
 		return "ep.school_year"
+	case "assigned_unit":
+		return "ep.assigned_unit"
+	case "phone":
+		return "ep.phone"
+	case "email":
+		return "ep.email"
+	case "has_portfolio":
+		return "ep.has_portfolio"
+	case "notes":
+		return "ep.notes"
 	default:
 		return "ep.full_name"
 	}
@@ -5581,6 +5742,13 @@ func buildRegulationFilters(filters map[string]string, institutionID string) (st
 	if value := strings.TrimSpace(filters["owner_name"]); value != "" {
 		addContains("er.owner_name", value)
 	}
+	if value := strings.TrimSpace(filters["approved_on"]); value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("er.approved_on = $%d::date", len(args)))
+	}
+	if value := strings.TrimSpace(filters["summary"]); value != "" {
+		addContains("er.summary", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5601,6 +5769,12 @@ func regulationSortColumn(field string) string {
 		return "er.approval_status"
 	case "review_due_on":
 		return "er.review_due_on"
+	case "approved_on":
+		return "er.approved_on"
+	case "owner_name":
+		return "er.owner_name"
+	case "summary":
+		return "er.summary"
 	default:
 		return "er.review_due_on"
 	}
@@ -5628,11 +5802,17 @@ func buildEvaluationFilters(filters map[string]string, institutionID string) (st
 	if value := strings.TrimSpace(filters["full_name"]); value != "" {
 		addContains("ee.full_name", value)
 	}
+	if value := strings.TrimSpace(filters["role_title"]); value != "" {
+		addContains("ee.role_title", value)
+	}
 	if value := strings.TrimSpace(filters["school_year"]); value != "" {
 		addEqual("ee.school_year", value)
 	}
 	if value := strings.TrimSpace(filters["status"]); value != "" {
 		addEqual("ee.status", value)
+	}
+	if value := strings.TrimSpace(filters["score"]); value != "" {
+		addContains("ee.score::text", value)
 	}
 	if value := strings.TrimSpace(filters["qualification"]); value != "" {
 		addEqual("ee.qualification", value)
@@ -5643,6 +5823,9 @@ func buildEvaluationFilters(filters map[string]string, institutionID string) (st
 	}
 	if value := strings.TrimSpace(filters["evaluator_name"]); value != "" {
 		addContains("ee.evaluator_name", value)
+	}
+	if value := strings.TrimSpace(filters["summary"]); value != "" {
+		addContains("ee.summary", value)
 	}
 
 	return "where " + strings.Join(clauses, " and "), args
@@ -5656,6 +5839,8 @@ func evaluationSortColumn(field string) string {
 		return "ee.employee_code"
 	case "full_name":
 		return "ee.full_name"
+	case "role_title":
+		return "ee.role_title"
 	case "school_year":
 		return "ee.school_year"
 	case "status":
@@ -5666,6 +5851,10 @@ func evaluationSortColumn(field string) string {
 		return "ee.qualification"
 	case "finalized_on":
 		return "ee.finalized_on"
+	case "evaluator_name":
+		return "ee.evaluator_name"
+	case "summary":
+		return "ee.summary"
 	default:
 		return "ee.full_name"
 	}
@@ -5710,6 +5899,9 @@ func buildDeclarationFilters(filters map[string]string, institutionID string) (s
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("ed.valid_until = $%d::date", len(args)))
 	}
+	if value := strings.TrimSpace(filters["summary"]); value != "" {
+		addContains("ed.summary", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5732,6 +5924,8 @@ func declarationSortColumn(field string) string {
 		return "ed.submitted_on"
 	case "valid_until":
 		return "ed.valid_until"
+	case "summary":
+		return "ed.summary"
 	default:
 		return "ed.submitted_on"
 	}
@@ -5756,11 +5950,21 @@ func buildPortfolioFilters(filters map[string]string, institutionID string) (str
 	if value := filters["owner_name"]; value != "" {
 		addContains("epf.owner_name", value)
 	}
+	if value := filters["owner_role"]; value != "" {
+		addContains("epf.owner_role", value)
+	}
 	if value := filters["school_year"]; value != "" {
 		addEqual("epf.school_year", value)
 	}
 	if value := filters["status"]; value != "" {
 		addEqual("epf.status", value)
+	}
+	if value := filters["section_count"]; value != "" {
+		addContains("epf.section_count::text", value)
+	}
+	if value := filters["last_updated_on"]; value != "" {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("epf.last_updated_on = $%d::date", len(args)))
 	}
 	if value := filters["transfer_status"]; value != "" {
 		addEqual("epf.transfer_status", value)
@@ -5777,6 +5981,12 @@ func buildPortfolioFilters(filters map[string]string, institutionID string) (str
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("epf.retention_until = $%d::date", len(args)))
 	}
+	if value := filters["custodian"]; value != "" {
+		addContains("epf.custodian", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("epf.notes", value)
+	}
 
 	return "where " + strings.Join(clauses, " and "), args
 }
@@ -5787,16 +5997,28 @@ func portfolioSortColumn(field string) string {
 		return "epf.portfolio_code"
 	case "owner_name":
 		return "epf.owner_name"
+	case "owner_role":
+		return "epf.owner_role"
 	case "school_year":
 		return "epf.school_year"
 	case "status":
 		return "epf.status"
 	case "section_count":
 		return "epf.section_count"
+	case "last_updated_on":
+		return "epf.last_updated_on"
 	case "retention_until":
 		return "epf.retention_until"
 	case "transfer_status":
 		return "epf.transfer_status"
+	case "authenticity_declared":
+		return "epf.authenticity_declared"
+	case "consent_captured":
+		return "epf.consent_captured"
+	case "custodian":
+		return "epf.custodian"
+	case "notes":
+		return "epf.notes"
 	default:
 		return "epf.last_updated_on"
 	}
@@ -5835,9 +6057,21 @@ func buildMobilityFilters(filters map[string]string, institutionID string) (stri
 	if value := filters["status"]; value != "" {
 		addEqual("emc.status", value)
 	}
+	if value := filters["source_school"]; value != "" {
+		addContains("emc.source_school", value)
+	}
+	if value := filters["destination_school"]; value != "" {
+		addContains("emc.destination_school", value)
+	}
 	if value := filters["submitted_on"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("emc.submitted_on = $%d::date", len(args)))
+	}
+	if value := filters["reviewed_by"]; value != "" {
+		addContains("emc.reviewed_by", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("emc.notes", value)
 	}
 
 	return "where " + strings.Join(clauses, " and "), args
@@ -5859,8 +6093,16 @@ func mobilitySortColumn(field string) string {
 		return "emc.stage"
 	case "status":
 		return "emc.status"
+	case "source_school":
+		return "emc.source_school"
+	case "destination_school":
+		return "emc.destination_school"
 	case "submitted_on":
 		return "emc.submitted_on"
+	case "reviewed_by":
+		return "emc.reviewed_by"
+	case "notes":
+		return "emc.notes"
 	default:
 		return "emc.submitted_on"
 	}
@@ -5884,6 +6126,9 @@ func buildMeritFilters(filters map[string]string, institutionID string) (string,
 	if value := filters["full_name"]; value != "" {
 		addContains("emg.full_name", value)
 	}
+	if value := filters["role_title"]; value != "" {
+		addContains("emg.role_title", value)
+	}
 	if value := filters["school_year"]; value != "" {
 		addEqual("emg.school_year", value)
 	}
@@ -5893,6 +6138,12 @@ func buildMeritFilters(filters map[string]string, institutionID string) (string,
 	if value := filters["status"]; value != "" {
 		addEqual("emg.status", value)
 	}
+	if value := filters["score"]; value != "" {
+		addContains("emg.score::text", value)
+	}
+	if value := filters["committee_name"]; value != "" {
+		addContains("emg.committee_name", value)
+	}
 	if value := filters["decision_date"]; value != "" {
 		args = append(args, value)
 		clauses = append(clauses, fmt.Sprintf("emg.decision_date = $%d::date", len(args)))
@@ -5900,6 +6151,9 @@ func buildMeritFilters(filters map[string]string, institutionID string) (string,
 	if value := filters["funded"]; value != "" {
 		args = append(args, value == "true")
 		clauses = append(clauses, fmt.Sprintf("emg.funded = $%d", len(args)))
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("emg.notes", value)
 	}
 
 	return "where " + strings.Join(clauses, " and "), args
@@ -5911,6 +6165,8 @@ func meritSortColumn(field string) string {
 		return "emg.grant_code"
 	case "full_name":
 		return "emg.full_name"
+	case "role_title":
+		return "emg.role_title"
 	case "school_year":
 		return "emg.school_year"
 	case "category":
@@ -5921,6 +6177,12 @@ func meritSortColumn(field string) string {
 		return "emg.score"
 	case "decision_date":
 		return "emg.decision_date"
+	case "funded":
+		return "emg.funded"
+	case "committee_name":
+		return "emg.committee_name"
+	case "notes":
+		return "emg.notes"
 	default:
 		return "emg.decision_date"
 	}

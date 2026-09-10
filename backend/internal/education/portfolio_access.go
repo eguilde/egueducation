@@ -23,6 +23,10 @@ const (
 	portfolioManageOwnPermission = "education.portfolios.manage_own"
 )
 
+var (
+	errPortfolioPersonnelAssociationRequired = errors.New("portfolio owner has no canonical personnel association in the active institution")
+)
+
 // portfolioAdminAllowed recognizes the historical portfolio permissions during
 // migration, while new deployments use the explicitly school-scoped grants.
 func (s *Service) portfolioAdminAllowed(r *http.Request, permission string) (bool, error) {
@@ -55,22 +59,60 @@ func (s *Service) ownPortfolioActorID(r *http.Request, requiredPermission string
 	return actorID, actorID != "", err
 }
 
+// resolvePortfolioPersonnelID derives the person from the durable explicit
+// administrator-managed user link and the active institution. A caller never
+// supplies this identifier on an own-portfolio route; profile phone/email
+// values are deliberately not an authorization input.
+func (s *Service) resolvePortfolioPersonnelID(r *http.Request, userID string) (string, error) {
+	var personnelID string
+	err := s.pool.QueryRow(r.Context(), `
+		select person.id::text
+		from education_personnel person
+		where person.institution_id = $1 and person.app_user_id = $2::uuid
+	`, s.institutionID(r), userID).Scan(&personnelID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", errPortfolioPersonnelAssociationRequired
+	}
+	if err != nil {
+		return "", err
+	}
+	return personnelID, nil
+}
+
+func writePortfolioPersonnelAssociationFailure(w http.ResponseWriter, err error) bool {
+	switch {
+	case errors.Is(err, errPortfolioPersonnelAssociationRequired):
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_owner_personnel_required"})
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Service) requireOwnPortfolio(r *http.Request, recordID string, permission string) (string, bool, error) {
 	actorID, allowed, err := s.ownPortfolioActorID(r, permission)
 	if err != nil || !allowed {
 		return "", allowed, err
+	}
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		return "", false, err
 	}
 	var exists bool
 	err = s.pool.QueryRow(r.Context(), `
 		select exists(
 			select 1 from education_portfolios
 			where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid
+				and owner_personnel_id = $4::uuid
 		)
-	`, recordID, s.institutionID(r), actorID).Scan(&exists)
+	`, recordID, s.institutionID(r), actorID, personnelID).Scan(&exists)
 	return actorID, exists, err
 }
 
 func writePortfolioAccessFailure(w http.ResponseWriter, err error) {
+	if writePortfolioPersonnelAssociationFailure(w, err) {
+		return
+	}
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_authorization_failed"})
 		return
@@ -103,10 +145,14 @@ const portfolioRecordColumns = `
 	authenticity_declared, consent_captured, custodian, institution_id, notes`
 
 func (s *Service) loadOwnPortfolio(r *http.Request, recordID, actorID string) (PortfolioRecord, error) {
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		return PortfolioRecord{}, err
+	}
 	var item PortfolioRecord
-	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `select `+portfolioRecordColumns+`
-		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid`,
-		recordID, s.institutionID(r), actorID), &item)
+	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `select `+portfolioRecordColumns+`
+		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and owner_personnel_id = $4::uuid`,
+		recordID, s.institutionID(r), actorID, personnelID), &item)
 	return item, err
 }
 
@@ -120,8 +166,13 @@ func (s *Service) PortfolioOwnRecords(w http.ResponseWriter, r *http.Request) {
 	if query.Sort == "" {
 		query.Sort = "school_year"
 	}
-	where := "where institution_id = $1 and owner_user_id = $2::uuid and withdrawn_at is null"
-	args := []any{s.institutionID(r), actorID}
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		writePortfolioAccessFailure(w, err)
+		return
+	}
+	where := "where institution_id = $1 and owner_user_id = $2::uuid and owner_personnel_id = $3::uuid and withdrawn_at is null"
+	args := []any{s.institutionID(r), actorID, personnelID}
 	for _, filter := range []string{"school_year", "status"} {
 		if value := strings.TrimSpace(query.Filters[filter]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -343,6 +394,7 @@ func (s *Service) PortfolioArchiveEligibleDocuments(w http.ResponseWriter, r *ht
 
 func (s *Service) listPortfolioArchiveEligibleUsers(r *http.Request, institutionID string, query httpx.PageQuery) ([]EligibleGovernanceUser, int, error) {
 	where := `where tenant.institution_id = $1 and tenant.active and membership.active
+		and membership.start_date <= current_date and (membership.end_date is null or membership.end_date >= current_date)
 		and user_row.status = 'active' and nullif(btrim(user_row.name), '') is not null`
 	args := []any{institutionID}
 	if value := strings.TrimSpace(query.Filters["name"]); value != "" {
@@ -409,7 +461,9 @@ func (s *Service) CreatePortfolioArchiveAttachmentGrant(w http.ResponseWriter, r
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_archive_attachment_grants (institution_id,archive_document_id,grantee_user_id,granted_by_user_id)
 		select $1,document.id,membership.user_id,$4::uuid from archive_documents document join archive_document_versions version on version.document_id=document.id and version.version_no=document.current_version_no join app_memberships membership on membership.user_id=$3::uuid join app_tenants tenant on tenant.code=membership.tenant_code and tenant.institution_id=$1 and tenant.active
-		where document.id=$2::uuid and document.institution_id=$1 and document.status='ready' and version.status='active' and btrim(version.source_bucket)<>'' and btrim(version.source_object_key)<>'' and membership.active
+		where document.id=$2::uuid and document.institution_id=$1 and document.status='ready' and version.status='active' and btrim(version.source_bucket)<>'' and btrim(version.source_object_key)<>''
+			and membership.active and membership.start_date<=current_date
+			and (membership.end_date is null or membership.end_date>=current_date)
 		on conflict (institution_id,archive_document_id,grantee_user_id) do update set granted_by_user_id=excluded.granted_by_user_id
 		returning id::text`, s.institutionID(r), req.ArchiveDocumentID, req.GranteeUserID, actorID).Scan(&grantID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -437,7 +491,7 @@ func (s *Service) DeletePortfolioArchiveAttachmentGrant(w http.ResponseWriter, r
 		return
 	}
 	var exists, referenced bool
-	err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_archive_attachment_grants where id=$1::uuid and institution_id=$2),exists(select 1 from education_portfolio_archive_attachment_grants attachment_grant join education_portfolio_documents evidence on evidence.archive_document_id=attachment_grant.archive_document_id join education_portfolios portfolio on portfolio.id=evidence.portfolio_id where attachment_grant.id=$1::uuid and attachment_grant.institution_id=$2 and portfolio.status in ('submitted','validated','transferred','archived'))`, grantID, s.institutionID(r)).Scan(&exists, &referenced)
+	err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_archive_attachment_grants where id=$1::uuid and institution_id=$2),exists(select 1 from education_portfolio_archive_attachment_grants attachment_grant join education_portfolio_documents evidence on evidence.archive_document_id=attachment_grant.archive_document_id join education_portfolios portfolio on portfolio.id=evidence.portfolio_id where attachment_grant.id=$1::uuid and attachment_grant.institution_id=$2 and evidence.status='active' and portfolio.status in ('submitted','validated','transferred','archived'))`, grantID, s.institutionID(r)).Scan(&exists, &referenced)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_archive_grant_revoke_failed"})
 		return
@@ -519,6 +573,14 @@ func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
 		writePortfolioAccessFailure(w, err)
 		return
 	}
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		if writePortfolioPersonnelAssociationFailure(w, err) {
+			return
+		}
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_owner_personnel_resolve_failed"})
+		return
+	}
 	var req OwnPortfolioRequest
 	if err := decodeOwnPortfolioRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_own_portfolio_payload"})
@@ -530,7 +592,7 @@ func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	role := "Profesor"
-	portfolioCode := fmt.Sprintf("PORT-CD-%d-%d", time.Now().UTC().Year(), time.Now().UTC().UnixNano())
+	portfolioCode := newEducationCode("PORT-CD")
 	appliedProcedureID, err := s.resolvePublishedPortfolioProcedure(r)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "education_portfolio_published_procedure_required"})
@@ -543,13 +605,13 @@ func (s *Service) PortfolioOwnCreate(w http.ResponseWriter, r *http.Request) {
 	var item PortfolioRecord
 	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolios (
-			portfolio_code, owner_user_id, owner_name, owner_role, school_year,
+			portfolio_code, owner_user_id, owner_personnel_id, owner_name, owner_role, school_year,
 			status, section_count, last_updated_on, retention_until, transfer_status,
 			authenticity_declared, consent_captured, custodian, institution_id, notes,
 			applied_procedure_id
-		) values ($1, $2::uuid, $3, $4, $5, 'draft', $6, $7, null, 'none', $8, $9, '', $10, $11, $12::uuid)
+		) values ($1, $2::uuid, $3::uuid, $4, $5, $6, 'draft', $7, $8, null, 'none', $9, $10, '', $11, $12, $13::uuid)
 		returning `+portfolioRecordColumns,
-		portfolioCode, actorID, name, role, req.SchoolYear, 0,
+		portfolioCode, actorID, personnelID, name, role, req.SchoolYear, 0,
 		req.LastUpdatedOn, false, false,
 		s.institutionID(r), req.Notes, appliedProcedureID), &item)
 	if err != nil {
@@ -574,6 +636,11 @@ func (s *Service) PortfolioOwnUpdate(w http.ResponseWriter, r *http.Request) {
 		writePortfolioAccessFailure(w, err)
 		return
 	}
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		writePortfolioAccessFailure(w, err)
+		return
+	}
 	var req OwnPortfolioRequest
 	if err := decodeOwnPortfolioRequest(r, &req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_own_portfolio_payload"})
@@ -583,10 +650,10 @@ func (s *Service) PortfolioOwnUpdate(w http.ResponseWriter, r *http.Request) {
 	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
 	update education_portfolios set school_year = $1,
 			last_updated_on = $2, notes = $3, updated_at = now()
-		where id = $4::uuid and institution_id = $5 and owner_user_id = $6::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
+		where id = $4::uuid and institution_id = $5 and owner_user_id = $6::uuid and owner_personnel_id = $7::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
 		returning `+portfolioRecordColumns,
 		req.SchoolYear, req.LastUpdatedOn, req.Notes, recordID,
-		s.institutionID(r), actorID), &item)
+		s.institutionID(r), actorID, personnelID), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_own_portfolio_not_editable"})
 		return
@@ -606,6 +673,11 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 		writePortfolioAccessFailure(w, err)
 		return
 	}
+	personnelID, err := s.resolvePortfolioPersonnelID(r, actorID)
+	if err != nil {
+		writePortfolioAccessFailure(w, err)
+		return
+	}
 	tx, err := s.pool.Begin(r.Context())
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_submit_failed"})
@@ -614,8 +686,8 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(r.Context())
 	var item PortfolioRecord
 	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `select `+portfolioRecordColumns+`
-		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and withdrawn_at is null and not legal_hold_active for update`,
-		recordID, s.institutionID(r), actorID), &item)
+		from education_portfolios where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and owner_personnel_id = $4::uuid and withdrawn_at is null and not legal_hold_active for update`,
+		recordID, s.institutionID(r), actorID, personnelID), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_own_portfolio_not_found")
 		return
@@ -642,6 +714,7 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 			and attachment_grant.institution_id = document.institution_id
 			and attachment_grant.grantee_user_id = $3::uuid
 		where evidence.portfolio_id = $1::uuid and evidence.institution_id = $2
+			and evidence.status = 'active'
 			and evidence.file_reference = 'archive://' || document.id::text
 			and document.institution_id = $2 and document.status = 'ready' and version.status = 'active'
 			and btrim(version.source_bucket) <> '' and btrim(version.source_object_key) <> ''
@@ -652,7 +725,7 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 	var evidenceCount, snapshottedCount int
 	err = tx.QueryRow(r.Context(), `
 		select count(*), count(*) filter (where archive_document_id is not null and archive_version_id is not null and archive_sha256 <> '')
-		from education_portfolio_documents where portfolio_id = $1::uuid and institution_id = $2 and source_scope = 'portofoliu'
+		from education_portfolio_documents where portfolio_id = $1::uuid and institution_id = $2 and status = 'active' and source_scope = 'portofoliu'
 	`, recordID, s.institutionID(r)).Scan(&evidenceCount, &snapshottedCount)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_submit_readiness_failed"})
@@ -675,6 +748,7 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 			select 1 from education_portfolio_documents evidence
 			where evidence.portfolio_id = $1::uuid and evidence.institution_id = $2
 				and evidence.section_code = rule.section_code
+				and evidence.status = 'active'
 				and evidence.source_scope = 'portofoliu' and evidence.archive_version_id is not null
 		)
 	`, recordID, s.institutionID(r), item.AppliedProcedureID).Scan(&missingComponents); err != nil {
@@ -719,8 +793,8 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `
 		update education_portfolios set status = 'submitted', section_count = $4,
 			authenticity_declared = true, consent_captured = true, updated_at = now()
-		where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
-		returning `+portfolioRecordColumns, recordID, s.institutionID(r), actorID, evidenceCount), &item)
+		where id = $1::uuid and institution_id = $2 and owner_user_id = $3::uuid and owner_personnel_id = $5::uuid and status in ('draft', 'returned') and withdrawn_at is null and not legal_hold_active
+		returning `+portfolioRecordColumns, recordID, s.institutionID(r), actorID, evidenceCount, personnelID), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_submit_transition_invalid"})
 		return

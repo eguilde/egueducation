@@ -197,10 +197,10 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 
 	if err := s.pool.QueryRow(r.Context(), `
 		select
-			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2), 0) as total_documents,
-			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.source_scope = 'portofoliu'), 0) as portfolio_documents,
-			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.source_scope = 'dosar_personal'), 0) as personnel_documents,
-			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.sensitive_data = true), 0) as sensitive_documents,
+			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.status = 'active'), 0) as total_documents,
+			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.status = 'active' and epd.source_scope = 'portofoliu'), 0) as portfolio_documents,
+			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.status = 'active' and epd.source_scope = 'dosar_personal'), 0) as personnel_documents,
+			coalesce((select count(*) from education_portfolio_documents epd where epd.portfolio_id = $1::uuid and epd.institution_id = $2 and epd.status = 'active' and epd.sensitive_data = true), 0) as sensitive_documents,
 			coalesce((select count(*) from education_portfolio_checklist epc where epc.portfolio_id = $1::uuid and epc.institution_id = $2), 0) as total_checklist_items,
 			coalesce((select count(*) from education_portfolio_checklist epc where epc.portfolio_id = $1::uuid and epc.institution_id = $2 and epc.mandatory = true), 0) as mandatory_checklist_items,
 			coalesce((select count(*) from education_portfolio_checklist epc where epc.portfolio_id = $1::uuid and epc.institution_id = $2 and epc.status = 'complet'), 0) as completed_checklist_items,

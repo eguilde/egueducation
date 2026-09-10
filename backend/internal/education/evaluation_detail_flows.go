@@ -124,7 +124,7 @@ func (s *Service) CreateEvaluationSelfReview(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	code := fmt.Sprintf("AUTO-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("AUTO")
 	var item PersonnelEvaluationSelfReview
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_evaluation_self_reviews (
@@ -347,7 +347,7 @@ func (s *Service) CreateEvaluationCriterion(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	code := fmt.Sprintf("CRIT-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("CRIT")
 	var item PersonnelEvaluationCriterion
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_evaluation_criteria (
@@ -519,7 +519,7 @@ func (s *Service) syncEvaluationDocumentToPersonnelFile(ctx context.Context, eva
 		where personnel_id = $1 and institution_id = $2 and file_reference = $3 and document_category = 'evaluare'
 	`, evaluation.PersonnelID, institutionID, evaluation.EvaluationCode).Scan(&existingID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		documentCode := fmt.Sprintf("PFD-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+		documentCode := newEducationCode("PFD")
 		if _, err := s.pool.Exec(ctx, `
 			insert into education_personnel_file_documents (
 				personnel_id, document_code, document_category, document_title, file_scope, confidentiality_level,
@@ -853,7 +853,7 @@ func (s *Service) upsertEvaluationAppealDocument(ctx context.Context, evaluation
 		where personnel_id = $1 and institution_id = $2 and file_reference = $3 and document_category = 'evaluare'
 	`, evaluation.PersonnelID, institutionID, fileReference).Scan(&existingID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		documentCode := fmt.Sprintf("PFD-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+		documentCode := newEducationCode("PFD")
 		if _, err := s.pool.Exec(ctx, `
 			insert into education_personnel_file_documents (
 				personnel_id, document_code, document_category, document_title, file_scope, confidentiality_level,
@@ -976,6 +976,8 @@ func evaluationSelfReviewSortColumn(value string) string {
 		return "eesr.status"
 	case "assumed_score":
 		return "eesr.assumed_score"
+	case "completed_on":
+		return "eesr.completed_on"
 	default:
 		return "eesr.completed_on"
 	}
@@ -983,6 +985,8 @@ func evaluationSelfReviewSortColumn(value string) string {
 
 func evaluationCriteriaSortColumn(value string) string {
 	switch value {
+	case "criterion_code":
+		return "eec.criterion_code"
 	case "criterion_category":
 		return "eec.criterion_category"
 	case "criterion_label":

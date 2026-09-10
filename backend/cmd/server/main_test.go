@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/eguilde/egueducation/internal/config"
@@ -12,6 +14,85 @@ import (
 
 type testPinger struct {
 	err error
+}
+
+func TestEducationPortfolioValorificationCRUDRoutesAreRegistered(t *testing.T) {
+	source, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatalf("read router source: %v", err)
+	}
+	router := string(source)
+	permissionGuard := `RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")`
+	for _, route := range []string{
+		`.Post("/education/portfolios/records/{recordID}/valorifications", educationService.CreatePortfolioValorification)`,
+		`.Patch("/education/portfolios/records/{recordID}/valorifications/{itemID}", educationService.UpdatePortfolioValorification)`,
+		`.Delete("/education/portfolios/records/{recordID}/valorifications/{itemID}", educationService.DeletePortfolioValorification)`,
+	} {
+		position := strings.Index(router, route)
+		if position < 0 {
+			t.Fatalf("missing valorification route %s", route)
+		}
+		lineStart := strings.LastIndex(router[:position], "\n") + 1
+		if !strings.Contains(router[lineStart:position], permissionGuard) {
+			t.Fatalf("valorification route is missing school/legacy manage RBAC: %s", route)
+		}
+	}
+}
+
+func TestSchoolOperationalSurfacesAreRegisteredWithRBAC(t *testing.T) {
+	source, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatalf("read router source: %v", err)
+	}
+	router := string(source)
+	tests := []struct {
+		route      string
+		permission string
+	}{
+		{`.Get("/education/classes", educationService.SchoolClasses)`, "education.classes.read_assigned"},
+		{`.Get("/education/classes/assignment-options", educationService.SchoolAssignmentOptions)`, "education.classes.manage"},
+		{`.Get("/education/classes/{classID}", educationService.SchoolClassDetail)`, "education.classes.read_assigned"},
+		{`.Post("/education/classes", educationService.CreateSchoolClass)`, "education.classes.manage"},
+		{`.Patch("/education/classes/{classID}", educationService.UpdateSchoolClass)`, "education.classes.manage"},
+		{`.Delete("/education/classes/{classID}", educationService.DeleteSchoolClass)`, "education.classes.manage"},
+		{`.Get("/education/students", educationService.SchoolStudents)`, "education.classes.read_assigned"},
+		{`.Get("/education/students/{studentID}", educationService.SchoolStudentDetail)`, "education.classes.read_assigned"},
+		{`.Post("/education/students", educationService.CreateSchoolStudent)`, "education.classes.manage"},
+		{`.Get("/education/class-enrolments", educationService.SchoolEnrolments)`, "education.classes.read_assigned"},
+		{`.Get("/education/class-enrolments/{enrolmentID}", educationService.SchoolEnrolmentDetail)`, "education.classes.read_assigned"},
+		{`.Post("/education/class-enrolments", educationService.CreateSchoolEnrolment)`, "education.classes.manage"},
+		{`.Get("/education/homeroom-assignments", educationService.SchoolHomeroomAssignments)`, "education.classes.read_assigned"},
+		{`.Get("/education/homeroom-assignments/{assignmentID}", educationService.SchoolHomeroomAssignmentDetail)`, "education.classes.read_assigned"},
+		{`.Post("/education/homeroom-assignments", educationService.CreateSchoolHomeroomAssignment)`, "education.classes.manage"},
+		{`.Get("/education/reports", educationService.SchoolReportCatalog)`, "education.compliance.read"},
+		{`.Get("/education/reports/{reportCode}", educationService.SchoolReport)`, "education.compliance.read"},
+		{`.Get("/education/reports/{reportCode}/csv", educationService.SchoolReportCSV)`, "education.reports.export_sensitive"},
+		{`.Get("/education/reports/{reportCode}/pdf", educationService.SchoolReportPDF)`, "education.reports.export_sensitive"},
+		{`.Get("/education/signatures", educationService.ListSignedArtifactEvidence)`, "education.signatures.read"},
+		{`.Get("/education/signatures/eligible-artifacts", educationService.EligibleSignedArtifacts)`, "education.signatures.manage"},
+		{`.Get("/education/signatures/eligible-archive-versions", educationService.EligibleSignatureArchiveVersions)`, "education.signatures.manage"},
+		{`.Get("/education/signatures/{evidenceID}", educationService.SignedArtifactEvidenceDetail)`, "education.signatures.read"},
+		{`.Post("/education/signatures", educationService.SubmitSignedArtifactEvidence)`, "education.signatures.manage"},
+		{`.Post("/education/signatures/{evidenceID}/revalidate", educationService.RevalidateSignedArtifactEvidence)`, "education.signatures.validate"},
+		{`.Get("/education/secretariat/cockpit", educationService.SecretariatCockpit)`, "education.cockpit.secretariat.read"},
+		{`.Get("/education/hr/cockpit", educationService.HRCockpit)`, "education.cockpit.hr.read"},
+		{`.Get("/education/committee/cockpit", educationService.CommitteeCockpit)`, "education.cockpit.committee.read"},
+		{`.Get("/education/inspector/cockpit", educationService.InspectorCockpit)`, "education.cockpit.inspector.read"},
+	}
+	for _, tt := range tests {
+		position := strings.Index(router, tt.route)
+		if position < 0 {
+			t.Errorf("missing route %s", tt.route)
+			continue
+		}
+		contextStart := position - 1200
+		if contextStart < 0 {
+			contextStart = 0
+		}
+		if !strings.Contains(router[contextStart:position], tt.permission) {
+			t.Errorf("route %s is missing RBAC permission %s", tt.route, tt.permission)
+		}
+	}
 }
 
 func (p testPinger) Ping(context.Context) error {

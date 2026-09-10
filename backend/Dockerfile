@@ -11,6 +11,7 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-api ./cmd/server \
+    && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-migrate ./cmd/migrate \
     && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-pdf-validator ./cmd/archive-pdf-validator
 
 FROM gcr.io/distroless/base-debian12@sha256:76b3162a31477bca4a245b836c624f4c4a1a3705e99b9003907d992bec2c4bca
@@ -18,6 +19,7 @@ FROM gcr.io/distroless/base-debian12@sha256:76b3162a31477bca4a245b836c624f4c4a1a
 WORKDIR /app
 
 COPY --from=builder /out/egueducation-api /app/egueducation-api
+COPY --from=builder /out/egueducation-migrate /app/egueducation-migrate
 COPY --from=builder /out/egueducation-pdf-validator /app/egueducation-pdf-validator
 
 EXPOSE 8080

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { Button } from "@primereact/ui/button";
 import { Card } from "@primereact/ui/card";
 import { InputText } from "@primereact/ui/inputtext";
@@ -8,9 +8,28 @@ import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Checkbox } from "@primereact/ui/checkbox";
 
 export type WizardValues = Record<string, string | number | boolean>;
+export type WizardKind =
+  | "caMeeting"
+  | "minute"
+  | "vote"
+  | "resolution"
+  | "managerial"
+  | "personnel"
+  | "evaluation"
+  | "declaration"
+  | "mobility"
+  | "merit"
+  | "portfolio";
+export type SelectorQuery = { page?: number; pageSize?: number; q?: string };
+export type SelectorPage<T> = { items: T[]; total: number; page: number; pageSize: number };
+type SelectorResult<T> = T[] | SelectorPage<T>;
 export interface EducationWizardAdapter {
-  create(path: string, payload: WizardValues): Promise<unknown>;
-  eligibleGovernanceUsers?: () => Promise<Array<{ id: string; name: string }>>;
+  create(kind: WizardKind, payload: WizardValues): Promise<unknown>;
+  eligibleGovernanceUsers?: (query?: SelectorQuery) => Promise<SelectorResult<{ id: string; name: string }>>;
+  eligibleGovernanceMeetings?: (query?: SelectorQuery) => Promise<SelectorResult<{ id: string; title: string; meeting_date: string; organism: string }>>;
+  governanceMeetingDetail?: (id: string) => Promise<{ id: string; title: string; meeting_date: string; organism: string }>;
+  governanceMeetingVotes?: (meetingID: string, query?: SelectorQuery) => Promise<SelectorResult<{ id: string; subject_title: string; agenda_order: number }>>;
+  eligiblePortfolioOwners?: (query?: SelectorQuery) => Promise<SelectorResult<{ user_id: string; personnel_id: string; display_name: string; role_title: string; employment_status: string }>>;
 }
 export interface EducationWizardProps {
   adapter: EducationWizardAdapter;
@@ -20,7 +39,7 @@ export interface EducationWizardProps {
 }
 export type WizardDefinition = {
   title: string;
-  path: string;
+  kind: WizardKind;
   parentKey?: string;
   permission: "manage" | "self-manage";
   steps: string[];
@@ -32,8 +51,9 @@ type Field = {
   key: string;
   label: string;
   required?: boolean;
-  type?: "text" | "number" | "select" | "checkbox";
+  type?: "text" | "number" | "select" | "checkbox" | "readonly";
   options?: { label: string; value: string }[];
+  selector?: "users" | "meetings" | "votes" | "owners";
 };
 const opt = (values: string[]) =>
   values.map((value) => ({ label: value, value }));
@@ -43,7 +63,7 @@ const required = (v: WizardValues, keys: string[]) =>
     .map((k) => `${k} este obligatoriu`);
 const def = (
   title: string,
-  path: string,
+  kind: WizardKind,
   permission: WizardDefinition["permission"],
   steps: string[],
   initial: WizardValues,
@@ -51,7 +71,7 @@ const def = (
   keys: string[],
 ): WizardDefinition => ({
   title,
-  path,
+  kind,
   permission,
   steps,
   initial,
@@ -88,10 +108,10 @@ const meritStatus = opt([
   "funded",
 ]);
 
-export const wizardDefinitions: Record<string, WizardDefinition> = {
+export const wizardDefinitions: Record<WizardKind, WizardDefinition> = {
   caMeeting: def(
     "Ședință CA/CP/CEAC",
-    "/education/governance/meetings",
+    "caMeeting",
     "manage",
     ["Configurare", "Coordonare", "Rezumat", "Creare"],
     {
@@ -139,12 +159,14 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
         label: "Președinte",
         required: true,
         type: "select",
+        selector: "users",
       },
       {
         key: "secretary_user_id",
         label: "Secretar",
         required: true,
         type: "select",
+        selector: "users",
       },
       { key: "summary", label: "Rezumat" },
     ],
@@ -160,7 +182,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   minute: {
     ...def(
       "Punct de minută",
-      "/education/governance/meetings/{parent}/minutes",
+      "minute",
       "manage",
       ["Ședință și subiect", "Conținut", "Urmărire", "Confirmare"],
       {
@@ -176,7 +198,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
         notes: "",
       },
       [
-        { key: "meeting_id", label: "Ședință", required: true },
+        { key: "meeting_id", label: "Ședință", required: true, selector: "meetings" },
         {
           key: "agenda_order",
           label: "Ordine pe agendă",
@@ -212,7 +234,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   vote: {
     ...def(
       "Vot al ședinței",
-      "/education/governance/meetings/{parent}/votes",
+      "vote",
       "manage",
       ["Ședință și subiect", "Rezultat", "Temei", "Confirmare"],
       {
@@ -229,7 +251,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
         notes: "",
       },
       [
-        { key: "meeting_id", label: "Ședință", required: true },
+        { key: "meeting_id", label: "Ședință", required: true, selector: "meetings" },
         { key: "subject_title", label: "Subiect", required: true },
         { key: "agenda_order", label: "Ordine pe agendă", type: "number" },
         {
@@ -262,7 +284,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   resolution: {
     ...def(
       "Hotărâre",
-      "/education/governance/meetings/{parent}/resolutions",
+      "resolution",
       "manage",
       ["Ședință și vot", "Act", "Publicare", "Confirmare"],
       {
@@ -277,8 +299,8 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
         notes: "",
       },
       [
-        { key: "meeting_id", label: "Ședință", required: true },
-        { key: "vote_id", label: "Vot", required: true },
+        { key: "meeting_id", label: "Ședință", required: true, selector: "meetings" },
+        { key: "vote_id", label: "Vot", required: true, selector: "votes" },
         { key: "title", label: "Titlu", required: true },
         {
           key: "resolution_type",
@@ -308,7 +330,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   },
   managerial: def(
     "Dosar managerial",
-    "/education/managerial/records",
+    "managerial",
     "manage",
     ["Identificare", "Responsabilitate", "Publicare", "Confirmare"],
     {
@@ -362,7 +384,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   ),
   personnel: def(
     "Cadru didactic",
-    "/education/personnel/records",
+    "personnel",
     "manage",
     ["Identitate", "Urmărire", "Contact", "Confirmare"],
     {
@@ -415,9 +437,10 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
     ],
     ["full_name", "role_title", "school_year"],
   ),
-  evaluation: def(
+  evaluation: {
+    ...def(
     "Evaluare anuală",
-    "/education/evaluations/records",
+    "evaluation",
     "manage",
     ["Cadru", "Rezultat", "Evaluator", "Confirmare"],
     {
@@ -427,7 +450,6 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
       school_year: currentSchoolYear(),
       status: "draft",
       score: 0,
-      qualification: "",
       evaluator_name: "",
       finalized_on: "",
       summary: "",
@@ -435,7 +457,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
     [
       { key: "employee_code", label: "Cod angajat", required: true },
       { key: "full_name", label: "Nume", required: true },
-      { key: "role_title", label: "Funcție" },
+      { key: "role_title", label: "Funcție", required: true },
       { key: "school_year", label: "An școlar", required: true },
       {
         key: "status",
@@ -444,21 +466,20 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
         options: evaluationStatus,
       },
       { key: "score", label: "Punctaj", type: "number" },
-      {
-        key: "qualification",
-        label: "Calificativ",
-        type: "select",
-        options: opt(["foarte_bine", "bine", "satisfacator", "nesatisfacator"]),
-      },
       { key: "evaluator_name", label: "Evaluator", required: true },
       { key: "finalized_on", label: "Finalizat la" },
       { key: "summary", label: "Rezumat" },
     ],
-    ["employee_code", "full_name", "school_year", "evaluator_name"],
-  ),
+    ["employee_code", "full_name", "role_title", "school_year", "evaluator_name"],
+    ),
+    validate: (values) => [
+      ...required(values, ["employee_code", "full_name", "role_title", "school_year", "evaluator_name"]),
+      ...(String(values.status ?? "") === "approved" && !String(values.finalized_on ?? "").trim() ? ["finalized_on este obligatoriu pentru status approved"] : []),
+    ],
+  },
   declaration: def(
     "Declarație",
-    "/education/declarations/records",
+    "declaration",
     "manage",
     ["Titular", "Calendar", "Rezumat", "Confirmare"],
     {
@@ -500,7 +521,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   ),
   mobility: def(
     "Mobilitate",
-    "/education/mobility/records",
+    "mobility",
     "manage",
     ["Titular", "Status", "Unități", "Confirmare"],
     {
@@ -554,7 +575,7 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   ),
   merit: def(
     "Gradație de merit",
-    "/education/gradatii/records",
+    "merit",
     "manage",
     ["Candidat", "Evaluare", "Decizie", "Confirmare"],
     {
@@ -601,11 +622,13 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
   ),
   portfolio: def(
     "Portofoliu CD",
-    "/education/portfolios/records",
+    "portfolio",
     "manage",
     ["Titular", "Structură", "Conformitate", "Confirmare"],
     {
+      owner_selection: "",
       owner_user_id: "",
+      owner_personnel_id: "",
       owner_name: "",
       owner_role: "",
       school_year: currentSchoolYear(),
@@ -619,16 +642,16 @@ export const wizardDefinitions: Record<string, WizardDefinition> = {
       notes: "",
     },
     [
-      { key: "owner_user_id", label: "ID utilizator titular", required: true },
-      { key: "owner_name", label: "Titular", required: true },
-      { key: "owner_role", label: "Funcție", required: true },
+      { key: "owner_selection", label: "Titular", required: true, type: "select", selector: "owners" },
+      { key: "owner_name", label: "Titular selectat", required: true, type: "readonly" },
+      { key: "owner_role", label: "Funcție", required: true, type: "readonly" },
       { key: "school_year", label: "An școlar", required: true },
       { key: "last_updated_on", label: "Actualizat la", required: true },
       { key: "custodian", label: "Custode" },
       { key: "notes", label: "Note" },
     ],
     [
-      "owner_user_id",
+      "owner_selection",
       "owner_name",
       "owner_role",
       "school_year",
@@ -655,6 +678,14 @@ function fieldStep(
   return Math.min(inputSteps - 1, Math.floor(index / fieldsPerStep));
 }
 
+type SelectorOption = { label: string; value: string };
+function ServerSelector({ label, value, options, query, total, page, loading, onQuery, onPage, onValue }: { label: string; value: string; options: SelectorOption[]; query: string; total: number; page: number; loading: boolean; onQuery: (value: string) => void; onPage: (page: number) => void; onValue: (value: string) => void }) {
+  return <div className="flex flex-col gap-1"><InputText aria-label={`Caută ${label}`} value={query} placeholder="Căutare" onChange={(event: ChangeEvent<HTMLInputElement>) => onQuery(event.target.value)} /><Select.Root value={value} options={options} optionLabel="label" optionValue="value" disabled={loading} onValueChange={(event: { value: unknown }) => onValue(String(event.value ?? ""))}><Select.Trigger aria-label={label}><Select.Value placeholder={loading ? "Se încarcă…" : "Selectați"} /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root>{page * 25 < total && <Button size="small" variant="text" severity="secondary" disabled={loading} onClick={() => onPage(page + 1)}>Încarcă mai multe rezultate</Button>}</div>;
+}
+
+const selectorPage = <T,>(result: SelectorResult<T>): SelectorPage<T> => Array.isArray(result) ? { items: result, total: result.length, page: 1, pageSize: result.length || 1 } : result;
+const mergeSelector = <T,>(current: T[], next: T[], key: (value: T) => string) => [...current, ...next].filter((item, index, values) => values.findIndex((candidate) => key(candidate) === key(item)) === index);
+
 export function EducationWizard({
   definition,
   adapter,
@@ -680,6 +711,13 @@ export function EducationWizard({
   const [eligibleUsers, setEligibleUsers] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [meetings, setMeetings] = useState<Array<{ id: string; title: string; meeting_date: string; organism: string }>>([]);
+  const [votes, setVotes] = useState<Array<{ id: string; subject_title: string; agenda_order: number }>>([]);
+  const [owners, setOwners] = useState<Array<{ user_id: string; personnel_id: string; display_name: string; role_title: string; employment_status: string }>>([]);
+  const [userQuery, setUserQuery] = useState(""); const [userPage, setUserPage] = useState(1); const [userTotal, setUserTotal] = useState(0); const [usersLoading, setUsersLoading] = useState(false);
+  const [meetingQuery, setMeetingQuery] = useState(""); const [meetingPage, setMeetingPage] = useState(1); const [meetingTotal, setMeetingTotal] = useState(0); const [meetingsLoading, setMeetingsLoading] = useState(false);
+  const [voteQuery, setVoteQuery] = useState(""); const [votePage, setVotePage] = useState(1); const [voteTotal, setVoteTotal] = useState(0); const [votesLoading, setVotesLoading] = useState(false);
+  const [ownerQuery, setOwnerQuery] = useState(""); const [ownerPage, setOwnerPage] = useState(1); const [ownerTotal, setOwnerTotal] = useState(0); const [ownersLoading, setOwnersLoading] = useState(false);
   useEffect(() => {
     if (
       definition !== wizardDefinitions.caMeeting ||
@@ -687,24 +725,62 @@ export function EducationWizard({
     )
       return;
     let current = true;
-    void adapter
-      .eligibleGovernanceUsers()
-      .then((users) => {
-        if (current) setEligibleUsers(users);
+    const timeout = window.setTimeout(() => {
+      setUsersLoading(true);
+      void adapter.eligibleGovernanceUsers?.({ q: userQuery, page: userPage, pageSize: 25 }).then((result) => {
+        const users = selectorPage(result);
+        if (current) { setEligibleUsers(previous => mergeSelector(previous, users.items, user => user.id)); setUserTotal(users.total); }
       })
       .catch(() => {
         if (current)
           setError("Utilizatorii eligibili nu au putut fi încărcați.");
-      });
+      }).finally(() => { if (current) setUsersLoading(false); });
+    }, 250);
     return () => {
       current = false;
+      window.clearTimeout(timeout);
     };
-  }, [adapter, definition]);
-  const update = (key: string, value: string | number | boolean) =>
+  }, [adapter, definition, userPage, userQuery]);
+  useEffect(() => {
+    if (!["minute", "vote", "resolution"].includes(definition.kind) || !adapter.eligibleGovernanceMeetings) return;
+    let current = true;
+    const timeout = window.setTimeout(() => { setMeetingsLoading(true); void adapter.eligibleGovernanceMeetings?.({ q: meetingQuery, page: meetingPage, pageSize: 25 }).then((result) => { const items = selectorPage(result); if (current) { setMeetings(previous => mergeSelector(previous, items.items, meeting => meeting.id)); setMeetingTotal(items.total); } }).catch(() => { if (current) setError("Ședințele eligibile nu au putut fi încărcate."); }).finally(() => { if (current) setMeetingsLoading(false); }); }, 250);
+    const routeMeetingID = typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("meetingId")?.trim() ?? "";
+    if (routeMeetingID && adapter.governanceMeetingDetail) {
+      void adapter.governanceMeetingDetail(routeMeetingID).then((item) => {
+        if (current) setValues((previous) => ({ ...previous, meeting_id: item.id, vote_id: "" }));
+      }).catch(() => { if (current) setError("Ședința din adresă nu este disponibilă în tenantul curent."); });
+    }
+    return () => { current = false; window.clearTimeout(timeout); };
+  }, [adapter, definition.kind, meetingPage, meetingQuery]);
+  useEffect(() => {
+    if (definition.kind !== "resolution" || !values.meeting_id || !adapter.governanceMeetingVotes) {
+      setVotes([]); setVoteTotal(0);
+      return;
+    }
+    let current = true;
+    const timeout = window.setTimeout(() => { setVotesLoading(true); void adapter.governanceMeetingVotes?.(String(values.meeting_id), { q: voteQuery, page: votePage, pageSize: 25 }).then((result) => { const items = selectorPage(result); if (current) { setVotes(previous => mergeSelector(previous, items.items, vote => vote.id)); setVoteTotal(items.total); } }).catch(() => { if (current) setError("Voturile ședinței nu au putut fi încărcate."); }).finally(() => { if (current) setVotesLoading(false); }); }, 250);
+    return () => { current = false; window.clearTimeout(timeout); };
+  }, [adapter, definition.kind, values.meeting_id, votePage, voteQuery]);
+  useEffect(() => {
+    if (definition.kind !== "portfolio" || !adapter.eligiblePortfolioOwners) return;
+    let current = true;
+    const timeout = window.setTimeout(() => { setOwnersLoading(true); void adapter.eligiblePortfolioOwners?.({ q: ownerQuery, page: ownerPage, pageSize: 25 }).then((result) => { const items = selectorPage(result); if (current) { setOwners(previous => mergeSelector(previous, items.items, owner => owner.personnel_id)); setOwnerTotal(items.total); } }).catch(() => { if (current) setError("Titularii eligibili nu au putut fi încărcați."); }).finally(() => { if (current) setOwnersLoading(false); }); }, 250);
+    return () => { current = false; window.clearTimeout(timeout); };
+  }, [adapter, definition.kind, ownerPage, ownerQuery]);
+  const update = (key: string, value: string | number | boolean) => {
+    if (key === "meeting_id") {
+      setValues((v) => ({ ...v, meeting_id: value, vote_id: "" }));
+      return;
+    }
+    if (key === "owner_selection") {
+      const selected = owners.find((owner) => owner.personnel_id === value);
+      setValues((v) => selected ? ({ ...v, owner_selection: value, owner_user_id: selected.user_id, owner_personnel_id: selected.personnel_id, owner_name: selected.display_name, owner_role: selected.role_title }) : ({ ...v, owner_selection: "", owner_user_id: "", owner_personnel_id: "", owner_name: "", owner_role: "" }));
+      return;
+    }
     setValues((v) => ({ ...v, [key]: value }));
-  const effectiveFields = useMemo(
-    () =>
-      definition.fields.map((field) =>
+  };
+  const effectiveFields = definition.fields.map((field) =>
         ["chairperson_user_id", "secretary_user_id"].includes(field.key)
           ? {
               ...field,
@@ -713,10 +789,21 @@ export function EducationWizard({
                 value: user.id,
               })),
             }
-          : field,
-      ),
-    [definition.fields, eligibleUsers],
-  );
+          : field.key === "meeting_id"
+            ? { ...field, options: meetings.map((meeting) => ({ label: `${meeting.meeting_date} · ${meeting.organism.toUpperCase()} · ${meeting.title}`, value: meeting.id })) }
+            : field.key === "vote_id"
+              ? { ...field, options: votes.map((vote) => ({ label: `${vote.agenda_order}. ${vote.subject_title}`, value: vote.id })) }
+              : field.key === "owner_selection"
+                ? { ...field, options: owners.map((owner) => ({ label: `${owner.display_name} · ${owner.role_title}`, value: owner.personnel_id })) }
+                : field,
+      );
+  const selectorFor = (field: Field) => {
+    if (field.selector === "users") return { options: eligibleUsers.map((user) => ({ label: user.name, value: user.id })), query: userQuery, total: userTotal, page: userPage, loading: usersLoading, onQuery: (value: string) => { setUserQuery(value); setUserPage(1); }, onPage: setUserPage };
+    if (field.selector === "meetings") return { options: meetings.map((meeting) => ({ label: `${meeting.meeting_date} · ${meeting.organism.toUpperCase()} · ${meeting.title}`, value: meeting.id })), query: meetingQuery, total: meetingTotal, page: meetingPage, loading: meetingsLoading, onQuery: (value: string) => { setMeetingQuery(value); setMeetingPage(1); }, onPage: setMeetingPage };
+    if (field.selector === "votes") return { options: votes.map((vote) => ({ label: `${vote.agenda_order}. ${vote.subject_title}`, value: vote.id })), query: voteQuery, total: voteTotal, page: votePage, loading: votesLoading, onQuery: (value: string) => { setVoteQuery(value); setVotePage(1); }, onPage: setVotePage };
+    if (field.selector === "owners") return { options: owners.map((owner) => ({ label: `${owner.display_name} · ${owner.role_title}`, value: owner.personnel_id })), query: ownerQuery, total: ownerTotal, page: ownerPage, loading: ownersLoading, onQuery: (value: string) => { setOwnerQuery(value); setOwnerPage(1); }, onPage: setOwnerPage };
+    return undefined;
+  };
   const visibleFields = effectiveFields.filter(
     (_, index) =>
       fieldStep(index, effectiveFields.length, definition.steps.length) ===
@@ -742,13 +829,7 @@ export function EducationWizard({
     setBusy(true);
     try {
       const payload = buildWizardPayload(values);
-      let path = definition.path;
-      if (definition.parentKey) {
-        const parent = String(payload[definition.parentKey] ?? "").trim();
-        path = path.replace("{parent}", encodeURIComponent(parent));
-        delete payload[definition.parentKey];
-      }
-      const created = await adapter.create(path, payload);
+      const created = await adapter.create(definition.kind, payload);
       onSaved?.(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Salvarea a eșuat.");
@@ -799,7 +880,7 @@ export function EducationWizard({
                     {f.label}
                     {f.required ? " *" : ""}
                   </span>
-                  {f.type === "select" ? (
+                  {f.selector ? (() => { const selector = selectorFor(f); const accessibleLabel = `${f.label}${f.required ? " *" : ""}`; return selector ? <ServerSelector label={accessibleLabel} value={String(values[f.key] ?? "")} options={selector.options} query={selector.query} total={selector.total} page={selector.page} loading={selector.loading} onQuery={selector.onQuery} onPage={selector.onPage} onValue={(value) => update(f.key, value)} /> : null; })() : f.type === "select" ? (
                     <Select.Root
                       value={values[f.key] as string}
                       options={f.options}
@@ -809,7 +890,7 @@ export function EducationWizard({
                         update(f.key, String(e.value ?? ""))
                       }
                     >
-                      <Select.Trigger>
+                      <Select.Trigger aria-label={f.label}>
                         <Select.Value />
                         <Select.Indicator />
                       </Select.Trigger>
@@ -821,6 +902,8 @@ export function EducationWizard({
                         </Select.Positioner>
                       </Select.Portal>
                     </Select.Root>
+                  ) : f.type === "readonly" ? (
+                    <InputText aria-label={f.label} value={String(values[f.key] ?? "")} readOnly />
                   ) : f.type === "number" ? (
                     <InputText
                       aria-label={f.label}

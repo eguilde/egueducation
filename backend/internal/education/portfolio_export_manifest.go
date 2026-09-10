@@ -178,7 +178,7 @@ func (s *Service) buildPortfolioExportManifest(r *http.Request, recordID string)
 			coalesce(archive_document_id::text, ''), coalesce(archive_version_id::text, ''),
 			archive_version_no, archive_source_bucket, archive_source_object_key, archive_sha256
 		from education_portfolio_documents
-		where portfolio_id=$1::uuid and institution_id=$2 and source_scope='portofoliu'
+		where portfolio_id=$1::uuid and institution_id=$2 and status='active' and source_scope='portofoliu'
 		order by chronological_index, issued_on, id
 	`, recordID, manifest.InstitutionID)
 	if err != nil {

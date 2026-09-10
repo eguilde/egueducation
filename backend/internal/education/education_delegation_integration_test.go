@@ -32,6 +32,23 @@ func TestDirectorAdjunctDelegationIntegration(t *testing.T) {
 	pool := appdb.NewSessionPool(it.readerPool)
 
 	directorCtx, releaseDirector := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, director.subject)
+	if _, err := adminPool.Exec(ctx, `update app_memberships set start_date=current_date+1 where user_id=$1::uuid and tenant_code=$2`, adjunct.userID, fixture.tenantA); err != nil {
+		releaseDirector()
+		t.Fatalf("move adjunct membership into the future: %v", err)
+	}
+	if _, err := pool.Exec(directorCtx, `
+		insert into education_role_delegations (
+			tenant_code, institution_id, delegator_user_id, delegate_user_id, permission_code,
+			resource_type, offered_by_user_id
+		) values ($1, $2, $3::uuid, $4::uuid, 'education.portfolios.transfer', 'institution', $3::uuid)
+	`, fixture.tenantA, fixture.institutionA, director.userID, adjunct.userID); err == nil {
+		releaseDirector()
+		t.Fatal("future adjunct membership must not be eligible for a delegation offer")
+	}
+	if _, err := adminPool.Exec(ctx, `update app_memberships set start_date=current_date-1 where user_id=$1::uuid and tenant_code=$2`, adjunct.userID, fixture.tenantA); err != nil {
+		releaseDirector()
+		t.Fatalf("restore adjunct membership start date: %v", err)
+	}
 	var delegationID string
 	err := pool.QueryRow(directorCtx, `
 		insert into education_role_delegations (
@@ -120,6 +137,53 @@ func TestDirectorAdjunctDelegationIntegration(t *testing.T) {
 	if _, err := adminPool.Exec(ctx, `update app_memberships set end_date=null where user_id=$1::uuid and tenant_code=$2`, adjunct.userID, fixture.tenantA); err != nil {
 		t.Fatalf("restore adjunct membership for revocation evidence test: %v", err)
 	}
+	assertDelegationAllowed := func(label string, want bool) {
+		t.Helper()
+		requestCtx, release := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, adjunct.subject)
+		allowedNow, authorizeErr := service.authorizeEducationPermission(requestWithContext(requestCtx, fixture.tenantA, fixture.institutionA, adjunct.subject), EducationDelegationScope{PermissionCode: "education.portfolios.transfer", ResourceType: "institution"})
+		release()
+		if authorizeErr != nil || allowedNow != want {
+			t.Fatalf("%s delegated authorization: allowed=%t want=%t err=%v", label, allowedNow, want, authorizeErr)
+		}
+	}
+
+	if _, err := adminPool.Exec(ctx, `update app_memberships set position_code='profesor' where user_id=$1::uuid and tenant_code=$2`, adjunct.userID, fixture.tenantA); err != nil {
+		t.Fatalf("remove adjunct position after acceptance: %v", err)
+	}
+	assertDelegationAllowed("delegate no longer adjunct", false)
+	if _, err := adminPool.Exec(ctx, `update app_memberships set position_code='director_adjunct' where user_id=$1::uuid and tenant_code=$2`, adjunct.userID, fixture.tenantA); err != nil {
+		t.Fatalf("restore adjunct position: %v", err)
+	}
+
+	if _, err := adminPool.Exec(ctx, `update app_memberships set position_code='profesor' where user_id=$1::uuid and tenant_code=$2`, director.userID, fixture.tenantA); err != nil {
+		t.Fatalf("remove delegator director position after acceptance: %v", err)
+	}
+	assertDelegationAllowed("delegator no longer director", false)
+	if _, err := adminPool.Exec(ctx, `update app_memberships set position_code='director' where user_id=$1::uuid and tenant_code=$2`, director.userID, fixture.tenantA); err != nil {
+		t.Fatalf("restore delegator director position: %v", err)
+	}
+
+	if _, err := adminPool.Exec(ctx, `
+		delete from app_position_permissions
+		where position_code='director' and permission_code='education.portfolios.transfer';
+		delete from app_role_permissions
+		where permission_code='education.portfolios.transfer'
+			and role_code in (select role_code from app_position_roles where position_code='director')
+	`); err != nil {
+		t.Fatalf("remove delegator effective permission after acceptance: %v", err)
+	}
+	assertDelegationAllowed("delegator lost delegated permission", false)
+	if _, err := adminPool.Exec(ctx, `
+		insert into app_position_permissions(position_code, permission_code)
+		values ('director','education.portfolios.transfer') on conflict do nothing;
+		insert into app_role_permissions(role_code, permission_code)
+		select role_code, 'education.portfolios.transfer'
+		from app_position_roles where position_code='director'
+		on conflict do nothing
+	`); err != nil {
+		t.Fatalf("restore delegator effective permission: %v", err)
+	}
+	assertDelegationAllowed("restored delegation prerequisites", true)
 
 	directorCtx, releaseDirector = governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, director.subject)
 	if _, err := pool.Exec(directorCtx, `

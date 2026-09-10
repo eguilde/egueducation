@@ -161,7 +161,9 @@ func (s *Service) rebuildPortfolioOpisTx(ctx context.Context, tx pgx.Tx, recordI
 			document.institution_id,
 			''
 		from education_portfolio_documents document
-		where document.portfolio_id = $1::uuid and document.institution_id = $2
+		where document.portfolio_id = $1::uuid
+			and document.institution_id = $2
+			and document.status = 'active'
 	`, recordID, institutionID, checkedBy)
 	if err != nil {
 		return 0, fmt.Errorf("insert portfolio opis entries during sync: %w", err)

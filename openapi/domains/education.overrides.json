@@ -30,7 +30,7 @@
     ],
     "status": "detailed",
     "institutionContext": false,
-    "responseSchema": "TaxonomyItem"
+    "responseSchema": "TaxonomyCatalogResponse"
   },
   "GET /api/education/requirements": {
     "summary": "Read Requirement Catalog",
@@ -3162,7 +3162,7 @@
     ],
     "status": "detailed",
     "institutionContext": false,
-    "requestSchema": "CreatePortfolioRecordRequest",
+    "requestSchema": "UpdatePortfolioRecordRequest",
     "responseSchema": "PortfolioRecord"
   },
   "DELETE /api/education/portfolios/records/{recordID}": {

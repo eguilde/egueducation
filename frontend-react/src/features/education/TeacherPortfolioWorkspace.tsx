@@ -11,7 +11,7 @@ import { Tag } from "@primereact/ui/tag";
 import { Textarea } from "@primereact/ui/textarea";
 import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
-import type { EducationApi, EducationListQuery, EducationPage, EducationRecord, OwnPortfolio, OwnPortfolioArchiveDocument, OwnPortfolioDocumentInput, OwnPortfolioInput, PortfolioDeclarationEvidence, PortfolioDeclarationTemplate } from "./types";
+import type { EducationApi, EducationListQuery, EducationPage, EducationRecord, OwnPortfolio, OwnPortfolioArchiveDocument, OwnPortfolioDocumentInput, OwnPortfolioInput, PortfolioDeclarationEvidence, PortfolioDeclarationTemplate, PortfolioSection } from "./types";
 import { PortfolioExportManifestPanel } from "./PortfolioExportManifestPanel";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -46,34 +46,38 @@ const submitErrorMessage = (error: unknown) => {
 type RelatedResource = "documents" | "checklist" | "opis" | "reviews";
 const relatedLabels: Record<RelatedResource, string> = { documents: "Documente", checklist: "Checklist", opis: "Opis", reviews: "Revizuiri" };
 
-type RelatedColumn = { field: string; label: string; value: (item: EducationRecord) => string };
+// These flags mirror the closed query contract in EducationApi.  A header
+// control is only rendered when this specific own-portfolio endpoint actually
+// forwards that field to the server; otherwise it would be a decorative,
+// misleading client-side control.
+type RelatedColumn = { field: string; label: string; value: (item: EducationRecord) => string; filterable?: boolean; sortable?: boolean };
 const relatedColumns: Record<RelatedResource, RelatedColumn[]> = {
   documents: [
-    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? "") },
+    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? ""), filterable: true, sortable: true },
     { field: "component_code", label: "Componentă", value: (item) => String(item.component_code ?? "") },
-    { field: "document_title", label: "Document", value: (item) => String(item.document_title ?? "") },
-    { field: "evidence_type", label: "Tip dovadă", value: (item) => String(item.evidence_type ?? "") },
-    { field: "issued_on", label: "Data", value: (item) => String(item.issued_on ?? "") },
-    { field: "authenticity_status", label: "Stare", value: (item) => String(item.authenticity_status ?? "") },
+    { field: "document_title", label: "Document", value: (item) => String(item.document_title ?? ""), sortable: true },
+    { field: "evidence_type", label: "Tip dovadă", value: (item) => String(item.evidence_type ?? ""), sortable: true },
+    { field: "issued_on", label: "Data", value: (item) => String(item.issued_on ?? ""), sortable: true },
+    { field: "authenticity_status", label: "Stare", value: (item) => String(item.authenticity_status ?? ""), sortable: true },
   ],
   checklist: [
-    { field: "requirement_code", label: "Cod", value: (item) => String(item.requirement_code ?? "") },
-    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? "") },
-    { field: "status", label: "Stare", value: (item) => String(item.status ?? "") },
+    { field: "requirement_code", label: "Cod", value: (item) => String(item.requirement_code ?? ""), filterable: true, sortable: true },
+    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? ""), sortable: true },
+    { field: "status", label: "Stare", value: (item) => String(item.status ?? ""), sortable: true },
     { field: "mandatory", label: "Obligatoriu", value: (item) => item.mandatory ? "Da" : "Nu" },
     { field: "checked_by", label: "Verificat de", value: (item) => String(item.checked_by ?? "") },
   ],
   opis: [
-    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? "") },
-    { field: "component_code", label: "Componentă", value: (item) => String(item.component_code ?? "") },
-    { field: "entry_title", label: "Document", value: (item) => String(item.entry_title ?? "") },
-    { field: "document_reference", label: "Referință", value: (item) => String(item.document_reference ?? "") },
+    { field: "section_code", label: "Secțiune", value: (item) => String(item.section_code ?? ""), filterable: true, sortable: true },
+    { field: "component_code", label: "Componentă", value: (item) => String(item.component_code ?? ""), sortable: true },
+    { field: "entry_title", label: "Document", value: (item) => String(item.entry_title ?? ""), sortable: true },
+    { field: "document_reference", label: "Referință", value: (item) => String(item.document_reference ?? ""), sortable: true },
   ],
   reviews: [
-    { field: "review_code", label: "Cod", value: (item) => String(item.review_code ?? "") },
-    { field: "review_stage", label: "Etapă", value: (item) => String(item.review_stage ?? "") },
-    { field: "outcome", label: "Rezultat", value: (item) => String(item.outcome ?? "") },
-    { field: "reviewer_name", label: "Evaluator", value: (item) => String(item.reviewer_name ?? "") },
+    { field: "review_code", label: "Cod", value: (item) => String(item.review_code ?? ""), filterable: true, sortable: true },
+    { field: "review_stage", label: "Etapă", value: (item) => String(item.review_stage ?? ""), sortable: true },
+    { field: "outcome", label: "Rezultat", value: (item) => String(item.outcome ?? ""), sortable: true },
+    { field: "reviewer_name", label: "Evaluator", value: (item) => String(item.reviewer_name ?? ""), sortable: true },
   ],
 };
 
@@ -124,8 +128,8 @@ function RelatedRecords({ api, portfolioID, resource, canAdd, canDelete, revisio
       <DataTable.Table>
         <DataTable.THead className="sticky top-0 z-10"><DataTable.THeadRow>
           {columns.map((column) => <DataTable.THeadCell key={column.field}>
-            <Button variant="text" size="small" onClick={() => { setPage(1); setSort((current) => ({ field: column.field, direction: current.field === column.field && current.direction === "asc" ? "desc" : "asc" })); }}>{column.label}{sort.field === column.field ? sort.direction === "asc" ? " ↑" : " ↓" : ""}</Button>
-            <InputText aria-label={`Filtru ${column.label}`} className="mt-1 w-full" value={filters[column.field] ?? ""} placeholder="Filtru" onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((current) => ({ ...current, [column.field]: event.target.value })); }} />
+            {column.sortable ? <Button variant="text" size="small" aria-label={`Sortează după ${column.label}`} onClick={() => { setPage(1); setSort((current) => ({ field: column.field, direction: current.field === column.field && current.direction === "asc" ? "desc" : "asc" })); }}>{column.label}{sort.field === column.field ? sort.direction === "asc" ? " ↑" : " ↓" : ""}</Button> : <span>{column.label}</span>}
+            {column.filterable && <InputText aria-label={`Filtru ${column.label}`} className="mt-1 w-full" value={filters[column.field] ?? ""} placeholder="Filtru" onChange={(event: ChangeEvent<HTMLInputElement>) => { setPage(1); setFilters((current) => ({ ...current, [column.field]: event.target.value })); }} />}
           </DataTable.THeadCell>)}
           <DataTable.THeadCell frozen alignFrozen="right"><span className="flex items-center justify-between gap-2"><span>Acțiuni</span>{resource === "documents" && canAdd && <Button iconOnly rounded size="small" aria-label="Adaugă document" title="Adaugă document" onClick={onAdd}><i className="pi pi-plus" aria-hidden="true" /></Button>}</span></DataTable.THeadCell>
         </DataTable.THeadRow></DataTable.THead>
@@ -159,7 +163,7 @@ function PortfolioForm({ value, saving, onCancel, onSave }: {
   </Dialog.Root>;
 }
 
-function PortfolioDocumentForm({ saving, archiveDocuments, portfolioSections, onCancel, onSave }: { saving: boolean; archiveDocuments: readonly OwnPortfolioArchiveDocument[]; portfolioSections: readonly EducationRecord[]; onCancel: () => void; onSave: (input: OwnPortfolioDocumentInput) => void }) {
+function PortfolioDocumentForm({ saving, archiveDocuments, portfolioSections, onCancel, onSave }: { saving: boolean; archiveDocuments: readonly OwnPortfolioArchiveDocument[]; portfolioSections: readonly PortfolioSection[]; onCancel: () => void; onSave: (input: OwnPortfolioDocumentInput) => void }) {
   const [form, setForm] = useState<OwnPortfolioDocumentInput>({ section_code: "", component_code: "", document_title: "", evidence_type: "", issued_on: today(), added_on: today(), chronological_index: 1, sensitive_data: false, file_reference: "", notes: "" });
   const set = <K extends keyof OwnPortfolioDocumentInput>(key: K, value: OwnPortfolioDocumentInput[K]) => setForm((current) => ({ ...current, [key]: value }));
   const valid = Boolean(form.section_code.trim() && form.component_code.trim() && form.document_title.trim() && form.evidence_type.trim() && form.issued_on && form.added_on && form.file_reference.trim());
@@ -178,7 +182,7 @@ export function TeacherPortfolioWorkspace({ api, canManageOwn }: { api: Educatio
   const [notice, setNotice] = useState<string>();
   const [addingDocument, setAddingDocument] = useState(false);
   const [archiveDocuments, setArchiveDocuments] = useState<OwnPortfolioArchiveDocument[]>([]);
-  const [portfolioSections, setPortfolioSections] = useState<EducationRecord[]>([]);
+  const [portfolioSections, setPortfolioSections] = useState<PortfolioSection[]>([]);
   const [declarations, setDeclarations] = useState<PortfolioDeclarationEvidence>({ templates: [], acknowledgements: [] });
   const [declarationsLoading, setDeclarationsLoading] = useState(false);
   const [declarationTemplate, setDeclarationTemplate] = useState<PortfolioDeclarationTemplate>();
@@ -215,7 +219,7 @@ export function TeacherPortfolioWorkspace({ api, canManageOwn }: { api: Educatio
     let active = true;
     void Promise.all([
       api.ownPortfolioArchiveDocuments({ page: 1, pageSize: 100, sort: "title", direction: "asc" }),
-      api.relatedRecords("/education/portfolios/sections", { page: 1, pageSize: 100, sort: "sort_order", direction: "asc" }),
+      api.portfolioSections({ page: 1, pageSize: 100, sort: "sort_order", direction: "asc" }),
     ]).then(([documents, sections]) => {
       if (!active) return;
       setArchiveDocuments(documents.items.filter((document) => document.current_version_no > 0));

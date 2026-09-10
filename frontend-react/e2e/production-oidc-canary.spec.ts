@@ -1,8 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const canaryIdentifier = requiredSecret('PRODUCTION_E2E_CANARY_IDENTIFIER');
-const canaryOTP = requiredSecret('PRODUCTION_E2E_CANARY_OTP');
-const canaryActivationKey = requiredSecret('PRODUCTION_E2E_CANARY_ACTIVATION_KEY');
+const canaryIdentifier = requiredSecret('PRODUCTION_TEST_USER_IDENTIFIER');
+const canaryOTP = requiredSecret('PRODUCTION_TEST_USER_OTP');
 const productionOrigin = requiredOrigin();
 
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
@@ -25,14 +24,6 @@ function requiredOrigin(): string {
 }
 
 async function startOTPLogin(page: Page): Promise<void> {
-  const activation = await page.context().request.post(productionOrigin + '/api/oidc/e2e-canary/session', {
-    headers: {
-      Authorization: `Bearer ${canaryActivationKey}`,
-      Origin: productionOrigin,
-    },
-  });
-  expect(activation.status()).toBe(204);
-
   await page.goto('/');
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
   await expect(page).toHaveURL(/\/api\/oidc\/authorize/);
@@ -82,12 +73,19 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
     const authenticatedSession = await authenticatedSessionResponse.json() as {
       institution_id?: string;
       permissions?: string[];
+      platform_roles?: string[];
       modules?: Array<{ code?: string; active?: boolean }>;
       user?: { email?: string; roles?: string[] };
     };
     expect(authenticatedSession.institution_id).toBe('inst-balotesti');
     expect(authenticatedSession.user?.email?.toLowerCase()).toBe(canaryIdentifier.toLowerCase());
     expect(authenticatedSession.user?.roles).toEqual(['e2e_canary']);
+    expect(authenticatedSession.platform_roles).toEqual([]);
+    const accessToken = await page.evaluate(() => sessionStorage.getItem('egueducation.oidc.access_token'));
+    if (accessToken) {
+      const claims = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8')) as { platform_roles?: string[] };
+      expect(claims.platform_roles ?? []).toEqual([]);
+    }
     const permissions = authenticatedSession.permissions ?? [];
     expect(permissions).toEqual(expect.arrayContaining([
       'admin.read',

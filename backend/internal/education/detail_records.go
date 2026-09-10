@@ -1119,20 +1119,15 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"section_code":        {},
-			"component_code":      {},
 			"document_title":      {},
-			"source_scope":        {},
 			"evidence_type":       {},
 			"issued_on":           {},
-			"chronological_index": {},
-			"sensitive_data":      {},
 			"authenticity_status": {},
 		},
-		[]string{"section_code", "component_code", "document_title", "source_scope", "evidence_type", "issued_on", "sensitive_data", "authenticity_status"},
+		[]string{"section_code", "component_code", "document_title", "source_scope", "evidence_type", "issued_on", "chronological_index", "sensitive_data", "authenticity_status"},
 	)
 	if query.Sort == "" {
-		query.Sort = "chronological_index"
+		query.Sort = "issued_on"
 	}
 
 	whereClause, args := buildPortfolioDocumentFilters(query.Filters, recordID, s.institutionID(r))
@@ -1163,7 +1158,7 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 			epd.notes
 		from education_portfolio_documents epd
 		%s
-		order by %s %s, epd.issued_on desc, epd.document_title
+		order by %s %s, epd.id asc
 		limit $%d offset $%d
 	`, whereClause, portfolioDocumentSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
@@ -1230,6 +1225,7 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 		where epd.id = $1
 			and epd.portfolio_id = $2
 			and epd.institution_id = $3
+			and epd.status = 'active'
 	`, documentID, recordID, s.institutionID(r)).Scan(
 		&item.ID,
 		&item.PortfolioID,
@@ -1468,6 +1464,7 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		where id = $13
 			and portfolio_id = $14
 			and institution_id = $15
+			and status = 'active'
 		returning
 			id::text,
 			portfolio_id::text,
@@ -1543,15 +1540,39 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 	defer func() { _ = tx.Rollback(r.Context()) }()
 
 	tag, err := tx.Exec(r.Context(), `
-		delete from education_portfolio_documents
-		where id = $1 and portfolio_id = $2 and institution_id = $3
+		update education_portfolio_documents document
+		set status = 'withdrawn', updated_at = now()
+		from education_portfolios portfolio
+		where document.id = $1
+			and document.portfolio_id = $2
+			and document.institution_id = $3
+			and document.status = 'active'
+			and portfolio.id = document.portfolio_id
+			and portfolio.institution_id = document.institution_id
+			and portfolio.status in ('draft', 'returned')
+			and portfolio.withdrawn_at is null
+			and not portfolio.legal_hold_active
 	`, documentID, recordID, s.institutionID(r))
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_failed"})
 		return
 	}
 	if tag.RowsAffected() == 0 {
-		writeEducationNotFound(w, "education_portfolio_document_not_found")
+		var exists bool
+		if err := tx.QueryRow(r.Context(), `
+			select exists(
+				select 1 from education_portfolio_documents
+				where id = $1 and portfolio_id = $2 and institution_id = $3
+			)
+		`, documentID, recordID, s.institutionID(r)).Scan(&exists); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_delete_failed"})
+			return
+		}
+		if !exists {
+			writeEducationNotFound(w, "education_portfolio_document_not_found")
+			return
+		}
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_document_not_editable"})
 		return
 	}
 
@@ -1564,7 +1585,7 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	s.logAudit(r, "education.portfolios.document.delete", "portfolio_document", documentID, "Portfolio document deleted.", map[string]any{
+	s.logAudit(r, "education.portfolios.document.withdraw", "portfolio_document", documentID, "Portfolio document withdrawn; evidence retained for audit.", map[string]any{
 		"portfolio_id": recordID,
 	})
 
@@ -1581,12 +1602,11 @@ func (s *Service) PortfolioChecklistItems(w http.ResponseWriter, r *http.Request
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"requirement_code": {},
-			"section_code":     {},
-			"source_scope":     {},
-			"status":           {},
-			"mandatory":        {},
-			"checked_by":       {},
+			"requirement_code":  {},
+			"requirement_label": {},
+			"section_code":      {},
+			"status":            {},
+			"document_count":    {},
 		},
 		[]string{"requirement_code", "section_code", "source_scope", "status", "mandatory", "checked_by"},
 	)
@@ -1620,7 +1640,7 @@ func (s *Service) PortfolioChecklistItems(w http.ResponseWriter, r *http.Request
 			epc.notes
 		from education_portfolio_checklist epc
 		%s
-		order by %s %s, epc.requirement_code
+		order by %s %s, epc.id asc
 		limit $%d offset $%d
 	`, whereClause, portfolioChecklistSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
@@ -2023,7 +2043,7 @@ func buildMeetingDocumentFilters(filters map[string]string, meetingID string, in
 }
 
 func buildPortfolioDocumentFilters(filters map[string]string, recordID string, institutionID string) (string, []any) {
-	where := []string{"epd.portfolio_id = $1", "epd.institution_id = $2"}
+	where := []string{"epd.portfolio_id = $1", "epd.institution_id = $2", "epd.status = 'active'"}
 	args := []any{recordID, institutionID}
 
 	addContains := func(column string, value string) {
@@ -2062,6 +2082,10 @@ func buildPortfolioDocumentFilters(filters map[string]string, recordID string, i
 	}
 	if value := filters["issued_on"]; value != "" {
 		addContains("to_char(epd.issued_on, 'YYYY-MM-DD')", value)
+	}
+	if value := filters["chronological_index"]; value != "" {
+		args = append(args, "%"+strings.TrimSpace(value)+"%")
+		where = append(where, fmt.Sprintf("epd.chronological_index::text like $%d", len(args)))
 	}
 	if value := filters["sensitive_data"]; value != "" {
 		addBoolean("epd.sensitive_data", value)
@@ -2212,22 +2236,16 @@ func portfolioDocumentSortColumn(value string) string {
 	switch value {
 	case "section_code":
 		return "epd.section_code"
-	case "component_code":
-		return "epd.component_code"
 	case "document_title":
 		return "epd.document_title"
-	case "source_scope":
-		return "epd.source_scope"
 	case "evidence_type":
 		return "epd.evidence_type"
 	case "issued_on":
 		return "epd.issued_on"
-	case "chronological_index":
-		return "epd.chronological_index"
 	case "authenticity_status":
 		return "epd.authenticity_status"
 	default:
-		return "epd.chronological_index"
+		return "epd.issued_on"
 	}
 }
 
@@ -2256,20 +2274,14 @@ func portfolioChecklistSortColumn(value string) string {
 	switch value {
 	case "requirement_code":
 		return "epc.requirement_code"
+	case "requirement_label":
+		return "epc.requirement_label"
 	case "section_code":
 		return "epc.section_code"
-	case "source_scope":
-		return "epc.source_scope"
-	case "mandatory":
-		return "epc.mandatory"
 	case "status":
 		return "epc.status"
 	case "document_count":
 		return "epc.document_count"
-	case "last_checked_on":
-		return "epc.last_checked_on"
-	case "checked_by":
-		return "epc.checked_by"
 	default:
 		return "epc.requirement_code"
 	}

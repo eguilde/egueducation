@@ -76,6 +76,59 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	`, fixture.portfolioID, fixture.institutionA, fixture.tenantA, fixture.tenantB, fixture.institutionB).Scan(&transferID); err != nil {
 		t.Fatalf("source tenant prepares routed transfer: %v", err)
 	}
+	if _, err := pool.Exec(sourceCtx, `
+		update education_portfolio_transfers set routing_version=1 where id=$1::uuid
+	`, transferID); err == nil || !strings.Contains(err.Error(), "routing version is immutable") {
+		t.Fatalf("version 2 transfer must not be downgraded to legacy routing; err=%v", err)
+	}
+
+	var heldTransferID string
+	if err := pool.QueryRow(sourceCtx, `
+		insert into education_portfolio_transfers (
+			portfolio_id, transfer_code, transfer_type, source_institution,
+			destination_institution, status, handover_on, institution_id, notes,
+			routing_version, source_tenant_code, source_institution_id,
+			destination_tenant_code, destination_institution_id
+		) values (
+			$1::uuid, 'IT-XFER-LEGAL-HOLD', 'mutare', 'Source institution',
+			'Destination institution', 'pregatit', current_date, $2, 'hold proof',
+			2, $3, $2, $4, $5
+		) returning id::text
+	`, fixture.portfolioID, fixture.institutionA, fixture.tenantA, fixture.tenantB, fixture.institutionB).Scan(&heldTransferID); err != nil {
+		t.Fatalf("prepare transfer used for parent legal-hold proof: %v", err)
+	}
+	holdTx, err := adminPool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin concurrent legal-hold transaction: %v", err)
+	}
+	if _, err := holdTx.Exec(ctx, `update education_portfolios set legal_hold_active=true where id=$1::uuid`, fixture.portfolioID); err != nil {
+		_ = holdTx.Rollback(ctx)
+		t.Fatalf("stage source portfolio legal hold: %v", err)
+	}
+	advanceDone := make(chan error, 1)
+	go func() {
+		_, advanceErr := pool.Exec(sourceCtx, `
+			update education_portfolio_transfers
+			set status='trimis', export_manifest_id=$1::uuid
+			where id=$2::uuid
+		`, manifestID, heldTransferID)
+		advanceDone <- advanceErr
+	}()
+	select {
+	case advanceErr := <-advanceDone:
+		_ = holdTx.Rollback(ctx)
+		t.Fatalf("transfer did not serialize behind the uncommitted legal hold; err=%v", advanceErr)
+	case <-time.After(150 * time.Millisecond):
+	}
+	if err := holdTx.Commit(ctx); err != nil {
+		t.Fatalf("commit concurrent legal hold: %v", err)
+	}
+	if advanceErr := <-advanceDone; advanceErr == nil || !strings.Contains(advanceErr.Error(), "blocked by legal hold") {
+		t.Fatalf("transfer must re-read and reject the committed legal hold; err=%v", advanceErr)
+	}
+	if _, err := adminPool.Exec(ctx, `update education_portfolios set legal_hold_active=false where id=$1::uuid`, fixture.portfolioID); err != nil {
+		t.Fatalf("release source portfolio legal hold after proof: %v", err)
+	}
 
 	// A source actor can seal and send, but must never self-confirm receipt.
 	if _, err := pool.Exec(sourceCtx, `

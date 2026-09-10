@@ -66,9 +66,9 @@ type CreateCommitteeMemberRequest struct {
 }
 
 type CommitteeCompletenessSummary struct {
-	Committee  CommitteeRecord                    `json:"committee"`
-	Membership CommitteeCompletenessMemberBlock   `json:"membership"`
-	Readiness  CommitteeCompletenessReadiness     `json:"readiness"`
+	Committee  CommitteeRecord                  `json:"committee"`
+	Membership CommitteeCompletenessMemberBlock `json:"membership"`
+	Readiness  CommitteeCompletenessReadiness   `json:"readiness"`
 }
 
 type CommitteeCompletenessMemberBlock struct {
@@ -180,7 +180,7 @@ func (s *Service) CreateCommittee(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_committee_ends_on"})
 		return
 	}
-	code := fmt.Sprintf("COM-%d-%04d", time.Now().Year(), time.Now().Nanosecond()%10000)
+	code := newEducationCode("COM")
 	var item CommitteeRecord
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_committees (
@@ -355,12 +355,19 @@ func (s *Service) CreateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_committee_members (
 			committee_id, full_name, role_name, member_type, voting_right, status, appointed_on, released_on, institution_id, notes
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		)
+		select $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+		from education_committees committee
+		where committee.id = $1 and committee.institution_id = $9
 		returning id::text, committee_id::text, full_name, role_name, member_type, voting_right, status,
 			to_char(appointed_on, 'YYYY-MM-DD'), coalesce(to_char(released_on, 'YYYY-MM-DD'), ''), institution_id, notes
 	`, recordID, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, req.AppointedOn, releasedOn, s.institutionID(r), req.Notes).Scan(
 		&item.ID, &item.CommitteeID, &item.FullName, &item.RoleName, &item.MemberType, &item.VotingRight, &item.Status, &item.AppointedOn, &item.ReleasedOn, &item.InstitutionID, &item.Notes,
 	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeEducationNotFound(w, "education_committee_not_found")
+		return
+	}
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "committee_member_create_failed"})
 		return
@@ -396,11 +403,13 @@ func (s *Service) UpdateCommitteeMember(w http.ResponseWriter, r *http.Request) 
 	}
 	var item CommitteeMember
 	err = s.pool.QueryRow(r.Context(), `
-		update education_committee_members
+		update education_committee_members member
 		set full_name=$1, role_name=$2, member_type=$3, voting_right=$4, status=$5, appointed_on=$6, released_on=$7, notes=$8, updated_at=now()
-		where id = $9 and committee_id = $10 and institution_id = $11
-		returning id::text, committee_id::text, full_name, role_name, member_type, voting_right, status,
-			to_char(appointed_on, 'YYYY-MM-DD'), coalesce(to_char(released_on, 'YYYY-MM-DD'), ''), institution_id, notes
+		from education_committees committee
+		where member.id = $9 and member.committee_id = $10 and member.institution_id = $11
+			and committee.id = member.committee_id and committee.institution_id = member.institution_id
+		returning member.id::text, member.committee_id::text, member.full_name, member.role_name, member.member_type, member.voting_right, member.status,
+			to_char(member.appointed_on, 'YYYY-MM-DD'), coalesce(to_char(member.released_on, 'YYYY-MM-DD'), ''), member.institution_id, member.notes
 	`, req.FullName, req.RoleName, req.MemberType, req.VotingRight, req.Status, req.AppointedOn, releasedOn, req.Notes, itemID, recordID, s.institutionID(r)).Scan(
 		&item.ID, &item.CommitteeID, &item.FullName, &item.RoleName, &item.MemberType, &item.VotingRight, &item.Status, &item.AppointedOn, &item.ReleasedOn, &item.InstitutionID, &item.Notes,
 	)

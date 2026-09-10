@@ -758,14 +758,21 @@ func (s *Service) loadSessionContext(ctx context.Context, host string, subject s
 			sc.auth_methods,
 			sc.gdpr_capabilities
 		from app_users u
-		join app_session_context sc on sc.user_id = u.id
+		join app_session_context sc
+			on sc.user_id = u.id
+			and sc.tenant_code = $2
+			and sc.institution_id = $3
 		where (lower(u.sub) = lower($1) or u.id::text = $1)
 		  and u.status = 'active'
 		  and exists (
 			select 1 from app_memberships membership
-			where membership.user_id = u.id and membership.tenant_code = $2 and membership.active = true
+			where membership.user_id = u.id
+			  and membership.tenant_code = $2
+			  and membership.active = true
+			  and membership.start_date <= current_date
+			  and (membership.end_date is null or membership.end_date >= current_date)
 		  )
-	`, subject, tenantCode).Scan(
+	`, subject, tenantCode, branding.InstitutionID).Scan(
 		&session.User.ID,
 		&session.User.Sub,
 		&session.User.Name,
@@ -909,7 +916,14 @@ func (s *Service) lookupPasskeySubjectByCredentialID(ctx context.Context, creden
 		join app_users u on u.id = p.user_id
 		where p.credential_id = $1
 			and u.status = 'active'
-			and exists (select 1 from app_memberships m where m.user_id = u.id and m.tenant_code = $2 and m.active = true)
+			and exists (
+				select 1 from app_memberships m
+				where m.user_id = u.id
+					and m.tenant_code = $2
+					and m.active = true
+					and m.start_date <= current_date
+					and (m.end_date is null or m.end_date >= current_date)
+			)
 	`, credentialID, tenantCode).Scan(&subject, &userID, &deviceName, &payload)
 	if err != nil {
 		return "", "", "", nil, 0, err
@@ -955,6 +969,19 @@ func CurrentInstitutionIDFromRequest(r *http.Request) string {
 		if claims.TenantID != "" {
 			return claims.TenantID
 		}
+	}
+	return ""
+}
+
+func CurrentTenantCodeFromRequest(r *http.Request) string {
+	if session, ok := sessionFromContext(r.Context()); ok && session.TenantCode != "" {
+		return session.TenantCode
+	}
+	if claims := accessTokenClaimsFromContext(r.Context()); claims != nil {
+		if claims.TenantCode != "" {
+			return claims.TenantCode
+		}
+		return claims.TenantID
 	}
 	return ""
 }

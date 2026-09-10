@@ -1,6 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const document = { id: 'doc-1', registru_id: 1, registry_number: 'REG-1', subject: 'Cerere înscriere', document_type: 'DOCUMENT', direction: 'intrare', status: 'INCOMING', correspondent: 'Ana Pop', assigned_to: '', registered_at: '2026-08-16', confidentiality: 'normal', summary: '' };
+// Keep browser fixtures contract-complete. The application deliberately rejects
+// partial list/create DTOs so a backend drift cannot silently corrupt the grid.
+const document = {
+  id: 'doc-1', registru_id: 1, registry_number: 'REG-1', subject: 'Cerere înscriere',
+  document_type: 'DOCUMENT', direction: 'intrare', status: 'INCOMING',
+  correspondent: 'Ana Pop', assigned_to: '', institution_id: 'inst-1',
+  registered_at: '2026-08-16', confidentiality: 'normal', summary: '', due_date: null,
+  external_number: '', activity: '', record_kind: 'document', workflow_version: 1,
+};
 
 async function authenticatedRegistratura(page: Page, activeDocument = document) {
   await page.route('**/api/oidc/.well-known/openid-configuration', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ issuer: 'http://127.0.0.1:4173/api/oidc', authorization_endpoint: 'http://127.0.0.1:4173/api/oidc/authorize', token_endpoint: 'http://127.0.0.1:4173/api/oidc/token', jwks_uri: 'http://127.0.0.1:4173/api/oidc/jwks', response_types_supported: ['code'], subject_types_supported: ['public'], id_token_signing_alg_values_supported: ['RS256'], grant_types_supported: ['authorization_code', 'refresh_token'], code_challenge_methods_supported: ['S256'] }) }));

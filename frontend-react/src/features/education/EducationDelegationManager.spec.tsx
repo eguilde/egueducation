@@ -81,6 +81,15 @@ describe("EducationDelegationManager", () => {
     await waitFor(() => expect(onChanged).toHaveBeenCalledOnce());
   });
 
+  it("refreshes the evaluated authorization snapshot after revocation", async () => {
+    const client = api();
+    const onChanged = vi.fn();
+    view(client, allCapabilities, onChanged);
+    fireEvent.click(await screen.findByRole("button", { name: `Revocă ${row.permission_code}` }));
+    await waitFor(() => expect(client.revoke).toHaveBeenCalledWith(row.id));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledOnce());
+  });
+
   it("filters the displayed delegate column by name on the server", async () => {
     const client = api(); view(client);
     fireEvent.change(await screen.findByLabelText("Filtru Delegat"), { target: { value: "adjunct" } });

@@ -292,7 +292,7 @@ func (s *Service) PortfolioProcedureSectionRules(w http.ResponseWriter, r *http.
 		httpx.JSON(w, 500, map[string]any{"code": "portfolio_procedure_detail_failed"})
 		return
 	}
-	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"section_code": {}, "label_ro": {}, "sort_order": {}}, []string{"section_code", "label_ro"})
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"section_code": {}, "label_ro": {}, "sort_order": {}}, []string{"section_code", "label_ro", "sort_order"})
 	if query.Sort == "" {
 		query.Sort = "sort_order"
 	}
@@ -303,6 +303,10 @@ func (s *Service) PortfolioProcedureSectionRules(w http.ResponseWriter, r *http.
 			args = append(args, "%"+strings.ToLower(value)+"%")
 			where += fmt.Sprintf(" and lower(%s) like $%d", key, len(args))
 		}
+	}
+	if value := strings.TrimSpace(query.Filters["sort_order"]); value != "" {
+		args = append(args, value)
+		where += fmt.Sprintf(" and sort_order::text = $%d", len(args))
 	}
 	var total int
 	if err := s.pool.QueryRow(r.Context(), "select count(*) from education_portfolio_procedure_section_rules "+where, args...).Scan(&total); err != nil {

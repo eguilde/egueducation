@@ -29,6 +29,11 @@ func normalizeEducationDelegationScope(scope EducationDelegationScope) Education
 	return scope
 }
 
+func isDelegableEducationPermission(permission string) bool {
+	permission = strings.TrimSpace(permission)
+	return strings.HasPrefix(permission, "education.") && !strings.HasPrefix(permission, "education.delegations.")
+}
+
 // educationDelegationScopeMatches is deliberately pure so handlers and future
 // route middleware cannot accidentally broaden an institution-bound grant.
 func educationDelegationScopeMatches(granted, requested EducationDelegationScope) bool {
@@ -63,30 +68,15 @@ func (s *Service) authorizeEducationPermissionForSubject(r *http.Request, subjec
 	if err != nil || actorID == "" {
 		return false, err
 	}
-	var granted []EducationDelegationScope
-	rows, err := s.pool.Query(r.Context(), `
-		select permission_code, resource_type, coalesce(resource_id::text, '')
-		from education_role_delegations
-		where tenant_code = public.current_tenant_code()
-			and institution_id = public.current_institution_id()
-			and delegate_user_id = $1::uuid
-			and status = 'accepted'
-			and valid_from <= current_date
-			and (valid_until is null or valid_until >= current_date)
-			and permission_code = $2
-	`, actorID, scope.PermissionCode)
+	// Delegation administration is intentionally never delegable. The direct
+	// permission check above still permits an authorized director/administrator
+	// to manage the ledger, but a grant can only authorize operational School
+	// work.
+	if !isDelegableEducationPermission(scope.PermissionCode) {
+		return false, nil
+	}
+	granted, err := s.activeEducationDelegationGrantsForActor(r, actorID)
 	if err != nil {
-		return false, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var candidate EducationDelegationScope
-		if err := rows.Scan(&candidate.PermissionCode, &candidate.ResourceType, &candidate.ResourceID); err != nil {
-			return false, err
-		}
-		granted = append(granted, candidate)
-	}
-	if err := rows.Err(); err != nil {
 		return false, err
 	}
 	for _, candidate := range granted {
@@ -95,6 +85,98 @@ func (s *Service) authorizeEducationPermissionForSubject(r *http.Request, subjec
 		}
 	}
 	return false, nil
+}
+
+// activeEducationDelegationGrantsForActor is the sole request-time predicate
+// for a usable delegation. Both authorization and the caller-facing active
+// grant catalogue use it, so a catalogue entry can never claim authority that
+// RequireEducationPermission would not grant. The SessionPool binds tenant,
+// institution and actor context before this query runs.
+func (s *Service) activeEducationDelegationGrantsForActor(r *http.Request, actorID string) ([]EducationDelegationScope, error) {
+	granted := make([]EducationDelegationScope, 0)
+	rows, err := s.pool.Query(r.Context(), `
+		select permission_code, resource_type, coalesce(resource_id::text, '')
+		from education_role_delegations delegation
+		where delegation.tenant_code = public.current_tenant_code()
+			and delegation.institution_id = public.current_institution_id()
+			and delegation.delegate_user_id = $1::uuid
+			and delegation.status = 'accepted'
+			and delegation.valid_from <= current_date
+			and (delegation.valid_until is null or delegation.valid_until >= current_date)
+			and delegation.permission_code like 'education.%'
+			and delegation.permission_code not like 'education.delegations.%'
+			and exists (
+				select 1
+				from app_memberships delegate_membership
+				where delegate_membership.user_id = delegation.delegate_user_id
+					and delegate_membership.tenant_code = delegation.tenant_code
+					and delegate_membership.position_code = 'director_adjunct'
+					and delegate_membership.active = true
+					and delegate_membership.start_date <= current_date
+					and (delegate_membership.end_date is null or delegate_membership.end_date >= current_date)
+			)
+			and exists (
+				select 1
+				from app_memberships delegator_membership
+				where delegator_membership.user_id = delegation.delegator_user_id
+					and delegator_membership.tenant_code = delegation.tenant_code
+					and delegator_membership.position_code = 'director'
+					and delegator_membership.active = true
+					and delegator_membership.start_date <= current_date
+					and (delegator_membership.end_date is null or delegator_membership.end_date >= current_date)
+			)
+			and exists (
+				select 1
+				from (
+					select direct_permission.permission_code
+					from app_user_permissions direct_permission
+					where direct_permission.user_id = delegation.delegator_user_id
+						and direct_permission.tenant_code = delegation.tenant_code
+					union
+					select role_permission.permission_code
+					from app_user_roles user_role
+					join app_role_permissions role_permission on role_permission.role_code = user_role.role_code
+					where user_role.user_id = delegation.delegator_user_id
+						and user_role.tenant_code = delegation.tenant_code
+					union
+					select position_permission.permission_code
+					from app_memberships permission_membership
+					join app_position_permissions position_permission on position_permission.position_code = permission_membership.position_code
+					where permission_membership.user_id = delegation.delegator_user_id
+						and permission_membership.tenant_code = delegation.tenant_code
+						and permission_membership.active = true
+						and permission_membership.start_date <= current_date
+						and (permission_membership.end_date is null or permission_membership.end_date >= current_date)
+					union
+					select role_permission.permission_code
+					from app_memberships permission_membership
+					join app_position_roles position_role on position_role.position_code = permission_membership.position_code
+					join app_role_permissions role_permission on role_permission.role_code = position_role.role_code
+					where permission_membership.user_id = delegation.delegator_user_id
+						and permission_membership.tenant_code = delegation.tenant_code
+						and permission_membership.active = true
+						and permission_membership.start_date <= current_date
+						and (permission_membership.end_date is null or permission_membership.end_date >= current_date)
+				) delegator_permissions
+				where delegator_permissions.permission_code = delegation.permission_code
+			)
+		order by delegation.permission_code asc, delegation.resource_type asc, coalesce(delegation.resource_id::text, '') asc, delegation.id asc
+	`, actorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var candidate EducationDelegationScope
+		if err := rows.Scan(&candidate.PermissionCode, &candidate.ResourceType, &candidate.ResourceID); err != nil {
+			return nil, err
+		}
+		granted = append(granted, candidate)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return granted, nil
 }
 
 // RequireEducationPermission is the HTTP authorization boundary for School

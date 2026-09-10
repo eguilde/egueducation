@@ -49,8 +49,16 @@ export function createRegistraturaApi(fetcher: Fetcher = fetch, apiBase = '/api'
       type CreateBody = paths['/api/registratura/documents']['post']['requestBody']['content']['application/json'];
       const body: CreateBody = {
         ...input,
-        activity: input.activity ?? undefined,
-        external_number: input.external_number ?? undefined,
+        activity: input.activity ?? '',
+        assigned_party_id: input.assigned_party_id ?? null,
+        correspondent_party_id: input.correspondent_party_id ?? null,
+        department_ids: input.department_ids ?? [],
+        due_date: input.due_date ?? null,
+        entry_at: input.entry_at ?? null,
+        exit_at: input.exit_at ?? null,
+        external_number: input.external_number ?? '',
+        external_number_date: input.external_number_date ?? null,
+        record_kind: input.record_kind ?? 'document',
       };
       const result = await contractClient.POST('/api/registratura/documents', { body });
       if (!result.response.ok || !result.data) throw new Error(`Registratură: ${result.response.status}`);

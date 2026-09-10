@@ -259,6 +259,8 @@ func bindPhoneOTPUserTenant(ctx context.Context, tx pgx.Tx, tenantCode string, u
 			where membership.user_id=$2
 			  and membership.tenant_code=tenant.code
 			  and membership.active
+			  and membership.start_date <= current_date
+			  and (membership.end_date is null or membership.end_date >= current_date)
 		  )
 	`, tenantCode, userID).Scan(&institutionID)
 	if err != nil {

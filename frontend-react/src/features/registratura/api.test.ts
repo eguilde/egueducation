@@ -3,6 +3,7 @@ import type { CreateDocumentInput } from './types';
 
 const document = {
   id: '9dc429da-7549-460d-9376-979769c35a03',
+  registru_id: 7,
   registry_number: 'I-42',
   subject: 'Cerere contract',
   document_type: 'CERERE',
@@ -10,7 +11,15 @@ const document = {
   status: 'INCOMING',
   correspondent: 'Solicitant',
   assigned_to: 'Secretariat',
+  institution_id: '8ab313f5-977b-4a32-a1c5-060dfe162365',
+  confidentiality: 'NORMAL',
+  summary: '',
   registered_at: '2026-09-08T09:00:00Z',
+  due_date: null,
+  external_number: '',
+  activity: '',
+  record_kind: 'document',
+  workflow_version: 1,
 };
 
 describe('Registratura generated contract transport', () => {
@@ -74,8 +83,8 @@ describe('Registratura generated contract transport', () => {
     const body = JSON.parse(await observed!.text());
     expect(body.registru_id).toBe(7);
     expect(body.registryId).toBeUndefined();
-    expect(body.activity).toBeUndefined();
-    expect(body.external_number).toBeUndefined();
+    expect(body.activity).toBe('');
+    expect(body.external_number).toBe('');
   });
 
   it('rejects a list response that violates the generated runtime schema', async () => {

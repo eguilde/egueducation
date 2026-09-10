@@ -57,6 +57,80 @@ spec:
                   name: egueducation-backend-env
                   key: smsapi-token
                   optional: false
+            - name: OTP_HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-backend-env
+                  key: otp-hmac-key
+                  optional: false
+            - name: PRODUCTION_TEST_USER_OTP
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-production-fixed-otp-test-user
+                  key: otp-code
+                  optional: false
+            - name: PRODUCTION_TEST_USER_IDENTIFIER
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-production-fixed-otp-test-user
+                  key: identifier
+                  optional: false
+            - name: PRODUCTION_TEST_USER_SUBJECT
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-production-fixed-otp-test-user
+                  key: subject
+                  optional: false
+            - name: PRODUCTION_TEST_USER_TENANT
+              value: tenant-balotesti
+            - name: ARCHIVE_STORAGE_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: endpoint
+                  optional: false
+            - name: ARCHIVE_STORAGE_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: region
+                  optional: false
+            - name: ARCHIVE_STORAGE_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: bucket
+                  optional: false
+            - name: ARCHIVE_STORAGE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: access-key
+                  optional: false
+            - name: ARCHIVE_STORAGE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: secret-key
+                  optional: false
+            - name: ARCHIVE_STORAGE_USE_PATH_STYLE
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-archive-storage
+                  key: use-path-style
+                  optional: false
+            - name: AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-azure-document-intelligence
+                  key: endpoint
+                  optional: false
+            - name: AZURE_DOCUMENT_INTELLIGENCE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-azure-document-intelligence
+                  key: key
+                  optional: false
           readinessProbe:
             httpGet:
               path: /readyz

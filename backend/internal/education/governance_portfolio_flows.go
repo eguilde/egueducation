@@ -19,11 +19,13 @@ func (s *Service) GovernanceMemberships(w http.ResponseWriter, r *http.Request) 
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
-			"school_year": {},
-			"organism":    {},
-			"full_name":   {},
-			"role_name":   {},
-			"status":      {},
+			"school_year":  {},
+			"organism":     {},
+			"full_name":    {},
+			"role_name":    {},
+			"mandate_from": {},
+			"mandate_to":   {},
+			"status":       {},
 		},
 		[]string{"school_year", "organism", "full_name", "role_name", "status"},
 	)
@@ -355,6 +357,7 @@ func (s *Service) GovernanceResolutions(w http.ResponseWriter, r *http.Request) 
 			"resolution_type":     {},
 			"publication_status":  {},
 			"anonymization_state": {},
+			"issued_on":           {},
 		},
 		[]string{"resolution_code", "title", "resolution_type", "publication_status", "anonymization_state"},
 	)
@@ -453,7 +456,7 @@ func (s *Service) CreateGovernanceResolution(w http.ResponseWriter, r *http.Requ
 	if req.PublicationStatus != "intern" && !s.ensureGovernancePublicationAccess(w, r, meetingID, "education.governance.resolution.publish", "education_governance_resolution_publish_forbidden") {
 		return
 	}
-	code := fmt.Sprintf("HTR-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	code := newEducationCode("HTR")
 	var item GovernanceResolution
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_meeting_resolutions (
@@ -557,6 +560,8 @@ func (s *Service) PortfolioTransfers(w http.ResponseWriter, r *http.Request) {
 		"source_institution":      {},
 		"destination_institution": {},
 		"status":                  {},
+		"handover_on":             {},
+		"received_on":             {},
 	}, []string{"transfer_code", "transfer_type", "source_institution", "destination_institution", "status"})
 	if query.Sort == "" {
 		query.Sort = "handover_on"
@@ -662,7 +667,7 @@ func (s *Service) CreatePortfolioTransfer(w http.ResponseWriter, r *http.Request
 		httpx.JSON(w, http.StatusUnauthorized, map[string]any{"code": "portfolio_transfer_actor_required"})
 		return
 	}
-	code := fmt.Sprintf("TRF-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	code := newEducationCode("TRF")
 	item, err := scanPortfolioTransfer(s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_transfers (
 			portfolio_id, transfer_code, transfer_type, source_institution, destination_institution,
@@ -790,6 +795,7 @@ func (s *Service) PortfolioReviews(w http.ResponseWriter, r *http.Request) {
 		"review_stage":  {},
 		"outcome":       {},
 		"reviewer_name": {},
+		"reviewed_on":   {},
 	}, []string{"review_code", "review_stage", "outcome", "reviewer_name"})
 	if query.Sort == "" {
 		query.Sort = "reviewed_on"
@@ -806,7 +812,7 @@ func (s *Service) PortfolioReviews(w http.ResponseWriter, r *http.Request) {
 			missing_documents, compliance_score, institution_id, notes
 		from education_portfolio_reviews epr
 		%s
-		order by %s %s, reviewed_on desc, review_code
+		order by %s %s, epr.id asc
 		limit $%d offset $%d
 	`, whereClause, portfolioReviewSortColumn(query.Sort), strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
 	if err != nil {
@@ -875,7 +881,7 @@ func (s *Service) CreatePortfolioReview(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_reviewed_on"})
 		return
 	}
-	code := fmt.Sprintf("REV-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	code := newEducationCode("REV")
 	var item PortfolioReviewEvent
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_reviews (
@@ -1112,10 +1118,6 @@ func portfolioReviewSortColumn(value string) string {
 		return "epr.reviewer_name"
 	case "reviewed_on":
 		return "epr.reviewed_on"
-	case "missing_documents":
-		return "epr.missing_documents"
-	case "compliance_score":
-		return "epr.compliance_score"
 	default:
 		return "epr.reviewed_on"
 	}

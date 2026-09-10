@@ -164,7 +164,9 @@ func (s *Service) EducationDelegationEligibleAdjuncts(w http.ResponseWriter, r *
 		from app_memberships membership
 		join app_users user_account on user_account.id=membership.user_id
 		where membership.tenant_code=public.current_tenant_code()
+			and user_account.status='active'
 			and membership.position_code='director_adjunct' and membership.active
+			and membership.start_date<=current_date
 			and (membership.end_date is null or membership.end_date>=current_date)
 		order by user_account.name, user_account.id
 	`)
@@ -213,14 +215,16 @@ func (s *Service) EducationDelegationEligiblePermissions(w http.ResponseWriter, 
 			from app_memberships membership
 			join app_position_permissions position_permission on position_permission.position_code=membership.position_code
 			where membership.user_id=$1::uuid and membership.tenant_code=public.current_tenant_code()
-				and membership.active and (membership.end_date is null or membership.end_date>=current_date)
+				and membership.active and membership.start_date<=current_date
+				and (membership.end_date is null or membership.end_date>=current_date)
 			union
 			select role_permission.permission_code
 			from app_memberships membership
 			join app_position_roles position_role on position_role.position_code=membership.position_code
 			join app_role_permissions role_permission on role_permission.role_code=position_role.role_code
 			where membership.user_id=$1::uuid and membership.tenant_code=public.current_tenant_code()
-				and membership.active and (membership.end_date is null or membership.end_date>=current_date)
+				and membership.active and membership.start_date<=current_date
+				and (membership.end_date is null or membership.end_date>=current_date)
 		) effective
 		where permission_code like 'education.%' and permission_code not like 'education.delegations.%'
 		order by permission_code

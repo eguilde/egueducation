@@ -42,24 +42,37 @@ func main() {
 	if err := cfg.ValidateOTPStorage(); err != nil {
 		logger.Fatal("OTP storage configuration invalid", zap.Error(err))
 	}
+	if err := cfg.ValidateSignatureVerifier(); err != nil {
+		logger.Fatal("signature verifier configuration invalid", zap.Error(err))
+	}
 
 	pool, err := db.Open(ctx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("database connection failed", zap.Error(err))
 	}
 	defer pool.Close()
-
-	migrationPool := pool
-	if migrationURL := strings.TrimSpace(cfg.MigrationDatabaseURL); migrationURL != "" && migrationURL != cfg.DatabaseURL {
-		migrationPool, err = db.Open(ctx, migrationURL)
-		if err != nil {
-			logger.Fatal("migration database connection failed", zap.Error(err))
+	if cfg.IsProduction() {
+		if err := db.ValidateRuntimeDatabaseRole(ctx, pool); err != nil {
+			logger.Fatal("runtime database role is unsafe", zap.Error(err))
 		}
-		defer migrationPool.Close()
 	}
 
-	if err := db.Migrate(ctx, migrationPool); err != nil {
-		logger.Fatal("database migration failed", zap.Error(err))
+	if cfg.AutoMigrateOnStartup() {
+		migrationURL, migrationErr := cfg.MigrationURL()
+		if migrationErr != nil {
+			logger.Fatal("migration database configuration invalid", zap.Error(migrationErr))
+		}
+		migrationPool := pool
+		if migrationURL != cfg.DatabaseURL {
+			migrationPool, err = db.Open(ctx, migrationURL)
+			if err != nil {
+				logger.Fatal("migration database connection failed", zap.Error(err))
+			}
+			defer migrationPool.Close()
+		}
+		if err := db.Migrate(ctx, migrationPool); err != nil {
+			logger.Fatal("database migration failed", zap.Error(err))
+		}
 	}
 	if err := db.ValidateSchemaContract(ctx, pool); err != nil {
 		logger.Fatal("schema contract validation failed", zap.Error(err))
@@ -94,6 +107,17 @@ func main() {
 	}
 	adminService := admin.NewService(cfg, sessionDB)
 	educationService := education.NewService(sessionDB)
+	if endpoint := strings.TrimSpace(cfg.SignatureVerifierURL); endpoint != "" {
+		verifier, verifierErr := education.NewRemoteSignedArtifactVerifier(endpoint, cfg.SignatureVerifierToken, time.Duration(cfg.SignatureVerifierTimeoutSeconds)*time.Second)
+		if verifierErr != nil {
+			logger.Fatal("signature verifier initialization failed", zap.Error(verifierErr))
+		}
+		education.ConfigureSignedArtifactVerifier(verifier)
+	} else {
+		// Explicitly retain fail-closed validation in deployments without an
+		// approved trust service; startup never creates outbound traffic.
+		education.ConfigureSignedArtifactVerifier(nil)
+	}
 	earchivaService := earchiva.NewService(sessionDB)
 	archiveDocumentService := earchiva.NewDocumentService(sessionDB, archiveStorage)
 	archiveDocumentService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
@@ -149,7 +173,6 @@ func main() {
 		r.Post("/oidc/session/logout", authService.Logout)
 		r.Get("/oidc/ui/login.js", authService.OIDCLoginScript)
 		r.Get("/oidc/ui/logout.js", authService.OIDCLogoutScript)
-		r.Post("/oidc/e2e-canary/session", authService.BeginProductionE2ECanary)
 		r.Handle("/oidc", oidcHandler)
 		r.Handle("/oidc/*", oidcHandler)
 		r.Post("/passkeys/login-options", authService.BeginPasskeyAuthentication)
@@ -313,12 +336,62 @@ func main() {
 					"education.personnel.read",
 					"education.compliance.read",
 				)).Get("/education/director/cockpit", educationService.DirectorCockpit)
+				r.With(educationService.RequireEducationPermission("education.cockpit.secretariat.read")).Get("/education/secretariat/cockpit", educationService.SecretariatCockpit)
+				r.With(educationService.RequireEducationPermission("education.cockpit.hr.read")).Get("/education/hr/cockpit", educationService.HRCockpit)
+				r.With(educationService.RequireEducationPermission("education.cockpit.committee.read")).Get("/education/committee/cockpit", educationService.CommitteeCockpit)
+				r.With(educationService.RequireEducationPermission("education.cockpit.inspector.read")).Get("/education/inspector/cockpit", educationService.InspectorCockpit)
 				r.With(educationService.RequireEducationPermission("education.read")).Get("/education/taxonomies", educationService.ListTaxonomies)
 				r.With(educationService.RequireEducationPermission("education.read")).Get("/education/requirements", educationService.RequirementCatalog)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Get("/education/classes/assignment-options", educationService.SchoolAssignmentOptions)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/classes", educationService.SchoolClasses)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/classes/{classID}", educationService.SchoolClassDetail)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Post("/education/classes", educationService.CreateSchoolClass)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Patch("/education/classes/{classID}", educationService.UpdateSchoolClass)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Delete("/education/classes/{classID}", educationService.DeleteSchoolClass)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/students", educationService.SchoolStudents)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/students/{studentID}", educationService.SchoolStudentDetail)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Post("/education/students", educationService.CreateSchoolStudent)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Patch("/education/students/{studentID}", educationService.UpdateSchoolStudent)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Delete("/education/students/{studentID}", educationService.DeleteSchoolStudent)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/class-enrolments", educationService.SchoolEnrolments)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/class-enrolments/{enrolmentID}", educationService.SchoolEnrolmentDetail)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Post("/education/class-enrolments", educationService.CreateSchoolEnrolment)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Patch("/education/class-enrolments/{enrolmentID}", educationService.UpdateSchoolEnrolment)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Delete("/education/class-enrolments/{enrolmentID}", educationService.DeleteSchoolEnrolment)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/homeroom-assignments", educationService.SchoolHomeroomAssignments)
+				r.With(educationService.RequireAnyEducationPermissions("education.classes.read", "education.classes.manage", "education.classes.read_assigned")).Get("/education/homeroom-assignments/{assignmentID}", educationService.SchoolHomeroomAssignmentDetail)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Post("/education/homeroom-assignments", educationService.CreateSchoolHomeroomAssignment)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Patch("/education/homeroom-assignments/{assignmentID}", educationService.UpdateSchoolHomeroomAssignment)
+				r.With(educationService.RequireEducationPermission("education.classes.manage")).Delete("/education/homeroom-assignments/{assignmentID}", educationService.DeleteSchoolHomeroomAssignment)
+				r.With(educationService.RequireAnyEducationPermissions(
+					"education.portfolios.school.read",
+					"education.portfolios.read",
+					"education.evaluations.read",
+					"education.governance.read",
+					"education.personnel.files.read",
+					"education.compliance.read",
+				)).Get("/education/reports", educationService.SchoolReportCatalog)
+				r.With(educationService.RequireAnyEducationPermissions(
+					"education.portfolios.school.read",
+					"education.portfolios.read",
+					"education.evaluations.read",
+					"education.governance.read",
+					"education.personnel.files.read",
+					"education.compliance.read",
+				)).Get("/education/reports/{reportCode}", educationService.SchoolReport)
+				r.With(educationService.RequireEducationPermission("education.reports.export_sensitive")).Get("/education/reports/{reportCode}/csv", educationService.SchoolReportCSV)
+				r.With(educationService.RequireEducationPermission("education.reports.export_sensitive")).Get("/education/reports/{reportCode}/pdf", educationService.SchoolReportPDF)
+				r.With(educationService.RequireEducationPermission("education.signatures.manage")).Get("/education/signatures/eligible-artifacts", educationService.EligibleSignedArtifacts)
+				r.With(educationService.RequireEducationPermission("education.signatures.manage")).Get("/education/signatures/eligible-archive-versions", educationService.EligibleSignatureArchiveVersions)
+				r.With(educationService.RequireEducationPermission("education.signatures.read")).Get("/education/signatures", educationService.ListSignedArtifactEvidence)
+				r.With(educationService.RequireEducationPermission("education.signatures.read")).Get("/education/signatures/{evidenceID}", educationService.SignedArtifactEvidenceDetail)
+				r.With(educationService.RequireEducationPermission("education.signatures.manage")).Post("/education/signatures", educationService.SubmitSignedArtifactEvidence)
+				r.With(educationService.RequireEducationPermission("education.signatures.validate")).Post("/education/signatures/{evidenceID}/revalidate", educationService.RevalidateSignedArtifactEvidence)
 				// Delegation administration intentionally uses direct RBAC rather than
 				// delegated RBAC: a delegation must never authorize creating another
 				// delegation. Operational School routes below evaluate accepted grants
 				// at request time through RequireEducationPermission.
+				r.Get("/education/delegations/active-grants", educationService.ActiveEducationDelegationGrants)
 				r.With(authService.RequirePermissions("education.delegations.read")).Get("/education/delegations", educationService.EducationDelegations)
 				r.With(authService.RequirePermissions("education.delegations.read")).Get("/education/delegations/eligible-adjuncts", educationService.EducationDelegationEligibleAdjuncts)
 				r.With(authService.RequirePermissions("education.delegations.offer")).Get("/education/delegations/eligible-permissions", educationService.EducationDelegationEligiblePermissions)
@@ -685,6 +758,7 @@ func main() {
 				r.With(educationService.RequireEducationPermission("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/activity-cessation", educationService.RecordPortfolioActivityCessation)
 				r.With(educationService.RequireEducationPermission("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/legal-hold", educationService.SetPortfolioLegalHold)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Post("/education/portfolios/records", educationService.CreatePortfolioRecord)
+				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Get("/education/portfolios/eligible-owners", educationService.EligiblePortfolioOwners)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Patch("/education/portfolios/records/{recordID}", educationService.UpdatePortfolioRecord)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Delete("/education/portfolios/records/{recordID}", educationService.DeletePortfolioRecord)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/documents", educationService.CreatePortfolioDocument)
@@ -710,6 +784,9 @@ func main() {
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages", educationService.CreatePortfolioValorificationPackage)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance", educationService.AdvancePortfolioValorificationPackage)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents", educationService.AddPortfolioValorificationPackageDocument)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorifications", educationService.CreatePortfolioValorification)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Patch("/education/portfolios/records/{recordID}/valorifications/{itemID}", educationService.UpdatePortfolioValorification)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Delete("/education/portfolios/records/{recordID}/valorifications/{itemID}", educationService.DeletePortfolioValorification)
 			})
 
 			r.With(authService.RequirePermissions("gdpr.read")).Get("/gdpr/dashboard", gdprService.Dashboard)

@@ -1,0 +1,59 @@
+# The only production workload that receives the schema-owner connection.
+# Argo CD waits for this PreSync hook before it updates the API Deployment.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: egueducation-backend-migrate
+  namespace: education
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: egueducation-backend-migrate
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: migrate
+          # Keep this digest synchronized with the API image in the external
+          # GitOps source. Never replace it with a mutable tag.
+          image: ghcr.io/eguilde/egueducation-backend@sha256:6ca8b3368e3573645a3d12e7d923e2b613fc52f9010106e53b45e3b3e95b7dc6
+          imagePullPolicy: IfNotPresent
+          command: ["/app/egueducation-migrate"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: APP_ENV
+              value: production
+            - name: MIGRATION_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: egueducation-scoalabalotesti-db
+                  key: migration-database-url
+                  optional: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi

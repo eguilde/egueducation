@@ -16,11 +16,40 @@ const declarationEvidence = {
   ],
 };
 const api = (): EducationApi => ({
-  governanceDashboard: vi.fn(), directorCockpit: vi.fn(), eligibleGovernanceUsers: vi.fn(), dashboardAt: vi.fn(), governanceMeetings: vi.fn(), governanceMeetingDetail: vi.fn(), saveGovernanceMeeting: vi.fn(), deleteGovernanceMeeting: vi.fn(), records: vi.fn(), recordDetail: vi.fn(), saveRecord: vi.fn(), deleteRecord: vi.fn(), recordPdf: vi.fn(), relatedRecords: vi.fn().mockResolvedValue({ items: [{ id: "section-1", section_code: "I", component_code: "I.1", label_ro: "Proiectare didactică", sensitive_data: false }], total: 1, page: 1, pageSize: 100 }), relatedDetail: vi.fn(), saveRelated: vi.fn(), deleteRelated: vi.fn(), relatedPdf: vi.fn(), metadata: vi.fn(), command: vi.fn(),
+  governanceDashboard: vi.fn(), directorCockpit: vi.fn(), eligibleGovernanceUsers: vi.fn(), governanceMeetings: vi.fn(), governanceMeetingDetail: vi.fn(), saveGovernanceMeeting: vi.fn(), deleteGovernanceMeeting: vi.fn(), records: vi.fn(), recordDetail: vi.fn(), createRecord: vi.fn(), updateRecord: vi.fn(), deleteRecord: vi.fn(), recordPdf: vi.fn(), relatedRecords: vi.fn(), relatedDetail: vi.fn(), saveRelated: vi.fn(), deleteRelated: vi.fn(), relatedPdf: vi.fn(), portfolioDocuments: vi.fn(), portfolioDocument: vi.fn(), createPortfolioDocument: vi.fn(), updatePortfolioDocument: vi.fn(), deletePortfolioDocument: vi.fn(), portfolioChecklist: vi.fn(), portfolioChecklistItem: vi.fn(), createPortfolioChecklistItem: vi.fn(), updatePortfolioChecklistItem: vi.fn(), deletePortfolioChecklistItem: vi.fn(), portfolioOpis: vi.fn(), portfolioOpisEntry: vi.fn(), createPortfolioOpisEntry: vi.fn(), updatePortfolioOpisEntry: vi.fn(), deletePortfolioOpisEntry: vi.fn(), portfolioCustody: vi.fn(), portfolioCustodyEvent: vi.fn(), createPortfolioCustodyEvent: vi.fn(), updatePortfolioCustodyEvent: vi.fn(), deletePortfolioCustodyEvent: vi.fn(), portfolioReviews: vi.fn(), portfolioReview: vi.fn(), createPortfolioReview: vi.fn(), updatePortfolioReview: vi.fn(), deletePortfolioReview: vi.fn(), portfolioTransferHistory: vi.fn(), portfolioValorifications: vi.fn(), portfolioValorification: vi.fn(), createPortfolioValorification: vi.fn(), updatePortfolioValorification: vi.fn(), deletePortfolioValorification: vi.fn(), portfolioSections: vi.fn().mockResolvedValue({ items: [{ id: "section-1", section_code: "I", component_code: "I.1", label_ro: "Proiectare didactică", sensitive_data: false, active: true, label_en: "", required: true, retention_rule: "", example_documents: [], sort_order: 1 }], total: 1, page: 1, pageSize: 100 }), educationRequirements: vi.fn(), taxonomyCatalog: vi.fn(), metadata: vi.fn(), command: vi.fn(),
   ownPortfolios: vi.fn().mockResolvedValue({ items: [portfolio], total: 1, page: 1, pageSize: 1 }), ownPortfolio: vi.fn().mockResolvedValue(portfolio), createOwnPortfolio: vi.fn(), updateOwnPortfolio: vi.fn().mockResolvedValue(portfolio), submitOwnPortfolio: vi.fn().mockResolvedValue({ ...portfolio, status: "submitted" }), ownPortfolioDeclarations: vi.fn().mockResolvedValue(declarationEvidence), acknowledgeOwnPortfolioDeclaration: vi.fn(), portfolioProcedures: vi.fn(), portfolioProcedure: vi.fn(), createPortfolioProcedure: vi.fn(), updatePortfolioProcedure: vi.fn(), portfolioProcedureRules: vi.fn(), replacePortfolioProcedureRules: vi.fn(), transitionPortfolioProcedure: vi.fn(), ownPortfolioRelated: vi.fn().mockResolvedValue({ items: [{ id: "document-1", document_title: "Planificare", section_code: "S1", file_reference: "archive://document-1" }], total: 1, page: 1, pageSize: 1 }), regenerateOwnPortfolioOpis: vi.fn().mockResolvedValue(undefined), recordPortfolioCessation: vi.fn(), setPortfolioLegalHold: vi.fn(), createOwnPortfolioDocument: vi.fn().mockResolvedValue({ id: "document-1" }), deleteOwnPortfolioDocument: vi.fn().mockResolvedValue(undefined), ownPortfolioArchiveDocuments: vi.fn().mockResolvedValue({ items: [{ id: "11111111-1111-4111-8111-111111111111", title: "Dovadă eArhivă", current_version_no: 1 }], total: 1, page: 1, pageSize: 1 }), attachmentGrants: vi.fn(), eligibleAttachmentDocuments: vi.fn(), eligibleAttachmentUsers: vi.fn(), createAttachmentGrant: vi.fn(), deleteAttachmentGrant: vi.fn(), createPortfolioExportManifest: vi.fn(),
 });
 
 describe("TeacherPortfolioWorkspace", () => {
+  it("renders only own-portfolio filter and sort controls that the server contract forwards", async () => {
+    const transport = api();
+    render(<PrimeReactProvider><TeacherPortfolioWorkspace api={transport} canManageOwn /></PrimeReactProvider>);
+    await screen.findByText("PORT-CD-1");
+    const documentsCard = screen.getByText("Documente").closest(".p-card") as HTMLElement | null;
+    const checklistCard = screen.getByText("Checklist").closest(".p-card") as HTMLElement | null;
+    if (!documentsCard || !checklistCard) throw new Error("missing related-record cards");
+
+    // Documents: only section_code has a server-side filter. component_code is
+    // displayed but is intentionally neither filterable nor sortable.
+    expect(within(documentsCard).getByLabelText("Filtru Secțiune")).toBeInTheDocument();
+    expect(within(documentsCard).queryByLabelText("Filtru Componentă")).not.toBeInTheDocument();
+    expect(within(documentsCard).queryByLabelText("Filtru Document")).not.toBeInTheDocument();
+    expect(within(documentsCard).queryByRole("button", { name: "Sortează după Componentă" })).not.toBeInTheDocument();
+    expect(within(documentsCard).getByRole("button", { name: "Sortează după Document" })).toBeInTheDocument();
+
+    // Checklist exposes only requirement_code filtering; mandatory and the
+    // reviewing person are server output, not own-route query fields.
+    expect(within(checklistCard).getByLabelText("Filtru Cod")).toBeInTheDocument();
+    expect(within(checklistCard).queryByLabelText("Filtru Obligatoriu")).not.toBeInTheDocument();
+    expect(within(checklistCard).queryByLabelText("Filtru Verificat de")).not.toBeInTheDocument();
+    expect(within(checklistCard).queryByRole("button", { name: "Sortează după Obligatoriu" })).not.toBeInTheDocument();
+
+    fireEvent.change(within(documentsCard).getByLabelText("Filtru Secțiune"), { target: { value: "S1" } });
+    await waitFor(() => expect(transport.ownPortfolioRelated).toHaveBeenCalledWith("own-1", "documents", expect.objectContaining({ filters: { section_code: "S1" } })));
+    fireEvent.click(within(documentsCard).getByRole("button", { name: "Sortează după Document" }));
+    await waitFor(() => expect(transport.ownPortfolioRelated).toHaveBeenCalledWith("own-1", "documents", expect.objectContaining({ sort: "document_title", direction: "asc" })));
+  }, 15_000);
+
   it("shows only the authenticated teacher's portfolio and uses owner-scoped actions", async () => {
     const transport = api();
     render(<PrimeReactProvider><TeacherPortfolioWorkspace api={transport} canManageOwn /></PrimeReactProvider>);

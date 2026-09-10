@@ -39,10 +39,8 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	}
 	grantGovernanceIntegrationAccess(t, ctx, adminPool, it.roleName)
 	fixture := seedGovernanceAuthorizationFixture(t, ctx, adminPool)
-	// Migration 0098 rejects any newly-created ownerless portfolio and accepts
-	// an explicit identity binding only when that user belongs to the same
-	// tenant/institution. This is the database backstop for the admin create
-	// command, independent of a caller's JSON payload.
+	// Migration 0098 rejects any newly-created ownerless portfolio and the
+	// handler derives the canonical personnel identity for self-service access.
 	_, err := adminPool.Exec(ctx, `
 		insert into education_portfolios (
 			portfolio_code, owner_name, owner_role, school_year, status, section_count,
@@ -54,10 +52,10 @@ func TestGovernanceImmutableActorIdentityIntegration(t *testing.T) {
 	}
 	if _, err := adminPool.Exec(ctx, `
 		insert into education_portfolios (
-			portfolio_code, owner_user_id, owner_name, owner_role, school_year, status, section_count,
+			portfolio_code, owner_user_id, owner_personnel_id, owner_name, owner_role, school_year, status, section_count,
 			last_updated_on, retention_until, transfer_status, institution_id
-		) values ('IT-PORT-OWNER-BOUND', $1::uuid, 'Governance Integration Member', 'Profesor', '2030-2031', 'draft', 0, current_date, current_date + 365, 'none', $2)
-	`, fixture.memberUserID, fixture.institutionA); err != nil {
+		) values ('IT-PORT-OWNER-BOUND', $1::uuid, $2::uuid, 'Governance Integration Member', 'Profesor', '2030-2031', 'draft', 0, current_date, current_date + 365, 'none', $3)
+	`, fixture.memberUserID, fixture.memberPersonnelID, fixture.institutionA); err != nil {
 		t.Fatalf("new explicitly owner-bound portfolio must be accepted: %v", err)
 	}
 	storedArchiveID := seedGovernancePortfolioArchiveAttachments(t, ctx, adminPool, fixture.institutionA, fixture.memberUserID)
@@ -290,7 +288,9 @@ type governanceAuthorizationFixture struct {
 	tenantA, institutionA       string
 	tenantB, institutionB       string
 	memberSubject, memberUserID string
+	memberPersonnelID           string
 	foreignMemberUserID         string
+	foreignPersonnelID          string
 	meetingAID                  string
 	portfolioID                 string
 	foreignPortfolioID          string
@@ -303,6 +303,8 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	memberID := uuid.NewString()
 	memberSubject := "governance-member-" + uuid.NewString()
 	foreignMemberID := uuid.NewString()
+	memberPersonnelID := uuid.NewString()
+	foreignPersonnelID := uuid.NewString()
 	foreignMemberSubject := "governance-foreign-member-" + uuid.NewString()
 	meetingID := uuid.NewString()
 	portfolioID := uuid.NewString()
@@ -339,7 +341,15 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	if _, err := tx.Exec(ctx, `insert into app_user_permissions(user_id, permission_code, tenant_code) values ($1::uuid, 'education.governance.meeting.vote', $2)`, memberID, tenantA); err != nil {
 		t.Fatalf("seed tenant-A contextual permission: %v", err)
 	}
-	if _, err := tx.Exec(ctx, `insert into education_portfolios (id, portfolio_code, owner_user_id, owner_name, owner_role, school_year, status, section_count, last_updated_on, retention_until, transfer_status, institution_id) values ($1::uuid, 'IT-PORT-OWNER', $2::uuid, 'Governance Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $3), ($4::uuid, 'IT-PORT-FOREIGN', $5::uuid, 'Other Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $3)`, portfolioID, memberID, institutionA, foreignPortfolioID, foreignMemberID); err != nil {
+	if _, err := tx.Exec(ctx, `
+		insert into education_personnel (id,app_user_id,employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,phone,email,institution_id)
+		values
+			($1::uuid,$2::uuid,'PER-GOV-OWNER','Governance Integration Member','Profesor','titular','active','draft','none','2026-2027','+40000000000',$3,$4),
+			($5::uuid,$6::uuid,'PER-GOV-FOREIGN','Other Integration Member','Profesor','titular','active','draft','none','2026-2027','+40000000001',$7,$4)
+	`, memberPersonnelID, memberID, memberSubject+"@example.test", institutionA, foreignPersonnelID, foreignMemberID, foreignMemberSubject+"@example.test"); err != nil {
+		t.Fatalf("seed canonical personnel identities: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `insert into education_portfolios (id, portfolio_code, owner_user_id, owner_personnel_id, owner_name, owner_role, school_year, status, section_count, last_updated_on, retention_until, transfer_status, institution_id) values ($1::uuid, 'IT-PORT-OWNER', $2::uuid, $3::uuid, 'Governance Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $4), ($5::uuid, 'IT-PORT-FOREIGN', $6::uuid, $7::uuid, 'Other Integration Member', 'Profesor', '2026-2027', 'draft', 0, current_date, current_date + 365, 'none', $4)`, portfolioID, memberID, memberPersonnelID, institutionA, foreignPortfolioID, foreignMemberID, foreignPersonnelID); err != nil {
 		t.Fatalf("seed identity-bound professional portfolios: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `insert into education_meetings (id, school_year, organism, title, meeting_type, status, quorum_required, participants_count, meeting_date, institution_id, chairperson, secretary_name, summary) values ($1::uuid, '2026-2027', 'ca', 'Integration meeting', 'ordinary', 'scheduled', 1, 1, current_date, $2, 'Legacy Chair', 'Legacy Secretary', 'RLS fixture')`, meetingID, institutionA); err != nil {
@@ -351,7 +361,7 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 	if err := tx.Commit(ctx); err != nil {
 		t.Fatalf("commit governance authorization fixture: %v", err)
 	}
-	return governanceAuthorizationFixture{tenantA: tenantA, institutionA: institutionA, tenantB: tenantB, institutionB: institutionB, memberSubject: memberSubject, memberUserID: memberID, foreignMemberUserID: foreignMemberID, meetingAID: meetingID, portfolioID: portfolioID, foreignPortfolioID: foreignPortfolioID}
+	return governanceAuthorizationFixture{tenantA: tenantA, institutionA: institutionA, tenantB: tenantB, institutionB: institutionB, memberSubject: memberSubject, memberUserID: memberID, memberPersonnelID: memberPersonnelID, foreignMemberUserID: foreignMemberID, foreignPersonnelID: foreignPersonnelID, meetingAID: meetingID, portfolioID: portfolioID, foreignPortfolioID: foreignPortfolioID}
 }
 
 func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context, pool *pgxpool.Pool, institutionID, granteeUserID string) string {

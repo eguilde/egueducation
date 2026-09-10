@@ -22,7 +22,11 @@ func (s *Service) PortfolioValorifications(w http.ResponseWriter, r *http.Reques
 		"status":              {},
 		"requested_by":        {},
 		"target_institution":  {},
-	}, []string{"valorification_code", "scope", "status", "requested_by", "target_institution"})
+		"target_reference":    {},
+		"started_on":          {},
+		"completed_on":        {},
+		"notes":               {},
+	}, []string{"valorification_code", "scope", "status", "requested_by", "target_institution", "target_reference", "started_on", "completed_on", "notes"})
 	if query.Sort == "" {
 		query.Sort = "started_on"
 	}
@@ -170,7 +174,7 @@ func (s *Service) CreatePortfolioValorification(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	code := fmt.Sprintf("VAL-%d-%04d", time.Now().UTC().Year(), time.Now().Unix()%10000)
+	code := newEducationCode("VAL")
 	var item PortfolioValorificationEvent
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_valorifications (
@@ -361,6 +365,10 @@ func buildPortfolioValorificationFilters(filters map[string]string, recordID str
 		"status":              "epv.status",
 		"requested_by":        "epv.requested_by",
 		"target_institution":  "epv.target_institution",
+		"target_reference":    "epv.target_reference",
+		"started_on":          "to_char(epv.started_on, 'YYYY-MM-DD')",
+		"completed_on":        "to_char(epv.completed_on, 'YYYY-MM-DD')",
+		"notes":               "epv.notes",
 	} {
 		if value := strings.TrimSpace(filters[key]); value != "" {
 			args = append(args, "%"+strings.ToLower(value)+"%")
@@ -419,6 +427,24 @@ func portfolioValorificationScopes() []string {
 	}
 }
 
+func portfolioValorificationPurposeAllowed(sourceScope, purpose string) bool {
+	evaluationPurposes := []string{
+		"licentiere", "debut", "definitivat", "grad_ii", "grad_i",
+		"evaluare_profesionala", "dezvoltare_profesionala", "inspectie_scolara",
+		"evaluare_externa_calitate", "distinctie_premiu",
+	}
+	switch sourceScope {
+	case "evaluare_profesionala":
+		return containsString(evaluationPurposes, purpose)
+	case "mobilitate":
+		return purpose == "mobilitate"
+	case "gradatie_merit":
+		return purpose == "gradatie_merit" || purpose == "distinctie_premiu"
+	default:
+		return false
+	}
+}
+
 func nullableDate(value string) any {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -437,6 +463,7 @@ type PortfolioValorificationPackage struct {
 	InstitutionID        string `json:"institution_id"`
 	PortfolioID          string `json:"portfolio_id"`
 	Scope                string `json:"scope"`
+	Purpose              string `json:"purpose"`
 	SourceEvaluationID   string `json:"source_evaluation_id,omitempty"`
 	SourceMobilityCaseID string `json:"source_mobility_case_id,omitempty"`
 	SourceMeritGrantID   string `json:"source_merit_grant_id,omitempty"`
@@ -453,6 +480,7 @@ type PortfolioValorificationPackage struct {
 
 type CreatePortfolioValorificationPackageRequest struct {
 	Scope                string `json:"scope"`
+	Purpose              string `json:"purpose"`
 	SourceEvaluationID   string `json:"source_evaluation_id"`
 	SourceMobilityCaseID string `json:"source_mobility_case_id"`
 	SourceMeritGrantID   string `json:"source_merit_grant_id"`
@@ -494,7 +522,7 @@ type PortfolioValorificationEligibleArchiveVersion struct {
 }
 
 const portfolioValorificationPackageColumns = `
-	id::text, tenant_code, institution_id, portfolio_id::text, scope,
+	id::text, tenant_code, institution_id, portfolio_id::text, scope, purpose,
 	coalesce(source_evaluation_id::text,''), coalesce(source_mobility_case_id::text,''), coalesce(source_merit_grant_id::text,''),
 	status, created_by_subject, to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
 	submitted_by_subject, coalesce(to_char(submitted_at, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),''),
@@ -503,7 +531,7 @@ const portfolioValorificationPackageColumns = `
 
 func scanPortfolioValorificationPackage(row interface{ Scan(...any) error }) (PortfolioValorificationPackage, error) {
 	var item PortfolioValorificationPackage
-	err := row.Scan(&item.ID, &item.TenantCode, &item.InstitutionID, &item.PortfolioID, &item.Scope,
+	err := row.Scan(&item.ID, &item.TenantCode, &item.InstitutionID, &item.PortfolioID, &item.Scope, &item.Purpose,
 		&item.SourceEvaluationID, &item.SourceMobilityCaseID, &item.SourceMeritGrantID,
 		&item.Status, &item.CreatedBySubject, &item.CreatedAt, &item.SubmittedBySubject, &item.SubmittedAt,
 		&item.ValidatedBySubject, &item.ValidatedAt, &item.CompletedBySubject, &item.CompletedAt)
@@ -525,13 +553,13 @@ func scanPortfolioValorificationPackageDocument(row interface{ Scan(...any) erro
 
 func (s *Service) PortfolioValorificationPackages(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"scope": {}, "status": {}}, []string{"scope", "status"})
+	query := httpx.ParsePageQuery(r.URL.Query(), map[string]struct{}{"scope": {}, "purpose": {}, "status": {}}, []string{"scope", "purpose", "status"})
 	if query.Sort == "" {
 		query.Sort = "created_at"
 	}
 	where := []string{"portfolio_id = $1::uuid", "institution_id = $2"}
 	args := []any{recordID, s.institutionID(r)}
-	for _, filter := range []string{"scope", "status"} {
+	for _, filter := range []string{"scope", "purpose", "status"} {
 		if value := strings.TrimSpace(query.Filters[filter]); value != "" {
 			args = append(args, value)
 			where = append(where, filter+" = $"+fmt.Sprint(len(args)))
@@ -544,7 +572,7 @@ func (s *Service) PortfolioValorificationPackages(w http.ResponseWriter, r *http
 		return
 	}
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
-	sortColumn := map[string]string{"created_at": "created_at", "scope": "scope", "status": "status"}[query.Sort]
+	sortColumn := map[string]string{"created_at": "created_at", "scope": "scope", "purpose": "purpose", "status": "status"}[query.Sort]
 	if sortColumn == "" {
 		sortColumn = "created_at"
 	}
@@ -706,21 +734,22 @@ func (s *Service) CreatePortfolioValorificationPackage(w http.ResponseWriter, r 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_payload"})
 		return
 	}
-	req.Scope, req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID = strings.TrimSpace(req.Scope), strings.TrimSpace(req.SourceEvaluationID), strings.TrimSpace(req.SourceMobilityCaseID), strings.TrimSpace(req.SourceMeritGrantID)
+	req.Scope, req.Purpose = strings.TrimSpace(req.Scope), strings.TrimSpace(req.Purpose)
+	req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID = strings.TrimSpace(req.SourceEvaluationID), strings.TrimSpace(req.SourceMobilityCaseID), strings.TrimSpace(req.SourceMeritGrantID)
 	valid := (req.Scope == "evaluare_profesionala" && req.SourceEvaluationID != "" && req.SourceMobilityCaseID == "" && req.SourceMeritGrantID == "") ||
 		(req.Scope == "mobilitate" && req.SourceEvaluationID == "" && req.SourceMobilityCaseID != "" && req.SourceMeritGrantID == "") ||
 		(req.Scope == "gradatie_merit" && req.SourceEvaluationID == "" && req.SourceMobilityCaseID == "" && req.SourceMeritGrantID != "")
-	if !valid {
+	if !valid || !portfolioValorificationPurposeAllowed(req.Scope, req.Purpose) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_valorification_package_source"})
 		return
 	}
 	item, err := scanPortfolioValorificationPackage(s.pool.QueryRow(r.Context(), `
-		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,source_evaluation_id,source_mobility_case_id,source_merit_grant_id)
-		select public.current_tenant_code(), $2, portfolio.id, $3,
-			nullif($4,'')::uuid, nullif($5,'')::uuid, nullif($6,'')::uuid
+		insert into education_portfolio_valorification_packages (tenant_code,institution_id,portfolio_id,scope,purpose,source_evaluation_id,source_mobility_case_id,source_merit_grant_id)
+		select public.current_tenant_code(), $2, portfolio.id, $3, $4,
+			nullif($5,'')::uuid, nullif($6,'')::uuid, nullif($7,'')::uuid
 		from education_portfolios portfolio
 		where portfolio.id=$1::uuid and portfolio.institution_id=$2 and portfolio.withdrawn_at is null
-		returning `+portfolioValorificationPackageColumns, recordID, s.institutionID(r), req.Scope, req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID))
+		returning `+portfolioValorificationPackageColumns, recordID, s.institutionID(r), req.Scope, req.Purpose, req.SourceEvaluationID, req.SourceMobilityCaseID, req.SourceMeritGrantID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_portfolio_not_found")
 		return
@@ -729,7 +758,7 @@ func (s *Service) CreatePortfolioValorificationPackage(w http.ResponseWriter, r 
 		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_valorification_package_create_failed"})
 		return
 	}
-	s.logAudit(r, "education.portfolios.valorification_package.create", "portfolio_valorification_package", item.ID, "Scope-bound portfolio valorification package created.", map[string]any{"portfolio_id": item.PortfolioID, "scope": item.Scope})
+	s.logAudit(r, "education.portfolios.valorification_package.create", "portfolio_valorification_package", item.ID, "Scope-bound portfolio valorification package created.", map[string]any{"portfolio_id": item.PortfolioID, "scope": item.Scope, "purpose": item.Purpose})
 	httpx.JSON(w, http.StatusCreated, item)
 }
 

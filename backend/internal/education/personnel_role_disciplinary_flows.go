@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -22,7 +21,11 @@ func (s *Service) PersonnelAssignments(w http.ResponseWriter, r *http.Request) {
 		"assignment_title":   {},
 		"status":             {},
 		"decision_reference": {},
-	}, []string{"assignment_code", "assignment_type", "assignment_title", "status", "assigned_on", "ended_on", "weekly_hours"})
+		"assigned_on":        {},
+		"ended_on":           {},
+		"weekly_hours":       {},
+		"notes":              {},
+	}, []string{"assignment_code", "assignment_type", "assignment_title", "status", "assigned_on", "ended_on", "weekly_hours", "notes"})
 	if query.Sort == "" {
 		query.Sort = "assigned_on"
 	}
@@ -131,7 +134,7 @@ func (s *Service) CreatePersonnelAssignment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	code := fmt.Sprintf("ATR-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("ATR")
 	var item PersonnelAssignment
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_personnel_assignments (
@@ -260,7 +263,11 @@ func (s *Service) PersonnelDisciplinaryCases(w http.ResponseWriter, r *http.Requ
 		"committee_name": {},
 		"sanction":       {},
 		"legal_basis":    {},
-	}, []string{"case_code", "case_type", "status", "reported_on", "hearing_on", "resolved_on", "committee_name"})
+		"reported_on":    {},
+		"hearing_on":     {},
+		"resolved_on":    {},
+		"notes":          {},
+	}, []string{"case_code", "case_type", "status", "reported_on", "hearing_on", "resolved_on", "committee_name", "sanction", "legal_basis", "notes"})
 	if query.Sort == "" {
 		query.Sort = "reported_on"
 	}
@@ -383,7 +390,7 @@ func (s *Service) CreatePersonnelDisciplinaryCase(w http.ResponseWriter, r *http
 		return
 	}
 
-	code := fmt.Sprintf("DISC-%d-%05d", time.Now().UTC().Year(), time.Now().UTC().UnixNano()%100000)
+	code := newEducationCode("DISC")
 	var item PersonnelDisciplinaryCase
 	err = s.pool.QueryRow(r.Context(), `
 		insert into education_personnel_disciplinary_cases (
@@ -562,6 +569,9 @@ func buildPersonnelAssignmentFilters(filters map[string]string, recordID string,
 	if value := filters["decision_reference"]; value != "" {
 		addContains("epa.decision_reference", value)
 	}
+	if value := filters["notes"]; value != "" {
+		addContains("epa.notes", value)
+	}
 	return "where " + strings.Join(where, " and "), args
 }
 
@@ -589,6 +599,9 @@ func buildPersonnelDisciplinaryFilters(filters map[string]string, recordID strin
 	}
 	if value := filters["legal_basis"]; value != "" {
 		addContains("epdc.legal_basis", value)
+	}
+	if value := filters["notes"]; value != "" {
+		addContains("epdc.notes", value)
 	}
 	return "where " + strings.Join(where, " and "), args
 }

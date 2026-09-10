@@ -171,6 +171,7 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 				join app_position_permissions pp on pp.position_code = m.position_code
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
 					and m.active = true
+					and m.start_date <= current_date
 					and (m.end_date is null or m.end_date >= current_date)
 					and m.tenant_code = public.current_tenant_code()
 				union
@@ -181,6 +182,7 @@ func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, p
 				join app_role_permissions rp on rp.role_code = pr.role_code
 				where (u.id::text = $1 or lower(u.sub) = lower($1))
 					and m.active = true
+					and m.start_date <= current_date
 					and (m.end_date is null or m.end_date >= current_date)
 					and m.tenant_code = public.current_tenant_code()
 			) permissions
@@ -201,6 +203,7 @@ func (s *Service) currentActorName(r *http.Request, subject string) (string, err
 			where m.user_id = u.id
 			  and m.tenant_code = public.current_tenant_code()
 			  and m.active = true
+			  and m.start_date <= current_date
 			  and (m.end_date is null or m.end_date >= current_date)
 		  )
 	`, subject).Scan(&actorName)
@@ -221,6 +224,7 @@ func (s *Service) currentActorUserID(r *http.Request, subject string) (string, e
 			where m.user_id = u.id
 			  and m.tenant_code = public.current_tenant_code()
 			  and m.active = true
+			  and m.start_date <= current_date
 			  and (m.end_date is null or m.end_date >= current_date)
 		  )
 	`, strings.TrimSpace(subject)).Scan(&userID)
@@ -241,6 +245,7 @@ func (s *Service) tenantAppUserName(r *http.Request, userID string) (string, err
 			where m.user_id = u.id
 			  and m.tenant_code = public.current_tenant_code()
 			  and m.active = true
+			  and m.start_date <= current_date
 			  and (m.end_date is null or m.end_date >= current_date)
 		  )
 	`, strings.TrimSpace(userID)).Scan(&name)

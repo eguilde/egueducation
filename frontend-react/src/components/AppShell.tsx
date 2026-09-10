@@ -9,6 +9,10 @@ import { navigation } from '../app/navigation';
 import { useAuth } from '../auth/AuthProvider';
 import { ThemeMenu } from './ThemeMenu';
 
+export function hasActiveDelegatedEducationGrant(grants: readonly { resource_type: string }[]): boolean {
+    return grants.some((grant) => grant.resource_type !== 'institution');
+}
+
 const DESKTOP_QUERY = '(min-width: 768px)';
 function useDesktopLayout() {
     const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia(DESKTOP_QUERY).matches);
@@ -17,9 +21,12 @@ function useDesktopLayout() {
 }
 
 function NavigationContent({ tenantTitle, onNavigate }: { tenantTitle: string; onNavigate?: () => void }) {
-    const { user, session, login, logout, has } = useAuth();
+    const { user, session, login, logout, has, canEducation, authorizationReady, educationGrants } = useAuth();
     const location = useLocation();
-    const items = useMemo(() => user ? navigation.filter((item) => (!item.permission || has(item.permission)) && (!item.module || session?.modules.some((module) => module.code === item.module && module.active))) : [], [has, session?.modules, user]);
+    const items = useMemo(() => user && authorizationReady ? navigation.filter((item) => {
+        const permits = (permission: string) => item.module === 'education' ? canEducation(permission) : has(permission);
+        return (!item.delegatedEducation || hasActiveDelegatedEducationGrant(educationGrants)) && (!item.permission || permits(item.permission)) && (!item.permissions || item.permissions.some(permits)) && (!item.module || session?.modules.some((module) => module.code === item.module && module.active));
+    }) : [], [authorizationReady, canEducation, educationGrants, has, session?.modules, user]);
     return <div className="flex h-full flex-col gap-4 p-3">
         <Link to="/" className="app-sidebar-brand flex items-center gap-2 px-2 py-1" onClick={onNavigate}><Avatar.Root shape="circle"><Avatar.Fallback>eG</Avatar.Fallback></Avatar.Root><span>{tenantTitle}</span></Link>
         {user && items.length > 0 ? <nav aria-label="Navigație principală" className="flex-1"><ul className="m-0 flex list-none flex-col gap-1 p-0">
