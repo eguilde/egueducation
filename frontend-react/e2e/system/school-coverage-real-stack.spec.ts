@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 
 /* No page.route in this file: every browser mutation below crosses React, the
@@ -31,10 +31,10 @@ async function login(page: Page): Promise<void> {
   await expect(page).toHaveURL(`${origin}/`); await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible();
 }
 
-async function choose(page: Page, label: string, value: string): Promise<void> {
-  const control = page.getByLabel(label, { exact: true });
+async function choose(scope: Page | Locator, label: string, value: string): Promise<void> {
+  const control = scope.getByLabel(label, { exact: true });
   if (await control.getAttribute('role') === 'combobox') {
-    await control.click(); const list = page.locator('[role="listbox"]:visible').last(); await expect(list).toBeVisible(); await list.getByRole('option', { name: value, exact: true }).click();
+    await control.click(); const list = control.page().locator('[role="listbox"]:visible').last(); await expect(list).toBeVisible(); await list.getByRole('option', { name: value, exact: true }).click();
   } else await control.fill(value);
 }
 
