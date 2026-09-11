@@ -227,6 +227,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // possession through the ordinary OTP transaction before the profile and
   // global identity projections are promoted.
   databaseExec("update app_user_identities identity set verified_at=null from app_users user_record where identity.user_id=user_record.id and identity.identity_type='phone' and user_record.sub='oidc-browser-fixture-subject'");
+  const phoneEnrollmentAuditBefore = Number(databaseScalar(`
+    select count(*)::text
+    from app_audit_log l
+    join app_users u on u.id::text = l.details->>'user_id'
+    where u.sub='oidc-browser-fixture-subject'
+      and l.action='identity.phone.enrollment_verified'
+      and l.status='success'
+  `));
   expect(databaseScalar("select phone_number_verified::text from app_users where sub='oidc-browser-fixture-subject'"))
     .toBe('false');
   // Start the primary fixture as a second ordinary teacher. This gives the
@@ -628,14 +636,14 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(me.body.permissions).toContain('admin.users.manage');
   expect(me.body.authz_version).toBeGreaterThan(0);
   expect(me.body.user.phone_number_verified).toBe(true);
-  expect(databaseScalar(`
+  expect(Number(databaseScalar(`
     select count(*)::text
     from app_audit_log l
     join app_users u on u.id::text = l.details->>'user_id'
     where u.sub='oidc-browser-fixture-subject'
       and l.action='identity.phone.enrollment_verified'
       and l.status='success'
-  `)).toBe('1');
+  `))).toBe(phoneEnrollmentAuditBefore + 1);
 
   // The institution-authorized reviewer returns the submitted portfolio. The
   // owner remedies it through the own-only contract, resubmits, and the

@@ -75,7 +75,7 @@ async function createPublication(page: Page, fixture: TenantFixture): Promise<{ 
     await page.locator('[role="listbox"]:visible').last().getByRole('option', { name: option, exact: true }).click();
   }
   const marker = `POLICY-${fixture.tenant}-${Date.now()}`;
-  await dialog.getByLabel('Entitate').fill(marker);
+  await dialog.getByLabel('Entitate', { exact: true }).fill(marker);
   const response = page.waitForResponse((candidate) => candidate.request().method() === 'POST' && new URL(candidate.url()).pathname === '/api/education/compliance/publications');
   await dialog.getByRole('button', { name: 'Salvează' }).click();
   const created = await response;
