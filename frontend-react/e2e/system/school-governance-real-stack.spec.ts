@@ -194,9 +194,18 @@ async function createDeclarationThroughWizard(
   await page.getByLabel('Nume').fill(fullName);
   await page.getByRole('combobox', { name: 'Tip' }).click();
   await selectOpenOption(page, 'authenticity');
+  // PrimeReact remounts the first-step controls when the Select portal closes.
+  // Reassert the controlled values before advancing so the browser proof is
+  // deterministic under React concurrent rendering as well as locally.
+  await page.getByLabel('Cod angajat').fill(employeeCode);
+  await page.getByLabel('Nume').fill(fullName);
+  await expect(page.getByLabel('Cod angajat')).toHaveValue(employeeCode);
+  await expect(page.getByLabel('Nume')).toHaveValue(fullName);
   await page.getByRole('button', { name: 'Continuă' }).click();
 
-  await page.getByRole('combobox', { name: 'Status' }).click();
+  const status = page.getByRole('combobox', { name: 'Status' });
+  await expect(status).toBeVisible();
+  await status.click();
   await selectOpenOption(page, 'draft');
   await page.getByLabel('An școlar').fill('2026-2027');
   await page.getByLabel('Depus la').fill('2026-09-10');

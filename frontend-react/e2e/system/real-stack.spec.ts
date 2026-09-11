@@ -226,6 +226,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // The bootstrap fixture is deliberately unverified. The browser must prove
   // possession through the ordinary OTP transaction before the profile and
   // global identity projections are promoted.
+  databaseExec("update app_user_identities identity set verified_at=null from app_users user_record where identity.user_id=user_record.id and identity.identity_type='phone' and user_record.sub='oidc-browser-fixture-subject'");
   expect(databaseScalar("select phone_number_verified::text from app_users where sub='oidc-browser-fixture-subject'"))
     .toBe('false');
   // Start the primary fixture as a second ordinary teacher. This gives the

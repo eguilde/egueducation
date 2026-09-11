@@ -39,6 +39,19 @@ describe("RegulatoryProfileWorkspace", () => {
     expect(screen.getByRole("button", { name: "Salvează versiunea" })).toBeDisabled();
   });
 
+  it("keeps the selected legal form and derived regulatory profile in the same form update", async () => {
+    const client = api();
+    render(<PrimeReactProvider {...primeTheme}><RegulatoryProfileWorkspace api={client} canManage /></PrimeReactProvider>);
+    fireEvent.click(await screen.findByRole("button", { name: /versiune nouă/i }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Formă juridică" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Școală publică" }));
+    fireEvent.change(screen.getByLabelText("Sursa aprobării"), { target: { value: "Hotărâre E2E" } });
+    const save = screen.getByRole("button", { name: "Salvează versiunea" });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    await waitFor(() => expect(client.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ school_legal_form: "public", regulatory_profile: "ro.public.preuniversity", source_reference: "Hotărâre E2E" })));
+  });
+
   it("ignores an older institutional response that completes after a new load", async () => {
     let resolveOldProfile!: (value: RegulatoryProfile) => void;
     let resolveOldCapabilities!: (value: InstitutionCapabilities) => void;
