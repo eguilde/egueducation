@@ -36,8 +36,8 @@ jobs:
     environment: production
     env:
       PRODUCTION_ORIGIN: https://scoalabalotesti.eguilde.cloud
-      PRODUCTION_TEST_USER_IDENTIFIER: ${{ secrets.PRODUCTION_TEST_USER_IDENTIFIER }}
-      PRODUCTION_TEST_USER_OTP: ${{ secrets.PRODUCTION_TEST_USER_OTP }}
+      PRODUCTION_TEST_USER_IDENTIFIER: ${{ secrets.PRODUCTION_E2E_CANARY_IDENTIFIER }}
+      PRODUCTION_TEST_USER_OTP: ${{ secrets.PRODUCTION_E2E_CANARY_OTP }}
     steps:
       - name: Check out the deployed source revision
         uses: actions/checkout@v4
@@ -49,6 +49,11 @@ jobs:
           node-version: 24.15.0
           cache: npm
           cache-dependency-path: frontend-react/package-lock.json
+      - name: Validate production canary credentials
+        shell: bash
+        run: |
+          : "${PRODUCTION_TEST_USER_IDENTIFIER:?Missing PRODUCTION_E2E_CANARY_IDENTIFIER secret}"
+          : "${PRODUCTION_TEST_USER_OTP:?Missing PRODUCTION_E2E_CANARY_OTP secret}"
       - name: Install browser test dependencies
         working-directory: frontend-react
         run: |
