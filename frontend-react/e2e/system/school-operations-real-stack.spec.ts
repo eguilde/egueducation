@@ -108,7 +108,10 @@ function adminSQL(value: string): void { sql(`${value}; select 'ok'`); }
 
 function prepareAdministrator(): string {
   const adminID = sql("select id::text from app_users where sub='oidc-browser-fixture-subject'");
-  adminSQL(`update app_memberships set position_code='director' where user_id='${adminID}' and tenant_code='tenant-egueducation'; delete from app_user_platform_roles where user_id='${adminID}'; delete from app_user_roles where user_id='${adminID}' and tenant_code='tenant-egueducation'; insert into app_user_roles(tenant_code,user_id,role_code) values ('tenant-egueducation','${adminID}','admin') on conflict do nothing`);
+  // The full-system actor deliberately uses the tenant-scoped canary role. A
+  // normal tenant administrator must not regain implicit access to pedagogical
+  // content merely so this broad functional proof can exercise every module.
+  adminSQL(`update app_memberships set position_code='e2e_canary' where user_id='${adminID}' and tenant_code='tenant-egueducation'; delete from app_user_platform_roles where user_id='${adminID}'; delete from app_user_roles where user_id='${adminID}' and tenant_code='tenant-egueducation'; insert into app_user_roles(tenant_code,user_id,role_code) values ('tenant-egueducation','${adminID}','e2e_canary') on conflict do nothing`);
   return adminID;
 }
 

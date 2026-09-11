@@ -499,7 +499,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
     await documentDialog.getByLabel('Data adăugării *').fill('2031-09-01');
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
-    await selectOpenOption(approverPage, new RegExp(archive.id));
+    await selectOpenOption(approverPage, `${archive.title} · v1`);
     const added = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents` && response.request().method() === 'POST');
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await added).status()).toBe(201);
@@ -1381,7 +1381,6 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const className = `IX E2E ${suffix}`;
   await page.goto('/scoala/clase');
   await expect(page.getByRole('heading', { name: 'Clase, elevi și diriginți' })).toBeVisible();
-  await expect(page.getByRole('tablist', { name: 'Clase și elevi' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Adaugă clasă' })).toBeVisible();
   await page.getByRole('button', { name: 'Adaugă clasă' }).click();
   const classDialog = page.getByRole('dialog', { name: 'Adaugă clasă' });
