@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -120,6 +121,21 @@ func TestReadinessHandlerReportsDatabaseFailure(t *testing.T) {
 				t.Fatalf("status = %d, want %d", recorder.Code, tt.wantCode)
 			}
 		})
+	}
+}
+
+func TestReadinessHandlerReportsBuildRevision(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	readinessHandler(testPinger{}).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
+
+	var payload struct {
+		Revision string `json:"revision"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode readiness response: %v", err)
+	}
+	if payload.Revision != sourceRevision {
+		t.Fatalf("revision = %q, want %q", payload.Revision, sourceRevision)
 	}
 }
 

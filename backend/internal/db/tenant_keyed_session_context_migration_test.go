@@ -20,6 +20,8 @@ func TestTenantKeyedSessionContextMigrationContract(t *testing.T) {
 		"join app_memberships membership",
 		"membership.active = true",
 		"start_date <= current_date",
+		"having count(distinct tenant.code) <> 1",
+		"session context mapping is ambiguous",
 		"idx_app_session_context_tenant_user",
 	} {
 		if !strings.Contains(contents, required) {

@@ -12,6 +12,25 @@ select set_config('app.is_super_admin', 'true', true);
 alter table app_session_context
 	add column if not exists tenant_code text;
 
+-- PostgreSQL may choose an arbitrary source row in UPDATE ... FROM when more
+-- than one tenant shares an institution. Refuse that legacy shape before
+-- writing anything so a session can never be attached to a guessed tenant.
+do $$
+begin
+	if exists (
+		select session_context.institution_id
+		from app_session_context session_context
+		left join app_tenants tenant
+			on tenant.institution_id = session_context.institution_id
+		where session_context.tenant_code is null
+		group by session_context.institution_id
+		having count(distinct tenant.code) <> 1
+	) then
+		raise exception '0124 session context mapping is ambiguous: every unbound institution must map to exactly one tenant code';
+	end if;
+end;
+$$;
+
 update app_session_context session_context
 set tenant_code = tenant.code
 from app_tenants tenant

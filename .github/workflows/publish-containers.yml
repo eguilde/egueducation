@@ -155,12 +155,45 @@ jobs:
           set -euo pipefail
 
           backend_manifest='namespaces/education/egueducation/backend/kustomization.yaml'
+          migration_manifest='namespaces/education/egueducation/backend/migration-job.yaml'
           frontend_manifest='namespaces/education/egueducation/frontend/kustomization.yaml'
-          git ls-files --error-unmatch "${backend_manifest}" "${frontend_manifest}" >/dev/null
+          git ls-files --error-unmatch "${backend_manifest}" "${migration_manifest}" "${frontend_manifest}" >/dev/null
           test -s "${backend_manifest}"
+          test -s "${migration_manifest}"
           test -s "${frontend_manifest}"
           kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
           kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
+
+          verify_backend_migration_gate() {
+            local rendered
+            rendered="$(mktemp)"
+            kubectl kustomize "$(dirname "${backend_manifest}")" > "${rendered}"
+            RENDERED_MANIFEST="${rendered}" EXPECTED_DIGEST="${BACKEND_DIGEST}" ruby <<'RUBY'
+              require 'yaml'
+
+              documents = YAML.load_stream(File.read(ENV.fetch('RENDERED_MANIFEST'))).compact
+              deployment = documents.find { |doc| doc['kind'] == 'Deployment' && doc.dig('metadata', 'name') == 'egueducation-backend' }
+              migration = documents.find { |doc| doc['kind'] == 'Job' && doc.dig('metadata', 'name') == 'egueducation-backend-migrate' }
+              abort('rendered backend Deployment is missing') unless deployment
+              abort('rendered PreSync migration Job is missing') unless migration
+
+              expected_image = "ghcr.io/eguilde/egueducation-backend@#{ENV.fetch('EXPECTED_DIGEST')}"
+              api = deployment.dig('spec', 'template', 'spec', 'containers')&.find { |container| container['name'] == 'api' }
+              migrator = migration.dig('spec', 'template', 'spec', 'containers')&.find { |container| container['name'] == 'migrate' }
+              abort('API image does not match promoted immutable digest') unless api&.fetch('image', nil) == expected_image
+              abort('migration image does not match promoted immutable digest') unless migrator&.fetch('image', nil) == expected_image
+              abort('migration is not an Argo PreSync hook') unless migration.dig('metadata', 'annotations', 'argocd.argoproj.io/hook') == 'PreSync'
+
+              migration_url = migrator.fetch('env').find { |entry| entry['name'] == 'MIGRATION_DATABASE_URL' }
+              secret_ref = migration_url&.dig('valueFrom', 'secretKeyRef')
+              abort('migration does not use the dedicated database URL') unless secret_ref == {
+                'name' => 'egueducation-scoalabalotesti-db',
+                'key' => 'migration-database-url',
+                'optional' => false
+              }
+          RUBY
+            rm -f "${rendered}"
+          }
 
           promote_image() {
             IMAGE="$1" IMAGE_DIGEST="$2" SOURCE_IMAGE="$3" FILE="$4" ruby <<'RUBY'
@@ -205,7 +238,7 @@ jobs:
 
           # Validate the exact rendered objects that are about to become the
           # GitOps source of truth, after both immutable digests were written.
-          kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+          verify_backend_migration_gate
           kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
 
           git config user.name 'github-actions[bot]'
@@ -224,7 +257,7 @@ jobs:
             expected_changes="$(printf 'M\t%s\nM\t%s' "${backend_manifest}" "${frontend_manifest}")"
             actual_changes="$(git diff --name-status HEAD^ HEAD | sort)"
             test "${actual_changes}" = "${expected_changes}"
-            kubectl kustomize "$(dirname "${backend_manifest}")" >/dev/null
+            verify_backend_migration_gate
             kubectl kustomize "$(dirname "${frontend_manifest}")" >/dev/null
           }
 
@@ -263,7 +296,7 @@ jobs:
             revision="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/revision.json")" || true
             landing="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/")" || true
             oidc_ui="$(curl --fail-with-body --silent --show-error --connect-timeout 5 --max-time 15 "${PUBLIC_ORIGIN}/api/oidc/ui/login.js")" || true
-            if jq -e '.status == "ok" and .database == "ok"' >/dev/null <<<"${health}" \
+            if jq -e --arg revision "${SOURCE_SHA}" '.status == "ok" and .database == "ok" and .revision == $revision' >/dev/null <<<"${health}" \
               && jq -e --arg issuer "${PUBLIC_ORIGIN}/api/oidc" \
                 '.issuer == $issuer
                  and .authorization_endpoint == ($issuer + "/authorize")
@@ -283,7 +316,10 @@ jobs:
 
   rollback-failed-promotion:
     name: Roll back a failed public rollout
-    if: ${{ always() && needs.promote-gitops.result == 'success' && needs.promote-gitops.outputs.changed == 'true' && needs.verify-public-availability.result == 'failure' }}
+    # Database migrations are forward-only. After a successful PreSync hook,
+    # automatically restoring an older API image could be schema-incompatible.
+    # Keep the last healthy pod serving and require an explicit forward fix.
+    if: ${{ false }}
     needs: [promote-gitops, verify-public-availability]
     runs-on: ubuntu-24.04
     steps:

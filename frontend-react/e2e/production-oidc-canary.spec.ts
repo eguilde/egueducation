@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const canaryIdentifier = requiredSecret('PRODUCTION_TEST_USER_IDENTIFIER');
 const canaryOTP = requiredSecret('PRODUCTION_TEST_USER_OTP');
+const expectedRevision = requiredSecret('PRODUCTION_EXPECTED_REVISION');
 const productionOrigin = requiredOrigin();
 
 test.use({ trace: 'off', screenshot: 'off', video: 'off' });
@@ -56,6 +57,12 @@ test('logs in the dedicated RBAC test user through the normal production OTP flo
     const page = await context.newPage();
     const pageErrors: string[] = [];
     page.on('pageerror', (error) => pageErrors.push(error.message));
+
+    const healthResponse = await context.request.get('/health');
+    expect(healthResponse.status()).toBe(200);
+    const health = await healthResponse.json() as { status?: string; database?: string; revision?: string };
+    expect(health).toMatchObject({ status: 'ok', database: 'ok', revision: expectedRevision });
+
     await startOTPLogin(page);
 
     const meResponse = page.waitForResponse((response) => {

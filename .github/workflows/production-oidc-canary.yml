@@ -36,6 +36,7 @@ jobs:
     environment: production
     env:
       PRODUCTION_ORIGIN: https://scoalabalotesti.eguilde.cloud
+      PRODUCTION_EXPECTED_REVISION: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       PRODUCTION_TEST_USER_IDENTIFIER: ${{ secrets.PRODUCTION_E2E_CANARY_IDENTIFIER }}
       PRODUCTION_TEST_USER_OTP: ${{ secrets.PRODUCTION_E2E_CANARY_OTP }}
     steps:

@@ -4,13 +4,14 @@ WORKDIR /src
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG SOURCE_REVISION=development
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-api ./cmd/server \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -ldflags="-X main.sourceRevision=${SOURCE_REVISION}" -o /out/egueducation-api ./cmd/server \
     && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-migrate ./cmd/migrate \
     && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/egueducation-pdf-validator ./cmd/archive-pdf-validator
 

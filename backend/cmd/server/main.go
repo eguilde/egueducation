@@ -29,6 +29,11 @@ import (
 	"github.com/eguilde/egueducation/internal/workflow"
 )
 
+// sourceRevision is injected by the container build with -ldflags. Health
+// responses expose it so rollout verification cannot be satisfied by an old
+// pod that remains available during a failed rolling update.
+var sourceRevision = "development"
+
 func main() {
 	cfg := config.Load()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -859,6 +864,7 @@ func readinessHandler(pool databasePinger) http.HandlerFunc {
 			"status":   healthStatus,
 			"service":  "egueducation-api",
 			"database": dbStatus,
+			"revision": sourceRevision,
 			"time":     time.Now().UTC(),
 		})
 	}
@@ -866,9 +872,10 @@ func readinessHandler(pool databasePinger) http.HandlerFunc {
 
 func livenessHandler(w http.ResponseWriter, _ *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"status":  "ok",
-		"service": "egueducation-api",
-		"time":    time.Now().UTC(),
+		"status":   "ok",
+		"service":  "egueducation-api",
+		"revision": sourceRevision,
+		"time":     time.Now().UTC(),
 	})
 }
 
