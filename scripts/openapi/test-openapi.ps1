@@ -484,6 +484,24 @@ if ((Compare-Object @($managerialDocumentRequest.properties.document_category.en
     throw 'Managerial document request must publish the handler enum/date contract and conditional approval-date requirement.'
 }
 
+$publicationRecordRequest = $specData.components.schemas.CreatePublicationRecordRequest
+$publicationContracts = [ordered]@{
+    domain = @('guvernanta','documente_manageriale','portofolii','regulamente','conformitate')
+    entity_type = @('hotarare','proces_verbal','procedura_portofoliu','rof','roi','pdi_pas','raport','anunt')
+    publication_channel = @('site_public','avizier','intranet','registratura')
+    publication_status = @('pregatit','publicat','retras')
+    anonymization_status = @('necesara','finalizata','nu_este_necesara')
+}
+foreach ($entry in $publicationContracts.GetEnumerator()) {
+    if (Compare-Object @($publicationRecordRequest.properties[$entry.Key].enum | Sort-Object) @($entry.Value | Sort-Object)) {
+        throw "CreatePublicationRecordRequest.$($entry.Key) must publish the exact handler enum."
+    }
+}
+if ($publicationRecordRequest.properties.published_on.format -ne 'date' -or
+    $publicationRecordRequest.allOf[0].then.required -notcontains 'published_on') {
+    throw 'Publication request must publish its date format and conditional published date requirement.'
+}
+
 $personnelRelatedEnumContracts = [ordered]@{
     CreatePersonnelAssignmentRequest = [ordered]@{ assignment_type = @('diriginte','coordonator_proiect','responsabil_comisie','mentor','membru_comisie','administrator_structura'); status = @('propus','activ','suspendat','incetat') }
     CreatePersonnelPersonalFileDocumentRequest = [ordered]@{ document_category = @('identificare','studii','cariera','evaluare','declaratie','medical','disciplina','management'); file_scope = @('dosar_personal','dosar_director','dosar_director_adjunct'); confidentiality_level = @('intern','confidential','strict_confidential') }

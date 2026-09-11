@@ -2041,15 +2041,15 @@ const domainFields: Record<EducationRecordsDomain, RecordField[]> = {
     { key: "notes", label: "Note" },
   ],
   compliance: [
-    { key: "publication_code", label: "Cod publicare" },
-    { key: "domain", label: "Domeniu" },
-    { key: "entity_type", label: "Tip entitate" },
+    { key: "publication_code", label: "Cod publicare", form: false },
+    { key: "domain", label: "Domeniu", kind: "select", options: ["guvernanta", "documente_manageriale", "portofolii", "regulamente", "conformitate"].map((value) => ({ value, label: value })) },
+    { key: "entity_type", label: "Tip entitate", kind: "select", options: ["hotarare", "proces_verbal", "procedura_portofoliu", "rof", "roi", "pdi_pas", "raport", "anunt"].map((value) => ({ value, label: value })) },
     { key: "entity_label", label: "Entitate" },
-    { key: "publication_channel", label: "Canal" },
-    { key: "publication_status", label: "Stare" },
-    { key: "anonymization_status", label: "Anonimizare" },
+    { key: "publication_channel", label: "Canal", kind: "select", options: ["site_public", "avizier", "intranet", "registratura"].map((value) => ({ value, label: value })) },
+    { key: "publication_status", label: "Stare", kind: "select", options: ["pregatit", "publicat", "retras"].map((value) => ({ value, label: value })) },
+    { key: "anonymization_status", label: "Anonimizare", kind: "select", options: ["necesara", "finalizata", "nu_este_necesara"].map((value) => ({ value, label: value })) },
     { key: "mandatory", label: "Obligatorie", kind: "boolean" },
-    { key: "published_on", label: "Publicat la", kind: "date" },
+    { key: "published_on", label: "Publicat la", kind: "date", required: (input) => String(input.publication_status ?? "") === "publicat" },
     { key: "reviewed_by", label: "Revizuit de" },
     { key: "notes", label: "Note" },
   ],
@@ -2230,7 +2230,7 @@ export function createInputForDomain<D extends EducationRecordsDomain>(domain: D
     case "mobility": { const dto: EducationRootCreateInputByDomain["mobility"] = { destination_school: optionalStringInput(input, "destination_school"), employee_code: stringInput(input, "employee_code"), full_name: stringInput(input, "full_name"), notes: optionalStringInput(input, "notes"), request_type: stringInput(input, "request_type"), reviewed_by: optionalStringInput(input, "reviewed_by"), school_year: stringInput(input, "school_year"), source_school: optionalStringInput(input, "source_school"), stage: stringInput(input, "stage"), status: stringInput(input, "status"), submitted_on: stringInput(input, "submitted_on") }; return dto as EducationRootCreateInputByDomain[D]; }
     case "merit": { const dto: EducationRootCreateInputByDomain["merit"] = { category: stringInput(input, "category"), committee_name: optionalStringInput(input, "committee_name"), decision_date: stringInput(input, "decision_date"), full_name: stringInput(input, "full_name"), funded: optionalBooleanInput(input, "funded"), notes: optionalStringInput(input, "notes"), role_title: stringInput(input, "role_title"), school_year: stringInput(input, "school_year"), score: optionalNumberInput(input, "score"), status: stringInput(input, "status") }; return dto as EducationRootCreateInputByDomain[D]; }
     case "portfolios": { const dto: EducationRootCreateInputByDomain["portfolios"] = { authenticity_declared: optionalBooleanInput(input, "authenticity_declared"), consent_captured: optionalBooleanInput(input, "consent_captured"), custodian: optionalStringInput(input, "custodian"), last_updated_on: stringInput(input, "last_updated_on"), notes: optionalStringInput(input, "notes"), owner_name: stringInput(input, "owner_name"), owner_personnel_id: stringInput(input, "owner_personnel_id"), owner_role: stringInput(input, "owner_role"), owner_user_id: stringInput(input, "owner_user_id"), school_year: stringInput(input, "school_year"), section_count: optionalNumberInput(input, "section_count"), status: stringInput(input, "status"), transfer_status: stringInput(input, "transfer_status") }; return dto as EducationRootCreateInputByDomain[D]; }
-    case "compliance": { const dto: EducationRootCreateInputByDomain["compliance"] = { anonymization_status: stringInput(input, "anonymization_status"), domain: stringInput(input, "domain"), entity_label: stringInput(input, "entity_label"), entity_type: stringInput(input, "entity_type"), mandatory: optionalBooleanInput(input, "mandatory"), notes: optionalStringInput(input, "notes"), publication_channel: stringInput(input, "publication_channel"), publication_status: stringInput(input, "publication_status"), published_on: optionalStringInput(input, "published_on"), reviewed_by: optionalStringInput(input, "reviewed_by") }; return dto as EducationRootCreateInputByDomain[D]; }
+    case "compliance": { const dto: EducationRootCreateInputByDomain["compliance"] = { anonymization_status: enumStringInput(input, "anonymization_status", ["necesara", "finalizata", "nu_este_necesara"] as const), domain: enumStringInput(input, "domain", ["guvernanta", "documente_manageriale", "portofolii", "regulamente", "conformitate"] as const), entity_label: stringInput(input, "entity_label"), entity_type: enumStringInput(input, "entity_type", ["hotarare", "proces_verbal", "procedura_portofoliu", "rof", "roi", "pdi_pas", "raport", "anunt"] as const), mandatory: optionalBooleanInput(input, "mandatory"), notes: optionalStringInput(input, "notes"), publication_channel: enumStringInput(input, "publication_channel", ["site_public", "avizier", "intranet", "registratura"] as const), publication_status: enumStringInput(input, "publication_status", ["pregatit", "publicat", "retras"] as const), published_on: optionalStringInput(input, "published_on"), reviewed_by: optionalStringInput(input, "reviewed_by") }; if (dto.publication_status === "publicat" && !dto.published_on) throw new Error("education_required_published_on"); return dto as EducationRootCreateInputByDomain[D]; }
   }
 }
 

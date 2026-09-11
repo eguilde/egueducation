@@ -32,6 +32,41 @@ describe("EducationWorkspace root DTO mappers", () => {
     })).toThrow("education_invalid_employment_type");
   });
 
+  it("maps only canonical publication taxonomies and enforces the published date", () => {
+    expect(createInputForDomain("compliance", {
+      anonymization_status: "nu_este_necesara",
+      domain: "conformitate",
+      entity_label: "Anunț",
+      entity_type: "anunt",
+      publication_channel: "site_public",
+      publication_status: "pregatit",
+      publication_code: "SERVER-ONLY",
+    })).toEqual({
+      anonymization_status: "nu_este_necesara",
+      domain: "conformitate",
+      entity_label: "Anunț",
+      entity_type: "anunt",
+      publication_channel: "site_public",
+      publication_status: "pregatit",
+    });
+    expect(() => createInputForDomain("compliance", {
+      anonymization_status: "nu_este_necesara",
+      domain: "education",
+      entity_label: "Anunț",
+      entity_type: "anunt",
+      publication_channel: "site_public",
+      publication_status: "pregatit",
+    })).toThrow("education_invalid_domain");
+    expect(() => createInputForDomain("compliance", {
+      anonymization_status: "finalizata",
+      domain: "conformitate",
+      entity_label: "Anunț",
+      entity_type: "anunt",
+      publication_channel: "site_public",
+      publication_status: "publicat",
+    })).toThrow("education_required_published_on");
+  });
+
   it("uses the portfolio PATCH allow-list and excludes lifecycle/retention output", () => {
     const dto = updateInputForDomain("portfolios", {
       owner_name: "Ana Pop",

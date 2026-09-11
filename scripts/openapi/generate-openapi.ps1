@@ -462,6 +462,19 @@ if ($personnelRecordSchema) {
     $personnelRecordSchema.properties.evaluation_status.enum = @('draft','in_review','finalized')
     $personnelRecordSchema.properties.mobility_stage.enum = @('none','transfer','detasare','restrangere')
 }
+$publicationRecordSchema = $common.components.schemas['CreatePublicationRecordRequest']
+if ($publicationRecordSchema) {
+    $publicationRecordSchema.properties.domain.enum = @('guvernanta','documente_manageriale','portofolii','regulamente','conformitate')
+    $publicationRecordSchema.properties.entity_type.enum = @('hotarare','proces_verbal','procedura_portofoliu','rof','roi','pdi_pas','raport','anunt')
+    $publicationRecordSchema.properties.publication_channel.enum = @('site_public','avizier','intranet','registratura')
+    $publicationRecordSchema.properties.publication_status.enum = @('pregatit','publicat','retras')
+    $publicationRecordSchema.properties.anonymization_status.enum = @('necesara','finalizata','nu_este_necesara')
+    $publicationRecordSchema.properties.published_on.format = 'date'
+    $publicationRecordSchema.allOf = @([ordered]@{
+        'if' = [ordered]@{ properties = [ordered]@{ publication_status = [ordered]@{ enum = @('publicat') } }; required = @('publication_status') }
+        then = [ordered]@{ required = @('published_on') }
+    })
+}
 $personnelAssignmentSchema = $common.components.schemas['CreatePersonnelAssignmentRequest']
 if ($personnelAssignmentSchema) {
     $personnelAssignmentSchema.properties.assignment_type.enum = @('diriginte','coordonator_proiect','responsabil_comisie','mentor','membru_comisie','administrator_structura')

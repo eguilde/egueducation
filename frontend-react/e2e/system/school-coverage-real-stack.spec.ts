@@ -96,7 +96,7 @@ test('personnel and evaluation children, decisions and compliance are persisted 
   expect(sql(`select count(*)::text from education_evaluation_criteria where evaluation_id='${evaluation.id}'`)).toBe('1');
 
   const decision = await createRoot(page, '/scoala/decisions', '/api/education/decisions/records', { 'An școlar': '2026-2027', Organism: 'ca', Titlu: `${marker} Decizie`, Stare: 'draft', Publicare: 'internal', 'Data deciziei': '2026-09-01' });
-  const publication = await createRoot(page, '/scoala/compliance', '/api/education/compliance/records', { Domeniu: 'education', 'Tip entitate': 'decision', Entitate: `${marker} conformitate`, Canal: 'website', Stare: 'draft', Anonimizare: 'not_required' });
+  const publication = await createRoot(page, '/scoala/compliance', '/api/education/compliance/publications', { Domeniu: 'conformitate', 'Tip entitate': 'anunt', Entitate: `${marker} conformitate`, Canal: 'site_public', Stare: 'pregatit', Anonimizare: 'nu_este_necesara' });
   expect(sql(`select count(*)::text from education_decisions where id='${decision.id}'`)).toBe('1'); expect(sql(`select count(*)::text from education_publications where id='${publication.id}'`)).toBe('1');
 });
 

@@ -8704,17 +8704,23 @@ export interface components {
             source_mobility_case_id?: string;
         };
         CreatePublicationRecordRequest: {
-            anonymization_status: string;
-            domain: string;
+            /** @enum {string} */
+            anonymization_status: "necesara" | "finalizata" | "nu_este_necesara";
+            /** @enum {string} */
+            domain: "guvernanta" | "documente_manageriale" | "portofolii" | "regulamente" | "conformitate";
             entity_label: string;
-            entity_type: string;
+            /** @enum {string} */
+            entity_type: "hotarare" | "proces_verbal" | "procedura_portofoliu" | "rof" | "roi" | "pdi_pas" | "raport" | "anunt";
             mandatory?: boolean;
             notes?: string;
-            publication_channel: string;
-            publication_status: string;
+            /** @enum {string} */
+            publication_channel: "site_public" | "avizier" | "intranet" | "registratura";
+            /** @enum {string} */
+            publication_status: "pregatit" | "publicat" | "retras";
+            /** Format: date */
             published_on?: string;
             reviewed_by?: string;
-        };
+        } & unknown;
         CreateRegulationRecordRequest: {
             approval_status: string;
             approved_on?: string;
