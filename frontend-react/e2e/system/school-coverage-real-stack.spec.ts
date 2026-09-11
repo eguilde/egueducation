@@ -61,7 +61,10 @@ async function createRoot(page: Page, route: string, endpoint: string, values: R
 
 async function openDetails(page: Page, title: string): Promise<void> {
   const row = page.getByText(title, { exact: true }).locator('xpath=ancestor::tr[1]'); await expect(row).toBeVisible();
-  await row.getByLabel('Acțiuni înregistrare').click(); const menu = page.locator('[role="menu"]:visible').last(); await menu.getByRole('button', { name: 'Detalii', exact: true }).click();
+  await row.getByLabel('Acțiuni înregistrare').click();
+  const menu = page.locator('[role="menu"]:visible').last(); await expect(menu).toBeVisible();
+  const action = menu.getByRole('button', { name: 'Detalii', exact: true }); await expect(action).toBeVisible();
+  await action.focus(); await action.press('Enter');
   await expect(page.getByRole('dialog').last()).toBeVisible(); await page.keyboard.press('Escape');
 }
 

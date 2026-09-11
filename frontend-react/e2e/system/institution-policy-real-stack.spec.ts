@@ -47,7 +47,7 @@ async function select(page: Page, label: string, option: string): Promise<void> 
 
 async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală publică' | 'Școală privată', publicFunding: boolean): Promise<void> {
   const userID = sql(fixture, `select id::text from app_users where sub='${fixture.subject}'`);
-  sql(fixture, `update app_memberships set position_code='administrator', active=true where user_id='${userID}' and tenant_code='${fixture.tenant}'; delete from app_user_roles where user_id='${userID}' and tenant_code='${fixture.tenant}'; insert into app_user_roles(tenant_code,user_id,role_code) values ('${fixture.tenant}','${userID}','admin') on conflict do nothing`);
+  sql(fixture, `update app_memberships set position_code='director', active=true where user_id='${userID}' and tenant_code='${fixture.tenant}'; delete from app_user_roles where user_id='${userID}' and tenant_code='${fixture.tenant}'; insert into app_user_roles(tenant_code,user_id,role_code) values ('${fixture.tenant}','${userID}','admin') on conflict do nothing`);
   await login(page, fixture);
   await page.goto(`${fixture.origin}/administrare`);
   await page.getByRole('tab', { name: 'Profil instituțional' }).click();
