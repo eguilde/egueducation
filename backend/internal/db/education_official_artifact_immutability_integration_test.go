@@ -154,8 +154,8 @@ func seedOfficialArtifactFixture(t *testing.T, ctx context.Context, pool *pgxpoo
 			id,tenant_code,institution_id,profile_id,profile_version,evaluated_by_subject,
 			capabilities,blocked,checksum_sha256,created_by_subject,updated_by_subject
 		)
-		select $1,profile.tenant_code,profile.institution_id,profile.id,profile.version,'official-artifact-fixture',
-			'[]'::jsonb,false,encode(digest($1::text, 'sha256'),'hex'),'official-artifact-fixture','official-artifact-fixture'
+		select $1::uuid,profile.tenant_code,profile.institution_id,profile.id,profile.version,'official-artifact-fixture',
+			'[]'::jsonb,false,encode(digest(($1::uuid)::text, 'sha256'),'hex'),'official-artifact-fixture','official-artifact-fixture'
 		from school_institution_profiles profile
 		where profile.tenant_code='tenant-egueducation' and profile.institution_id='inst-001' and profile.version=1
 	`, policyEvaluationID); err != nil {
