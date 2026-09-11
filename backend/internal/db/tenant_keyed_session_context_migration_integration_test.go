@@ -59,8 +59,10 @@ func TestTenantKeyedSessionContextUpgradeIntegration(t *testing.T) {
 
 			fixtureSuffix := strings.ReplaceAll(uuid.NewString(), "-", "")
 			if tt.addSecondTenant {
+				if _, err := pool.Exec(ctx, `alter table app_tenants drop constraint app_tenants_institution_id_key`); err != nil {
+					t.Fatalf("remove historical one-tenant-per-institution constraint: %v", err)
+				}
 				if _, err := pool.Exec(ctx, `
-					alter table app_tenants drop constraint app_tenants_institution_id_key;
 					insert into app_tenants (
 						code, subdomain, institution_id, display_name, short_name, root_org_unit_code, active
 					) values ($1, $2, 'inst-001', 'Ambiguous tenant', 'Ambiguous', 'unit-root', true)
@@ -72,11 +74,15 @@ func TestTenantKeyedSessionContextUpgradeIntegration(t *testing.T) {
 			userID := uuid.New()
 			if _, err := pool.Exec(ctx, `
 				insert into app_users (id, sub, name, email, phone_number, status, email_verified, phone_number_verified)
-				values ($1, $2, 'Legacy session user', $3, '', 'active', false, false);
+				values ($1, $2, 'Legacy session user', $3, '', 'active', false, false)
+			`, userID, "legacy-session-"+fixtureSuffix, "legacy-session-"+fixtureSuffix+"@example.test"); err != nil {
+				t.Fatalf("seed legacy user: %v", err)
+			}
+			if _, err := pool.Exec(ctx, `
 				insert into app_session_context (
 					user_id, tenant_code, institution_id, institution_name, auth_methods, gdpr_capabilities
-				) values ($1, null, $4, 'Legacy institution', '{}', '{}')
-			`, userID, "legacy-session-"+fixtureSuffix, "legacy-session-"+fixtureSuffix+"@example.test", tt.institutionID); err != nil {
+				) values ($1, null, $2, 'Legacy institution', '{}', '{}')
+			`, userID, tt.institutionID); err != nil {
 				t.Fatalf("seed legacy session context: %v", err)
 			}
 
