@@ -24,7 +24,13 @@ function sql(fixture: TenantFixture, statement: string): string {
   return execFileSync('psql', ['--no-psqlrc', '--tuples-only', '--no-align', '--quiet', url, '-c', `set app.tenant_id='${fixture.tenant}'; set app.institution_id='${fixture.institution}'; set app.is_super_admin='true'; ${statement}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-async function login(page: Page, fixture: TenantFixture): Promise<void> {
+async function login(page: Page, fixture: TenantFixture): Promise<string> {
+  let accessToken = '';
+  page.on('response', async (response) => {
+    if (!response.url().includes('/api/oidc/token') || response.request().method() !== 'POST') return;
+    const body = await response.json().catch(() => undefined) as { access_token?: string } | undefined;
+    accessToken ||= body?.access_token ?? '';
+  });
   await page.goto(fixture.origin);
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
   await page.getByRole('button', { name: /SMS/ }).click();
@@ -38,6 +44,8 @@ async function login(page: Page, fixture: TenantFixture): Promise<void> {
   const consent = page.getByRole('button', { name: 'Accepta si continua' });
   if (await consent.count()) await consent.click();
   await expect(page).toHaveURL(`${fixture.origin}/`);
+  await expect.poll(() => accessToken, { message: 'Browser did not observe the OIDC token response.' }).not.toBe('');
+  return accessToken;
 }
 
 async function select(page: Page, label: string, option: string): Promise<void> {
@@ -45,10 +53,10 @@ async function select(page: Page, label: string, option: string): Promise<void> 
   await page.locator('[role="listbox"]:visible').last().getByRole('option', { name: option, exact: true }).click();
 }
 
-async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală publică' | 'Școală privată', publicFunding: boolean): Promise<void> {
+async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală publică' | 'Școală privată', publicFunding: boolean): Promise<string> {
   const userID = sql(fixture, `select id::text from app_users where sub='${fixture.subject}'`);
   sql(fixture, `update app_memberships set position_code='director', active=true where user_id='${userID}' and tenant_code='${fixture.tenant}'; delete from app_user_roles where user_id='${userID}' and tenant_code='${fixture.tenant}'; insert into app_user_roles(tenant_code,user_id,role_code) values ('${fixture.tenant}','${userID}','admin') on conflict do nothing`);
-  await login(page, fixture);
+  const accessToken = await login(page, fixture);
   await page.goto(`${fixture.origin}/administrare`);
   await page.getByRole('tab', { name: 'Profil instituțional' }).click();
   await page.getByRole('button', { name: /Versiune nouă/ }).click();
@@ -64,6 +72,7 @@ async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală
   await page.getByRole('button', { name: 'Salvează versiunea' }).click();
   expect((await save).status()).toBe(200);
   await expect(page.getByText('education.publication.manage', { exact: true })).toBeVisible();
+  return accessToken;
 }
 
 async function createPublication(page: Page, fixture: TenantFixture): Promise<{ id: string; policy_evaluation_id: string }> {
@@ -86,12 +95,12 @@ async function createPublication(page: Page, fixture: TenantFixture): Promise<{ 
   return body;
 }
 
-async function assertServerDerivedPolicyScope(page: Page, fixture: TenantFixture, forged: TenantFixture): Promise<void> {
-  const result = await page.evaluate(async ({ tenant, institution }) => {
+async function assertServerDerivedPolicyScope(page: Page, accessToken: string, fixture: TenantFixture, forged: TenantFixture): Promise<void> {
+  const result = await page.evaluate(async ({ accessToken, tenant, institution }) => {
     const response = await fetch('/api/education/compliance/publications', {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json' },
+      headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
       body: JSON.stringify({
         domain: 'conformitate',
         entity_type: 'anunt',
@@ -109,7 +118,7 @@ async function assertServerDerivedPolicyScope(page: Page, fixture: TenantFixture
       }),
     });
     return { status: response.status, body: await response.json() as { code?: string } };
-  }, { tenant: forged.tenant, institution: forged.institution });
+  }, { accessToken, tenant: forged.tenant, institution: forged.institution });
   expect(result).toEqual({ status: 400, body: { code: 'invalid_publication_payload' } });
   expect(sql(fixture, `select count(*)::text from education_publications where entity_label='FORGED-POLICY-SCOPE'`)).toBe('0');
 }
@@ -118,9 +127,9 @@ test('public and private-with-public-funding institutions resolve and enforce di
   for (const [fixture, legalForm, publicFunding] of [[publicSchool, 'Școală publică', false], [privateSchool, 'Școală privată', true]] as const) {
     const context = await browser.newContext();
     const page = await context.newPage();
-    await classify(page, fixture, legalForm, publicFunding);
+    const accessToken = await classify(page, fixture, legalForm, publicFunding);
     await createPublication(page, fixture);
-    await assertServerDerivedPolicyScope(page, fixture, fixture === publicSchool ? privateSchool : publicSchool);
+    await assertServerDerivedPolicyScope(page, accessToken, fixture, fixture === publicSchool ? privateSchool : publicSchool);
     const legalPack = legalForm === 'Școală publică' ? 'legal-form.ro.public' : 'legal-form.ro.private';
     expect(sql(fixture, `select count(*)::text from school_policy_assignments where tenant_code='${fixture.tenant}' and institution_id='${fixture.institution}' and pack_code='${legalPack}' and status='active'`)).toBe('1');
     expect(sql(fixture, `select count(*)::text from school_policy_assignments where tenant_code='${fixture.tenant}' and institution_id='${fixture.institution}' and pack_code='funding.public' and status='active'`)).toBe(publicFunding ? '1' : '0');
