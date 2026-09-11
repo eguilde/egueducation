@@ -25,6 +25,7 @@ func TestSchemaContractHasUniqueTables(t *testing.T) {
 
 func TestSchemaContractIncludesRecentSchoolSecurityTables(t *testing.T) {
 	expected := map[string][]string{
+		"app_entity_versions":                                  {"tenant_code", "institution_id", "entity_table", "entity_id", "version_no", "snapshot"},
 		"education_portfolio_archive_attachment_grants":        {"institution_id", "archive_document_id", "grantee_user_id"},
 		"education_role_delegations":                           {"tenant_code", "institution_id", "delegator_user_id", "delegate_user_id", "permission_code", "status", "valid_from"},
 		"education_portfolio_valorification_packages":          {"tenant_code", "institution_id", "portfolio_id", "scope", "status"},

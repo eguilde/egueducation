@@ -7,6 +7,11 @@ const requestAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => fetcher.mock
 const urlAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => requestAt(fetcher, index).url;
 
 describe("Education API", () => {
+  it("rejects a successful data operation whose documented response body is absent", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    await expect(createEducationApi(fetcher).governanceDashboard()).rejects.toThrow("education_contract_response_missing_data");
+  });
+
   it("keeps all eleven root CRUD DTO maps aligned with generated OpenAPI", () => {
     expectTypeOf<EducationRootRecordByDomain["decisions"]>().toEqualTypeOf<components["schemas"]["GovernanceDecision"]>();
     expectTypeOf<EducationRootRecordByDomain["managerial"]>().toEqualTypeOf<components["schemas"]["ManagerialDossier"]>();

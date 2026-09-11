@@ -1,6 +1,6 @@
 # Catalog funcțional frontend eGuEducation
 
-Data auditului: 2026-08-16
+Data auditului: 2026-09-11
 
 Acest document este sursa de adevăr pentru rescrierea React. Frontendul Angular
 din `frontend/` rămâne în repository exclusiv ca referință până când fiecare
@@ -25,10 +25,10 @@ acceptanță echivalente.
 | Registratură | toate contractele utilizabile, inclusiv paritate Costești și admin | unit, race, E2E responsive/build | nepromovat încă |
 | Flux documente | toate cele 7 operații backend | unit/E2E/build | nepromovat încă |
 | eArhivă | toate cele 10 operații backend | unit/E2E/build | nepromovat încă |
-| Școală / Education | toate cele 304 operații documentate | 11 teste focalizate/UI/build | nepromovat încă |
+| Școală / Education | toate cele 396 operații documentate | unit/UI/build și 11 scenarii Playwright pe stiva reală | verificat CI/live pentru revizia publicată; candidatul curent necesită repromovare |
 | Profil / passkeys/EUDI | toate operațiile backend existente | unit + Playwright/build | nepromovat încă |
 | Admin / RBAC / GDPR | toate citirile și mutațiile backend existente | 43 unit totale + 3 Playwright focalizate/UI/build | nepromovat încă |
-| OpenAPI/Swagger | 455 rute router + OIDC standard + client generat | generare deterministă, coverage/drift/Redocly, zero fallback-uri ori obiecte unrestricted | nepromovat încă |
+| OpenAPI/Swagger | 562 rute router + OIDC standard + client generat | generare deterministă, coverage/drift/Redocly, zero fallback-uri ori obiecte unrestricted | verificat CI pentru inventarul publicat |
 
 Inventarul final de operații este calculat de generator și verificat în CI; nu se
 menține manual în acest catalog. Starea de release este detaliată separat în
@@ -380,3 +380,53 @@ O capabilitate poate fi marcată migrată numai când:
 7. este verificată la 320 px, tabletă și desktop;
 8. nu introduce tokenuri, licențe sau PII în repository/loguri;
 9. Angularul poate fi eliminat pentru acea rută fără pierdere funcțională.
+
+## 13. Management operațional public/privat — planificat
+
+Codul React existent nu implementează încă aceste suprafețe. Ele se adaugă numai împreună cu migrarea DB, serviciul, contractul OpenAPI și autorizarea aferente; frontendul nu simulează operații lipsă.
+
+### Profil instituțional și politici
+
+- profil public/privat/confesional, acreditare și perioadă de valabilitate;
+- profiluri independente pentru finanțare, achiziții, contabilitate, salarizare, TVA și Trezorerie;
+- policy packs, surse, versiuni, aprobare, asignare și analiză de impact;
+- capabilities viewer care explică regula și versiunea aplicată;
+- tenanturile `unclassified` au avertisment și nu pot iniția scrieri reglementate.
+
+### Contracte, utilități și conformitate
+
+- registru contracte, acte adiționale, furnizori, obligații, SLA, garanții și alerte;
+- puncte de consum, contoare, citiri și reconcilierea consum–factură;
+- calendar SSM/PSI/securitate, instruiri, inspecții, incidente și acțiuni corective;
+- wizard-uri de contract/act adițional/inspecție și timeline auditabil.
+
+### Achiziții
+
+- plan anual, necesar, verificare buget, aprobare și dosar de achiziție;
+- loturi, CPV, criterii, oferte, evaluare, conflict de interese și atribuire;
+- comandă/contract, recepție, neconformitate și three-way match;
+- pașii publici, comerciali sau overlay-ul de finanțare sunt publicați de backend, nu deduși în UI.
+
+### Catering
+
+- program, eligibilitate, meniu, produse/alergeni și comandă zilnică;
+- livrare pe lot, recepție cantitativă/calității, distribuție și porții nedistribuite;
+- incidente, retragere lot, risipă și reconciliere furnizor;
+- dashboard operațional separat de datele medicale protejate.
+
+### Logistică și patrimoniu
+
+- clădiri/spații/depozite, articole, loturi, stoc și mișcări;
+- bunuri, numere de inventar, custodie, predare-primire și inventariere mobilă;
+- mentenanță și ordine de lucru, transfer, casare și relația cu Finance.
+
+### HR, economic și contabil
+
+- posturi, raporturi de muncă, FTE/normă, pontaj, concedii, substituții și instruiri;
+- payroll inputs, acces salarial separat și închiderea accesului la încetare;
+- bugete, surse, centre de cost, angajamente, facturi, plăți și reconciliere;
+- profil public: CFP, ordonanțare, clasificație și Trezorerie;
+- profil privat: taxe, contracte cu părinții, scadențe, reduceri/burse și creanțe;
+- contabilitate statutară nativă numai după validarea profesională a policy packs.
+
+Navigația și acțiunile pentru toate aceste pagini sunt intersecția dintre modulele tenantului, permisiunile utilizatorului, relația contextuală și capabilitățile policy returnate de server. Designul și criteriile detaliate sunt în [catalogul managementului operațional](requirements/school-operations-management-catalog.md).

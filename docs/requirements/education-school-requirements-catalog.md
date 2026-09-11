@@ -1,6 +1,6 @@
 # Catalog canonic de cerințe — funcționalitatea Școală
 
-Data reviziei: 2026-09-09
+Data reviziei: 2026-09-11
 Statut: audit al codului React/Go/PostgreSQL existent și bază obligatorie pentru implementare
 
 ## 1. Reguli de interpretare
@@ -219,3 +219,25 @@ Această reevaluare nu modifică fotografia istorică din secțiunile 9–12. Ea
 | UI-002, UI-003, UI-005 | implementat pentru fluxurile auditate | filtre și sortare server-side, metadate și proveniență eArhivă, dialoguri read-only de istoric, acțiuni de transfer/valorificare, componente PrimeReact și scenariu mobil la 390×844 |
 
 Validarea locală obligatorie a candidatului include `go test ./...`, `go vet ./...`, validarea OpenAPI, typecheck React, auditul contractelor/UI, testele Vitest și build-ul de producție. Marcarea release-ului ca publicat și verificat în producție se face numai după trecerea pipeline-ului GitHub Actions și confirmarea reviziei servite de cluster; acest document nu substituie acea dovadă operațională.
+
+## 14. Extindere obligatorie pentru unități publice și private
+
+Funcționalitatea Școală și extensiile de management operațional trebuie să ruleze din același cod pentru unități publice, private și confesionale. Diferențele nu se exprimă prin fork-uri sau condiții UI, ci prin profil instituțional și policy packs versionate, evaluate în backend.
+
+Forma juridică este independentă de:
+
+- statutul de autorizare/acreditare;
+- sursa finanțării și participarea la programe publice;
+- calitatea de autoritate contractantă;
+- profilul contabil, de salarizare, TVA și Trezorerie;
+- opțiunile instituționale permise de lege.
+
+Modulul existent oferă fundația tenant/instituție/RBAC/OIDC și procesele educaționale comune, dar nu conține încă resolverul public/privat și nici bounded contexts complete pentru contracte, utilități, achiziții, catering, patrimoniu, logistică, SSM/PSI, HR, economic și contabil.
+
+Catalogul detaliat, matricea existent–lipsă, designul și planul de implementare sunt documentate în:
+
+- [Catalogul managementului operațional public/privat](school-operations-management-catalog.md);
+- [Designul platformei de management școlar](../design/school-operations-platform-design.md);
+- [Planul de implementare](../plans/school-operations-implementation-plan.md).
+
+Testul de paritate obligatoriu demonstrează aceeași operație de nucleu în minimum un tenant public și unul privat, obligațiile suplimentare pentru public, politica internă pentru privat și overlay-ul public pentru o operațiune privată finanțată ori guvernată public.

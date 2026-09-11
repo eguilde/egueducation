@@ -135,6 +135,7 @@ func SchemaContract() []TableContract {
 		institutionTableWithColumns("archive_ingestion_jobs", "Archive document ingestion jobs.", "document_id", "version_id", "job_type", "status", "available_at", "attempts", "locked_at", "locked_by", "last_error", "created_by", "updated_at"),
 		institutionTableWithColumns("archive_document_classification_reviews", "Human review state for OCR-derived archive classifications.", "document_id", "version_id", "state", "revision", "suggestion", "suggestion_confidence", "suggestion_source", "requires_human_review", "final_classification", "reviewed_by"),
 		institutionTableWithColumns("app_audit_log", "Append-only tenant audit trail; unattributed legacy rows remain invisible.", "actor_subject", "action", "target_type", "target_id", "status", "details", "created_at"),
+		institutionTableWithColumnsAndPolicies("app_entity_versions", "Append-only tenant- and institution-scoped entity snapshots; unscoped legacy rows remain invisible.", []string{"app_entity_versions_tenant_read", "app_entity_versions_tenant_append"}, "tenant_code", "entity_table", "entity_id", "version_no", "change_type", "snapshot", "changed_by", "changed_at"),
 		institutionTable("workflow_instances", "Runtime workflow instances."),
 		institutionTableWithColumns("education_meetings", "Governance meetings with immutable actor identities.", "chairperson_user_id", "secretary_user_id"),
 		institutionTable("education_personnel", "Personnel master data."),
@@ -204,7 +205,6 @@ func SchemaContract() []TableContract {
 		institutionTable("education_evaluation_result_issues", "Evaluation result issues."),
 		institutionTableWithColumns("education_signed_artifact_evidence", "Append-only cryptographic signature evidence for official school artifacts.", "tenant_code", "artifact_type", "artifact_id", "document_sha256", "signature_format", "signature_level", "submitted_by_subject", "submitted_at"),
 		institutionTableWithColumns("education_signed_artifact_validations", "Append-only DSS trust validation history for signed school artifacts.", "tenant_code", "evidence_id", "validation_status", "validated_at", "trusted_list_provider", "validator_provider", "validator_version", "validation_policy", "observed_sha256", "observed_size_bytes", "diagnostic_data", "detailed_report", "simple_report", "etsi_validation_report"),
-		globalTableWithColumns("app_entity_versions", "Cross-module version history captures both tenant and institution context.", "id", "entity_table", "entity_id", "version_no", "change_type", "tenant_code", "institution_id", "snapshot", "changed_by", "changed_at"),
 	}
 }
 
