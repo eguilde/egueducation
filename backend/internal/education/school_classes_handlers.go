@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -17,6 +18,31 @@ import (
 
 const schoolClassColumns = `id::text, tenant_code, institution_id, class_code, class_name, school_year, grade_level, study_shift, active`
 const schoolStudentColumns = `id::text, tenant_code, institution_id, student_code, first_name, last_name, status, coalesce(to_char(birth_date, 'YYYY-MM-DD'), '')`
+
+// schoolUUID accepts only a canonical UUID representation.  PostgreSQL casts
+// invalid UUID text while executing the query, which otherwise turns a client
+// validation error into an internal-server error.
+func schoolUUID(raw string) (string, bool) {
+	value := strings.TrimSpace(raw)
+	parsed, err := uuid.Parse(value)
+	if err != nil || parsed == uuid.Nil || len(value) != len(uuid.Nil.String()) || !strings.EqualFold(parsed.String(), value) {
+		return "", false
+	}
+	return parsed.String(), true
+}
+
+func requireSchoolUUID(w http.ResponseWriter, raw, code string) (string, bool) {
+	value, ok := schoolUUID(raw)
+	if !ok {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": code})
+		return "", false
+	}
+	return value, true
+}
+
+func requireSchoolPathUUID(w http.ResponseWriter, r *http.Request, parameter, code string) (string, bool) {
+	return requireSchoolUUID(w, chi.URLParam(r, parameter), code)
+}
 
 func scanSchoolClass(row pgx.Row, item *SchoolClass) error {
 	return row.Scan(&item.ID, &item.TenantCode, &item.InstitutionID, &item.ClassCode, &item.ClassName, &item.SchoolYear, &item.GradeLevel, &item.StudyShift, &item.Active)
@@ -91,7 +117,10 @@ func (s *Service) SchoolClassDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	id := strings.TrimSpace(chi.URLParam(r, "classID"))
+	id, ok := requireSchoolPathUUID(w, r, "classID", "education_class_id_invalid")
+	if !ok {
+		return
+	}
 	where := "where class_row.id=$1::uuid and class_row.institution_id=$2 and class_row.tenant_code=public.current_tenant_code()"
 	args := []any{id, s.institutionID(r)}
 	if !all {
@@ -151,8 +180,12 @@ func (s *Service) UpdateSchoolClass(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, 400, map[string]any{"code": "education_class_payload_invalid"})
 		return
 	}
+	id, ok := requireSchoolPathUUID(w, r, "classID", "education_class_id_invalid")
+	if !ok {
+		return
+	}
 	var item SchoolClass
-	err := scanSchoolClass(s.pool.QueryRow(r.Context(), "update education_school_classes set class_code=$1,class_name=$2,school_year=$3,grade_level=$4,study_shift=$5,active=$6,updated_at=now() where id=$7::uuid and institution_id=$8 and tenant_code=public.current_tenant_code() returning "+schoolClassColumns, req.ClassCode, req.ClassName, req.SchoolYear, req.GradeLevel, req.StudyShift, req.Active, chi.URLParam(r, "classID"), s.institutionID(r)), &item)
+	err := scanSchoolClass(s.pool.QueryRow(r.Context(), "update education_school_classes set class_code=$1,class_name=$2,school_year=$3,grade_level=$4,study_shift=$5,active=$6,updated_at=now() where id=$7::uuid and institution_id=$8 and tenant_code=public.current_tenant_code() returning "+schoolClassColumns, req.ClassCode, req.ClassName, req.SchoolYear, req.GradeLevel, req.StudyShift, req.Active, id, s.institutionID(r)), &item)
 	if schoolClassConflict(w, err) {
 		return
 	}
@@ -171,8 +204,12 @@ func (s *Service) DeleteSchoolClass(w http.ResponseWriter, r *http.Request) {
 	if _, _, ok := s.requireSchoolClassesAccess(w, r, true); !ok {
 		return
 	}
+	id, ok := requireSchoolPathUUID(w, r, "classID", "education_class_id_invalid")
+	if !ok {
+		return
+	}
 	var item SchoolClass
-	err := scanSchoolClass(s.pool.QueryRow(r.Context(), "update education_school_classes set active=false,updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and active returning "+schoolClassColumns, chi.URLParam(r, "classID"), s.institutionID(r)), &item)
+	err := scanSchoolClass(s.pool.QueryRow(r.Context(), "update education_school_classes set active=false,updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and active returning "+schoolClassColumns, id, s.institutionID(r)), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_class_not_found")
 		return
@@ -215,6 +252,11 @@ func (s *Service) SchoolStudents(w http.ResponseWriter, r *http.Request) {
 	where := " where student.institution_id=$1 and student.tenant_code=public.current_tenant_code()"
 	args := []any{s.institutionID(r)}
 	if classID := strings.TrimSpace(q.Filters["class_id"]); classID != "" {
+		var valid bool
+		classID, valid = requireSchoolUUID(w, classID, "education_students_class_id_filter_invalid")
+		if !valid {
+			return
+		}
 		args = append(args, classID)
 		if all {
 			where += fmt.Sprintf(" and exists(select 1 from education_student_enrolments enrolment where enrolment.student_id=student.id and enrolment.class_id=$%d::uuid)", len(args))
@@ -264,8 +306,12 @@ func (s *Service) SchoolStudentDetail(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	id, ok := requireSchoolPathUUID(w, r, "studentID", "education_student_id_invalid")
+	if !ok {
+		return
+	}
 	where := " where student.id=$1::uuid and student.institution_id=$2 and student.tenant_code=public.current_tenant_code()"
-	args := []any{chi.URLParam(r, "studentID"), s.institutionID(r)}
+	args := []any{id, s.institutionID(r)}
 	if !all {
 		where += " and exists(select 1 from education_student_enrolments enrolment where enrolment.student_id=student.id and public.education_classes_current_roster_enrolment(enrolment.id))"
 	}
@@ -311,8 +357,12 @@ func (s *Service) UpdateSchoolStudent(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, 400, map[string]any{"code": "education_student_payload_invalid"})
 		return
 	}
+	id, ok := requireSchoolPathUUID(w, r, "studentID", "education_student_id_invalid")
+	if !ok {
+		return
+	}
 	var item SchoolStudent
-	err := scanSchoolStudent(s.pool.QueryRow(r.Context(), "update education_students set student_code=$1,first_name=$2,last_name=$3,status=$4,birth_date=nullif($5,'')::date,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning "+schoolStudentColumns, req.StudentCode, req.FirstName, req.LastName, req.Status, strings.TrimSpace(req.BirthDate), chi.URLParam(r, "studentID"), s.institutionID(r)), &item)
+	err := scanSchoolStudent(s.pool.QueryRow(r.Context(), "update education_students set student_code=$1,first_name=$2,last_name=$3,status=$4,birth_date=nullif($5,'')::date,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning "+schoolStudentColumns, req.StudentCode, req.FirstName, req.LastName, req.Status, strings.TrimSpace(req.BirthDate), id, s.institutionID(r)), &item)
 	if schoolClassConflict(w, err) {
 		return
 	}
@@ -331,8 +381,12 @@ func (s *Service) DeleteSchoolStudent(w http.ResponseWriter, r *http.Request) {
 	if _, _, ok := s.requireSchoolClassesAccess(w, r, true); !ok {
 		return
 	}
+	id, ok := requireSchoolPathUUID(w, r, "studentID", "education_student_id_invalid")
+	if !ok {
+		return
+	}
 	var item SchoolStudent
-	err := scanSchoolStudent(s.pool.QueryRow(r.Context(), "update education_students set status='withdrawn',updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and status <> 'withdrawn' returning "+schoolStudentColumns, chi.URLParam(r, "studentID"), s.institutionID(r)), &item)
+	err := scanSchoolStudent(s.pool.QueryRow(r.Context(), "update education_students set status='withdrawn',updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and status <> 'withdrawn' returning "+schoolStudentColumns, id, s.institutionID(r)), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_student_not_found")
 		return

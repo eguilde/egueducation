@@ -8,7 +8,7 @@ const page = (items: Array<Record<string, unknown>> = []) => Promise.resolve({ i
 
 function apiMock(): EducationApi {
   return {
-    portfolioDocuments: vi.fn(() => page()), portfolioChecklist: vi.fn(() => page()), portfolioOpis: vi.fn(() => page()), portfolioCustody: vi.fn(() => page()), portfolioReviews: vi.fn(() => page()),
+    portfolioDocuments: vi.fn(() => page()), portfolioDocumentVersions: vi.fn(() => page()), portfolioChecklist: vi.fn(() => page()), portfolioOpis: vi.fn(() => page()), portfolioCustody: vi.fn(() => page()), portfolioReviews: vi.fn(() => page()), portfolioTransferHistory: vi.fn(() => page()), portfolioValorifications: vi.fn(() => page()),
     createPortfolioDocument: vi.fn(async () => ({ id: "doc-1" })), updatePortfolioDocument: vi.fn(async () => ({ id: "doc-1" })), deletePortfolioDocument: vi.fn(async () => undefined),
     createPortfolioChecklistItem: vi.fn(async () => ({ id: "check-1" })), updatePortfolioChecklistItem: vi.fn(async () => ({ id: "check-1" })), deletePortfolioChecklistItem: vi.fn(async () => undefined),
     createPortfolioOpisEntry: vi.fn(async () => ({ id: "opis-1" })), updatePortfolioOpisEntry: vi.fn(async () => ({ id: "opis-1" })), deletePortfolioOpisEntry: vi.fn(async () => undefined),
@@ -29,13 +29,13 @@ async function openAdd(label: string) {
 }
 
 describe("PortfolioRelationsPanel contractual managers", () => {
-  it("sends an exact document DTO without server-owned output fields and uses only the section filter", async () => {
+  it("sends an exact document DTO without server-owned output fields", async () => {
     const api = apiMock(); renderPanel(api);
     await openAdd("document");
-    await set("Titlu *", "Planificare"); await set("Tip dovadă *", "plan"); await set("Secțiune *", "I"); await set("Componentă *", "I.1"); await set("Domeniu sursă *", "portofoliu"); await set("Autenticitate *", "declared"); await set("Data emiterii *", "2026-09-01"); await set("Data adăugării *", "2026-09-02");
+    await set("Titlu", "Planificare"); await set("Descriere pedagogică", "Activitate didactică"); await set("An școlar", "2026-2027"); await set("Disciplina", "Matematică"); await set("Clasa aplicabilă", "IV A"); await set("Competențe (separate prin virgulă)", "C1, C2"); await set("Tip dovadă", "plan"); await set("Secțiune", "I"); await set("Componentă", "I.1"); await set("Domeniu sursă", "portofoliu"); await set("Autenticitate", "declared"); await set("Data emiterii", "2026-09-01"); await set("Data adăugării", "2026-09-02"); await set("Referință arhivă", "archive://doc-1");
     fireEvent.click(screen.getByRole("button", { name: "Salvează" }));
     await waitFor(() => expect(api.createPortfolioDocument).toHaveBeenCalledWith("portfolio-1", {
-      added_on: "2026-09-02", authenticity_status: "declared", chronological_index: undefined, component_code: "I.1", document_title: "Planificare", evidence_type: "plan", file_reference: undefined, issued_on: "2026-09-01", notes: undefined, section_code: "I", sensitive_data: undefined, source_scope: "portofoliu",
+      added_on: "2026-09-02", applicable_class: "IV A", authenticity_status: "declared", chronological_index: undefined, competencies: ["C1", "C2"], component_code: "I.1", description: "Activitate didactică", document_title: "Planificare", evidence_type: "plan", file_reference: "archive://doc-1", issued_on: "2026-09-01", notes: undefined, school_year: "2026-2027", section_code: "I", sensitive_data: undefined, source_scope: "portofoliu", subject_discipline: "Matematică",
     }));
     expect(api.portfolioDocuments).toHaveBeenLastCalledWith("portfolio-1", expect.objectContaining({ page: 1, pageSize: 20, sectionCode: undefined }));
     expect(JSON.stringify(vi.mocked(api.createPortfolioDocument).mock.calls[0][1])).not.toContain("portfolio_id");
@@ -77,7 +77,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
       source_scope: "portofoliu", authenticity_status: "declared", issued_on: "2026-09-01",
       added_on: "2026-09-02", chronological_index: 1, file_reference: "archive://doc-1",
       sensitive_data: false, notes: "",
-    }], total: 1, page: 1, pageSize: 20 });
+    } as never], total: 1, page: 1, pageSize: 20 });
     renderPanel(managing);
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
     fireEvent.click(await screen.findByRole("button", { name: "Șterge" }));
@@ -95,7 +95,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
       source_scope: "portofoliu", authenticity_status: "declared", issued_on: "2026-09-01",
       added_on: "2026-09-02", chronological_index: 1, file_reference: "archive://doc-1",
       sensitive_data: false, notes: "",
-    }], total: 1, page: 1, pageSize: 20 });
+    } as never], total: 1, page: 1, pageSize: 20 });
     renderPanel(api);
 
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
@@ -103,6 +103,18 @@ describe("PortfolioRelationsPanel contractual managers", () => {
 
     expect(await screen.findByRole("dialog", { name: "Documente" })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+  });
+
+  it("opens institutional document-version history through the server-paginated contract", async () => {
+    const api = apiMock();
+    vi.mocked(api.portfolioDocuments).mockResolvedValue({ items: [{ id: "doc-1", document_title: "Plan", description: "Planificare", school_year: "2026-2027", subject_discipline: "Matematică", applicable_class: "IV A", competencies: ["C1"], evidence_type: "plan", section_code: "I", component_code: "I.1", source_scope: "portofoliu", authenticity_status: "declared", issued_on: "2026-09-01", added_on: "2026-09-02", chronological_index: 1, file_reference: "archive://doc-1", sensitive_data: false, notes: "", archive_document_id: "archive-1", archive_version_id: "version-1", archive_version_no: 1, archive_sha256: "abc", portfolio_id: "portfolio-1", institution_id: "institution-1" }], total: 1, page: 1, pageSize: 20 });
+    vi.mocked(api.portfolioDocumentVersions).mockResolvedValue({ items: [{ version_no: 1, change_type: "create", changed_by: "director", changed_at: "2026-09-02T10:00:00Z", reason: "inițial", snapshot: {} }], total: 1, page: 1, pageSize: 20 });
+    renderPanel(api);
+    fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Istoric versiuni" }));
+    expect(await screen.findByRole("dialog", { name: "Istoric versiuni — Plan" })).toBeInTheDocument();
+    await waitFor(() => expect(api.portfolioDocumentVersions).toHaveBeenCalledWith("portfolio-1", "doc-1", expect.objectContaining({ page: 1, pageSize: 20, sort: "version_no", direction: "desc" })));
+    expect(screen.getByText("director")).toBeInTheDocument();
   });
 
   it.each([
@@ -117,5 +129,30 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     const sortButton = await screen.findByRole("button", { name: header });
     fireEvent.click(sortButton);
     await waitFor(() => expect(api[method]).toHaveBeenLastCalledWith("portfolio-1", expect.objectContaining({ page: 1, pageSize: 20, sort, direction: "asc" })));
+  });
+
+  it("maps every displayed document header filter to its named document query field", async () => {
+    const api = apiMock(); renderPanel(api);
+    fireEvent.change(await screen.findByLabelText("Filtru Titlu"), { target: { value: "Plan" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Descriere"), { target: { value: "didactică" } });
+    fireEvent.change(await screen.findByLabelText("Filtru An școlar"), { target: { value: "2026-2027" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Disciplină"), { target: { value: "Matematică" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Clasă"), { target: { value: "IV A" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Competențe"), { target: { value: "C1" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Tip dovadă"), { target: { value: "plan" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Versiune arhivă"), { target: { value: "2" } });
+    await waitFor(() => expect(api.portfolioDocuments).toHaveBeenLastCalledWith("portfolio-1", expect.objectContaining({ documentTitle: "Plan", description: "didactică", schoolYear: "2026-2027", subjectDiscipline: "Matematică", applicableClass: "IV A", competencies: "C1", evidenceType: "plan", archiveVersionNo: "2" })));
+  });
+
+  it("maps immutable transfer filters and exposes read-only details", async () => {
+    const api = apiMock();
+    vi.mocked(api.portfolioTransferHistory).mockResolvedValue({ items: [{ id: "transfer-1", transfer_code: "TR-1", transfer_type: "handover", status: "received", destination_institution: "Școala B", handover_on: "2026-09-01" } as never], total: 1, page: 1, pageSize: 20 });
+    renderPanel(api); fireEvent.click(screen.getByRole("button", { name: "Istoric transferuri" }));
+    fireEvent.change(await screen.findByLabelText("Filtru Tip"), { target: { value: "handover" } });
+    fireEvent.change(await screen.findByLabelText("Filtru Instituție destinație"), { target: { value: "Școala B" } });
+    await waitFor(() => expect(api.portfolioTransferHistory).toHaveBeenLastCalledWith("portfolio-1", expect.objectContaining({ transferType: "handover", destinationInstitution: "Școala B" })));
+    fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+    expect(await screen.findByRole("dialog", { name: "Detalii transfer" })).toHaveTextContent("TR-1");
   });
 });

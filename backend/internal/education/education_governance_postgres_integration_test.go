@@ -391,7 +391,7 @@ func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context
 			document_id, institution_id, version_no, mime_type, title, bucket_name, object_key, hash_sha256, status,
 			source_bucket, source_object_key, source_sha256
 		) values
-			($1::uuid, $3, 1, 'application/pdf', 'Eligible portfolio evidence', 'archive', 'evidence.pdf', 'hash-evidence', 'active', 'archive', 'evidence.pdf', 'hash-evidence'),
+			($1::uuid, $3, 1, 'application/pdf', 'Eligible portfolio evidence', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'active', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'),
 			($2::uuid, $3, 1, 'application/pdf', 'No stored source', '', '', 'hash-empty', 'active', '', '', 'hash-empty')
 		`, storedID, noStorageID, institutionID); err != nil {
 		t.Fatalf("seed archive attachment versions: %v", err)

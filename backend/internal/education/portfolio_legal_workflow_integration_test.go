@@ -243,7 +243,7 @@ func addRequiredProcedureEvidence(t *testing.T, setupCtx context.Context, adminP
 	t.Helper()
 	for index, sectionCode := range []string{"identificare_profesionala", "predare_invatare_evaluare", "activitati_complementare", "managementul_clasei", "evolutie_dezvoltare_profesionala"} {
 		archiveDocumentID := seedGovernancePortfolioArchiveAttachments(t, setupCtx, adminPool, fixture.institutionA, fixture.memberUserID)
-		payload := fmt.Sprintf(`{"section_code":%q,"component_code":"structura_cadru","document_title":%q,"evidence_type":"document","issued_on":"2027-09-01","added_on":"2027-09-02","chronological_index":%d,"sensitive_data":false,"file_reference":%q,"notes":"evidence"}`,
+		payload := fmt.Sprintf(`{"section_code":%q,"component_code":"structura_cadru","document_title":%q,"description":"Dovadă pedagogică verificabilă","school_year":"2027-2028","subject_discipline":"disciplină de test","applicable_class":"clasa a V-a","competencies":["competență de test"],"evidence_type":"document","issued_on":"2027-09-01","added_on":"2027-09-02","chronological_index":%d,"sensitive_data":false,"file_reference":%q,"notes":"evidence"}`,
 			sectionCode, "Evidence "+sectionCode, index+1, "archive://"+archiveDocumentID)
 		created := httptest.NewRecorder()
 		service.PortfolioOwnDocumentCreate(created, legalWorkflowRequest(requestCtx, fixture, http.MethodPost, payload, map[string]string{"recordID": portfolioID}))

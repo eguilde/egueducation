@@ -234,8 +234,8 @@ $educationOperations = @($educationCoverageFragments | ForEach-Object { @($_.ope
 $declaredEducationCount = ($educationCoverageFragments | ForEach-Object { [int]$_.scope.operationCount } | Measure-Object -Sum).Sum
 $unresolvedEducationRequests = @($educationOperations | Where-Object { $_.requestBody -and -not $specData.components.schemas.Contains($_.requestBody.schema) })
 $invalidEducationFragments = @($educationCoverageFragments | Where-Object { $_.Contains('validation') -and (@($_.validation.missingHandlerSources).Count -ne 0 -or @($_.validation.unknownResponseSchemas).Count -ne 0) })
-if ($declaredEducationCount -ne 397 -or $educationOperations.Count -ne 397 -or $invalidEducationFragments.Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0) {
-	throw 'Education domain coverage drift: expected 397 handler-backed operations across all School coverage fragments with every request and response schema resolved.'
+if ($declaredEducationCount -ne 399 -or $educationOperations.Count -ne 399 -or $invalidEducationFragments.Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0) {
+	throw 'Education domain coverage drift: expected 399 handler-backed operations across all School coverage fragments with every request and response schema resolved.'
 }
 $coveredEducation = @{}
 foreach ($operation in $educationOperations) {
@@ -309,7 +309,8 @@ $educationRequestRequiredFields = @{
     'CreateMeritAppealRequest' = @('submitted_by','submitted_on','status','grounds')
     'CreateMeritFinalDecisionRequest' = @('decision_stage','outcome','approved_on','effective_from','panel_name')
     'CreateMeritResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
-    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','source_scope','evidence_type','issued_on','added_on','authenticity_status')
+    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','description','school_year','subject_discipline','applicable_class','competencies','source_scope','evidence_type','issued_on','added_on','authenticity_status','file_reference')
+    'OwnPortfolioDocumentRequest' = @('section_code','component_code','document_title','description','school_year','subject_discipline','applicable_class','competencies','evidence_type','issued_on','added_on','file_reference')
     'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
     'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
     'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
@@ -577,5 +578,5 @@ foreach ($operation in @(
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 560) { throw "Router extraction drift: expected 560 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+if ($actualCount -ne 562) { throw "Router extraction drift: expected 562 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
 Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 396 Education operations schema-complete."

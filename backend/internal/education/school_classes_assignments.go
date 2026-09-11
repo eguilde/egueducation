@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -25,23 +24,28 @@ func scanSchoolHomeroom(row pgx.Row, item *SchoolHomeroomAssignment) error {
 }
 
 func normalizeSchoolEnrolment(req *CreateSchoolEnrolmentRequest) bool {
-	req.StudentID = strings.TrimSpace(req.StudentID)
-	req.ClassID = strings.TrimSpace(req.ClassID)
+	studentID, studentOK := schoolUUID(req.StudentID)
+	classID, classOK := schoolUUID(req.ClassID)
+	req.StudentID = studentID
+	req.ClassID = classID
 	req.EnrolledFrom = strings.TrimSpace(req.EnrolledFrom)
 	req.EnrolledUntil = strings.TrimSpace(req.EnrolledUntil)
 	req.Status = strings.TrimSpace(req.Status)
 	if req.Status == "" {
 		req.Status = "active"
 	}
-	return req.StudentID != "" && req.ClassID != "" && req.EnrolledFrom != "" && containsString([]string{"active", "transferred", "completed", "withdrawn"}, req.Status)
+	return studentOK && classOK && req.EnrolledFrom != "" && containsString([]string{"active", "transferred", "completed", "withdrawn"}, req.Status)
 }
 func normalizeSchoolHomeroom(req *CreateSchoolHomeroomAssignmentRequest) bool {
-	req.ClassID = strings.TrimSpace(req.ClassID)
-	req.PersonnelID = strings.TrimSpace(req.PersonnelID)
-	req.AppUserID = strings.TrimSpace(req.AppUserID)
+	classID, classOK := schoolUUID(req.ClassID)
+	personnelID, personnelOK := schoolUUID(req.PersonnelID)
+	appUserID, appUserOK := schoolUUID(req.AppUserID)
+	req.ClassID = classID
+	req.PersonnelID = personnelID
+	req.AppUserID = appUserID
 	req.AssignedFrom = strings.TrimSpace(req.AssignedFrom)
 	req.AssignedUntil = strings.TrimSpace(req.AssignedUntil)
-	return req.ClassID != "" && req.PersonnelID != "" && req.AppUserID != "" && req.AssignedFrom != ""
+	return classOK && personnelOK && appUserOK && req.AssignedFrom != ""
 }
 func schoolClassFlowConflict(w http.ResponseWriter, err error) bool {
 	var p *pgconn.PgError
@@ -65,6 +69,11 @@ func (s *Service) SchoolEnrolments(w http.ResponseWriter, r *http.Request) {
 	args := []any{s.institutionID(r)}
 	for _, f := range []string{"class_id", "student_id"} {
 		if v := strings.TrimSpace(q.Filters[f]); v != "" {
+			var valid bool
+			v, valid = requireSchoolUUID(w, v, "education_enrolments_"+f+"_filter_invalid")
+			if !valid {
+				return
+			}
 			args = append(args, v)
 			where += fmt.Sprintf(" and enrolment.%s=$%d::uuid", f, len(args))
 		}
@@ -126,9 +135,13 @@ func (s *Service) SchoolEnrolmentDetail(w http.ResponseWriter, r *http.Request) 
 	if !ok {
 		return
 	}
+	enrolmentID, ok := requireSchoolPathUUID(w, r, "enrolmentID", "education_enrolment_id_invalid")
+	if !ok {
+		return
+	}
 	base := " from education_student_enrolments enrolment join education_students student on student.id=enrolment.student_id join education_school_classes class_row on class_row.id=enrolment.class_id"
 	where := " where enrolment.id=$1::uuid and enrolment.institution_id=$2 and enrolment.tenant_code=public.current_tenant_code()"
-	args := []any{chi.URLParam(r, "enrolmentID"), s.institutionID(r)}
+	args := []any{enrolmentID, s.institutionID(r)}
 	if !all {
 		where += " and public.education_classes_current_roster_enrolment(enrolment.id)"
 	}
@@ -184,8 +197,12 @@ func (s *Service) UpdateSchoolEnrolment(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, 400, map[string]any{"code": "education_enrolment_payload_invalid"})
 		return
 	}
+	enrolmentID, ok := requireSchoolPathUUID(w, r, "enrolmentID", "education_enrolment_id_invalid")
+	if !ok {
+		return
+	}
 	var id string
-	err := s.pool.QueryRow(r.Context(), "update education_student_enrolments set student_id=$1::uuid,class_id=$2::uuid,enrolled_from=$3::date,enrolled_until=nullif($4,'')::date,status=$5,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning id::text", req.StudentID, req.ClassID, req.EnrolledFrom, req.EnrolledUntil, req.Status, chi.URLParam(r, "enrolmentID"), s.institutionID(r)).Scan(&id)
+	err := s.pool.QueryRow(r.Context(), "update education_student_enrolments set student_id=$1::uuid,class_id=$2::uuid,enrolled_from=$3::date,enrolled_until=nullif($4,'')::date,status=$5,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning id::text", req.StudentID, req.ClassID, req.EnrolledFrom, req.EnrolledUntil, req.Status, enrolmentID, s.institutionID(r)).Scan(&id)
 	if schoolClassFlowConflict(w, err) {
 		return
 	}
@@ -208,8 +225,12 @@ func (s *Service) DeleteSchoolEnrolment(w http.ResponseWriter, r *http.Request) 
 	if _, _, ok := s.requireSchoolClassesAccess(w, r, true); !ok {
 		return
 	}
+	enrolmentID, ok := requireSchoolPathUUID(w, r, "enrolmentID", "education_enrolment_id_invalid")
+	if !ok {
+		return
+	}
 	var id string
-	err := s.pool.QueryRow(r.Context(), "update education_student_enrolments set status='withdrawn',enrolled_until=coalesce(enrolled_until,greatest(enrolled_from,current_date)),updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and status='active' returning id::text", chi.URLParam(r, "enrolmentID"), s.institutionID(r)).Scan(&id)
+	err := s.pool.QueryRow(r.Context(), "update education_student_enrolments set status='withdrawn',enrolled_until=coalesce(enrolled_until,greatest(enrolled_from,current_date)),updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and status='active' returning id::text", enrolmentID, s.institutionID(r)).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_enrolment_not_found")
 		return
@@ -239,6 +260,11 @@ func (s *Service) SchoolHomeroomAssignments(w http.ResponseWriter, r *http.Reque
 	where := " where assignment.institution_id=$1 and assignment.tenant_code=public.current_tenant_code()"
 	args := []any{s.institutionID(r)}
 	if v := strings.TrimSpace(q.Filters["class_id"]); v != "" {
+		var valid bool
+		v, valid = requireSchoolUUID(w, v, "education_homeroom_assignments_class_id_filter_invalid")
+		if !valid {
+			return
+		}
 		args = append(args, v)
 		where += fmt.Sprintf(" and assignment.class_id=$%d::uuid", len(args))
 	}
@@ -291,9 +317,13 @@ func (s *Service) SchoolHomeroomAssignmentDetail(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
+	assignmentID, ok := requireSchoolPathUUID(w, r, "assignmentID", "education_homeroom_assignment_id_invalid")
+	if !ok {
+		return
+	}
 	base := " from education_class_homeroom_assignments assignment join app_users user_row on user_row.id=assignment.app_user_id join education_school_classes class_row on class_row.id=assignment.class_id"
 	where := " where assignment.id=$1::uuid and assignment.institution_id=$2 and assignment.tenant_code=public.current_tenant_code()"
-	args := []any{chi.URLParam(r, "assignmentID"), s.institutionID(r)}
+	args := []any{assignmentID, s.institutionID(r)}
 	if !all {
 		where += " and public.education_classes_actor_owns_current_homeroom(assignment.id)"
 	}
@@ -349,8 +379,12 @@ func (s *Service) UpdateSchoolHomeroomAssignment(w http.ResponseWriter, r *http.
 		httpx.JSON(w, 400, map[string]any{"code": "education_homeroom_assignment_payload_invalid"})
 		return
 	}
+	assignmentID, ok := requireSchoolPathUUID(w, r, "assignmentID", "education_homeroom_assignment_id_invalid")
+	if !ok {
+		return
+	}
 	var id string
-	err := s.pool.QueryRow(r.Context(), "update education_class_homeroom_assignments set class_id=$1::uuid,personnel_id=$2::uuid,app_user_id=$3::uuid,assigned_from=$4::date,assigned_until=nullif($5,'')::date,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning id::text", req.ClassID, req.PersonnelID, req.AppUserID, req.AssignedFrom, req.AssignedUntil, chi.URLParam(r, "assignmentID"), s.institutionID(r)).Scan(&id)
+	err := s.pool.QueryRow(r.Context(), "update education_class_homeroom_assignments set class_id=$1::uuid,personnel_id=$2::uuid,app_user_id=$3::uuid,assigned_from=$4::date,assigned_until=nullif($5,'')::date,updated_at=now() where id=$6::uuid and institution_id=$7 and tenant_code=public.current_tenant_code() returning id::text", req.ClassID, req.PersonnelID, req.AppUserID, req.AssignedFrom, req.AssignedUntil, assignmentID, s.institutionID(r)).Scan(&id)
 	if schoolClassFlowConflict(w, err) {
 		return
 	}
@@ -373,8 +407,12 @@ func (s *Service) DeleteSchoolHomeroomAssignment(w http.ResponseWriter, r *http.
 	if _, _, ok := s.requireSchoolClassesAccess(w, r, true); !ok {
 		return
 	}
+	assignmentID, ok := requireSchoolPathUUID(w, r, "assignmentID", "education_homeroom_assignment_id_invalid")
+	if !ok {
+		return
+	}
 	var id string
-	err := s.pool.QueryRow(r.Context(), "update education_class_homeroom_assignments set assigned_until=coalesce(assigned_until,greatest(assigned_from,current_date)),updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and assigned_until is null returning id::text", chi.URLParam(r, "assignmentID"), s.institutionID(r)).Scan(&id)
+	err := s.pool.QueryRow(r.Context(), "update education_class_homeroom_assignments set assigned_until=coalesce(assigned_until,greatest(assigned_from,current_date)),updated_at=now() where id=$1::uuid and institution_id=$2 and tenant_code=public.current_tenant_code() and assigned_until is null returning id::text", assignmentID, s.institutionID(r)).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_homeroom_assignment_not_found")
 		return

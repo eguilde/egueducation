@@ -4708,6 +4708,26 @@ export interface paths {
         patch: operations["patch_api_education_portfolios_me_recordid_documents_documentid"];
         trace?: never;
     };
+    "/api/education/portfolios/me/{recordID}/documents/{documentID}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/me/{recordID}/documents/{documentID}/versions
+         * @description Handler-backed Education contract. own-portfolio authorization wrapper plus tenant-scoped entity-version projection
+         */
+        get: operations["get_api_education_portfolios_me_recordid_documents_documentid_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/me/{recordID}/opis": {
         parameters: {
             query?: never;
@@ -5206,6 +5226,26 @@ export interface paths {
          * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioDocument. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
          */
         patch: operations["patch_api_education_portfolios_records_recordid_documents_documentid"];
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/documents/{documentID}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/documents/{documentID}/versions
+         * @description Handler-backed Education contract. app_entity_versions projection joined to tenant-scoped portfolio evidence
+         */
+        get: operations["get_api_education_portfolios_records_recordid_documents_documentid_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/export-manifests": {
@@ -8520,18 +8560,23 @@ export interface components {
         };
         CreatePortfolioDocumentRequest: {
             added_on: string;
+            applicable_class: string;
             authenticity_status: string;
             /** Format: int32 */
             chronological_index?: number;
+            competencies: string[];
             component_code: string;
+            description: string;
             document_title: string;
             evidence_type: string;
-            file_reference?: string;
+            file_reference: string;
             issued_on: string;
             notes?: string;
+            school_year: string;
             section_code: string;
             sensitive_data?: boolean;
             source_scope: string;
+            subject_discipline: string;
         };
         CreatePortfolioOpisEntryRequest: {
             checked_by?: string;
@@ -9219,6 +9264,12 @@ export interface components {
         };
         EducationPageOfPortfolioDocument: {
             items: components["schemas"]["PortfolioDocument"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfPortfolioDocumentVersion: {
+            items: components["schemas"]["PortfolioDocumentVersion"][];
             page: number;
             pageSize: number;
             total: number;
@@ -10126,15 +10177,20 @@ export interface components {
         };
         OwnPortfolioDocumentRequest: {
             added_on: string;
-            chronological_index: number;
+            applicable_class: string;
+            chronological_index?: number;
+            competencies: string[];
             component_code: string;
+            description: string;
             document_title: string;
             evidence_type: string;
             file_reference: string;
             issued_on: string;
-            notes: string;
+            notes?: string;
+            school_year: string;
             section_code: string;
-            sensitive_data: boolean;
+            sensitive_data?: boolean;
+            subject_discipline: string;
         };
         OwnPortfolioRequest: {
             last_updated_on: string;
@@ -10577,10 +10633,18 @@ export interface components {
         };
         PortfolioDocument: {
             added_on: string;
+            applicable_class: string;
+            archive_document_id: string;
+            archive_sha256: string;
+            archive_version_id: string;
+            /** Format: int32 */
+            archive_version_no: number;
             authenticity_status: string;
             /** Format: int32 */
             chronological_index: number;
+            competencies: string[];
             component_code: string;
+            description: string;
             document_title: string;
             evidence_type: string;
             file_reference: string;
@@ -10589,9 +10653,23 @@ export interface components {
             issued_on: string;
             notes: string;
             portfolio_id: string;
+            school_year: string;
             section_code: string;
             sensitive_data: boolean;
             source_scope: string;
+            subject_discipline: string;
+        };
+        PortfolioDocumentVersion: {
+            change_type: string;
+            /** Format: date-time */
+            changed_at: string;
+            changed_by: string;
+            reason: string;
+            snapshot: {
+                [key: string]: unknown;
+            };
+            /** Format: int32 */
+            version_no: number;
         };
         PortfolioExportManifest: {
             documents: components["schemas"]["PortfolioExportManifestDocument"][];
@@ -24972,9 +25050,24 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: string;
-                direction?: string;
+                sort?: "section_code" | "component_code" | "document_title" | "description" | "school_year" | "subject_discipline" | "applicable_class" | "source_scope" | "evidence_type" | "issued_on" | "chronological_index" | "sensitive_data" | "authenticity_status" | "archive_version_no";
+                direction?: "asc" | "desc";
                 "filter.section_code"?: string;
+                "filter.component_code"?: string;
+                "filter.document_title"?: string;
+                "filter.description"?: string;
+                "filter.school_year"?: string;
+                "filter.subject_discipline"?: string;
+                "filter.applicable_class"?: string;
+                "filter.competencies"?: string;
+                "filter.source_scope"?: string;
+                "filter.evidence_type"?: string;
+                "filter.issued_on"?: string;
+                "filter.chronological_index"?: string;
+                "filter.sensitive_data"?: string;
+                "filter.authenticity_status"?: string;
+                "filter.archive_version_no"?: string;
+                "filter.archive_sha256"?: string;
             };
             header?: never;
             path: {
@@ -25083,6 +25176,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioDocument"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_me_recordid_documents_documentid_versions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "version_no" | "change_type" | "changed_by" | "changed_at" | "reason";
+                direction?: "asc" | "desc";
+                "filter.version_no"?: string;
+                "filter.change_type"?: string;
+                "filter.changed_by"?: string;
+                "filter.changed_at"?: string;
+                "filter.reason"?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioDocumentVersion"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -26084,9 +26216,24 @@ export interface operations {
             query?: {
                 page?: components["parameters"]["Page"];
                 pageSize?: components["parameters"]["PageSize"];
-                sort?: "document_title" | "evidence_type" | "section_code" | "authenticity_status" | "issued_on";
+                sort?: "section_code" | "component_code" | "document_title" | "description" | "school_year" | "subject_discipline" | "applicable_class" | "source_scope" | "evidence_type" | "issued_on" | "chronological_index" | "sensitive_data" | "authenticity_status" | "archive_version_no";
                 direction?: "asc" | "desc";
                 "filter.section_code"?: string;
+                "filter.component_code"?: string;
+                "filter.document_title"?: string;
+                "filter.description"?: string;
+                "filter.school_year"?: string;
+                "filter.subject_discipline"?: string;
+                "filter.applicable_class"?: string;
+                "filter.competencies"?: string;
+                "filter.source_scope"?: string;
+                "filter.evidence_type"?: string;
+                "filter.issued_on"?: string;
+                "filter.chronological_index"?: string;
+                "filter.sensitive_data"?: string;
+                "filter.authenticity_status"?: string;
+                "filter.archive_version_no"?: string;
+                "filter.archive_sha256"?: string;
             };
             header?: never;
             path: {
@@ -26224,6 +26371,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PortfolioDocument"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_documents_documentid_versions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "version_no" | "change_type" | "changed_by" | "changed_at" | "reason";
+                direction?: "asc" | "desc";
+                "filter.version_no"?: string;
+                "filter.change_type"?: string;
+                "filter.changed_by"?: string;
+                "filter.changed_at"?: string;
+                "filter.reason"?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioDocumentVersion"];
                 };
             };
             400: components["responses"]["BadRequest"];

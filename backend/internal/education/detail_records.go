@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/eguilde/egueducation/internal/httpx"
@@ -1119,12 +1120,24 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 	query := httpx.ParsePageQuery(
 		r.URL.Query(),
 		map[string]struct{}{
+			"section_code":        {},
+			"component_code":      {},
 			"document_title":      {},
+			"description":         {},
+			"school_year":         {},
+			"subject_discipline":  {},
+			"applicable_class":    {},
+			"competencies":        {},
+			"source_scope":        {},
 			"evidence_type":       {},
 			"issued_on":           {},
+			"chronological_index": {},
+			"sensitive_data":      {},
 			"authenticity_status": {},
+			"archive_version_no":  {},
+			"archive_sha256":      {},
 		},
-		[]string{"section_code", "component_code", "document_title", "source_scope", "evidence_type", "issued_on", "chronological_index", "sensitive_data", "authenticity_status"},
+		[]string{"section_code", "component_code", "document_title", "description", "school_year", "subject_discipline", "applicable_class", "source_scope", "evidence_type", "issued_on", "chronological_index", "sensitive_data", "authenticity_status", "archive_version_no"},
 	)
 	if query.Sort == "" {
 		query.Sort = "issued_on"
@@ -1146,6 +1159,11 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 			epd.section_code,
 			epd.component_code,
 			epd.document_title,
+			epd.description,
+			epd.school_year,
+			epd.subject_discipline,
+			epd.applicable_class,
+			epd.competencies,
 			epd.source_scope,
 			epd.evidence_type,
 			to_char(epd.issued_on, 'YYYY-MM-DD'),
@@ -1154,6 +1172,10 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 			epd.sensitive_data,
 			epd.authenticity_status,
 			epd.file_reference,
+			coalesce(epd.archive_document_id::text, ''),
+			coalesce(epd.archive_version_id::text, ''),
+			coalesce(epd.archive_version_no, 0),
+			epd.archive_sha256,
 			epd.institution_id,
 			epd.notes
 		from education_portfolio_documents epd
@@ -1176,6 +1198,11 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 			&item.SectionCode,
 			&item.ComponentCode,
 			&item.DocumentTitle,
+			&item.Description,
+			&item.SchoolYear,
+			&item.SubjectDiscipline,
+			&item.ApplicableClass,
+			&item.Competencies,
 			&item.SourceScope,
 			&item.EvidenceType,
 			&item.IssuedOn,
@@ -1184,6 +1211,10 @@ func (s *Service) PortfolioDocuments(w http.ResponseWriter, r *http.Request) {
 			&item.SensitiveData,
 			&item.AuthenticityStatus,
 			&item.FileReference,
+			&item.ArchiveDocumentID,
+			&item.ArchiveVersionID,
+			&item.ArchiveVersionNo,
+			&item.ArchiveSHA256,
 			&item.InstitutionID,
 			&item.Notes,
 		); err != nil {
@@ -1211,6 +1242,11 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 			epd.section_code,
 			epd.component_code,
 			epd.document_title,
+			epd.description,
+			epd.school_year,
+			epd.subject_discipline,
+			epd.applicable_class,
+			epd.competencies,
 			epd.source_scope,
 			epd.evidence_type,
 			to_char(epd.issued_on, 'YYYY-MM-DD'),
@@ -1219,6 +1255,10 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 			epd.sensitive_data,
 			epd.authenticity_status,
 			epd.file_reference,
+			coalesce(epd.archive_document_id::text, ''),
+			coalesce(epd.archive_version_id::text, ''),
+			coalesce(epd.archive_version_no, 0),
+			epd.archive_sha256,
 			epd.institution_id,
 			epd.notes
 		from education_portfolio_documents epd
@@ -1232,6 +1272,11 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 		&item.SectionCode,
 		&item.ComponentCode,
 		&item.DocumentTitle,
+		&item.Description,
+		&item.SchoolYear,
+		&item.SubjectDiscipline,
+		&item.ApplicableClass,
+		&item.Competencies,
 		&item.SourceScope,
 		&item.EvidenceType,
 		&item.IssuedOn,
@@ -1240,6 +1285,10 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 		&item.SensitiveData,
 		&item.AuthenticityStatus,
 		&item.FileReference,
+		&item.ArchiveDocumentID,
+		&item.ArchiveVersionID,
+		&item.ArchiveVersionNo,
+		&item.ArchiveSHA256,
 		&item.InstitutionID,
 		&item.Notes,
 	)
@@ -1255,6 +1304,148 @@ func (s *Service) PortfolioDocumentDetail(w http.ResponseWriter, r *http.Request
 	httpx.JSON(w, http.StatusOK, item)
 }
 
+func (s *Service) PortfolioDocumentVersions(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	documentID := strings.TrimSpace(chi.URLParam(r, "documentID"))
+	if _, err := uuid.Parse(recordID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_id"})
+		return
+	}
+	if _, err := uuid.Parse(documentID); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_document_id"})
+		return
+	}
+
+	query := httpx.ParsePageQuery(
+		r.URL.Query(),
+		map[string]struct{}{"version_no": {}, "change_type": {}, "changed_by": {}, "changed_at": {}, "reason": {}},
+		[]string{"version_no", "change_type", "changed_by", "changed_at", "reason"},
+	)
+	if query.Sort == "" {
+		query.Sort = "version_no"
+		query.Direction = "desc"
+	}
+
+	where := []string{
+		"epd.id = $1::uuid",
+		"epd.portfolio_id = $2::uuid",
+		"epd.institution_id = $3",
+		"ev.entity_table = 'education_portfolio_documents'",
+		"ev.entity_id = epd.id",
+		"ev.institution_id = epd.institution_id",
+	}
+	args := []any{documentID, recordID, s.institutionID(r)}
+	addContains := func(expression, value string) {
+		args = append(args, "%"+strings.ToLower(strings.TrimSpace(value))+"%")
+		where = append(where, fmt.Sprintf("lower(%s) like $%d", expression, len(args)))
+	}
+	for key, value := range query.Filters {
+		switch key {
+		case "version_no":
+			args = append(args, "%"+strings.TrimSpace(value)+"%")
+			where = append(where, fmt.Sprintf("ev.version_no::text like $%d", len(args)))
+		case "change_type":
+			addContains("ev.change_type", value)
+		case "changed_by":
+			addContains("ev.changed_by", value)
+		case "changed_at":
+			addContains("to_char(ev.changed_at, 'YYYY-MM-DD HH24:MI:SS')", value)
+		case "reason":
+			addContains("coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)", value)
+		}
+	}
+	whereClause := "where " + strings.Join(where, " and ")
+
+	var total int
+	if err := s.pool.QueryRow(r.Context(), `
+		select count(*)
+		from app_entity_versions ev
+		join education_portfolio_documents epd on epd.id = ev.entity_id
+		`+whereClause, args...).Scan(&total); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_document_versions_failed"})
+		return
+	}
+	if total == 0 {
+		var exists bool
+		if err := s.pool.QueryRow(r.Context(), `select exists(select 1 from education_portfolio_documents where id = $1::uuid and portfolio_id = $2::uuid and institution_id = $3)`, documentID, recordID, s.institutionID(r)).Scan(&exists); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_document_versions_failed"})
+			return
+		}
+		if !exists {
+			writeEducationNotFound(w, "education_portfolio_document_not_found")
+			return
+		}
+	}
+
+	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
+	sortColumn := map[string]string{
+		"version_no": "ev.version_no", "change_type": "ev.change_type", "changed_by": "ev.changed_by",
+		"changed_at": "ev.changed_at", "reason": "coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)",
+	}[query.Sort]
+	if sortColumn == "" {
+		sortColumn = "ev.version_no"
+	}
+	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`
+		select ev.version_no, ev.change_type, ev.changed_by,
+			to_char(ev.changed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+			coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type),
+			jsonb_build_object(
+				'id', ev.snapshot->'id',
+				'portfolio_id', ev.snapshot->'portfolio_id',
+				'section_code', ev.snapshot->'section_code',
+				'component_code', ev.snapshot->'component_code',
+				'document_title', ev.snapshot->'document_title',
+				'description', ev.snapshot->'description',
+				'school_year', ev.snapshot->'school_year',
+				'subject_discipline', ev.snapshot->'subject_discipline',
+				'applicable_class', ev.snapshot->'applicable_class',
+				'competencies', ev.snapshot->'competencies',
+				'source_scope', ev.snapshot->'source_scope',
+				'evidence_type', ev.snapshot->'evidence_type',
+				'issued_on', ev.snapshot->'issued_on',
+				'added_on', ev.snapshot->'added_on',
+				'chronological_index', ev.snapshot->'chronological_index',
+				'sensitive_data', ev.snapshot->'sensitive_data',
+				'authenticity_status', ev.snapshot->'authenticity_status',
+				'file_reference', ev.snapshot->'file_reference',
+				'archive_document_id', ev.snapshot->'archive_document_id',
+				'archive_version_id', ev.snapshot->'archive_version_id',
+				'archive_version_no', ev.snapshot->'archive_version_no',
+				'archive_sha256', ev.snapshot->'archive_sha256',
+				'status', ev.snapshot->'status',
+				'notes', ev.snapshot->'notes',
+				'withdrawn_at', ev.snapshot->'withdrawn_at',
+				'withdrawal_reason', ev.snapshot->'withdrawal_reason',
+				'created_at', ev.snapshot->'created_at',
+				'updated_at', ev.snapshot->'updated_at'
+			)
+		from app_entity_versions ev
+		join education_portfolio_documents epd on epd.id = ev.entity_id
+		%s
+		order by %s %s, ev.version_no desc
+		limit $%d offset $%d
+	`, whereClause, sortColumn, strings.ToUpper(query.Direction), len(args)-1, len(args)), args...)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_document_versions_failed"})
+		return
+	}
+	defer rows.Close()
+	items := make([]PortfolioDocumentVersion, 0, query.PageSize)
+	for rows.Next() {
+		var item PortfolioDocumentVersion
+		if err := rows.Scan(&item.VersionNo, &item.ChangeType, &item.ChangedBy, &item.ChangedAt, &item.Reason, &item.Snapshot); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_document_versions_scan_failed"})
+			return
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_document_versions_scan_failed"})
+		return
+	}
+	httpx.WritePage(w, http.StatusOK, items, total, query.Page, query.PageSize)
+}
+
 func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	var req CreatePortfolioDocumentRequest
@@ -1268,10 +1459,16 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		req.AddedOn = time.Now().Format("2006-01-02")
 	}
 
-	if req.SectionCode == "" || req.ComponentCode == "" || req.DocumentTitle == "" || req.SourceScope == "" || req.EvidenceType == "" || req.IssuedOn == "" || req.AddedOn == "" || req.AuthenticityStatus == "" {
+	archiveReference, archiveDocumentID, archiveReferenceValid := portfolioArchiveReference(req.FileReference)
+	if req.SectionCode == "" || req.ComponentCode == "" || req.DocumentTitle == "" || req.Description == "" || req.SchoolYear == "" || req.SubjectDiscipline == "" || req.ApplicableClass == "" || len(req.Competencies) == 0 || req.SourceScope == "" || req.EvidenceType == "" || req.IssuedOn == "" || req.AddedOn == "" || req.AuthenticityStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_document_fields"})
 		return
 	}
+	if !archiveReferenceValid {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "portfolio_document_archive_reference_required"})
+		return
+	}
+	req.FileReference = archiveReference
 	if !containsString([]string{"portofoliu", "dosar_personal"}, req.SourceScope) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_document_source_scope"})
 		return
@@ -1307,6 +1504,11 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 			section_code,
 			component_code,
 			document_title,
+			description,
+			school_year,
+			subject_discipline,
+			applicable_class,
+			competencies,
 			source_scope,
 			evidence_type,
 			issued_on,
@@ -1315,6 +1517,13 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 			sensitive_data,
 			authenticity_status,
 			file_reference,
+			archive_document_id,
+			archive_version_id,
+			archive_version_no,
+			archive_source_bucket,
+			archive_source_object_key,
+			archive_sha256,
+			last_change_reason,
 			institution_id,
 			notes
 		)
@@ -1331,16 +1540,40 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 			$10,
 			$11,
 			$12,
+			$13,
+			$14,
+			$15,
+			$16,
+			$17,
+			document.id,
+			version.id,
+			version.version_no,
+			version.source_bucket,
+			version.source_object_key,
+			lower(version.source_sha256),
+			'Document adăugat în portofoliu',
 			ep.institution_id,
-			$13
+			$19
 		from education_portfolios ep
-		where ep.id = $1 and ep.institution_id = $14
+		join archive_documents document
+			on document.id = $18::uuid and document.institution_id = ep.institution_id and document.status = 'ready'
+		join archive_document_versions version
+			on version.document_id = document.id and version.version_no = document.current_version_no
+			and version.institution_id = document.institution_id and version.status = 'active'
+			and btrim(version.source_bucket) <> '' and btrim(version.source_object_key) <> ''
+			and lower(version.source_sha256) ~ '^[0-9a-f]{64}$'
+		where ep.id = $1 and ep.institution_id = $20
 		returning
 			id::text,
 			portfolio_id::text,
 			section_code,
 			component_code,
 			document_title,
+			description,
+			school_year,
+			subject_discipline,
+			applicable_class,
+			competencies,
 			source_scope,
 			evidence_type,
 			to_char(issued_on, 'YYYY-MM-DD'),
@@ -1349,14 +1582,23 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 			sensitive_data,
 			authenticity_status,
 			file_reference,
+			archive_document_id::text,
+			archive_version_id::text,
+			archive_version_no,
+			archive_sha256,
 			institution_id,
 			notes
-	`, recordID, req.SectionCode, req.ComponentCode, req.DocumentTitle, req.SourceScope, req.EvidenceType, req.IssuedOn, req.AddedOn, req.ChronologicalIndex, req.SensitiveData, req.AuthenticityStatus, req.FileReference, req.Notes, s.institutionID(r)).Scan(
+	`, recordID, req.SectionCode, req.ComponentCode, req.DocumentTitle, req.Description, req.SchoolYear, req.SubjectDiscipline, req.ApplicableClass, req.Competencies, req.SourceScope, req.EvidenceType, req.IssuedOn, req.AddedOn, req.ChronologicalIndex, req.SensitiveData, req.AuthenticityStatus, req.FileReference, archiveDocumentID, req.Notes, s.institutionID(r)).Scan(
 		&item.ID,
 		&item.PortfolioID,
 		&item.SectionCode,
 		&item.ComponentCode,
 		&item.DocumentTitle,
+		&item.Description,
+		&item.SchoolYear,
+		&item.SubjectDiscipline,
+		&item.ApplicableClass,
+		&item.Competencies,
 		&item.SourceScope,
 		&item.EvidenceType,
 		&item.IssuedOn,
@@ -1365,12 +1607,16 @@ func (s *Service) CreatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		&item.SensitiveData,
 		&item.AuthenticityStatus,
 		&item.FileReference,
+		&item.ArchiveDocumentID,
+		&item.ArchiveVersionID,
+		&item.ArchiveVersionNo,
+		&item.ArchiveSHA256,
 		&item.InstitutionID,
 		&item.Notes,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeEducationNotFound(w, "education_portfolio_not_found")
+			httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_document_archive_version_unavailable"})
 			return
 		}
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_create_failed"})
@@ -1412,10 +1658,16 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 
 	normalizePortfolioDocumentRequest(&req)
 
-	if req.SectionCode == "" || req.ComponentCode == "" || req.DocumentTitle == "" || req.SourceScope == "" || req.EvidenceType == "" || req.IssuedOn == "" || req.AddedOn == "" || req.AuthenticityStatus == "" {
+	archiveReference, archiveDocumentID, archiveReferenceValid := portfolioArchiveReference(req.FileReference)
+	if req.SectionCode == "" || req.ComponentCode == "" || req.DocumentTitle == "" || req.Description == "" || req.SchoolYear == "" || req.SubjectDiscipline == "" || req.ApplicableClass == "" || len(req.Competencies) == 0 || req.SourceScope == "" || req.EvidenceType == "" || req.IssuedOn == "" || req.AddedOn == "" || req.AuthenticityStatus == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_document_fields"})
 		return
 	}
+	if !archiveReferenceValid {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "portfolio_document_archive_reference_required"})
+		return
+	}
+	req.FileReference = archiveReference
 	if !containsString([]string{"portofoliu", "dosar_personal"}, req.SourceScope) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_document_source_scope"})
 		return
@@ -1451,42 +1703,77 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 			section_code = $1,
 			component_code = $2,
 			document_title = $3,
-			source_scope = $4,
-			evidence_type = $5,
-			issued_on = $6,
-			added_on = $7,
-			chronological_index = $8,
-			sensitive_data = $9,
-			authenticity_status = $10,
-			file_reference = $11,
-			notes = $12,
+			description = $4,
+			school_year = $5,
+			subject_discipline = $6,
+			applicable_class = $7,
+			competencies = $8,
+			source_scope = $9,
+			evidence_type = $10,
+			issued_on = $11,
+			added_on = $12,
+			chronological_index = $13,
+			sensitive_data = $14,
+			authenticity_status = $15,
+			file_reference = $16,
+			archive_document_id = document.id,
+			archive_version_id = version.id,
+			archive_version_no = version.version_no,
+			archive_source_bucket = version.source_bucket,
+			archive_source_object_key = version.source_object_key,
+			archive_sha256 = lower(version.source_sha256),
+			last_change_reason = 'Document și metadate actualizate',
+			notes = $18,
 			updated_at = now()
-		where id = $13
-			and portfolio_id = $14
-			and institution_id = $15
-			and status = 'active'
+		from archive_documents document
+		join archive_document_versions version
+			on version.document_id = document.id and version.version_no = document.current_version_no
+			and version.institution_id = document.institution_id and version.status = 'active'
+			and btrim(version.source_bucket) <> '' and btrim(version.source_object_key) <> ''
+			and lower(version.source_sha256) ~ '^[0-9a-f]{64}$'
+		where education_portfolio_documents.id = $19
+			and education_portfolio_documents.portfolio_id = $20
+			and education_portfolio_documents.institution_id = $21
+			and document.id = $17::uuid
+			and document.institution_id = education_portfolio_documents.institution_id
+			and document.status = 'ready'
+			and education_portfolio_documents.status = 'active'
 		returning
-			id::text,
-			portfolio_id::text,
-			section_code,
-			component_code,
-			document_title,
-			source_scope,
-			evidence_type,
-			to_char(issued_on, 'YYYY-MM-DD'),
-			to_char(added_on, 'YYYY-MM-DD'),
-			chronological_index,
-			sensitive_data,
-			authenticity_status,
-			file_reference,
-			institution_id,
-			notes
-	`, req.SectionCode, req.ComponentCode, req.DocumentTitle, req.SourceScope, req.EvidenceType, req.IssuedOn, req.AddedOn, req.ChronologicalIndex, req.SensitiveData, req.AuthenticityStatus, req.FileReference, req.Notes, documentID, recordID, s.institutionID(r)).Scan(
+			education_portfolio_documents.id::text,
+			education_portfolio_documents.portfolio_id::text,
+			education_portfolio_documents.section_code,
+			education_portfolio_documents.component_code,
+			education_portfolio_documents.document_title,
+			education_portfolio_documents.description,
+			education_portfolio_documents.school_year,
+			education_portfolio_documents.subject_discipline,
+			education_portfolio_documents.applicable_class,
+			education_portfolio_documents.competencies,
+			education_portfolio_documents.source_scope,
+			education_portfolio_documents.evidence_type,
+			to_char(education_portfolio_documents.issued_on, 'YYYY-MM-DD'),
+			to_char(education_portfolio_documents.added_on, 'YYYY-MM-DD'),
+			education_portfolio_documents.chronological_index,
+			education_portfolio_documents.sensitive_data,
+			education_portfolio_documents.authenticity_status,
+			education_portfolio_documents.file_reference,
+			education_portfolio_documents.archive_document_id::text,
+			education_portfolio_documents.archive_version_id::text,
+			education_portfolio_documents.archive_version_no,
+			education_portfolio_documents.archive_sha256,
+			education_portfolio_documents.institution_id,
+			education_portfolio_documents.notes
+	`, req.SectionCode, req.ComponentCode, req.DocumentTitle, req.Description, req.SchoolYear, req.SubjectDiscipline, req.ApplicableClass, req.Competencies, req.SourceScope, req.EvidenceType, req.IssuedOn, req.AddedOn, req.ChronologicalIndex, req.SensitiveData, req.AuthenticityStatus, req.FileReference, archiveDocumentID, req.Notes, documentID, recordID, s.institutionID(r)).Scan(
 		&item.ID,
 		&item.PortfolioID,
 		&item.SectionCode,
 		&item.ComponentCode,
 		&item.DocumentTitle,
+		&item.Description,
+		&item.SchoolYear,
+		&item.SubjectDiscipline,
+		&item.ApplicableClass,
+		&item.Competencies,
 		&item.SourceScope,
 		&item.EvidenceType,
 		&item.IssuedOn,
@@ -1495,11 +1782,29 @@ func (s *Service) UpdatePortfolioDocument(w http.ResponseWriter, r *http.Request
 		&item.SensitiveData,
 		&item.AuthenticityStatus,
 		&item.FileReference,
+		&item.ArchiveDocumentID,
+		&item.ArchiveVersionID,
+		&item.ArchiveVersionNo,
+		&item.ArchiveSHA256,
 		&item.InstitutionID,
 		&item.Notes,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			var exists bool
+			if lookupErr := tx.QueryRow(r.Context(), `
+				select exists(
+					select 1 from education_portfolio_documents
+					where id = $1::uuid and portfolio_id = $2::uuid and institution_id = $3 and status = 'active'
+				)
+			`, documentID, recordID, s.institutionID(r)).Scan(&exists); lookupErr != nil {
+				httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_document_update_failed"})
+				return
+			}
+			if exists {
+				httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "portfolio_document_archive_version_unavailable"})
+				return
+			}
 			writeEducationNotFound(w, "education_portfolio_document_not_found")
 			return
 		}
@@ -1541,7 +1846,7 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 
 	tag, err := tx.Exec(r.Context(), `
 		update education_portfolio_documents document
-		set status = 'withdrawn', updated_at = now()
+		set status = 'withdrawn', last_change_reason = 'Document retras din portofoliu', updated_at = now()
 		from education_portfolios portfolio
 		where document.id = $1
 			and document.portfolio_id = $2
@@ -2074,6 +2379,21 @@ func buildPortfolioDocumentFilters(filters map[string]string, recordID string, i
 	if value := filters["document_title"]; value != "" {
 		addContains("epd.document_title", value)
 	}
+	if value := filters["description"]; value != "" {
+		addContains("epd.description", value)
+	}
+	if value := filters["school_year"]; value != "" {
+		addContains("epd.school_year", value)
+	}
+	if value := filters["subject_discipline"]; value != "" {
+		addContains("epd.subject_discipline", value)
+	}
+	if value := filters["applicable_class"]; value != "" {
+		addContains("epd.applicable_class", value)
+	}
+	if value := filters["competencies"]; value != "" {
+		addContains("array_to_string(epd.competencies, ' ')", value)
+	}
 	if value := filters["source_scope"]; value != "" {
 		addContains("epd.source_scope", value)
 	}
@@ -2092,6 +2412,13 @@ func buildPortfolioDocumentFilters(filters map[string]string, recordID string, i
 	}
 	if value := filters["authenticity_status"]; value != "" {
 		addContains("epd.authenticity_status", value)
+	}
+	if value := filters["archive_version_no"]; value != "" {
+		args = append(args, "%"+strings.TrimSpace(value)+"%")
+		where = append(where, fmt.Sprintf("epd.archive_version_no::text like $%d", len(args)))
+	}
+	if value := filters["archive_sha256"]; value != "" {
+		addContains("epd.archive_sha256", value)
 	}
 
 	return "where " + strings.Join(where, " and "), args
@@ -2238,12 +2565,28 @@ func portfolioDocumentSortColumn(value string) string {
 		return "epd.section_code"
 	case "document_title":
 		return "epd.document_title"
+	case "description":
+		return "epd.description"
+	case "school_year":
+		return "epd.school_year"
+	case "subject_discipline":
+		return "epd.subject_discipline"
+	case "applicable_class":
+		return "epd.applicable_class"
+	case "source_scope":
+		return "epd.source_scope"
 	case "evidence_type":
 		return "epd.evidence_type"
 	case "issued_on":
 		return "epd.issued_on"
 	case "authenticity_status":
 		return "epd.authenticity_status"
+	case "chronological_index":
+		return "epd.chronological_index"
+	case "sensitive_data":
+		return "epd.sensitive_data"
+	case "archive_version_no":
+		return "epd.archive_version_no"
 	default:
 		return "epd.issued_on"
 	}
@@ -2300,6 +2643,25 @@ func normalizePortfolioDocumentRequest(req *CreatePortfolioDocumentRequest) {
 	req.SectionCode = strings.TrimSpace(req.SectionCode)
 	req.ComponentCode = strings.TrimSpace(req.ComponentCode)
 	req.DocumentTitle = strings.TrimSpace(req.DocumentTitle)
+	req.Description = strings.TrimSpace(req.Description)
+	req.SchoolYear = strings.TrimSpace(req.SchoolYear)
+	req.SubjectDiscipline = strings.TrimSpace(req.SubjectDiscipline)
+	req.ApplicableClass = strings.TrimSpace(req.ApplicableClass)
+	competencies := make([]string, 0, len(req.Competencies))
+	seen := make(map[string]struct{}, len(req.Competencies))
+	for _, competency := range req.Competencies {
+		competency = strings.TrimSpace(competency)
+		key := strings.ToLower(competency)
+		if competency == "" {
+			continue
+		}
+		if _, duplicate := seen[key]; duplicate {
+			continue
+		}
+		seen[key] = struct{}{}
+		competencies = append(competencies, competency)
+	}
+	req.Competencies = competencies
 	req.SourceScope = strings.TrimSpace(req.SourceScope)
 	req.EvidenceType = strings.TrimSpace(req.EvidenceType)
 	req.IssuedOn = strings.TrimSpace(req.IssuedOn)
@@ -2307,6 +2669,19 @@ func normalizePortfolioDocumentRequest(req *CreatePortfolioDocumentRequest) {
 	req.AuthenticityStatus = strings.TrimSpace(req.AuthenticityStatus)
 	req.FileReference = strings.TrimSpace(req.FileReference)
 	req.Notes = strings.TrimSpace(req.Notes)
+}
+
+func portfolioArchiveReference(value string) (string, string, bool) {
+	value = strings.TrimSpace(value)
+	if !strings.HasPrefix(strings.ToLower(value), "archive://") {
+		return "", "", false
+	}
+	documentID := strings.TrimSpace(value[len("archive://"):])
+	parsed, err := uuid.Parse(documentID)
+	if err != nil || parsed == uuid.Nil || parsed.String() != strings.ToLower(documentID) {
+		return "", "", false
+	}
+	return "archive://" + parsed.String(), parsed.String(), true
 }
 
 func normalizeMeetingVoteRequest(req *CreateGovernanceMeetingVoteRequest) {

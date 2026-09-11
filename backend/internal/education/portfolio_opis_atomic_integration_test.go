@@ -4,6 +4,7 @@ package education
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,11 +34,12 @@ func TestPortfolioDocumentMutationRollsBackWhenOpisSyncFails(t *testing.T) {
 	}
 	grantGovernanceIntegrationAccess(t, ctx, adminPool, it.roleName)
 	fixture := seedGovernanceAuthorizationFixture(t, ctx, adminPool)
+	archiveDocumentID := seedGovernancePortfolioArchiveAttachments(t, ctx, adminPool, fixture.institutionA, fixture.memberUserID)
 	service := NewService(db.NewSessionPool(it.readerPool))
 	ctxA, release := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
 	defer release()
 
-	payload := `{"section_code":"A","component_code":"A.1","document_title":"Evidence before rollback","source_scope":"portofoliu","evidence_type":"document","issued_on":"2026-09-01","added_on":"2026-09-02","chronological_index":1,"sensitive_data":false,"authenticity_status":"declarat","file_reference":"archive://00000000-0000-0000-0000-000000000001","notes":"atomic test"}`
+	payload := fmt.Sprintf(`{"section_code":"A","component_code":"A.1","document_title":"Evidence before rollback","description":"Atomic rollback evidence","school_year":"2026-2027","subject_discipline":"disciplină de test","applicable_class":"clasa a V-a","competencies":["competență de test"],"source_scope":"portofoliu","evidence_type":"document","issued_on":"2026-09-01","added_on":"2026-09-02","chronological_index":1,"sensitive_data":false,"authenticity_status":"declarat","file_reference":"archive://%s","notes":"atomic test"}`, archiveDocumentID)
 
 	installOpisFailureTrigger(t, ctx, adminPool)
 	createResponse := httptest.NewRecorder()

@@ -201,3 +201,21 @@ Blocante care rămân înainte de o declarație de acoperire 100%:
 4. PRT-007, PRT-009 și PRT-020: metadate pedagogice complete, versionare/retragere uniformă și integrarea verificabilă a tuturor controalelor de stocare.
 5. CTR-001, CTR-002, CTR-004 și catalogul de teste: optimist concurrency uniform, eliminarea adaptoarelor cu rute string și rularea scenariilor PostgreSQL/E2E reale pentru fiecare rol și tenant.
 6. Alinierea rolului instituțional `education.portfolios.school.manage` cu operațiile legacy `education.portfolios.manage` necesită o decizie explicită de autorizare; auditul nu extinde implicit drepturile.
+
+## 13. Reaudit complet al codului și închiderea gap-urilor — 2026-09-11
+
+Această reevaluare nu modifică fotografia istorică din secțiunile 9–12. Ea inventariază exclusiv comportamentele demonstrate de codul Go/PostgreSQL, contractul OpenAPI generat, clientul React și testele automate din candidatul curent de release.
+
+| Cerințe | Verdict candidat release | Dovadă executabilă |
+| --- | --- | --- |
+| PRT-007, PRT-009, PRT-020 | implementat pentru documentele portofoliului | metadate pedagogice complete; document eArhivă `ready` obligatoriu; snapshot imuabil tenant-scoped de versiune/hash; versiuni append-only cu actor, moment și motiv; proiecția publică a istoricului exclude bucket-ul, cheia obiectului și identificatori interni sensibili |
+| PRT-013 | implementat | pachete de valorificare limitate la scop și test PostgreSQL `TestPortfolioValorificationPackagesIntegration` |
+| PRT-015 | implementat | rutare și dovezi de predare/recepție cross-tenant, cu test PostgreSQL `TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration` |
+| SCH-002, SCH-005 | implementat | delegare pe domeniu și perioadă, plus acces contextual la clase; teste de delegare și paritate pentru clase |
+| Model RBAC | consolidat least-privilege | migrarea `0130_school_content_rbac_hardening.sql` elimină accesul implicit la conținut pentru `tenant_admin` și permisiunea legacy prea largă a directorului; superadminul și utilizatorul E2E rămân explicit separați |
+| CTR-001, CTR-002, CTR-005 | implementat pentru modificările auditate | migrarea `0131_education_portfolio_document_contract.sql`, constrângeri și trigger-e tenant/instituție/arhivă, răspunsuri 404/422 nedivulgative și teste cross-tenant |
+| CTR-003, CTR-006 | acoperit pentru inventarul curent | 562/562 rute concrete mapate la operații unice, metadate security/tenant/RBAC și 396 operații Education cu scheme complete; artefactele OpenAPI backend/canonic sunt verificate fără drift |
+| CTR-004 | acoperit pentru operațiile documentelor portofoliului | rute literale `openapi-fetch` și tipuri generate pentru listare, creare, actualizare și istoric instituțional/propriu; fără `transport.request`, `as never` sau adaptoare de rezultat nevalidate pe aceste operații |
+| UI-002, UI-003, UI-005 | implementat pentru fluxurile auditate | filtre și sortare server-side, metadate și proveniență eArhivă, dialoguri read-only de istoric, acțiuni de transfer/valorificare, componente PrimeReact și scenariu mobil la 390×844 |
+
+Validarea locală obligatorie a candidatului include `go test ./...`, `go vet ./...`, validarea OpenAPI, typecheck React, auditul contractelor/UI, testele Vitest și build-ul de producție. Marcarea release-ului ca publicat și verificat în producție se face numai după trecerea pipeline-ului GitHub Actions și confirmarea reviziei servite de cluster; acest document nu substituie acea dovadă operațională.

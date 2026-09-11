@@ -1,10 +1,15 @@
 package education
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/eguilde/egueducation/internal/httpx"
 )
@@ -48,17 +53,57 @@ func TestSchoolStudentAndTemporalCommandValidation(t *testing.T) {
 	if !normalizeSchoolStudentRequest(&student) || student.Status != "active" {
 		t.Fatalf("student normalization failed: %#v", student)
 	}
-	enrolment := CreateSchoolEnrolmentRequest{StudentID: "student", ClassID: "class", EnrolledFrom: "2026-09-01", Status: ""}
+	enrolment := CreateSchoolEnrolmentRequest{StudentID: "11111111-1111-4111-8111-111111111111", ClassID: "22222222-2222-4222-8222-222222222222", EnrolledFrom: "2026-09-01", Status: ""}
 	if !normalizeSchoolEnrolment(&enrolment) || enrolment.Status != "active" {
 		t.Fatalf("enrolment normalization failed: %#v", enrolment)
 	}
-	assignment := CreateSchoolHomeroomAssignmentRequest{ClassID: "class", PersonnelID: "personnel", AppUserID: "user", AssignedFrom: "2026-09-01"}
+	assignment := CreateSchoolHomeroomAssignmentRequest{ClassID: "22222222-2222-4222-8222-222222222222", PersonnelID: "33333333-3333-4333-8333-333333333333", AppUserID: "44444444-4444-4444-8444-444444444444", AssignedFrom: "2026-09-01"}
 	if !normalizeSchoolHomeroom(&assignment) {
 		t.Fatal("complete homeroom assignment must be accepted")
 	}
 	assignment.AppUserID = ""
 	if normalizeSchoolHomeroom(&assignment) {
 		t.Fatal("homeroom assignment without canonical application user must be rejected")
+	}
+}
+
+func TestSchoolUUIDRejectsMalformedAndNonCanonicalValues(t *testing.T) {
+	valid, ok := schoolUUID("AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA")
+	if !ok || valid != "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" {
+		t.Fatalf("canonical UUID was not normalized: %q, %t", valid, ok)
+	}
+	for _, value := range []string{"", "not-a-uuid", "{aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa}", "aaaaaaaaaaaaaaaa4aaa8aaaaaaaaaaaaaaaa", "00000000-0000-0000-0000-000000000000"} {
+		if _, ok := schoolUUID(value); ok {
+			t.Errorf("invalid UUID %q was accepted", value)
+		}
+	}
+}
+
+func TestSchoolPathUUIDWritesBadRequestBeforeDatabaseAccess(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/api/education/school/classes/not-a-uuid", nil)
+	routeContext := chi.NewRouteContext()
+	routeContext.URLParams.Add("classID", "not-a-uuid")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, routeContext))
+	recorder := httptest.NewRecorder()
+	if _, ok := requireSchoolPathUUID(recorder, req, "classID", "education_class_id_invalid"); ok {
+		t.Fatal("malformed path UUID was accepted")
+	}
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+	if !strings.Contains(recorder.Body.String(), "education_class_id_invalid") {
+		t.Fatalf("validation response lacks error code: %s", recorder.Body.String())
+	}
+}
+
+func TestSchoolUUIDRequestFieldsAreRejectedBeforeSQL(t *testing.T) {
+	enrolment := CreateSchoolEnrolmentRequest{StudentID: "student", ClassID: "class", EnrolledFrom: "2026-09-01", Status: "active"}
+	if normalizeSchoolEnrolment(&enrolment) {
+		t.Fatal("enrolment request with malformed identifiers was accepted")
+	}
+	homeroom := CreateSchoolHomeroomAssignmentRequest{ClassID: "class", PersonnelID: "personnel", AppUserID: "user", AssignedFrom: "2026-09-01"}
+	if normalizeSchoolHomeroom(&homeroom) {
+		t.Fatal("homeroom request with malformed identifiers was accepted")
 	}
 }
 

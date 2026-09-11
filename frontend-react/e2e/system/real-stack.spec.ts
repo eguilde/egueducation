@@ -472,7 +472,7 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // granted to this immutable teacher identity.
   const ungrantedReference = await api<unknown>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/documents`, {
     method: 'POST',
-    body: JSON.stringify({ section_code: 'identificare', component_code: 'cv', document_title: 'referință neautorizată', evidence_type: 'adeverinta', issued_on: '2031-09-01', added_on: '2031-09-01', chronological_index: 1, sensitive_data: false, file_reference: `archive://${ungrantedArchiveID}`, notes: '' }),
+    body: JSON.stringify({ section_code: 'identificare', component_code: 'cv', document_title: 'referință neautorizată', description: 'Dovadă neautorizată', school_year: '2031-2032', subject_discipline: 'disciplină de test', applicable_class: 'clasa a V-a', competencies: ['competență de test'], evidence_type: 'adeverinta', issued_on: '2031-09-01', added_on: '2031-09-01', chronological_index: 1, sensitive_data: false, file_reference: `archive://${ungrantedArchiveID}`, notes: '' }),
   });
   expect(ungrantedReference.status).toBe(403);
 
@@ -491,6 +491,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     await selectOpenOption(approverPage, new RegExp(archive.section));
     await documentDialog.getByLabel('Titlu *').fill(archive.title);
     await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
+    await documentDialog.getByLabel('Descriere pedagogică *').fill(`Dovadă pedagogică pentru ${archive.title}`);
+    await documentDialog.getByLabel('An școlar *').fill('2031-2032');
+    await documentDialog.getByLabel('Disciplina *').fill('disciplină de test');
+    await documentDialog.getByLabel('Clasa aplicabilă *').fill('clasa a V-a');
+    await documentDialog.getByLabel('Competențe *').fill('competență de test');
     await documentDialog.getByLabel('Data emiterii *').fill('2031-09-01');
     await documentDialog.getByLabel('Data adăugării *').fill('2031-09-01');
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
@@ -507,6 +512,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
         section_code: archive.section,
         component_code: archive.component,
         document_title: archive.title,
+        description: `Dovadă pedagogică pentru ${archive.title}`,
+        school_year: '2031-2032',
+        subject_discipline: 'disciplină de test',
+        applicable_class: 'clasa a V-a',
+        competencies: ['competență de test'],
         evidence_type: 'adeverinta',
         issued_on: '2031-09-01',
         added_on: '2031-09-01',
@@ -526,6 +536,20 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   await approverPage.reload();
   await expect(approverPage.getByRole('region', { name: 'Portofoliul meu profesional' })).toBeVisible();
   await expect(approverPage.getByRole('button', { name: 'Regenerare opis' })).toBeEnabled();
+
+  const versionHistory = await api<{ items: Array<{ version_no: number; change_type: string; reason: string; snapshot: { archive_document_id?: string; archive_sha256?: string } }>; total: number }>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}/documents/${portfolioDocuments[0].id}/versions?sort=version_no&direction=desc`);
+  expect(versionHistory.status).toBe(200);
+  expect(versionHistory.body.total).toBeGreaterThanOrEqual(1);
+  expect(versionHistory.body.items[0]).toMatchObject({ change_type: 'insert', reason: 'Document adăugat în portofoliu' });
+  expect(versionHistory.body.items[0].snapshot.archive_document_id).toBe(portfolioArchives[0].id);
+  expect(versionHistory.body.items[0].snapshot.archive_sha256).toMatch(/^[0-9a-f]{64}$/);
+
+  const versionHistoryResponse = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents/${portfolioDocuments[0].id}/versions` && response.request().method() === 'GET');
+  await approverPage.getByRole('button', { name: `Istoric versiuni ${portfolioDocuments[0].document_title}` }).click();
+  expect((await versionHistoryResponse).status()).toBe(200);
+  await expect(approverPage.getByRole('dialog', { name: `Istoric versiuni — ${portfolioDocuments[0].document_title}` })).toBeVisible();
+  await expect(approverPage.getByText('Document adăugat în portofoliu')).toBeVisible();
+  await approverPage.getByRole('button', { name: 'Închide istoricul versiunilor' }).click();
 
   const opisRegeneratedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/opis/regenerate` && response.request().method() === 'POST',
@@ -1344,6 +1368,10 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
     delete from app_user_roles where user_id='${actorID}' and tenant_code='tenant-egueducation'
   `);
   const token = await authenticated(page);
+  // Exercise the real authenticated School workspaces at the mobile-first
+  // acceptance viewport. The same test continues through PrimeReact tables,
+  // frozen action cells, pagers and dialogs without route interception.
+  await page.setViewportSize({ width: 390, height: 844 });
   const suffix = `${Date.now()}`;
 
   // Classes, pupils and enrolments are created through the actual PrimeReact
@@ -1353,6 +1381,8 @@ test('School class roster, reports and signature evidence remain tenant/RBAC sco
   const className = `IX E2E ${suffix}`;
   await page.goto('/scoala/clase');
   await expect(page.getByRole('heading', { name: 'Clase, elevi și diriginți' })).toBeVisible();
+  await expect(page.getByRole('tablist', { name: 'Clase și elevi' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Adaugă clasă' })).toBeVisible();
   await page.getByRole('button', { name: 'Adaugă clasă' }).click();
   const classDialog = page.getByRole('dialog', { name: 'Adaugă clasă' });
   await classDialog.locator('label').filter({ hasText: 'Cod *' }).locator('input').fill(classCode);

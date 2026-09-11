@@ -266,6 +266,7 @@ export interface EducationRecordInput {
  * They must not pass through the generic related-record adapter: their
  * request bodies, filters and lifecycle permissions are not interchangeable.
  */
+/** Generated portfolio-document contracts, including archive provenance. */
 export type PortfolioDocument = components["schemas"]["PortfolioDocument"];
 export type PortfolioChecklistItem = components["schemas"]["PortfolioChecklistItem"];
 export type PortfolioOpisEntry = components["schemas"]["PortfolioOpisEntry"];
@@ -284,13 +285,16 @@ export type CreatePortfolioCustodyEventInput = components["schemas"]["CreatePort
 export type CreatePortfolioReviewEventInput = components["schemas"]["CreatePortfolioReviewEventRequest"];
 export type CreatePortfolioValorificationEventInput = components["schemas"]["CreatePortfolioValorificationEventRequest"];
 
-export interface PortfolioDocumentListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; sectionCode?: string; }
-export interface PortfolioChecklistListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; requirementCode?: string; }
-export interface PortfolioOpisListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; sectionCode?: string; }
-export interface PortfolioCustodyListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; eventType?: string; }
-export interface PortfolioReviewListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; reviewCode?: string; }
-export interface PortfolioTransferHistoryQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; transferCode?: string; }
-export interface PortfolioValorificationListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; valorificationCode?: string; }
+export type PortfolioDocumentSort = "section_code" | "component_code" | "document_title" | "description" | "school_year" | "subject_discipline" | "applicable_class" | "source_scope" | "evidence_type" | "issued_on" | "chronological_index" | "sensitive_data" | "authenticity_status" | "archive_version_no";
+export interface PortfolioDocumentListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; sectionCode?: string; componentCode?: string; documentTitle?: string; description?: string; schoolYear?: string; subjectDiscipline?: string; applicableClass?: string; competencies?: string; sourceScope?: string; evidenceType?: string; authenticityStatus?: string; issuedOn?: string; chronologicalIndex?: string; sensitiveData?: string; archiveVersionNo?: string; archiveSHA256?: string; }
+export type PortfolioDocumentVersion = components["schemas"]["PortfolioDocumentVersion"];
+export interface PortfolioDocumentVersionListQuery { page?: number; pageSize?: number; sort?: "version_no" | "change_type" | "changed_by" | "changed_at" | "reason"; direction?: "asc" | "desc"; versionNo?: string; changeType?: string; changedBy?: string; changedAt?: string; reason?: string; }
+export interface PortfolioChecklistListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; requirementCode?: string; sectionCode?: string; status?: string; }
+export interface PortfolioOpisListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; sectionCode?: string; componentCode?: string; entryTitle?: string; chronologicalIndex?: string; documentReference?: string; }
+export interface PortfolioCustodyListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; eventType?: string; holderName?: string; holderRole?: string; startedOn?: string; endedOn?: string; }
+export interface PortfolioReviewListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; reviewCode?: string; reviewStage?: string; outcome?: string; reviewerName?: string; }
+export interface PortfolioTransferHistoryQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; transferCode?: string; transferType?: string; destinationInstitution?: string; status?: string; handoverOn?: string; }
+export interface PortfolioValorificationListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; valorificationCode?: string; scope?: string; status?: string; targetInstitution?: string; startedOn?: string; }
 export interface PortfolioSectionListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; sectionCode?: string; }
 export interface EducationRequirementListQuery { page?: number; pageSize?: number; sort?: string; direction?: "asc" | "desc"; domain?: string; }
 export interface TaxonomyCatalogQuery { domains?: string; }
@@ -379,6 +383,7 @@ export interface EducationApi {
   relatedPdf(resource: EducationRelatedResource, parentID: string | undefined, id: string): Promise<Blob>;
   portfolioDocuments(recordID: string, input?: PortfolioDocumentListQuery): Promise<EducationPage<PortfolioDocument>>;
   portfolioDocument(recordID: string, documentID: string): Promise<PortfolioDocument>;
+  portfolioDocumentVersions(recordID: string, documentID: string, input?: PortfolioDocumentVersionListQuery): Promise<EducationPage<PortfolioDocumentVersion>>;
   createPortfolioDocument(recordID: string, input: CreatePortfolioDocumentInput): Promise<PortfolioDocument>;
   updatePortfolioDocument(recordID: string, documentID: string, input: CreatePortfolioDocumentInput): Promise<PortfolioDocument>;
   deletePortfolioDocument(recordID: string, documentID: string): Promise<void>;
@@ -432,6 +437,7 @@ export interface EducationApi {
   recordPortfolioCessation(id: string, input: PortfolioCessationInput): Promise<OwnPortfolio>;
   setPortfolioLegalHold(id: string, input: PortfolioLegalHoldInput): Promise<OwnPortfolio>;
   createOwnPortfolioDocument(id: string, input: OwnPortfolioDocumentInput): Promise<PortfolioDocument>;
+  ownPortfolioDocumentVersions(portfolioID: string, documentID: string, input?: PortfolioDocumentVersionListQuery): Promise<EducationPage<PortfolioDocumentVersion>>;
   deleteOwnPortfolioDocument(portfolioID: string, documentID: string): Promise<void>;
   ownPortfolioArchiveDocuments(input?: EducationListQuery): Promise<EducationPage<OwnPortfolioArchiveDocument>>;
   attachmentGrants(input?: EducationListQuery): Promise<EducationPage<PortfolioAttachmentGrant>>;

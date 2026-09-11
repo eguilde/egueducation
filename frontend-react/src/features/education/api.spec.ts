@@ -255,22 +255,60 @@ describe("Education API", () => {
     await expect(api.saveRelated("merit-scores", "merit-1", { criterion_category: "performanta", criterion_code: "C2", criterion_label: "Invalid", max_score: 10, awarded_score: 11, panel_stage: "evaluare_comisie" })).rejects.toThrow("education_merit_awarded_score_exceeds_max_score");
   });
 
-  it("uses named Portfolio document transport with its sole documented filter", async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), { headers: { "content-type": "application/json" } }));
+  it("uses every rendered Portfolio document header filter through named transport fields", async () => {
+    const fetcher = vi.fn().mockImplementation(() => new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), { headers: { "content-type": "application/json" } }));
     const api = createEducationApi(fetcher);
-    await api.portfolioDocuments("portfolio-1", { page: 1, pageSize: 20, sort: "issued_on", direction: "desc", sectionCode: "S1" });
+    await api.portfolioDocuments("portfolio-1", { page: 1, pageSize: 20, sort: "issued_on", direction: "desc", sectionCode: "S1", componentCode: "C1", documentTitle: "Plan", description: "didactică", schoolYear: "2026-2027", subjectDiscipline: "Matematică", applicableClass: "IV A", competencies: "C1", sourceScope: "portofoliu", evidenceType: "document", authenticityStatus: "declared", issuedOn: "2026-09-01", chronologicalIndex: "1", sensitiveData: "false", archiveVersionNo: "2", archiveSHA256: "abc" });
     const url = new URL(urlAt(fetcher));
     expect(url.pathname).toBe("/api/education/portfolios/records/portfolio-1/documents");
     expect(url.searchParams.get("filter.section_code")).toBe("S1");
-    expect(url.searchParams.has("filter.status")).toBe(false);
+    expect(url.searchParams.get("filter.component_code")).toBe("C1");
+    expect(url.searchParams.get("filter.document_title")).toBe("Plan");
+    expect(url.searchParams.get("filter.description")).toBe("didactică");
+    expect(url.searchParams.get("filter.school_year")).toBe("2026-2027");
+    expect(url.searchParams.get("filter.subject_discipline")).toBe("Matematică");
+    expect(url.searchParams.get("filter.applicable_class")).toBe("IV A");
+    expect(url.searchParams.get("filter.competencies")).toBe("C1");
+    expect(url.searchParams.get("filter.source_scope")).toBe("portofoliu");
+    expect(url.searchParams.get("filter.evidence_type")).toBe("document");
+    expect(url.searchParams.get("filter.authenticity_status")).toBe("declared");
+    expect(url.searchParams.get("filter.issued_on")).toBe("2026-09-01");
+    expect(url.searchParams.get("filter.chronological_index")).toBe("1");
+    expect(url.searchParams.get("filter.sensitive_data")).toBe("false");
+    expect(url.searchParams.get("filter.archive_version_no")).toBe("2");
+    expect(url.searchParams.get("filter.archive_sha256")).toBe("abc");
   });
 
-  it("keeps transfer creation out of the history adapter", async () => {
+  it("uses the generated, owner-scoped and institutional document-version routes with server query fields", async () => {
+    const fetcher = vi.fn().mockImplementation(() => new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), { headers: { "content-type": "application/json" } }));
+    const api = createEducationApi(fetcher);
+    const query = { page: 2, pageSize: 10, sort: "changed_at" as const, direction: "asc" as const, versionNo: "3", changeType: "update", changedBy: "user-1", changedAt: "2026-09", reason: "correctare" };
+    await api.portfolioDocumentVersions("portfolio-1", "document-1", query);
+    await api.ownPortfolioDocumentVersions("portfolio-1", "document-1", query);
+    ["/api/education/portfolios/records/portfolio-1/documents/document-1/versions", "/api/education/portfolios/me/portfolio-1/documents/document-1/versions"].forEach((pathname, index) => {
+      const url = new URL(urlAt(fetcher, index));
+      expect(url.pathname).toBe(pathname);
+      expect(url.searchParams.get("page")).toBe("2");
+      expect(url.searchParams.get("pageSize")).toBe("10");
+      expect(url.searchParams.get("sort")).toBe("changed_at");
+      expect(url.searchParams.get("filter.version_no")).toBe("3");
+      expect(url.searchParams.get("filter.change_type")).toBe("update");
+      expect(url.searchParams.get("filter.changed_by")).toBe("user-1");
+      expect(url.searchParams.get("filter.changed_at")).toBe("2026-09");
+      expect(url.searchParams.get("filter.reason")).toBe("correctare");
+    });
+  });
+
+  it("keeps transfer creation out of the history adapter while serializing all displayed history filters", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ items: [], total: 0, page: 1, pageSize: 20 }), { headers: { "content-type": "application/json" } }));
-    await createEducationApi(fetcher).portfolioTransferHistory("portfolio-1", { transferCode: "TR-1" });
+    await createEducationApi(fetcher).portfolioTransferHistory("portfolio-1", { transferCode: "TR-1", transferType: "handover", destinationInstitution: "Școala B", status: "received", handoverOn: "2026-09-01" });
     expect(requestAt(fetcher).method).toBe("GET");
     expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/portfolio-1/transfers");
     expect(new URL(urlAt(fetcher)).searchParams.get("filter.transfer_code")).toBe("TR-1");
+    expect(new URL(urlAt(fetcher)).searchParams.get("filter.transfer_type")).toBe("handover");
+    expect(new URL(urlAt(fetcher)).searchParams.get("filter.destination_institution")).toBe("Școala B");
+    expect(new URL(urlAt(fetcher)).searchParams.get("filter.status")).toBe("received");
+    expect(new URL(urlAt(fetcher)).searchParams.get("filter.handover_on")).toBe("2026-09-01");
   });
 
   it("routes each non-governance catalogue domain to its backend records endpoint", async () => {
@@ -410,7 +448,7 @@ describe("Education API", () => {
     await api.submitOwnPortfolio("own-1");
     await api.ownPortfolioRelated("own-1", "opis");
     await api.regenerateOwnPortfolioOpis("own-1");
-    await api.createOwnPortfolioDocument("own-1", { section_code: "S1", component_code: "C1", document_title: "Planificare", evidence_type: "document", issued_on: "2026-09-01", added_on: "2026-09-01", chronological_index: 1, sensitive_data: false, file_reference: "archive://document-1", notes: "" });
+    await api.createOwnPortfolioDocument("own-1", { section_code: "S1", component_code: "C1", document_title: "Planificare", description: "Activitate didactică", school_year: "2026-2027", subject_discipline: "Matematică", applicable_class: "IV A", competencies: ["C1"], evidence_type: "document", issued_on: "2026-09-01", added_on: "2026-09-01", chronological_index: 1, sensitive_data: false, file_reference: "archive://document-1", notes: "" });
     await api.deleteOwnPortfolioDocument("own-1", "document-1");
     await api.ownPortfolioArchiveDocuments();
     expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/me");

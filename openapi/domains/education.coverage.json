@@ -4,7 +4,7 @@
   "scope": {
     "router": "backend/cmd/server/main.go",
     "routePrefix": "/api/education",
-    "operationCount": 362
+    "operationCount": 364
   },
   "sharedContract": {
     "securityScheme": "oidcAuthorizationCode",
@@ -8853,7 +8853,22 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.section_code"
+        "filter.section_code",
+        "filter.component_code",
+        "filter.document_title",
+        "filter.description",
+        "filter.school_year",
+        "filter.subject_discipline",
+        "filter.applicable_class",
+        "filter.competencies",
+        "filter.source_scope",
+        "filter.evidence_type",
+        "filter.issued_on",
+        "filter.chronological_index",
+        "filter.sensitive_data",
+        "filter.authenticity_status",
+        "filter.archive_version_no",
+        "filter.archive_sha256"
       ],
       "requestBody": null,
       "success": {
@@ -8902,6 +8917,48 @@
         500
       ],
       "modelEvidence": "inferred from concrete handler variable/page type"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/records/{recordID}/documents/{documentID}/versions",
+      "operationId": "get_api_education_portfolios_records_recordid_documents_documentid_versions",
+      "handler": "PortfolioDocumentVersions",
+      "source": "backend/internal/education/detail_records.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "document, portfolio and institution are joined against the authenticated institution; cross-tenant identifiers return not found",
+      "requiredPermission": "education.portfolios.school.read or education.portfolios.read",
+      "pathParameters": [
+        "recordID",
+        "documentID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.version_no",
+        "filter.change_type",
+        "filter.changed_by",
+        "filter.changed_at",
+        "filter.reason"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioDocumentVersion"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "app_entity_versions projection joined to tenant-scoped portfolio evidence"
     },
     {
       "operationKey": "GET /api/education/portfolios/records/{recordID}/checklist",
@@ -10683,7 +10740,22 @@
         "pageSize",
         "sort",
         "direction",
-        "filter.section_code"
+        "filter.section_code",
+        "filter.component_code",
+        "filter.document_title",
+        "filter.description",
+        "filter.school_year",
+        "filter.subject_discipline",
+        "filter.applicable_class",
+        "filter.competencies",
+        "filter.source_scope",
+        "filter.evidence_type",
+        "filter.issued_on",
+        "filter.chronological_index",
+        "filter.sensitive_data",
+        "filter.authenticity_status",
+        "filter.archive_version_no",
+        "filter.archive_sha256"
       ],
       "requestBody": null,
       "success": {
@@ -10700,6 +10772,48 @@
         500
       ],
       "modelEvidence": "owner wrapper delegates to validated document listing"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/documents/{documentID}/versions",
+      "operationId": "get_api_education_portfolios_me_recordid_documents_documentid_versions",
+      "handler": "PortfolioOwnDocumentVersions",
+      "source": "backend/internal/education/portfolio_access.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "record owner, document and institution are server-derived and verified before version history is returned",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID",
+        "documentID"
+      ],
+      "queryParameters": [
+        "page",
+        "pageSize",
+        "sort",
+        "direction",
+        "filter.version_no",
+        "filter.change_type",
+        "filter.changed_by",
+        "filter.changed_at",
+        "filter.reason"
+      ],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "EducationPageOfPortfolioDocumentVersion"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "own-portfolio authorization wrapper plus tenant-scoped entity-version projection"
     },
     {
       "operationKey": "POST /api/education/portfolios/me/{recordID}/documents",
@@ -12815,6 +12929,24 @@
           },
           "document_title": {
             "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "school_year": {
+            "type": "string"
+          },
+          "subject_discipline": {
+            "type": "string"
+          },
+          "applicable_class": {
+            "type": "string"
+          },
+          "competencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "source_scope": {
             "type": "string"
@@ -16737,6 +16869,24 @@
           "document_title": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
+          "school_year": {
+            "type": "string"
+          },
+          "subject_discipline": {
+            "type": "string"
+          },
+          "applicable_class": {
+            "type": "string"
+          },
+          "competencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "source_scope": {
             "type": "string"
           },
@@ -16762,6 +16912,19 @@
           "file_reference": {
             "type": "string"
           },
+          "archive_document_id": {
+            "type": "string"
+          },
+          "archive_version_id": {
+            "type": "string"
+          },
+          "archive_version_no": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "archive_sha256": {
+            "type": "string"
+          },
           "institution_id": {
             "type": "string"
           },
@@ -16772,6 +16935,35 @@
         "x-go-model": "PortfolioDocument",
         "x-source": "backend/internal/education/*.go",
         "x-requiredness": "Not inferred from Go zero-value structs; required fields are enforced by handler validation and should be completed with endpoint-specific validation extraction."
+      },
+      "PortfolioDocumentVersion": {
+        "type": "object",
+        "properties": {
+          "version_no": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "change_type": {
+            "type": "string"
+          },
+          "changed_by": {
+            "type": "string"
+          },
+          "changed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "snapshot": {
+            "type": "object",
+            "additionalProperties": true,
+            "x-free-form-property": "Historical row snapshot; keys match the documented PortfolioDocument persistence contract."
+          }
+        },
+        "x-go-model": "PortfolioDocumentVersion",
+        "x-source": "backend/internal/education/portfolio_models.go"
       },
       "PortfolioFiltersResponse": {
         "type": "object",
@@ -19685,6 +19877,37 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PortfolioDocument"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "x-derived-from": "httpx.WritePage"
+      },
+      "EducationPageOfPortfolioDocumentVersion": {
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortfolioDocumentVersion"
             }
           },
           "page": {

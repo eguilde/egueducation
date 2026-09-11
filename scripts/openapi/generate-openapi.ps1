@@ -228,7 +228,10 @@ function New-QueryParameter([string]$operationKey, [string]$parameterName) {
         return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
     }
     $portfolioRelationSorts = @{
-        'GET /api/education/portfolios/records/{recordID}/documents' = @('document_title', 'evidence_type', 'section_code', 'authenticity_status', 'issued_on')
+        'GET /api/education/portfolios/records/{recordID}/documents' = @('section_code', 'component_code', 'document_title', 'description', 'school_year', 'subject_discipline', 'applicable_class', 'source_scope', 'evidence_type', 'issued_on', 'chronological_index', 'sensitive_data', 'authenticity_status', 'archive_version_no')
+		'GET /api/education/portfolios/me/{recordID}/documents' = @('section_code', 'component_code', 'document_title', 'description', 'school_year', 'subject_discipline', 'applicable_class', 'source_scope', 'evidence_type', 'issued_on', 'chronological_index', 'sensitive_data', 'authenticity_status', 'archive_version_no')
+		'GET /api/education/portfolios/records/{recordID}/documents/{documentID}/versions' = @('version_no', 'change_type', 'changed_by', 'changed_at', 'reason')
+		'GET /api/education/portfolios/me/{recordID}/documents/{documentID}/versions' = @('version_no', 'change_type', 'changed_by', 'changed_at', 'reason')
         'GET /api/education/portfolios/records/{recordID}/checklist' = @('requirement_code', 'requirement_label', 'section_code', 'status', 'document_count')
         'GET /api/education/portfolios/records/{recordID}/opis' = @('section_code', 'component_code', 'entry_title', 'chronological_index', 'document_reference')
         'GET /api/education/portfolios/records/{recordID}/custody' = @('event_type', 'holder_name', 'holder_role', 'started_on', 'ended_on')
@@ -391,7 +394,8 @@ $educationRequestRequiredFields = @{
     'CreateMeritAppealRequest' = @('submitted_by','submitted_on','status','grounds')
     'CreateMeritFinalDecisionRequest' = @('decision_stage','outcome','approved_on','effective_from','panel_name')
     'CreateMeritResultIssueRequest' = @('document_type','recipient_name','delivery_channel','delivery_status','issued_on')
-    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','source_scope','evidence_type','issued_on','added_on','authenticity_status')
+    'CreatePortfolioDocumentRequest' = @('section_code','component_code','document_title','description','school_year','subject_discipline','applicable_class','competencies','source_scope','evidence_type','issued_on','added_on','authenticity_status','file_reference')
+    'OwnPortfolioDocumentRequest' = @('section_code','component_code','document_title','description','school_year','subject_discipline','applicable_class','competencies','evidence_type','issued_on','added_on','file_reference')
     'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
     'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
     'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
@@ -628,6 +632,13 @@ foreach ($match in $routePattern.Matches($routerSource)) {
         $requestSchema = if ($override -and $override.requestSchema) { [string]$override.requestSchema } elseif ($isDetailedFamily) { "$family`Request" } else { 'Mutation' }
 		if ($key -in @('POST /api/education/portfolios/me', 'PATCH /api/education/portfolios/me/{recordID}', 'POST /api/education/portfolios/me/{recordID}/documents', 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}') -and -not $common.components.schemas.Contains($requestSchema)) {
 			$common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key
+		}
+		if ($common.components.schemas.Contains($requestSchema) -and $educationRequestRequiredFields.ContainsKey($requestSchema)) {
+			$required = @($educationRequestRequiredFields[$requestSchema])
+			$unknownRequired = @($required | Where-Object { -not $common.components.schemas[$requestSchema].properties.Contains($_) })
+			if ($unknownRequired.Count -gt 0) { throw "Education request required-field catalogue names unknown properties on ${requestSchema}: $($unknownRequired -join ', ')" }
+			$common.components.schemas[$requestSchema].required = $required
+			[void]$common.components.schemas[$requestSchema].Remove('x-requiredness')
 		}
         if ($requestSchema -in @('IdentityRequest', 'AdminCommand', 'GdprCommand', 'Mutation', 'RegistraturaRequest')) {
             $requestSchema = "Request_$($operation.operationId)"

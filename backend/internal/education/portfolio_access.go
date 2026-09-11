@@ -719,7 +719,8 @@ func (s *Service) PortfolioOwnSubmit(w http.ResponseWriter, r *http.Request) {
 			archive_version_no = version.version_no,
 			archive_source_bucket = version.source_bucket,
 			archive_source_object_key = version.source_object_key,
-			archive_sha256 = version.source_sha256
+			archive_sha256 = lower(version.source_sha256),
+			last_change_reason = 'Proveniență eArhivă reverificată la trimitere'
 		from archive_documents document
 		join archive_document_versions version on version.document_id = document.id and version.version_no = document.current_version_no
 		join education_portfolio_archive_attachment_grants attachment_grant
@@ -891,6 +892,11 @@ func (s *Service) PortfolioOwnDocuments(w http.ResponseWriter, r *http.Request) 
 		s.PortfolioDocuments(w, r)
 	}
 }
+func (s *Service) PortfolioOwnDocumentVersions(w http.ResponseWriter, r *http.Request) {
+	if s.requireOwnPortfolioContent(w, r, portfolioReadOwnPermission, false) {
+		s.PortfolioDocumentVersions(w, r)
+	}
+}
 func (s *Service) PortfolioOwnDocumentCreate(w http.ResponseWriter, r *http.Request) {
 	if s.requireOwnPortfolioContent(w, r, portfolioManageOwnPermission, true) && s.prepareOwnPortfolioDocumentRequest(w, r) {
 		s.CreatePortfolioDocument(w, r)
@@ -943,6 +949,9 @@ func ownPortfolioDocumentCommand(own OwnPortfolioDocumentRequest, archiveReferen
 	return CreatePortfolioDocumentRequest{
 		SectionCode: own.SectionCode, ComponentCode: own.ComponentCode,
 		DocumentTitle: own.DocumentTitle, SourceScope: "portofoliu",
+		Description: own.Description, SchoolYear: own.SchoolYear,
+		SubjectDiscipline: own.SubjectDiscipline, ApplicableClass: own.ApplicableClass,
+		Competencies: own.Competencies,
 		EvidenceType: own.EvidenceType, IssuedOn: own.IssuedOn, AddedOn: own.AddedOn,
 		ChronologicalIndex: own.ChronologicalIndex, SensitiveData: own.SensitiveData,
 		AuthenticityStatus: "declarat", FileReference: archiveReference, Notes: own.Notes,

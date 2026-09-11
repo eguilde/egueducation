@@ -133,51 +133,79 @@ type PortfolioSection struct {
 }
 
 type PortfolioDocument struct {
-	ID                 string `json:"id"`
-	PortfolioID        string `json:"portfolio_id"`
-	SectionCode        string `json:"section_code"`
-	ComponentCode      string `json:"component_code"`
-	DocumentTitle      string `json:"document_title"`
-	SourceScope        string `json:"source_scope"`
-	EvidenceType       string `json:"evidence_type"`
-	IssuedOn           string `json:"issued_on"`
-	AddedOn            string `json:"added_on"`
-	ChronologicalIndex int    `json:"chronological_index"`
-	SensitiveData      bool   `json:"sensitive_data"`
-	AuthenticityStatus string `json:"authenticity_status"`
-	FileReference      string `json:"file_reference"`
-	InstitutionID      string `json:"institution_id"`
-	Notes              string `json:"notes"`
+	ID                 string   `json:"id"`
+	PortfolioID        string   `json:"portfolio_id"`
+	SectionCode        string   `json:"section_code"`
+	ComponentCode      string   `json:"component_code"`
+	DocumentTitle      string   `json:"document_title"`
+	Description        string   `json:"description"`
+	SchoolYear         string   `json:"school_year"`
+	SubjectDiscipline  string   `json:"subject_discipline"`
+	ApplicableClass    string   `json:"applicable_class"`
+	Competencies       []string `json:"competencies"`
+	SourceScope        string   `json:"source_scope"`
+	EvidenceType       string   `json:"evidence_type"`
+	IssuedOn           string   `json:"issued_on"`
+	AddedOn            string   `json:"added_on"`
+	ChronologicalIndex int      `json:"chronological_index"`
+	SensitiveData      bool     `json:"sensitive_data"`
+	AuthenticityStatus string   `json:"authenticity_status"`
+	FileReference      string   `json:"file_reference"`
+	ArchiveDocumentID  string   `json:"archive_document_id"`
+	ArchiveVersionID   string   `json:"archive_version_id"`
+	ArchiveVersionNo   int      `json:"archive_version_no"`
+	ArchiveSHA256      string   `json:"archive_sha256"`
+	InstitutionID      string   `json:"institution_id"`
+	Notes              string   `json:"notes"`
 }
 
 type CreatePortfolioDocumentRequest struct {
-	SectionCode        string `json:"section_code"`
-	ComponentCode      string `json:"component_code"`
-	DocumentTitle      string `json:"document_title"`
-	SourceScope        string `json:"source_scope"`
-	EvidenceType       string `json:"evidence_type"`
-	IssuedOn           string `json:"issued_on"`
-	AddedOn            string `json:"added_on"`
-	ChronologicalIndex int    `json:"chronological_index"`
-	SensitiveData      bool   `json:"sensitive_data"`
-	AuthenticityStatus string `json:"authenticity_status"`
-	FileReference      string `json:"file_reference"`
-	Notes              string `json:"notes"`
+	SectionCode        string   `json:"section_code"`
+	ComponentCode      string   `json:"component_code"`
+	DocumentTitle      string   `json:"document_title"`
+	Description        string   `json:"description"`
+	SchoolYear         string   `json:"school_year"`
+	SubjectDiscipline  string   `json:"subject_discipline"`
+	ApplicableClass    string   `json:"applicable_class"`
+	Competencies       []string `json:"competencies"`
+	SourceScope        string   `json:"source_scope"`
+	EvidenceType       string   `json:"evidence_type"`
+	IssuedOn           string   `json:"issued_on"`
+	AddedOn            string   `json:"added_on"`
+	ChronologicalIndex int      `json:"chronological_index"`
+	SensitiveData      bool     `json:"sensitive_data"`
+	AuthenticityStatus string   `json:"authenticity_status"`
+	FileReference      string   `json:"file_reference"`
+	Notes              string   `json:"notes"`
 }
 
 // OwnPortfolioDocumentRequest excludes institution-controlled authenticity
 // and provenance fields. Own-document handlers set those values server-side.
 type OwnPortfolioDocumentRequest struct {
-	SectionCode        string `json:"section_code"`
-	ComponentCode      string `json:"component_code"`
-	DocumentTitle      string `json:"document_title"`
-	EvidenceType       string `json:"evidence_type"`
-	IssuedOn           string `json:"issued_on"`
-	AddedOn            string `json:"added_on"`
-	ChronologicalIndex int    `json:"chronological_index"`
-	SensitiveData      bool   `json:"sensitive_data"`
-	FileReference      string `json:"file_reference"`
-	Notes              string `json:"notes"`
+	SectionCode        string   `json:"section_code"`
+	ComponentCode      string   `json:"component_code"`
+	DocumentTitle      string   `json:"document_title"`
+	Description        string   `json:"description"`
+	SchoolYear         string   `json:"school_year"`
+	SubjectDiscipline  string   `json:"subject_discipline"`
+	ApplicableClass    string   `json:"applicable_class"`
+	Competencies       []string `json:"competencies"`
+	EvidenceType       string   `json:"evidence_type"`
+	IssuedOn           string   `json:"issued_on"`
+	AddedOn            string   `json:"added_on"`
+	ChronologicalIndex int      `json:"chronological_index"`
+	SensitiveData      bool     `json:"sensitive_data"`
+	FileReference      string   `json:"file_reference"`
+	Notes              string   `json:"notes"`
+}
+
+type PortfolioDocumentVersion struct {
+	VersionNo  int            `json:"version_no"`
+	ChangeType string         `json:"change_type"`
+	ChangedBy  string         `json:"changed_by"`
+	ChangedAt  string         `json:"changed_at"`
+	Reason     string         `json:"reason"`
+	Snapshot   map[string]any `json:"snapshot"`
 }
 
 // PortfolioArchiveAttachment is the deliberately minimal eArhiva projection

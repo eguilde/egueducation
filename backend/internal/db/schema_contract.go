@@ -156,7 +156,7 @@ func SchemaContract() []TableContract {
 		institutionTable("gdpr_publication_reviews", "Publication review flows."),
 		institutionTable("education_meeting_participants", "Meeting participants."),
 		institutionTable("education_meeting_documents", "Meeting documents."),
-		institutionTableWithColumns("education_portfolio_documents", "Portfolio documents retained with append-audit lifecycle provenance.", "status", "withdrawn_at", "withdrawn_by_subject", "withdrawal_reason"),
+		institutionTableWithColumns("education_portfolio_documents", "Portfolio documents retained with append-audit lifecycle provenance and immutable eArhiva evidence.", "status", "withdrawn_at", "withdrawn_by_subject", "withdrawal_reason", "description", "school_year", "subject_discipline", "applicable_class", "competencies", "archive_document_id", "archive_version_id", "archive_version_no", "archive_source_bucket", "archive_source_object_key", "archive_sha256", "last_change_reason"),
 		institutionTable("education_meeting_votes", "Meeting votes."),
 		institutionTable("education_portfolio_checklist", "Portfolio checklist items."),
 		institutionTableWithColumns("education_governance_memberships", "Governance memberships with immutable user identity.", "app_user_id"),
