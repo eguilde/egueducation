@@ -277,10 +277,16 @@ on conflict (tenant_code, institution_id, pack_code, version) do nothing;
 -- authorised its creation. Scope is server-derived and cannot be supplied by
 -- the browser.
 alter table education_publications add column tenant_code text;
+-- This is a provenance-only scope backfill for legacy rows. The official
+-- artifact trigger correctly rejects every ordinary update to already
+-- published/withdrawn records, so suspend only that trigger for this bounded
+-- migration and restore it immediately afterwards.
+alter table education_publications disable trigger trg_education_publications_official_immutability;
 update education_publications publication
 set tenant_code = tenant.code
 from app_tenants tenant
 where tenant.institution_id = publication.institution_id;
+alter table education_publications enable trigger trg_education_publications_official_immutability;
 alter table education_publications alter column tenant_code set not null;
 alter table education_publications add column policy_evaluation_id uuid;
 alter table education_publications add constraint education_publications_tenant_fk
