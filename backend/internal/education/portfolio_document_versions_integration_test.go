@@ -91,6 +91,7 @@ func TestPortfolioDocumentVersionHistoryIsTenantScopedAndIncludesImmutableArchiv
 		t.Fatalf("unavailable archive update status=%d body=%s", unavailable.Code, unavailable.Body.String())
 	}
 
+	releaseA()
 	ctxB, releaseB := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantB, fixture.institutionB, "foreign-tenant-reader")
 	defer releaseB()
 	foreignBase := requestWithContext(ctxB, fixture.tenantB, fixture.institutionB, "foreign-tenant-reader")

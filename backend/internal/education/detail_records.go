@@ -1351,7 +1351,7 @@ func (s *Service) PortfolioDocumentVersions(w http.ResponseWriter, r *http.Reque
 		case "changed_at":
 			addContains("to_char(ev.changed_at, 'YYYY-MM-DD HH24:MI:SS')", value)
 		case "reason":
-			addContains("coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)", value)
+			addContains("coalesce(nullif(ev.snapshot->>'withdrawal_reason', ''), nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)", value)
 		}
 	}
 	whereClause := "where " + strings.Join(where, " and ")
@@ -1380,7 +1380,7 @@ func (s *Service) PortfolioDocumentVersions(w http.ResponseWriter, r *http.Reque
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
 	sortColumn := map[string]string{
 		"version_no": "ev.version_no", "change_type": "ev.change_type", "changed_by": "ev.changed_by",
-		"changed_at": "ev.changed_at", "reason": "coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)",
+		"changed_at": "ev.changed_at", "reason": "coalesce(nullif(ev.snapshot->>'withdrawal_reason', ''), nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type)",
 	}[query.Sort]
 	if sortColumn == "" {
 		sortColumn = "ev.version_no"
@@ -1388,7 +1388,7 @@ func (s *Service) PortfolioDocumentVersions(w http.ResponseWriter, r *http.Reque
 	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`
 		select ev.version_no, ev.change_type, ev.changed_by,
 			to_char(ev.changed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-			coalesce(nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type),
+			coalesce(nullif(ev.snapshot->>'withdrawal_reason', ''), nullif(ev.snapshot->>'last_change_reason', ''), ev.change_type),
 			jsonb_build_object(
 				'id', ev.snapshot->'id',
 				'portfolio_id', ev.snapshot->'portfolio_id',
@@ -1846,7 +1846,7 @@ func (s *Service) DeletePortfolioDocument(w http.ResponseWriter, r *http.Request
 
 	tag, err := tx.Exec(r.Context(), `
 		update education_portfolio_documents document
-		set status = 'withdrawn', last_change_reason = 'Document retras din portofoliu', updated_at = now()
+		set status = 'withdrawn', updated_at = now()
 		from education_portfolios portfolio
 		where document.id = $1
 			and document.portfolio_id = $2
