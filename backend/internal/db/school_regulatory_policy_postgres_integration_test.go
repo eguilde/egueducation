@@ -39,6 +39,7 @@ func TestSchoolRegulatoryPolicyRLSIntegration(t *testing.T) {
 		"grant usage on schema public to " + quotedRole,
 		"grant select, insert, update, delete on school_institution_profiles, school_policy_pack_versions, school_policy_assignments, school_policy_overrides, school_policy_evaluations to " + quotedRole,
 		"grant select, insert, update, delete on education_publications to " + quotedRole,
+		"grant select, insert on app_entity_versions to " + quotedRole,
 	} {
 		if _, err := adminPool.Exec(ctx, statement); err != nil {
 			t.Fatalf("grant restricted regulatory access: %v", err)
