@@ -12,6 +12,8 @@ const selectedSchemas = [
   'SessionContext',
   'get_api_registratura_documents_response',
   'post_api_registratura_documents_response',
+  'get_api_institution_regulatory_profile_response',
+  'get_api_institution_capabilities_response',
 ];
 
 const referencedSchemaNames = new Set(selectedSchemas);

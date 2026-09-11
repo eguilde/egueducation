@@ -56,7 +56,7 @@ foreach ($entry in $expected.Keys) {
 }
 if ($missing.Count -gt 0) { throw ("OpenAPI coverage failure; missing {0} router operation(s): {1}" -f $missing.Count, ($missing -join ', ')) }
 
-$schemaPrefixes = @('/api/registratura/', '/api/workflow/', '/api/earchiva/', '/api/auth/', '/api/passkeys/', '/api/eudi-wallet/')
+$schemaPrefixes = @('/api/registratura/', '/api/workflow/', '/api/earchiva/', '/api/auth/', '/api/passkeys/', '/api/eudi-wallet/', '/api/institution/')
 $schemaExact = @('/api/me', '/api/profile')
 $publicIdentity = @('/api/auth/methods', '/api/auth/ui-config', '/api/auth/role-catalog', '/api/auth/role-positions')
 $incomplete = @()
@@ -98,6 +98,38 @@ if ($placeholderOperations.Count -gt 0) { throw ("Placeholder OpenAPI operations
 if ($securityFailures.Count -gt 0) { throw ("Authenticated operations missing security/tenant/RBAC metadata: " + ($securityFailures -join ', ')) }
 if ($educationFailures.Count -gt 0) { throw ("Education contract metadata failure: " + ($educationFailures -join ', ')) }
 if ($genericScopedOperations.Count -gt 0) { throw ("Scoped operations may not use generic Entity: " + ($genericScopedOperations -join ', ')) }
+
+$profileGet = $specData.paths['/api/institution/regulatory-profile'].get
+$profilePut = $specData.paths['/api/institution/regulatory-profile'].put
+$capabilitiesGet = $specData.paths['/api/institution/capabilities'].get
+if (-not $profileGet -or -not $profilePut -or -not $capabilitiesGet) { throw 'Institution regulatory profile contract is incomplete.' }
+if ($profilePut.'x-required-permission' -ne 'institution.regulatory_profile.manage') { throw 'Regulatory profile mutation lacks exact RBAC metadata.' }
+$profileRequestRef = [string]$profilePut.requestBody.content.'application/json'.schema.'$ref'
+$profileRequest = $specData.components.schemas[$profileRequestRef.Split('/')[-1]]
+foreach ($forbiddenScopeField in @('tenant_code','institution_id','policy_evaluation_id')) {
+    if ($profileRequest.properties.Contains($forbiddenScopeField)) { throw "Regulatory profile request exposes server-derived field '$forbiddenScopeField'." }
+}
+if ($profileRequest.additionalProperties -ne $false -or $profileRequest.properties.school_legal_form.enum -join ',' -ne 'public,private,confessional') { throw 'Regulatory profile request is not closed or has an invalid legal-form enum.' }
+$capabilitiesResponse = $capabilitiesGet.responses.GetEnumerator() | Where-Object { $_.Key -match '^2' } | Select-Object -First 1
+$capabilitiesRef = [string](($capabilitiesResponse.Value.content.GetEnumerator() | Select-Object -First 1).Value.schema.'$ref')
+$capabilitiesSchema = $specData.components.schemas[$capabilitiesRef.Split('/')[-1]]
+foreach ($field in @('tenant_code','institution_id','evaluation_id','profile_status','blocked','block_reason','effective_policies','capabilities')) {
+    if (-not $capabilitiesSchema.properties.Contains($field)) { throw "Institution capabilities contract missing '$field'." }
+}
+foreach ($method in @('post','patch','delete')) {
+    $path = if ($method -eq 'post') { '/api/education/compliance/publications' } else { '/api/education/compliance/publications/{recordID}' }
+    $operation = $specData.paths[$path][$method]
+    if ($operation.'x-required-policy-capability' -ne 'education.publication.manage') {
+        throw "Regulated publication $method operation lacks its policy capability contract."
+    }
+    if ($operation.requestBody) {
+        $requestRef = [string]$operation.requestBody.content.'application/json'.schema.'$ref'
+        $requestSchema = $specData.components.schemas[$requestRef.Split('/')[-1]]
+        foreach ($forbiddenField in @('tenant_code','institution_id','policy_evaluation_id','school_legal_form')) {
+            if ($requestSchema.properties.Contains($forbiddenField)) { throw "Publication request exposes server-derived field '$forbiddenField'." }
+        }
+    }
+}
 
 $unknownSchemas = @($specData.components.schemas.GetEnumerator() | Where-Object { $_.Value.'x-schema-status' -eq 'unknown' })
 if ($unknownSchemas.Count -gt 0) { throw ("Unknown OpenAPI schemas remain: " + (($unknownSchemas | ForEach-Object Key) -join ', ')) }
@@ -656,5 +688,5 @@ foreach ($operation in @(
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 562) { throw "Router extraction drift: expected 562 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+if ($actualCount -ne 565) { throw "Router extraction drift: expected 565 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
 Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 396 Education operations schema-complete."

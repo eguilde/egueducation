@@ -1,4 +1,35 @@
 {
+  "GET /api/institution/regulatory-profile": {
+    "summary": "Read the active institution regulatory profile",
+    "description": "Returns the effective, host-derived institution classification. Tenant and institution fields are response-only provenance.",
+    "tags": ["Institutie", "Administrare"],
+    "responseSchema": "RegulatoryProfile",
+    "requiredPermission": "institution.regulatory_profile.read",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [401, 403, 404, 500]
+  },
+  "PUT /api/institution/regulatory-profile": {
+    "summary": "Create the next institution regulatory profile version",
+    "description": "Creates a scope-bound profile version using optimistic concurrency, approves the baseline policy assignments server-side and never accepts tenant or institution identifiers from the client.",
+    "tags": ["Institutie", "Administrare"],
+    "requestSchema": "PutRegulatoryProfileRequest",
+    "responseSchema": "RegulatoryProfile",
+    "requiredPermission": "institution.regulatory_profile.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 422, 500]
+  },
+  "GET /api/institution/capabilities": {
+    "summary": "Evaluate effective institution capabilities for the current session",
+    "description": "Returns only the server-derived intersection of active modules, live RBAC, the approved institution profile and effective policy packs; raw policy rules are not exposed.",
+    "tags": ["Institutie"],
+    "responseSchema": "InstitutionCapabilitiesResponse",
+    "requiredPermission": "authenticated active membership",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [401, 404, 500]
+  },
   "GET /api/education/governance/eligible-users": {
     "summary": "List active tenant users eligible for governance identities",
     "description": "Returns only immutable user IDs and display names for active users in the current tenant. The IDs are required for chair, secretary and governance membership assignment; display names are presentation-only.",

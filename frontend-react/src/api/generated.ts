@@ -6552,6 +6552,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/institution/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evaluate effective institution capabilities for the current session
+         * @description Returns only the server-derived intersection of active modules, live RBAC, the approved institution profile and effective policy packs; raw policy rules are not exposed.
+         */
+        get: operations["get_api_institution_capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institution/regulatory-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the active institution regulatory profile
+         * @description Returns the effective, host-derived institution classification. Tenant and institution fields are response-only provenance.
+         */
+        get: operations["get_api_institution_regulatory_profile"];
+        /**
+         * Create the next institution regulatory profile version
+         * @description Creates a scope-bound profile version using optimistic concurrency, approves the baseline policy assignments server-side and never accepts tenant or institution identifiers from the client.
+         */
+        put: operations["put_api_institution_regulatory_profile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -11187,6 +11231,36 @@ export interface components {
             published_on: string;
             reviewed_by: string;
         };
+        PutRegulatoryProfileRequest: {
+            accounting_profile?: string;
+            accreditation_reference?: string;
+            /** @enum {string} */
+            authorization_status: "unknown" | "provisional" | "authorized" | "accredited" | "suspended" | "withdrawn";
+            authorized_levels: string[];
+            budget_authority_name?: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            founder_name?: string;
+            funder_name?: string;
+            has_legal_personality: boolean;
+            is_contracting_authority: boolean;
+            payroll_profile?: string;
+            procurement_profile?: string;
+            program_codes: string[];
+            public_funding: boolean;
+            regulatory_profile: string;
+            /** @enum {string} */
+            school_legal_form: "public" | "private" | "confessional";
+            source_reference: string;
+            /** @enum {string} */
+            status: "draft" | "approved" | "active";
+            tax_identifier?: string;
+            treasury_required: boolean;
+            vat_profile?: string;
+        };
         RegistraturaAttachment: {
             category: string;
             /** Format: uuid */
@@ -12921,6 +12995,72 @@ export interface components {
             pageSize?: number;
             total?: number;
         };
+        get_api_institution_capabilities_response: {
+            block_reason: string;
+            blocked: boolean;
+            capabilities: {
+                code: string;
+                enabled: boolean;
+                reason: string;
+                required_approvals: string[];
+                required_documents: string[];
+                required_permission: string;
+                wizard_steps: string[];
+            }[];
+            effective_policies: {
+                checksum_sha256: string;
+                code: string;
+                effective_from: string;
+                effective_to: string | null;
+                id: string;
+                regulatory_profile: string;
+                source_references: string[];
+                version: number;
+            }[];
+            evaluated_at: string;
+            evaluation_id: string | null;
+            institution_id: string;
+            profile_id: string;
+            profile_status: string;
+            profile_version: number;
+            school_legal_form: string | null;
+            tenant_code: string;
+            warnings: string[];
+        };
+        get_api_institution_regulatory_profile_response: {
+            accounting_profile: string;
+            accreditation_reference: string;
+            approved_at: string | null;
+            approved_by_subject: string;
+            authorization_status: string;
+            authorized_levels: string[];
+            budget_authority_name: string;
+            created_at: string;
+            created_by_subject: string;
+            effective_from: string | null;
+            effective_to: string | null;
+            founder_name: string;
+            funder_name: string;
+            has_legal_personality: boolean;
+            id: string;
+            institution_id: string;
+            is_contracting_authority: boolean;
+            payroll_profile: string;
+            procurement_profile: string;
+            program_codes: string[];
+            public_funding: boolean;
+            regulatory_profile: string;
+            school_legal_form: string | null;
+            source_reference: string;
+            status: string;
+            tax_identifier: string;
+            tenant_code: string;
+            treasury_required: boolean;
+            updated_at: string;
+            updated_by_subject: string;
+            vat_profile: string;
+            version: number;
+        };
         get_api_passkeys_item: {
             created_at: string;
             credential_id: string;
@@ -14352,6 +14492,40 @@ export interface components {
             title: string;
             updated_at: string;
         };
+        put_api_institution_regulatory_profile_response: {
+            accounting_profile: string;
+            accreditation_reference: string;
+            approved_at: string | null;
+            approved_by_subject: string;
+            authorization_status: string;
+            authorized_levels: string[];
+            budget_authority_name: string;
+            created_at: string;
+            created_by_subject: string;
+            effective_from: string | null;
+            effective_to: string | null;
+            founder_name: string;
+            funder_name: string;
+            has_legal_personality: boolean;
+            id: string;
+            institution_id: string;
+            is_contracting_authority: boolean;
+            payroll_profile: string;
+            procurement_profile: string;
+            program_codes: string[];
+            public_funding: boolean;
+            regulatory_profile: string;
+            school_legal_form: string | null;
+            source_reference: string;
+            status: string;
+            tax_identifier: string;
+            tenant_code: string;
+            treasury_required: boolean;
+            updated_at: string;
+            updated_by_subject: string;
+            vat_profile: string;
+            version: number;
+        };
         put_api_registratura_admin_users_id_assignments_response: {
             department_ids?: string[];
             organization_id?: string | null;
@@ -14362,6 +14536,15 @@ export interface components {
     responses: {
         /** @description Malformed request */
         BadRequest: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Optimistic-concurrency or current-state conflict */
+        Conflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -16609,6 +16792,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -16665,6 +16849,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -16697,6 +16882,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -16762,6 +16948,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -16847,6 +17034,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -16879,6 +17067,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -18199,6 +18388,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -18302,6 +18492,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -18330,6 +18521,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -18358,6 +18550,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -21860,6 +22053,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -21916,6 +22110,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -21948,6 +22143,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -24687,6 +24883,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -24775,6 +24972,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -24898,6 +25096,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -24989,6 +25188,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25084,6 +25284,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25165,6 +25366,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25192,6 +25394,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25225,6 +25428,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25326,6 +25530,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25388,6 +25593,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25451,6 +25657,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25511,6 +25718,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25543,6 +25751,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25575,6 +25784,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25642,6 +25852,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25674,6 +25885,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25706,6 +25918,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25912,6 +26125,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -26519,6 +26733,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -26758,6 +26973,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -27197,6 +27413,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -27317,6 +27534,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -27379,6 +27597,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -27562,6 +27781,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -28654,6 +28874,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -28710,6 +28931,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -28742,6 +28964,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -29308,6 +29531,84 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_institution_capabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_capabilities_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_institution_regulatory_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_regulatory_profile_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    put_api_institution_regulatory_profile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutRegulatoryProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["put_api_institution_regulatory_profile_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };

@@ -23,6 +23,7 @@ import (
 	"github.com/eguilde/egueducation/internal/education"
 	"github.com/eguilde/egueducation/internal/gdpr"
 	"github.com/eguilde/egueducation/internal/httpx"
+	"github.com/eguilde/egueducation/internal/institution"
 	"github.com/eguilde/egueducation/internal/notification"
 	"github.com/eguilde/egueducation/internal/registratura"
 	"github.com/eguilde/egueducation/internal/tenant"
@@ -111,6 +112,7 @@ func main() {
 		logger.Fatal("archive worker requires configured storage and OCR in production")
 	}
 	adminService := admin.NewService(cfg, sessionDB)
+	institutionService := institution.NewService(sessionDB)
 	educationService := education.NewService(sessionDB)
 	if endpoint := strings.TrimSpace(cfg.SignatureVerifierURL); endpoint != "" {
 		verifier, verifierErr := education.NewRemoteSignedArtifactVerifier(endpoint, cfg.SignatureVerifierToken, time.Duration(cfg.SignatureVerifierTimeoutSeconds)*time.Second)
@@ -188,6 +190,9 @@ func main() {
 
 			r.Get("/me", authService.SessionContext)
 			r.Put("/profile", authService.UpdateProfile)
+			r.Get("/institution/capabilities", institutionService.GetCapabilities)
+			r.With(authService.RequirePermissions("institution.regulatory_profile.read")).Get("/institution/regulatory-profile", institutionService.GetRegulatoryProfile)
+			r.With(authService.RequirePermissions("institution.regulatory_profile.manage")).Put("/institution/regulatory-profile", institutionService.PutRegulatoryProfile)
 			r.Get("/passkeys", authService.ListPasskeys)
 			r.Post("/passkeys/register-options", authService.BeginPasskeyRegistration)
 			r.Post("/passkeys/register-finish", authService.FinishPasskeyRegistration)
@@ -406,9 +411,9 @@ func main() {
 				r.With(authService.RequirePermissions("education.delegations.revoke")).Post("/education/delegations/{delegationID}/expire", educationService.ExpireEducationDelegation)
 				r.With(educationService.RequireEducationPermission("education.compliance.read")).Get("/education/compliance/publications", educationService.PublicationRecords)
 				r.With(educationService.RequireEducationPermission("education.compliance.read")).Get("/education/compliance/publications/{recordID}", educationService.PublicationRecordDetail)
-				r.With(educationService.RequireEducationPermission("education.compliance.manage")).Post("/education/compliance/publications", educationService.CreatePublicationRecord)
-				r.With(educationService.RequireEducationPermission("education.compliance.manage")).Patch("/education/compliance/publications/{recordID}", educationService.UpdatePublicationRecord)
-				r.With(educationService.RequireEducationPermission("education.compliance.manage")).Delete("/education/compliance/publications/{recordID}", educationService.DeletePublicationRecord)
+				r.With(educationService.RequireEducationPermission("education.compliance.manage"), institutionService.RequireCapability("education.publication.manage")).Post("/education/compliance/publications", educationService.CreatePublicationRecord)
+				r.With(educationService.RequireEducationPermission("education.compliance.manage"), institutionService.RequireCapability("education.publication.manage")).Patch("/education/compliance/publications/{recordID}", educationService.UpdatePublicationRecord)
+				r.With(educationService.RequireEducationPermission("education.compliance.manage"), institutionService.RequireCapability("education.publication.manage")).Delete("/education/compliance/publications/{recordID}", educationService.DeletePublicationRecord)
 				r.With(educationService.RequireAnyEducationPermissions(
 					"education.read",
 					"education.compliance.read",

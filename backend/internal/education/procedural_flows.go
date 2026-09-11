@@ -11,7 +11,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 
+	"github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/httpx"
+	"github.com/eguilde/egueducation/internal/institution"
 )
 
 func (s *Service) GovernanceMinuteItems(w http.ResponseWriter, r *http.Request) {
@@ -755,7 +757,7 @@ func (s *Service) PublicationRecords(w http.ResponseWriter, r *http.Request) {
 	args = append(args, query.PageSize, (query.Page-1)*query.PageSize)
 	rows, err := s.pool.Query(r.Context(), fmt.Sprintf(`
 		select id::text, publication_code, domain, entity_type, entity_label, publication_channel, publication_status,
-			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, notes
+			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, coalesce(policy_evaluation_id::text, ''), notes
 		from education_publications epu
 		%s
 		order by %s %s, publication_code desc
@@ -770,7 +772,7 @@ func (s *Service) PublicationRecords(w http.ResponseWriter, r *http.Request) {
 	items := make([]PublicationRecord, 0, query.PageSize)
 	for rows.Next() {
 		var item PublicationRecord
-		if err := rows.Scan(&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.Notes); err != nil {
+		if err := rows.Scan(&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.PolicyEvaluationID, &item.Notes); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_publications_scan_failed"})
 			return
 		}
@@ -788,10 +790,10 @@ func (s *Service) PublicationRecordDetail(w http.ResponseWriter, r *http.Request
 	var item PublicationRecord
 	err := s.pool.QueryRow(r.Context(), `
 		select id::text, publication_code, domain, entity_type, entity_label, publication_channel, publication_status,
-			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, notes
+			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, coalesce(policy_evaluation_id::text, ''), notes
 		from education_publications
 		where id = $1 and institution_id = $2
-	`, recordID, s.institutionID(r)).Scan(&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.Notes)
+	`, recordID, s.institutionID(r)).Scan(&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.PolicyEvaluationID, &item.Notes)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			writeEducationNotFound(w, "education_publication_not_found")
@@ -805,7 +807,9 @@ func (s *Service) PublicationRecordDetail(w http.ResponseWriter, r *http.Request
 
 func (s *Service) CreatePublicationRecord(w http.ResponseWriter, r *http.Request) {
 	var req CreatePublicationRecordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 128<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_publication_payload"})
 		return
 	}
@@ -849,26 +853,32 @@ func (s *Service) CreatePublicationRecord(w http.ResponseWriter, r *http.Request
 	}
 
 	code := newEducationCode("PUB")
+	policyEvaluationID := institution.CurrentPolicyEvaluationIDFromRequest(r)
+	if policyEvaluationID == "" {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "institution_policy_evaluation_missing"})
+		return
+	}
 	var item PublicationRecord
 	err := s.pool.QueryRow(r.Context(), `
 		insert into education_publications (
 			publication_code, domain, entity_type, entity_label, publication_channel, publication_status, anonymization_status,
-			mandatory, published_on, reviewed_by, institution_id, notes
-		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+			mandatory, published_on, reviewed_by, institution_id, tenant_code, policy_evaluation_id, notes
+		) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		returning id::text, publication_code, domain, entity_type, entity_label, publication_channel, publication_status,
-			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, notes
-	`, code, req.Domain, req.EntityType, req.EntityLabel, req.PublicationChannel, req.PublicationStatus, req.AnonymizationStatus, req.Mandatory, publishedOn, req.ReviewedBy, s.institutionID(r), req.Notes).Scan(
-		&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.Notes,
+			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, policy_evaluation_id::text, notes
+	`, code, req.Domain, req.EntityType, req.EntityLabel, req.PublicationChannel, req.PublicationStatus, req.AnonymizationStatus, req.Mandatory, publishedOn, req.ReviewedBy, s.institutionID(r), auth.CurrentTenantCodeFromRequest(r), policyEvaluationID, req.Notes).Scan(
+		&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.PolicyEvaluationID, &item.Notes,
 	)
 	if err != nil {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "publication_create_failed"})
 		return
 	}
 	s.logAudit(r, "education.publication.create", "education_publication", item.ID, "Publication record created.", map[string]any{
-		"publication_code":   item.PublicationCode,
-		"domain":             item.Domain,
-		"entity_type":        item.EntityType,
-		"publication_status": item.PublicationStatus,
+		"publication_code":     item.PublicationCode,
+		"domain":               item.Domain,
+		"entity_type":          item.EntityType,
+		"publication_status":   item.PublicationStatus,
+		"policy_evaluation_id": item.PolicyEvaluationID,
 	})
 	httpx.JSON(w, http.StatusCreated, item)
 }
@@ -876,7 +886,9 @@ func (s *Service) CreatePublicationRecord(w http.ResponseWriter, r *http.Request
 func (s *Service) UpdatePublicationRecord(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	var req CreatePublicationRecordRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 128<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_publication_payload"})
 		return
 	}
@@ -914,9 +926,9 @@ func (s *Service) UpdatePublicationRecord(w http.ResponseWriter, r *http.Request
 			anonymization_status = $6, mandatory = $7, published_on = $8, reviewed_by = $9, notes = $10, updated_at = now()
 		where id = $11 and institution_id = $12
 		returning id::text, publication_code, domain, entity_type, entity_label, publication_channel, publication_status,
-			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, notes
+			anonymization_status, mandatory, coalesce(to_char(published_on, 'YYYY-MM-DD'), ''), reviewed_by, institution_id, coalesce(policy_evaluation_id::text, ''), notes
 	`, req.Domain, req.EntityType, req.EntityLabel, req.PublicationChannel, req.PublicationStatus, req.AnonymizationStatus, req.Mandatory, publishedOn, req.ReviewedBy, req.Notes, recordID, s.institutionID(r)).Scan(
-		&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.Notes,
+		&item.ID, &item.PublicationCode, &item.Domain, &item.EntityType, &item.EntityLabel, &item.PublicationChannel, &item.PublicationStatus, &item.AnonymizationStatus, &item.Mandatory, &item.PublishedOn, &item.ReviewedBy, &item.InstitutionID, &item.PolicyEvaluationID, &item.Notes,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -927,10 +939,11 @@ func (s *Service) UpdatePublicationRecord(w http.ResponseWriter, r *http.Request
 		return
 	}
 	s.logAudit(r, "education.publication.update", "education_publication", item.ID, "Publication record updated.", map[string]any{
-		"publication_code":   item.PublicationCode,
-		"domain":             item.Domain,
-		"entity_type":        item.EntityType,
-		"publication_status": item.PublicationStatus,
+		"publication_code":     item.PublicationCode,
+		"domain":               item.Domain,
+		"entity_type":          item.EntityType,
+		"publication_status":   item.PublicationStatus,
+		"policy_evaluation_id": institution.CurrentPolicyEvaluationIDFromRequest(r),
 	})
 	httpx.JSON(w, http.StatusOK, item)
 }
@@ -946,7 +959,7 @@ func (s *Service) DeletePublicationRecord(w http.ResponseWriter, r *http.Request
 		writeEducationNotFound(w, "education_publication_not_found")
 		return
 	}
-	s.logAudit(r, "education.publication.delete", "education_publication", recordID, "Publication record deleted.", nil)
+	s.logAudit(r, "education.publication.delete", "education_publication", recordID, "Publication record deleted.", map[string]any{"policy_evaluation_id": institution.CurrentPolicyEvaluationIDFromRequest(r)})
 	w.WriteHeader(http.StatusNoContent)
 }
 

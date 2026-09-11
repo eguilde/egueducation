@@ -986,6 +986,32 @@ func CurrentTenantCodeFromRequest(r *http.Request) string {
 	return ""
 }
 
+// CurrentPermissionsFromRequest returns a defensive copy of the live,
+// host-scoped authorization snapshot verified by RequireAuthenticated.
+func CurrentPermissionsFromRequest(r *http.Request) []string {
+	session, ok := sessionFromContext(r.Context())
+	if !ok {
+		return []string{}
+	}
+	return append([]string(nil), session.Permissions...)
+}
+
+// CurrentActiveModulesFromRequest exposes only active modules from the same
+// verified session snapshot. Policy resolution intersects this set with RBAC.
+func CurrentActiveModulesFromRequest(r *http.Request) []string {
+	session, ok := sessionFromContext(r.Context())
+	if !ok {
+		return []string{}
+	}
+	modules := make([]string, 0, len(session.Modules))
+	for _, module := range session.Modules {
+		if module.Active {
+			modules = append(modules, module.Code)
+		}
+	}
+	return modules
+}
+
 func IsPlatformSuperAdminFromRequest(r *http.Request) bool {
 	// Platform authority is loaded from the dedicated global assignment table
 	// and cross-checked against the access token by RequireAuthenticated. Tenant

@@ -25,7 +25,7 @@ Statusurile din acest catalog sunt:
 | Domeniu | Surse principale |
 | --- | --- |
 | Învățământ public/privat | [Legea învățământului preuniversitar nr. 198/2023, forma actualizată](https://legislatie.just.ro/Public/DetaliiDocument/309185) |
-| Finanțare particular/confesional | [HG nr. 69/2024](https://legislatie.just.ro/Public/DetaliiDocument/295485), modificată inclusiv prin [HG nr. 381/2026](https://legislatie.just.ro/Public/FormaPrintabila/00000G1ZEX9ZZI34N3E0H5I4RDJI29A8) |
+| Finanțare particular/confesional | [HG nr. 69/2024](https://legislatie.just.ro/Public/DetaliiDocument/295485), modificată inclusiv prin [HG nr. 381/2026](https://legislatie.just.ro/Public/DetaliiDocument/310287) |
 | Finanțe publice | [Legea nr. 500/2002](https://legislatie.just.ro/Public/DetaliiDocument/37954), [Legea nr. 273/2006](https://legislatie.just.ro/Public/DetaliiDocument/293380) |
 | Achiziții publice | [Legea nr. 98/2016, forma actualizată](https://legislatie.just.ro/Public/DetaliiDocumentAfis/183887), [HG nr. 395/2016](https://legislatie.just.ro/Public/DetaliiDocument/179009), [OG nr. 119/1999](https://legislatie.just.ro/Public/DetaliiDocument/286006) |
 | Contabilitate | [Legea contabilității nr. 82/1991](https://legislatie.just.ro/Public/DetaliiDocument/55046), [OMFP nr. 1.917/2005](https://legislatie.just.ro/Public/DetaliiDocument/211573), [OMFP nr. 1.802/2014](https://legislatie.just.ro/Public/DetaliiDocumentAfis/250771) |
@@ -47,12 +47,18 @@ Auditul a fost realizat asupra codului Go/PostgreSQL/React și a contractului Op
 | Registratură, Flux documente, eArhivă și audit | suport comun pentru documente, aprobări, păstrare și dovezi | existent ca fundație |
 | Modul Education: guvernanță, personal, dosar, evaluări, portofolii | identitatea `education_personnel` se păstrează; se completează HR operațional | parțial |
 | OpenAPI 3.1.1 și client React generat | contract unic DB–API–UI pentru noile verticale | existent ca fundație |
-| Profil juridic și de reglementare al instituției | nu există câmpuri canonice pentru formă juridică, acreditare, autoritate contractantă sau regim contabil | lipsă |
-| Policy packs versionate și endpoint de capabilități | nu există resolver comun public/privat/fonduri | lipsă |
+| Profil juridic și de reglementare al instituției | câmpurile canonice, versionarea, intervalele efective și administrarea PrimeReact sunt implementate; extinderea operațională consumă profilul prin policy capabilities | implementat ca fundație |
+| Policy packs versionate și endpoint de capabilități | fundația profil/packs/assignments/evaluations și resolverul comun există; extinderea catalogului de capabilități rămâne incrementală | implementat parțial |
 | Contracte, utilități, achiziții, catering, patrimoniu, logistică, SSM/PSI | nu există bounded contexts operaționale complete | lipsă |
 | HR complet, economic și contabil | dosarul personal existent nu acoperă aceste domenii | lipsă |
 
 Concluzie: arhitectura de bază se păstrează, însă eGuEducation nu poate fi prezentat astăzi ca suită completă de management public/privat. Extinderea trebuie realizată vertical, contract-first, fără tabele sau formulare generice care simulează procese inexistente.
+
+### 3.1 Limită structurală curentă și adaptare obligatorie
+
+Modelul curent este multi-tenant, dar fiecare înregistrare `app_tenants` are exact un singur `institution_id` (`UNIQUE`). În această etapă produsul suportă corect mai multe școli izolate, câte o instituție principală pe tenant/subdomeniu. Nu se declară încă suport pentru un operator privat, fundație sau autoritate care administrează mai multe școli în același tenant.
+
+Adaptarea public/privat nu necesită două produse și nu schimbă această izolare. Ea introduce profilul juridic independent de tenant și policy overlays effective-dated. Suportul viitor „mai multe instituții într-un tenant” necesită un agregat `app_institutions`, o mapare tenant–instituție și revizuirea membershipurilor, sesiunilor OIDC și a tuturor politicilor RLS; acesta este un prerechizit explicit înaintea comercializării unui tenant-grup.
 
 ## 4. Profil instituțional și politici public/privat
 
@@ -82,6 +88,12 @@ Sunt necesare:
 - `/api/institution/capabilities`: pașii, acțiunile, documentele și permisiunile aplicabile contextului curent.
 
 Frontendul redă capabilitățile publicate de server. Nu are ramuri `if schoolIsPublic` și nu permite payloadului să aleagă tenantul, instituția ori profilul juridic.
+
+### 4.3 Starea implementării fundației
+
+Verticala inițială folosește `school_institution_profiles`, `school_policy_pack_versions`, `school_policy_assignments`, `school_policy_overrides` și `school_policy_evaluations`, cu scope compozit tenant–instituție, RLS forțat, versionare și evaluări imuabile. Fiecare assignment este legat prin FK de versiunea exactă a profilului, astfel încât un draft sau profil viitor nu dezactivează profilul efectiv și nu rescrie istoricul. Endpointurile canonice sunt `GET/PUT /api/institution/regulatory-profile` și `GET /api/institution/capabilities`; clasificarea este administrativă, iar capabilitățile sunt accesibile utilizatorului autentificat numai pentru propriul context. Policy packs de bază sunt instalate prin migrare controlată, nu editate arbitrar de administratorul tenantului.
+
+Prima integrare verticală este `education.publication.manage`: POST/PATCH/DELETE pentru publicațiile de conformitate sunt evaluate server-side, create păstrează `policy_evaluation_id`, iar UI ascunde mutațiile când intersecția modul–RBAC–policy nu le permite. OpenAPI publică `x-required-policy-capability`. Această dovadă nu face singură modulele OPS-CON…OPS-FIN complete; fiecare operațiune reglementată următoare trebuie conectată prin același model, iar simpla afișare a unui guard în React nu este control de securitate.
 
 ## 5. Matrice funcțională public/privat
 

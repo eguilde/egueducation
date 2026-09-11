@@ -1,4 +1,4 @@
-export interface NavItem { label: string; icon: string; to: string; permission?: string; permissions?: string[]; module?: string; delegatedEducation?: boolean }
+export interface NavItem { label: string; icon: string; to: string; permission?: string; permissions?: string[]; module?: string; policyCapability?: string; delegatedEducation?: boolean }
 export const navigation: NavItem[] = [
   { label: 'Acasă', icon: 'pi pi-home', to: '/' },
   { label: 'Registratură', icon: 'pi pi-inbox', to: '/registratura', permission: 'registratura.read', module: 'registratura' },
@@ -15,5 +15,6 @@ export const navigation: NavItem[] = [
   { label: 'Portofolii instituționale', icon: 'pi pi-folder-open', to: '/scoala/portfolios', permissions: ['education.portfolios.school.read', 'education.portfolios.read'], module: 'education' },
   { label: 'Portofoliul meu', icon: 'pi pi-folder', to: '/scoala/portfolio/me', permission: 'education.portfolios.read_own', module: 'education' },
   { label: 'Resurse delegate', icon: 'pi pi-share-alt', to: '/scoala/resurse-delegate', module: 'education', delegatedEducation: true },
+  { label: 'Profil instituțional', icon: 'pi pi-building', to: '/profil-institutie', permission: 'institution.regulatory_profile.read' },
   { label: 'Administrare', icon: 'pi pi-cog', to: '/administrare', permission: 'admin.read' }
 ];

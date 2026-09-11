@@ -13,6 +13,8 @@ import { Tabs } from "@primereact/ui/tabs";
 import { Plus, Refresh } from "@primeicons/react";
 import { createAdminApi } from "./api";
 import type { AdminApi, AdminPermissions, AdminResource, AdminResourcePath, AdminUser, AdminWritableResourcePath, Dashboard, ModuleSetting, Page, PermissionCheck, Role, UpsertUserInput } from "./types";
+import { RegulatoryProfileWorkspace } from "../institution/RegulatoryProfileWorkspace";
+import type { InstitutionPolicyApi } from "../institution/api";
 
 const emptyUser = (): UpsertUserInput => ({
   name: "", email: "", phone: "", locale: "ro", status: "active",
@@ -29,9 +31,10 @@ export interface AdministrationWorkspaceProps {
   permissions?: Partial<AdminPermissions>;
   canAccess?: PermissionCheck;
   institutionName: string;
+  institutionPolicyApi?: InstitutionPolicyApi;
 }
 
-export function AdministrationWorkspace({ api = createAdminApi(), permissions, canAccess = () => false, institutionName }: AdministrationWorkspaceProps) {
+export function AdministrationWorkspace({ api = createAdminApi(), permissions, canAccess = () => false, institutionName, institutionPolicyApi }: AdministrationWorkspaceProps) {
   const access = { ...defaultPermissions, ...permissions };
   const [dashboard, setDashboard] = useState<Dashboard>();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -80,7 +83,7 @@ export function AdministrationWorkspace({ api = createAdminApi(), permissions, c
     {error && <Message.Root severity="error"><Message.Content><Message.Text>{error}</Message.Text></Message.Content></Message.Root>}
     {!Object.values(access).some(Boolean) ? <Message.Root severity="warn"><Message.Content><Message.Text>Nu aveți drepturi de administrare pentru această instituție.</Message.Text></Message.Content></Message.Root> : <>
       {loading ? <div className="flex justify-center p-8"><Spinner /></div> : <Tabs.Root defaultValue="overview">
-        <Tabs.List><Tabs.Tab value="overview">Panou</Tabs.Tab><Tabs.Tab value="users" disabled={!access.usersRead}>Utilizatori</Tabs.Tab><Tabs.Tab value="roles" disabled={!access.rolesRead}>Roluri</Tabs.Tab><Tabs.Tab value="modules" disabled={!access.modulesRead}>Module</Tabs.Tab><Tabs.Indicator /></Tabs.List>
+        <Tabs.List><Tabs.Tab value="overview">Panou</Tabs.Tab><Tabs.Tab value="users" disabled={!access.usersRead}>Utilizatori</Tabs.Tab><Tabs.Tab value="roles" disabled={!access.rolesRead}>Roluri</Tabs.Tab><Tabs.Tab value="modules" disabled={!access.modulesRead}>Module</Tabs.Tab>{institutionPolicyApi && canAccess("institution.regulatory_profile.read") && <Tabs.Tab value="regulatory-profile">Profil instituțional</Tabs.Tab>}<Tabs.Indicator /></Tabs.List>
         <Tabs.Panel value="overview"><div className="mt-4 flex flex-col gap-4">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{stats.map(([name, value]) => <Card.Root key={name}><Card.Body><Card.Content><p>{label(name)}</p><strong>{value}</strong></Card.Content></Card.Body></Card.Root>)}</div>
           {dashboard?.warnings.map((warning) => <Message.Root key={warning} severity="warn"><Message.Content><Message.Text>{warning}</Message.Text></Message.Content></Message.Root>)}
@@ -89,6 +92,7 @@ export function AdministrationWorkspace({ api = createAdminApi(), permissions, c
         <Tabs.Panel value="users"><div className="mt-4 flex flex-col gap-4"><div className="flex flex-col gap-2 sm:flex-row"><InputText aria-label="Caută utilizatori" value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => setQuery(event.target.value)} placeholder="Caută nume sau e-mail" /><Button variant="outlined" severity="secondary" onClick={() => void load()}><Refresh />Reîncarcă</Button>{access.usersManage && <Button onClick={() => setUserForm(emptyUser())}><Plus />Utilizator</Button>}</div><UserTable users={users} /></div></Tabs.Panel>
         <Tabs.Panel value="roles"><div className="mt-4"><RoleTable roles={roles} canManage={access.rolesManage} /></div></Tabs.Panel>
         <Tabs.Panel value="modules"><div className="mt-4"><ModuleTable modules={modules} canManage={access.modulesManage} saving={saving} onToggle={toggleModule} /></div></Tabs.Panel>
+        {institutionPolicyApi && canAccess("institution.regulatory_profile.read") && <Tabs.Panel value="regulatory-profile"><RegulatoryProfileWorkspace api={institutionPolicyApi} canManage={canAccess("institution.regulatory_profile.manage")} /></Tabs.Panel>}
       </Tabs.Root>}
       <AdministrationResources api={api} canAccess={canAccess} />
     </>}

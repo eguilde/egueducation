@@ -107,6 +107,9 @@ jobs:
       - name: Tenant grant RLS enforcement with a non-bypass PostgreSQL role
         working-directory: backend
         run: go test ./internal/db -run '^TestTenantGrantRLSIntegration$' -count=1 -timeout 120s
+      - name: School regulatory policy RLS and immutable evaluation contract
+        working-directory: backend
+        run: go test ./internal/db -run '^TestSchoolRegulatoryPolicyRLSIntegration$' -count=1 -timeout 120s
       - name: Tenant administrator cannot mutate a cross-tenant global identity
         working-directory: backend
         run: go test ./internal/admin -run '^TestTenantAdminCannotMutateSharedGlobalIdentityRegression$' -count=1 -timeout 120s

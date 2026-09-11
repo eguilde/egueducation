@@ -68,6 +68,7 @@
   "POST /api/education/compliance/publications": {
     "summary": "Create or execute Create Publication Record",
     "description": "Tenant- and institution-scoped Education operation. Handler: CreatePublicationRecord. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.compliance.manage.",
+    "requiredPolicyCapability": "education.publication.manage",
     "tags": [
       "Scoala",
       "Conformitate"
@@ -80,6 +81,7 @@
   "PATCH /api/education/compliance/publications/{recordID}": {
     "summary": "Update Update Publication Record",
     "description": "Tenant- and institution-scoped Education operation. Handler: UpdatePublicationRecord. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.compliance.manage.",
+    "requiredPolicyCapability": "education.publication.manage",
     "tags": [
       "Scoala",
       "Conformitate"
@@ -92,6 +94,7 @@
   "DELETE /api/education/compliance/publications/{recordID}": {
     "summary": "Delete Delete Publication Record",
     "description": "Tenant- and institution-scoped Education operation. Handler: DeletePublicationRecord. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.compliance.manage. Successful deletion returns HTTP 204 with no response body.",
+    "requiredPolicyCapability": "education.publication.manage",
     "tags": [
       "Scoala",
       "Conformitate"

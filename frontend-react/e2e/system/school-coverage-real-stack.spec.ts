@@ -16,6 +16,18 @@ function sql(statement: string): string {
   return execFileSync('psql', ['--no-psqlrc', '--tuples-only', '--no-align', '--quiet', url, '-c', `set app.tenant_id='tenant-egueducation'; set app.institution_id='inst-001'; set app.is_super_admin='true'; ${statement}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
+function ensurePublicPolicyPrerequisite(): void {
+  sql(`do $$ declare profile uuid; next_version integer; begin
+    select id into profile from school_institution_profiles where tenant_code='tenant-egueducation' and institution_id='inst-001' and status in ('approved','active') and effective_from<=current_date and (effective_to is null or effective_to>=current_date) order by version desc limit 1;
+    if profile is null then
+      select coalesce(max(version),0)+1 into next_version from school_institution_profiles where tenant_code='tenant-egueducation' and institution_id='inst-001';
+      insert into school_institution_profiles(tenant_code,institution_id,version,status,school_legal_form,regulatory_profile,effective_from,source_reference,approved_by_subject,approved_at,created_by_subject,updated_by_subject) values('tenant-egueducation','inst-001',next_version,'active','public','ro.public.preuniversity',current_date,'system-test-prerequisite','system-test',now(),'system-test','system-test') returning id into profile;
+      insert into school_policy_assignments(tenant_code,institution_id,policy_pack_version_id,profile_id,profile_version,pack_code,assignment_kind,status,effective_from,assigned_by_subject,created_by_subject,updated_by_subject)
+      select 'tenant-egueducation','inst-001',id,profile,next_version,pack_code,case when pack_code='common.ro' then 'common' else 'legal_form' end,'active',current_date,'system-test','system-test','system-test' from school_policy_pack_versions where tenant_code='tenant-egueducation' and institution_id='inst-001' and pack_code in ('common.ro','legal-form.ro.public') and status='approved';
+    end if;
+  end $$`);
+}
+
 async function login(page: Page): Promise<void> {
   await page.goto(origin);
   await page.getByRole('button', { name: 'Autentificare' }).last().click();
@@ -76,6 +88,7 @@ async function createEvaluation(page: Page, employeeCode: string, name: string):
 }
 
 test('personnel and evaluation children, decisions and compliance are persisted through React', async ({ page }) => {
+  ensurePublicPolicyPrerequisite();
   const userID = sql(`select id::text from app_users where sub='${fixture.subject}'`);
   sql(`update app_memberships set position_code='director', active=true where user_id='${userID}' and tenant_code='tenant-egueducation'; delete from app_user_platform_roles where user_id='${userID}'; delete from app_user_roles where user_id='${userID}' and tenant_code='tenant-egueducation'; insert into app_user_roles(tenant_code,user_id,role_code) values ('tenant-egueducation','${userID}','director') on conflict do nothing`);
   await login(page);

@@ -291,6 +291,7 @@ type PublicationRecord struct {
 	PublishedOn         string `json:"published_on"`
 	ReviewedBy          string `json:"reviewed_by"`
 	InstitutionID       string `json:"institution_id"`
+	PolicyEvaluationID  string `json:"policy_evaluation_id"`
 	Notes               string `json:"notes"`
 }
 

@@ -380,6 +380,7 @@
       "Unauthorized": { "description": "Authentication required or token invalid", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
       "Forbidden": { "description": "Authenticated principal lacks the required RBAC permission or tenant access", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
       "NotFound": { "description": "Resource not found in the active tenant", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
+      "Conflict": { "description": "Optimistic-concurrency or current-state conflict", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
       "Validation": { "description": "Input validation failed", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } },
       "ServerError": { "description": "Unexpected server error", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Problem" } } } }
     },

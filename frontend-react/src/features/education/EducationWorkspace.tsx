@@ -27,6 +27,7 @@ import {
   type EducationDelegationGrant,
 } from "../../auth/AuthProvider";
 import type { ContractClient } from "../../api/client";
+import { useInstitutionPolicy } from "../institution/InstitutionPolicyProvider";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { educationAreas, visibleEducationAreas } from "./catalog";
 import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
@@ -3373,6 +3374,7 @@ export interface EducationWorkspaceProps {
  */
 export function EducationWorkspace(props: EducationWorkspaceProps) {
   const auth = useAuth();
+  const institutionPolicy = useInstitutionPolicy();
   const institutionId =
     props.institutionId ?? auth.session?.institution_id ?? "";
   const directPermissions = props.permissions ?? auth.session?.permissions ?? [];
@@ -3560,12 +3562,10 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
           <DomainRecordsPage
             api={api}
             area={current}
-            canManage={allows(permissionForDomain(current.id as EducationRecordsDomain))}
-            canManageRecord={(recordID) => allows(
-              permissionForDomain(current.id as EducationRecordsDomain),
-              delegationResourceTypeForDomain(current.id as EducationRecordsDomain),
-              recordID,
-            )}
+            canManage={allows(permissionForDomain(current.id as EducationRecordsDomain)) &&
+              (current.id !== "compliance" || institutionPolicy.canPolicy("education.publication.manage"))}
+            canManageRecord={(recordID) => (current.id !== "compliance" || institutionPolicy.canPolicy("education.publication.manage")) && allows(
+              permissionForDomain(current.id as EducationRecordsDomain), delegationResourceTypeForDomain(current.id as EducationRecordsDomain), recordID)}
             canManageRelation={(relation, recordID) => allows(
               relationManagePermission(
                 current.id as EducationRecordsDomain,

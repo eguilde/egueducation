@@ -20,7 +20,7 @@ export default defineConfig({
   // Keep every School system proof in the same process topology so CI starts
   // PostgreSQL/OIDC/React only once and cannot silently omit a newly added
   // real-stack suite.
-  testMatch: /(?:^|\/)(?:real-stack|school-governance-real-stack|school-operations-real-stack|school-coverage-real-stack|school-mobile-real-stack)\.spec\.ts$/,
+  testMatch: /(?:^|\/)(?:real-stack|institution-policy-real-stack|school-governance-real-stack|school-operations-real-stack|school-coverage-real-stack|school-mobile-real-stack)\.spec\.ts$/,
   fullyParallel: false,
   workers: 1,
   // This proof drives repeated real OIDC browser sessions, the statutory

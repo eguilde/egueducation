@@ -11,6 +11,7 @@ function Get-Tag([string]$path) {
     if ($path -like '/api/workflow/*') { return 'Workflow' }
     if ($path -like '/api/earchiva/*') { return 'eArhiva' }
     if ($path -like '/api/education/*') { return 'Scoala' }
+    if ($path -like '/api/institution/*') { return 'Institutie' }
     if ($path -like '/api/admin/*') { return 'Administrare' }
     if ($path -like '/api/gdpr/*') { return 'GDPR' }
     if ($path -like '/api/auth/*' -or $path -eq '/api/me' -or $path -eq '/api/profile') { return 'Authentication' }
@@ -26,6 +27,7 @@ function Get-ContractFamily([string]$path) {
     if ($path -like '/api/registratura/*') { return 'Registratura' }
     if ($path -like '/api/workflow/*') { return 'Workflow' }
     if ($path -like '/api/earchiva/*') { return 'Archive' }
+    if ($path -like '/api/institution/*') { return 'Institution' }
     if ($path -like '/api/auth/*' -or $path -like '/api/passkeys/*' -or $path -like '/api/eudi-wallet/*' -or $path -in @('/api/me', '/api/profile')) { return 'Identity' }
     return $null
 }
@@ -45,6 +47,7 @@ function New-ClosedRequestSchema([string]$operationKey) {
 		'POST /api/gdpr/retention-policies'='backend/internal/gdpr/models.go|CreateRetentionPolicyRequest'; 'POST /api/gdpr/subject-requests'='backend/internal/gdpr/models.go|CreateSubjectRequestRequest'; 'POST /api/gdpr/exports'='backend/internal/gdpr/models.go|CreateSubjectExportRequest'; 'POST /api/gdpr/publication-reviews'='backend/internal/gdpr/models.go|CreatePublicationReviewRequest'
 		'POST /api/earchiva/classification-reviews/{reviewID}/approve'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationApprovalRequest'; 'POST /api/earchiva/classification-reviews/{reviewID}/correct'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationCorrectionRequest'
 		'POST /api/education/portfolios/me'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'PATCH /api/education/portfolios/me/{recordID}'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'POST /api/education/portfolios/me/{recordID}/documents'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements'='backend/internal/education/portfolio_declarations.go|PortfolioDeclarationAcknowledgementRequest'; 'POST /api/education/portfolios/records/{recordID}/activity-cessation'='backend/internal/education/portfolio_models.go|PortfolioCessationRequest'; 'POST /api/education/portfolios/records/{recordID}/legal-hold'='backend/internal/education/portfolio_models.go|PortfolioLegalHoldRequest'
+		'PUT /api/institution/regulatory-profile'='backend/internal/institution/models.go|PutRegulatoryProfileRequest'
 	}
 	if ($dtoMap.ContainsKey($operationKey)) {
 		return Get-GoDTOObjectSchema ([string]$dtoMap[$operationKey])
@@ -119,6 +122,7 @@ function Get-ExactResponseSpec([string]$operationKey) {
         'GET /api/auth/methods'='object|auth_methods'; 'GET /api/auth/ui-config'='object|auth_ui_config'; 'GET /api/auth/role-catalog'='dto|backend/internal/auth/models.go|RoleCatalogResponse'; 'GET /api/auth/role-positions'='dto|backend/internal/auth/models.go|RolePositionResponse'
         'POST /api/passkeys/login-options'='object|passkey_login_options'; 'POST /api/passkeys/login-finish'='object|passkey_login_finish'; 'POST /api/passkeys/register-options'='object|passkey_register_options'; 'POST /api/passkeys/register-finish'='dto|backend/internal/auth/models.go|PasskeyCredentialSummary'; 'POST /api/eudi-wallet/activate'='object|eudi_activation'
         'GET /api/passkeys'='array|backend/internal/auth/models.go|PasskeyCredentialSummary'
+		'GET /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'PUT /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'GET /api/institution/capabilities'='dto|backend/internal/institution/models.go|InstitutionCapabilitiesResponse'
 		'GET /api/registratura/documents/filters'='dto|backend/internal/registratura/models.go|DocumentFiltersResponse'; 'GET /api/registratura/nomenclatures'='dto|backend/internal/registratura/models.go|DocumentFiltersResponse'; 'POST /api/registratura/documents'='dto|backend/internal/registratura/models.go|Document'; 'PATCH /api/registratura/documents/{documentID}'='dto|backend/internal/registratura/models.go|Document'; 'GET /api/registratura/documents/{documentID}'='dto|backend/internal/registratura/models.go|Document'; 'POST /api/registratura/documents/{documentID}/cancel'='dto|backend/internal/registratura/models.go|Document'; 'GET /api/registratura/documents/lookup'='array|backend/internal/registratura/models.go|DocumentLookupItem'; 'GET /api/registratura/documents/{documentID}/versions'='array|backend/internal/registratura/models.go|DocumentVersion'; 'POST /api/registratura/documents/{documentID}/versions'='dto|backend/internal/registratura/models.go|DocumentVersion'; 'GET /api/registratura/documents/{documentID}/workflow-history'='array|backend/internal/registratura/models.go|DocumentWorkflowEvent'; 'GET /api/registratura/workflow-assignees'='object|workflow_assignees'; 'GET /api/registratura/documents/{documentID}/attachments'='array|backend/internal/registratura/models.go|DocumentAttachment'; 'POST /api/registratura/documents/{documentID}/attachments'='dto|backend/internal/registratura/models.go|DocumentAttachment'; 'GET /api/registratura/flux/queue'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/mapa'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/pipeline'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/pipeline/stats'='array|backend/internal/registratura/models.go|FluxPipelineStat'
         'POST /api/registratura/registre'='dto|backend/internal/registratura/models.go|Registru'; 'GET /api/registratura/registre/{id}'='dto|backend/internal/registratura/models.go|Registru'; 'PATCH /api/registratura/registre/{id}'='dto|backend/internal/registratura/models.go|Registru'; 'DELETE /api/registratura/registre/{id}'='empty|'; 'PATCH /api/registratura/registre/{id}/set-default'='dto|backend/internal/registratura/models.go|Registru'
         'GET /api/registratura/parties'='page|backend/internal/registratura/models.go|Party'; 'POST /api/registratura/parties'='dto|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/lookup'='array|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/default-organization'='dto|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/{id}'='dto|backend/internal/registratura/models.go|Party'; 'PATCH /api/registratura/parties/{id}'='dto|backend/internal/registratura/models.go|Party'; 'DELETE /api/registratura/parties/{id}'='empty|'
@@ -697,7 +701,7 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     $errorResponseMap = @{
         '400' = '#/components/responses/BadRequest'; '401' = '#/components/responses/Unauthorized'
         '403' = '#/components/responses/Forbidden'; '404' = '#/components/responses/NotFound'
-        '422' = '#/components/responses/Validation'; '500' = '#/components/responses/ServerError'
+        '409' = '#/components/responses/Conflict'; '422' = '#/components/responses/Validation'; '500' = '#/components/responses/ServerError'
     }
     $errorStatuses = if ($override -and $override.errors) { @($override.errors | ForEach-Object { [string]$_ }) } else { @('400','401','403','404','422','500') }
     foreach ($errorStatus in $errorStatuses) {
@@ -719,6 +723,7 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if ($override -and $override.requiredPermission) { $operation.'x-required-permission' = [string]$override.requiredPermission }
     elseif ($permission) { $operation.'x-required-permission' = $permission }
     elseif ($requiresSecurity) { $operation.'x-required-permission' = 'authenticated' }
+    if ($override -and $override.requiredPolicyCapability) { $operation.'x-required-policy-capability' = [string]$override.requiredPolicyCapability }
 
     $parameters = @()
     $pathParameterNames = if ($override -and $override.pathParameters) { @($override.pathParameters) } else { @([regex]::Matches($path, '\{([^}]+)\}') | ForEach-Object { $_.Groups[1].Value }) }
@@ -739,6 +744,10 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if ($key -eq 'POST /api/eudi-wallet/activate') { $hasRequestBody = $false }
     if ($method -in @('post', 'put', 'patch') -and $hasRequestBody) {
         $requestSchema = if ($override -and $override.requestSchema) { [string]$override.requestSchema } elseif ($isDetailedFamily) { "$family`Request" } else { 'Mutation' }
+		if ($key -eq 'PUT /api/institution/regulatory-profile') {
+			$requestSchema = 'PutRegulatoryProfileRequest'
+			if (-not $common.components.schemas.Contains($requestSchema)) { $common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key }
+		}
 		if ($key -in @('POST /api/education/portfolios/me', 'PATCH /api/education/portfolios/me/{recordID}', 'POST /api/education/portfolios/me/{recordID}/documents', 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}') -and -not $common.components.schemas.Contains($requestSchema)) {
 			$common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key
 		}
@@ -759,6 +768,18 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     if (-not $paths.Contains($path)) { $paths[$path] = [ordered]@{} }
     $paths[$path][$method] = $operation
     $operations += [ordered]@{ method = $method.ToUpperInvariant(); path = $path; operationId = $operation.operationId }
+}
+
+$regulatoryProfileRequest = $common.components.schemas['PutRegulatoryProfileRequest']
+if ($regulatoryProfileRequest) {
+	$regulatoryProfileRequest.additionalProperties = $false
+	$regulatoryProfileRequest.properties.expected_version.minimum = 1
+	$regulatoryProfileRequest.properties.status.enum = @('draft','approved','active')
+	$regulatoryProfileRequest.properties.school_legal_form.enum = @('public','private','confessional')
+	$regulatoryProfileRequest.properties.authorization_status.enum = @('unknown','provisional','authorized','accredited','suspended','withdrawn')
+	$regulatoryProfileRequest.properties.effective_from.format = 'date'
+	$regulatoryProfileRequest.properties.effective_to.format = 'date'
+	$regulatoryProfileRequest.required = @('expected_version','status','school_legal_form','regulatory_profile','authorization_status','authorized_levels','has_legal_personality','is_contracting_authority','treasury_required','public_funding','program_codes','effective_from','source_reference')
 }
 
 # OIDC is mounted through chi.Handle, so its individual standard endpoints are declared here.
@@ -810,6 +831,7 @@ $document = [ordered]@{
         [ordered]@{name='Workflow'; description='Document workflow tasks, transitions and audit-visible state.'},
         [ordered]@{name='eArhiva'; description='Tenant-scoped electronic archive records and documents.'},
         [ordered]@{name='Scoala'; description='Institution-scoped school operational records; tenant context is server-derived.'},
+		[ordered]@{name='Institutie'; description='Host-scoped institution classification and effective policy capabilities.'},
         [ordered]@{name='Administrare'; description='Tenant administration, RBAC, modules, OIDC client metadata and configuration.'},
         [ordered]@{name='GDPR'; description='Retention, subject access, export and publication-review administration.'},
         [ordered]@{name='Platform'; description='Deployment health and public bootstrap configuration.'}

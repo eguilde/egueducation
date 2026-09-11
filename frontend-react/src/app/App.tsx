@@ -15,6 +15,8 @@ import { createEducationApi } from "../features/education/api";
 import { SignedArtifactEvidenceWorkspace, SchoolReportsWorkspace } from "../features/education/SchoolTrustWorkspaces";
 import { createProfileApi } from "../features/profile/api";
 import { createContractClient } from "../api/client";
+import { createInstitutionPolicyApi } from "../features/institution/api";
+import { InstitutionPolicyProvider } from "../features/institution/InstitutionPolicyProvider";
 import { createSchoolClassesApi } from "../features/education/school-classes-api";
 import { createSchoolWizardApi } from "../features/education/school-wizard-api";
 import type { WizardKind } from "../features/education/wizards";
@@ -47,6 +49,9 @@ const EducationWorkspace = lazy(() =>
   import("../features/education/EducationWorkspace").then((module) => ({
     default: module.EducationWorkspace,
   })),
+);
+const RegulatoryProfileWorkspace = lazy(() =>
+  import("../features/institution/RegulatoryProfileWorkspace").then((module) => ({ default: module.RegulatoryProfileWorkspace })),
 );
 const DelegatedEducationResourcesWorkspace = lazy(() =>
   import("../features/education/DelegatedEducationResourcesWorkspace").then((module) => ({
@@ -370,10 +375,12 @@ function ProfileRoute() {
 function AdministrationRoute() {
   const { apiFetch, has, session } = useAuth();
   const api = useMemo(() => createAdminApi(apiFetch), [apiFetch]);
+  const institutionPolicyApi = useMemo(() => createInstitutionPolicyApi(createContractClient(apiFetch)), [apiFetch]);
   return secure(
     "admin.read",
     <AdministrationWorkspace
       api={api}
+      institutionPolicyApi={institutionPolicyApi}
       institutionName={session?.institution_name ?? "Instituția curentă"}
       permissions={{
         dashboard: has("admin.read"),
@@ -389,11 +396,17 @@ function AdministrationRoute() {
   );
 }
 
+function InstitutionProfileRoute() {
+  const { apiFetch, has } = useAuth();
+  const api = useMemo(() => createInstitutionPolicyApi(createContractClient(apiFetch)), [apiFetch]);
+  return secure("institution.regulatory_profile.read", <RegulatoryProfileWorkspace api={api} canManage={has("institution.regulatory_profile.manage")} />);
+}
+
 export function App() {
   return (
     <AppThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <InstitutionPolicyProvider><BrowserRouter>
           <Routes>
             <Route path="/auth/callback" element={<CallbackPage />} />
             <Route path="/auth/logout" element={<LogoutCallbackPage />} />
@@ -417,6 +430,7 @@ export function App() {
             <Route element={<AppShell />}>
               <Route index element={<LandingPage />} />
               <Route path="profil" element={deferred(<ProfileRoute />)} />
+              <Route path="profil-institutie" element={deferred(<InstitutionProfileRoute />)} />
               <Route
                 path="registratura"
                 element={deferred(<RegistraturaRoute />)}
@@ -719,7 +733,7 @@ export function App() {
               />
             </Route>
           </Routes>
-        </BrowserRouter>
+        </BrowserRouter></InstitutionPolicyProvider>
       </AuthProvider>
     </AppThemeProvider>
   );

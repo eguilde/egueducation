@@ -32,6 +32,8 @@ Implementare:
 
 Teste: public, privat, confesional, privat cu fond public; policy expirat/ambiguu; falsificare în body; schimbare fără efect retroactiv; cross-tenant/institution.
 
+Limită asumată: Etapa 1 livrează modelul multi-tenant cu o instituție principală per tenant, conform schemei curente. Un tenant cu mai multe instituții este o migrare structurală separată (`app_institutions` + selecție instituție autorizată în sesiunea OIDC), nu o extensie implicită a profilului.
+
 ## Etapa 2 — contracte, utilități și conformitate
 
 Implementare:
