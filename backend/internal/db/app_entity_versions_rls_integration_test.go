@@ -97,7 +97,7 @@ func seedAppEntityVersionsRLSRows(t *testing.T, ctx context.Context, pool *pgxpo
 	for _, scope := range []appEntityVersionsRLSScope{fixture.tenantA, fixture.tenantAOtherInstitution, fixture.tenantB} {
 		if _, err := tx.Exec(ctx, `
 			insert into app_entity_versions (id, entity_table, entity_id, version_no, change_type, tenant_code, institution_id, snapshot, changed_by)
-			values ($1, 'app_entity_versions_rls_fixture', $2, 1, 'insert', $3, $4, jsonb_build_object('private_scope', $3), 'fixture')
+			values ($1, 'app_entity_versions_rls_fixture', $2, 1, 'insert', $3::text, $4::text, jsonb_build_object('private_scope', $3::text), 'fixture')
 		`, scope.versionID, sharedEntityID, scope.tenantCode, scope.institutionID); err != nil {
 			t.Fatalf("seed %s scoped history row: %v", scope.tenantCode, err)
 		}
@@ -235,11 +235,15 @@ func TestAppEntityVersionsScopedIdentityUpgradeIntegration(t *testing.T) {
 		alter table public.app_entity_versions add constraint app_entity_versions_entity_table_entity_id_version_no_key
 			unique (entity_table, entity_id, version_no);
 		delete from public.schema_migrations where version = '0133_app_entity_versions_scoped_identity.sql';
+	`); err != nil {
+		t.Fatalf("restore post-0132 schema shape: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
 		insert into public.app_entity_versions (
 			id, entity_table, entity_id, version_no, change_type, tenant_code, institution_id, snapshot, changed_by
 		) values ($1, 'app_entity_versions_upgrade_fixture', $2, 1, 'insert', '', '', '{"scope":"legacy"}'::jsonb, 'legacy');
 	`, uuid.New(), entityID); err != nil {
-		t.Fatalf("restore post-0132 schema shape: %v", err)
+		t.Fatalf("seed post-0132 legacy history row: %v", err)
 	}
 
 	if err := Migrate(ctx, pool); err != nil {
