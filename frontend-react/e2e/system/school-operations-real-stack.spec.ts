@@ -512,6 +512,11 @@ test('React creates portfolio relations and drives transfer/valorification lifec
     await selectOpenOption(page, new RegExp(`^${archive.section} ·`));
     await documentDialog.getByLabel('Titlu *').fill(archive.title);
     await documentDialog.getByLabel('Tip dovadă *').fill('adeverinta');
+    await documentDialog.getByLabel('Descriere pedagogică *').fill(`Dovadă pedagogică pentru ${archive.title}`);
+    await documentDialog.getByLabel('An școlar *').fill('2026-2027');
+    await documentDialog.getByLabel('Disciplina *').fill('Management educațional');
+    await documentDialog.getByLabel('Clasa aplicabilă *').fill('Instituție');
+    await documentDialog.getByLabel('Competențe *').fill('management, conformitate');
     await documentDialog.getByLabel('Data emiterii *').fill('2026-09-10');
     await documentDialog.getByLabel('Data adăugării *').fill('2026-09-10');
     await documentDialog.getByLabel('Index cronologic').fill(String(index + 1));
