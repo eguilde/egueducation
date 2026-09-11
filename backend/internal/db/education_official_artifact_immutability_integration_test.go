@@ -148,6 +148,19 @@ func seedOfficialArtifactFixture(t *testing.T, ctx context.Context, pool *pgxpoo
 		managerialDocumentID: uuid.New(), publicationID: uuid.New(),
 	}
 	dossierID := uuid.New()
+	policyEvaluationID := uuid.New()
+	if _, err := pool.Exec(ctx, `
+		insert into school_policy_evaluations(
+			id,tenant_code,institution_id,profile_id,profile_version,evaluated_by_subject,
+			capabilities,blocked,checksum_sha256,created_by_subject,updated_by_subject
+		)
+		select $1,profile.tenant_code,profile.institution_id,profile.id,profile.version,'official-artifact-fixture',
+			'[]'::jsonb,false,encode(digest($1::text, 'sha256'),'hex'),'official-artifact-fixture','official-artifact-fixture'
+		from school_institution_profiles profile
+		where profile.tenant_code='tenant-egueducation' and profile.institution_id='inst-001' and profile.version=1
+	`, policyEvaluationID); err != nil {
+		t.Fatalf("seed publication policy evaluation: %v", err)
+	}
 	if _, err := pool.Exec(ctx, `
 		insert into education_meetings (id, school_year, organism, title, meeting_type, status, quorum_required, participants_count, meeting_date, institution_id)
 		values
@@ -207,9 +220,9 @@ func seedOfficialArtifactFixture(t *testing.T, ctx context.Context, pool *pgxpoo
 		t.Fatalf("seed published managerial document: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
-		insert into education_publications (id, publication_code, domain, entity_type, entity_label, publication_channel, publication_status, anonymization_status, institution_id)
-		values ($1, $2, 'guvernanta', 'hotarare', 'Published publication', 'site_public', 'publicat', 'finalizata', 'inst-001')
-	`, fixture.publicationID, "OFFICIAL-PUB-"+uuid.NewString()); err != nil {
+		insert into education_publications (id, publication_code, domain, entity_type, entity_label, publication_channel, publication_status, anonymization_status, institution_id, tenant_code, policy_evaluation_id)
+		values ($1, $2, 'guvernanta', 'hotarare', 'Published publication', 'site_public', 'publicat', 'finalizata', 'inst-001', 'tenant-egueducation', $3)
+	`, fixture.publicationID, "OFFICIAL-PUB-"+uuid.NewString(), policyEvaluationID); err != nil {
 		t.Fatalf("seed published education publication: %v", err)
 	}
 	return fixture
