@@ -103,5 +103,5 @@ test('personnel and evaluation children, decisions and compliance are persisted 
 test('cockpit routes perform a real RBAC gate before requesting role metrics', async ({ page }) => {
   const userID = sql(`select id::text from app_users where sub='${fixture.subject}'`); sql(`update app_memberships set position_code='profesor', active=true where user_id='${userID}' and tenant_code='tenant-egueducation'; delete from app_user_roles where user_id='${userID}' and tenant_code='tenant-egueducation'; delete from app_user_platform_roles where user_id='${userID}'`);
   await login(page); let requested = false; page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/education/hr/cockpit') requested = true; });
-  await page.goto('/scoala/hr'); await expect(page.getByText('Nu aveți dreptul education.cockpit.hr.read pentru instituția activă.')).toBeVisible(); expect(requested).toBe(false);
+  await page.goto('/scoala/hr'); await expect(page).toHaveURL(`${origin}/`); expect(requested).toBe(false);
 });

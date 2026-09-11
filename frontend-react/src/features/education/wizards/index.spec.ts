@@ -85,11 +85,23 @@ describe("education wizard contracts", () => {
     ]);
   });
 
+  it("uses the exact personnel lifecycle taxonomies accepted by the backend", () => {
+    const personnelField = (key: string) =>
+      wizardDefinitions.personnel.fields.find((item) => item.key === key);
+    expect(wizardDefinitions.personnel.initial.evaluation_status).toBe("draft");
+    expect(personnelField("evaluation_status")?.options?.map((item) => item.value)).toEqual([
+      "draft", "in_review", "finalized",
+    ]);
+    expect(personnelField("mobility_stage")?.options?.map((item) => item.value)).toEqual([
+      "none", "transfer", "detasare", "restrangere",
+    ]);
+  });
+
   it("uses a literal generated personnel operation and DTO", async () => {
     const mock = contractClient();
     await createSchoolWizardApi(mock.contract).create("personnel", {
       full_name: " Ana Pop ", role_title: "Profesor", employment_type: "titular",
-      status: "active", evaluation_status: "not_started", mobility_stage: "none",
+      status: "active", evaluation_status: "draft", mobility_stage: "none",
       school_year: "2026-2027", assigned_unit: "Gimnaziu", phone: "", email: "",
       has_portfolio: false, notes: "",
     });

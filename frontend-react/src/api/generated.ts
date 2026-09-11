@@ -8516,16 +8516,20 @@ export interface components {
             app_user_id?: string;
             assigned_unit?: string;
             email?: string;
-            employment_type: string;
-            evaluation_status: string;
+            /** @enum {string} */
+            employment_type: "titular" | "suplinitor" | "plata_cu_ora" | "auxiliar";
+            /** @enum {string} */
+            evaluation_status: "draft" | "in_review" | "finalized";
             full_name: string;
             has_portfolio?: boolean;
-            mobility_stage: string;
+            /** @enum {string} */
+            mobility_stage: "none" | "transfer" | "detasare" | "restrangere";
             notes?: string;
             phone?: string;
             role_title: string;
             school_year: string;
-            status: string;
+            /** @enum {string} */
+            status: "active" | "on_leave" | "vacant" | "inactive";
         };
         CreatePortfolioArchiveAttachmentGrantRequest: {
             /** Format: uuid */

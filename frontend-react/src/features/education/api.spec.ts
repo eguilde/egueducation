@@ -341,7 +341,7 @@ describe("Education API", () => {
   it("uses the documented CRUD route and JSON method for a dossier record", async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: "p1", full_name: "Ana" }), { status: 200 })));
     const api = createEducationApi(fetcher);
-    const personnel = { full_name: "Ana", status: "active", employment_type: "permanent", evaluation_status: "current", mobility_stage: "none", role_title: "Profesor", school_year: "2026-2027" };
+    const personnel = { full_name: "Ana", status: "active", employment_type: "titular", evaluation_status: "draft", mobility_stage: "none", role_title: "Profesor", school_year: "2026-2027" } as const;
     await api.createRecord("personnel", personnel);
     await api.updateRecord("personnel", "p1", personnel);
     await api.deleteRecord("personnel", "p1");

@@ -455,6 +455,13 @@ if ($managerialDocumentSchema) {
         }
     )
 }
+$personnelRecordSchema = $common.components.schemas['CreatePersonnelRecordRequest']
+if ($personnelRecordSchema) {
+    $personnelRecordSchema.properties.employment_type.enum = @('titular','suplinitor','plata_cu_ora','auxiliar')
+    $personnelRecordSchema.properties.status.enum = @('active','on_leave','vacant','inactive')
+    $personnelRecordSchema.properties.evaluation_status.enum = @('draft','in_review','finalized')
+    $personnelRecordSchema.properties.mobility_stage.enum = @('none','transfer','detasare','restrangere')
+}
 $meritScoreSchema = $common.components.schemas['CreateMeritCriterionScoreRequest']
 if ($meritScoreSchema) {
     $meritScoreSchema.properties.criterion_category.enum = @('performanta','impact','dezvoltare','management','incluziune')

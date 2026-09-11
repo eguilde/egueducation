@@ -53,6 +53,11 @@ const number = (values: WizardValues, key: string) => {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 };
 const flag = (values: WizardValues, key: string) => values[key] === true;
+const enumText = <const T extends readonly string[]>(values: WizardValues, key: string, allowed: T): T[number] => {
+  const value = text(values, key);
+  if (!(allowed as readonly string[]).includes(value)) throw new Error(`education_wizard_invalid_${key}`);
+  return value as T[number];
+};
 
 const meeting = (values: WizardValues): components["schemas"]["CreateGovernanceMeetingRequest"] => ({
   school_year: text(values, "school_year"),
@@ -119,10 +124,10 @@ const managerial = (values: WizardValues): components["schemas"]["CreateManageri
 const personnel = (values: WizardValues): components["schemas"]["CreatePersonnelRecordRequest"] => ({
   full_name: text(values, "full_name"),
   role_title: text(values, "role_title"),
-  employment_type: text(values, "employment_type"),
-  status: text(values, "status"),
-  evaluation_status: text(values, "evaluation_status"),
-  mobility_stage: text(values, "mobility_stage"),
+  employment_type: enumText(values, "employment_type", ["titular", "suplinitor", "plata_cu_ora", "auxiliar"] as const),
+  status: enumText(values, "status", ["active", "on_leave", "vacant", "inactive"] as const),
+  evaluation_status: enumText(values, "evaluation_status", ["draft", "in_review", "finalized"] as const),
+  mobility_stage: enumText(values, "mobility_stage", ["none", "transfer", "detasare", "restrangere"] as const),
   school_year: text(values, "school_year"),
   assigned_unit: text(values, "assigned_unit") || undefined,
   phone: text(values, "phone") || undefined,

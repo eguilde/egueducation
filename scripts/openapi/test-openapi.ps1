@@ -362,6 +362,17 @@ if (-not $personnelCreateSchema.properties.Contains('app_user_id') -or $personne
 foreach ($requiredField in @('full_name','role_title','employment_type','status','evaluation_status','mobility_stage','school_year')) {
     if ($personnelCreateSchema.required -notcontains $requiredField) { throw "School personnel request is missing handler-required field $requiredField." }
 }
+$personnelEnums = @{
+    employment_type = @('titular','suplinitor','plata_cu_ora','auxiliar')
+    status = @('active','on_leave','vacant','inactive')
+    evaluation_status = @('draft','in_review','finalized')
+    mobility_stage = @('none','transfer','detasare','restrangere')
+}
+foreach ($field in $personnelEnums.Keys) {
+    if (Compare-Object @($personnelCreateSchema.properties[$field].enum | Sort-Object) @($personnelEnums[$field] | Sort-Object)) {
+        throw "School personnel request enum does not match the handler for $field."
+    }
+}
 if ($personnelCreateSchema.required -contains 'app_user_id' -or $specData.components.schemas.PersonnelRecord.required -contains 'app_user_id') {
     throw 'Personnel app_user_id is a documented optional association and must remain optional in request and response contracts.'
 }

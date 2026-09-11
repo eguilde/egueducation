@@ -5,8 +5,8 @@ describe("EducationWorkspace root DTO mappers", () => {
   it("maps required personnel create fields and drops generated/output-only fields", () => {
     const dto = createInputForDomain("personnel", {
       full_name: "Ana Pop",
-      employment_type: "permanent",
-      evaluation_status: "current",
+      employment_type: "titular",
+      evaluation_status: "draft",
       mobility_stage: "none",
       role_title: "Profesor",
       school_year: "2026-2027",
@@ -15,9 +15,21 @@ describe("EducationWorkspace root DTO mappers", () => {
       id: "output-only",
     });
 
-    expect(dto).toMatchObject({ full_name: "Ana Pop", employment_type: "permanent", school_year: "2026-2027" });
+    expect(dto).toMatchObject({ full_name: "Ana Pop", employment_type: "titular", school_year: "2026-2027" });
     expect(dto).not.toHaveProperty("id");
     expect(dto).not.toHaveProperty("employee_code");
+  });
+
+  it("rejects personnel lifecycle values outside the database contract", () => {
+    expect(() => createInputForDomain("personnel", {
+      full_name: "Ana Pop",
+      employment_type: "permanent",
+      evaluation_status: "current",
+      mobility_stage: "none",
+      role_title: "Profesor",
+      school_year: "2026-2027",
+      status: "active",
+    })).toThrow("education_invalid_employment_type");
   });
 
   it("uses the portfolio PATCH allow-list and excludes lifecycle/retention output", () => {
