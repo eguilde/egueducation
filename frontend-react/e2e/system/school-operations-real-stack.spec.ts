@@ -440,8 +440,14 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   await page.goto('/scoala/portfolios');
   await openReactRootDetails(page, `${marker} Proprietar`);
   await expect(page.getByText('Portofoliu — operațiuni dosar')).toBeVisible();
+  // A portfolio entry is a reference to immutable evidence already stored in
+  // eArhivă. Seed only that external storage/OCR precondition; creation and
+  // subsequent removal of the portfolio reference remain browser operations.
+  const institutionalArchiveTitle = `${marker} document instituțional`;
+  const institutionalArchiveDocumentID = sql(`insert into archive_documents (institution_id,title,original_file_name,mime_type,source_kind,source_system,external_reference,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by) values ('inst-001','${institutionalArchiveTitle}','${marker}-institutional.pdf','application/pdf','upload','e2e','${marker}-institutional','ready','earhive','e2e/${marker}-institutional.pdf','earhive','e2e/${marker}-institutional.pdf',1,'e2e') returning id::text`);
+  sql(`insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,status,source_bucket,source_object_key,source_sha256,source_size_bytes,text_status) values ('${institutionalArchiveDocumentID}','inst-001',1,'application/pdf','${institutionalArchiveTitle}','earhive','e2e/${marker}-institutional.pdf','${'c'.repeat(64)}',128,'active','earhive','e2e/${marker}-institutional.pdf','${'c'.repeat(64)}',128,'processed')`);
   const document = await createManagerialChildThroughReact(page, 'Adaugă document', `/api/education/portfolios/records/${portfolio.id}/documents`, {
-    'Titlu *': `${marker} document portofoliu`, 'Tip dovadă *': 'decizie', 'Secțiune *': 'identificare_profesionala', 'Componentă *': 'structura_cadru', 'Domeniu sursă *': 'portofoliu', 'Autenticitate *': 'verificat', 'Data emiterii *': '2026-09-10', 'Data adăugării *': '2026-09-10', 'Ordine cronologică': '1', 'Referință arhivă': 'e2e://portfolio', Observații: marker,
+    Titlu: `${marker} document portofoliu`, 'Descriere pedagogică': 'Dovadă instituțională verificată', 'An școlar': '2026-2027', Disciplina: 'Management educațional', 'Clasa aplicabilă': 'Instituție', 'Competențe (separate prin virgulă)': 'management, conformitate', 'Tip dovadă': 'decizie', Secțiune: 'identificare_profesionala', Componentă: 'structura_cadru', 'Domeniu sursă': 'portofoliu', Autenticitate: 'verificat', 'Data emiterii': '2026-09-10', 'Data adăugării': '2026-09-10', 'Ordine cronologică': '1', 'Referință arhivă': `archive://${institutionalArchiveDocumentID}`, Observații: marker,
   });
   await page.getByRole('button', { name: 'Checklist', exact: true }).click();
   const checklist = await createManagerialChildThroughReact(page, 'Adaugă cerință', `/api/education/portfolios/records/${portfolio.id}/checklist`, {
@@ -510,15 +516,14 @@ test('React creates portfolio relations and drives transfer/valorification lifec
     await documentDialog.getByLabel('Data adăugării *').fill('2026-09-10');
     await documentDialog.getByLabel('Index cronologic').fill(String(index + 1));
     await documentDialog.getByRole('combobox', { name: 'Document eArhivă autorizat' }).click();
-    await selectOpenOption(page, new RegExp(archive.documentID));
+    await selectOpenOption(page, `${archive.title} · v1`);
     const documentAdded = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${portfolio.id}/documents` && response.request().method() === 'POST');
     await documentDialog.getByRole('button', { name: 'Adaugă document' }).click();
     expect((await documentAdded).status()).toBe(201);
   }
-  // The generic institutional CRUD proof above intentionally created one
-  // unsnapshotted draft reference. Remove it through the owner's UI so the
-  // subsequent submission proves the server's immutable archive-snapshot
-  // readiness rule rather than bypassing it in SQL.
+  // The institutional CRUD proof above intentionally created an extra valid
+  // archive-backed reference. Remove it through the owner's UI so submission
+  // covers precisely the five statutory catalog sections.
   const deletedDraftDocument = page.waitForResponse((response) =>
     response.request().method() === 'DELETE'
     && new URL(response.url()).pathname === `/api/education/portfolios/me/${portfolio.id}/documents/${document.id}`);
