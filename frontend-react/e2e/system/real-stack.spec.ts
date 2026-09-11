@@ -547,9 +547,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const versionHistoryResponse = approverPage.waitForResponse((response) => new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/documents/${portfolioDocuments[0].id}/versions` && response.request().method() === 'GET');
   await approverPage.getByRole('button', { name: `Istoric versiuni ${portfolioDocuments[0].document_title}` }).click();
   expect((await versionHistoryResponse).status()).toBe(200);
-  await expect(approverPage.getByRole('dialog', { name: `Istoric versiuni — ${portfolioDocuments[0].document_title}` })).toBeVisible();
+  const historyDialog = approverPage.getByRole('dialog', { name: `Istoric versiuni — ${portfolioDocuments[0].document_title}` });
+  await expect(historyDialog).toBeVisible();
   await expect(approverPage.getByText('Document adăugat în portofoliu')).toBeVisible();
-  await approverPage.getByRole('button', { name: 'Închide istoricul versiunilor' }).click();
+  await approverPage.keyboard.press('Escape');
+  await expect(historyDialog).toBeHidden();
 
   const opisRegeneratedResponse = approverPage.waitForResponse((response) =>
     new URL(response.url()).pathname === `/api/education/portfolios/me/${ownPortfolio.id}/opis/regenerate` && response.request().method() === 'POST',
