@@ -7,6 +7,7 @@ import (
 
 const appEntityVersionsRLSMigration = "migrations/0132_app_entity_versions_rls.sql"
 const appEntityVersionsScopedIdentityMigration = "migrations/0133_app_entity_versions_scoped_identity.sql"
+const appEntityVersionsParticipantScopeMigration = "migrations/0134_app_entity_versions_intertenant_participant_scope.sql"
 
 func TestAppEntityVersionsRLSMigrationContract(t *testing.T) {
 	body, err := migrationFiles.ReadFile(appEntityVersionsRLSMigration)
@@ -61,5 +62,39 @@ func TestAppEntityVersionsScopedIdentityMigrationContract(t *testing.T) {
 	}
 	if strings.Index(text, "pg_advisory_xact_lock") > strings.Index(text, "select coalesce(max(version_no)") {
 		t.Fatal("scoped version allocation must lock before reading the next version")
+	}
+}
+
+func TestAppEntityVersionsParticipantScopeMigrationContract(t *testing.T) {
+	body, err := migrationFiles.ReadFile(appEntityVersionsParticipantScopeMigration)
+	if err != nil {
+		t.Fatalf("read %s: %v", appEntityVersionsParticipantScopeMigration, err)
+	}
+	text := strings.ToLower(string(body))
+	for _, required := range []string{
+		"create or replace function public.record_entity_version()",
+		"security invoker",
+		"set search_path = pg_catalog, public",
+		"tenant_value := coalesce(nullif(snapshot ->> 'tenant_code', ''), request_tenant_value, '')",
+		"institution_value := coalesce(nullif(snapshot ->> 'institution_id', ''), request_institution_value, '')",
+		"if tg_table_name = 'education_portfolio_transfers'",
+		"coalesce(snapshot ->> 'routing_version', '1') = '2'",
+		"request_tenant_value = coalesce(snapshot ->> 'destination_tenant_code', '')",
+		"request_institution_value = coalesce(snapshot ->> 'destination_institution_id', '')",
+		"tenant_value := request_tenant_value",
+		"institution_value := request_institution_value",
+		"pg_advisory_xact_lock",
+		"where tenant_code = tenant_value",
+		"and institution_id = institution_value",
+	} {
+		if !strings.Contains(text, required) {
+			t.Errorf("%s is missing participant-scope invariant %q", appEntityVersionsParticipantScopeMigration, required)
+		}
+	}
+	if strings.Contains(text, "security definer") {
+		t.Fatal("participant-scoped entity-version trigger must not bypass tenant RLS")
+	}
+	if strings.Count(text, "tg_table_name = 'education_portfolio_transfers'") != 1 {
+		t.Fatal("request-scope override must be limited to the routed portfolio-transfer table")
 	}
 }

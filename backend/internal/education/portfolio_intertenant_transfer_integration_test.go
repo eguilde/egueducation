@@ -258,6 +258,27 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	if receivedBy != destinationSubject {
 		t.Fatalf("receipt provenance=%q, want destination actor %q", receivedBy, destinationSubject)
 	}
+	var destinationHistoryCount int
+	var destinationHistoryActorBound, destinationHistoryRouteBound bool
+	if err := pool.QueryRow(destinationCtx, `
+		select count(*),
+			coalesce(bool_and(changed_by = $2), false),
+			coalesce(bool_and(
+				snapshot ->> 'source_tenant_code' = $3
+				and snapshot ->> 'destination_tenant_code' = $4
+			), false)
+		from app_entity_versions
+		where entity_table = 'education_portfolio_transfers' and entity_id = $1::uuid
+	`, transferID, destinationSubject, fixture.tenantA, fixture.tenantB).Scan(
+		&destinationHistoryCount,
+		&destinationHistoryActorBound,
+		&destinationHistoryRouteBound,
+	); err != nil {
+		t.Fatalf("load destination-scoped receipt history: %v", err)
+	}
+	if destinationHistoryCount != 1 || !destinationHistoryActorBound || !destinationHistoryRouteBound {
+		t.Fatalf("destination history count/actor/route = %d/%t/%t, want 1/true/true", destinationHistoryCount, destinationHistoryActorBound, destinationHistoryRouteBound)
+	}
 	releaseDestination()
 	sourceCtx, releaseClosingSource := governanceTenantContext(t, ctx, it.readerPool, fixture.tenantA, fixture.institutionA, fixture.memberSubject)
 	defer releaseClosingSource()
@@ -276,6 +297,17 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	}
 	if closedBy != fixture.memberSubject {
 		t.Fatalf("closing provenance=%q, want source actor %q", closedBy, fixture.memberSubject)
+	}
+	var sourceHistoryCount int
+	if err := pool.QueryRow(sourceCtx, `
+		select count(*)
+		from app_entity_versions
+		where entity_table = 'education_portfolio_transfers' and entity_id = $1::uuid
+	`, transferID).Scan(&sourceHistoryCount); err != nil {
+		t.Fatalf("load source-scoped transfer history: %v", err)
+	}
+	if sourceHistoryCount < 3 {
+		t.Fatalf("source history contains %d versions, want at least prepare/send/close", sourceHistoryCount)
 	}
 	releaseClosingSource()
 
@@ -299,6 +331,17 @@ func TestIntertenantPortfolioTransferRoutingAndEvidenceContractIntegration(t *te
 	}
 	if unrelatedCount != 0 {
 		t.Fatalf("unrelated tenant sees %d transfer rows, want 0", unrelatedCount)
+	}
+	var unrelatedHistoryCount int
+	if err := pool.QueryRow(unrelatedCtx, `
+		select count(*)
+		from app_entity_versions
+		where entity_table = 'education_portfolio_transfers' and entity_id = $1::uuid
+	`, transferID).Scan(&unrelatedHistoryCount); err != nil {
+		t.Fatalf("query unrelated transfer history visibility: %v", err)
+	}
+	if unrelatedHistoryCount != 0 {
+		t.Fatalf("unrelated tenant sees %d transfer history rows, want 0", unrelatedHistoryCount)
 	}
 	releaseUnrelated()
 

@@ -234,7 +234,11 @@ func TestAppEntityVersionsScopedIdentityUpgradeIntegration(t *testing.T) {
 		alter table public.app_entity_versions drop constraint if exists app_entity_versions_scope_entity_version_key;
 		alter table public.app_entity_versions add constraint app_entity_versions_entity_table_entity_id_version_no_key
 			unique (entity_table, entity_id, version_no);
-		delete from public.schema_migrations where version = '0133_app_entity_versions_scoped_identity.sql';
+		delete from public.schema_migrations
+		where version in (
+			'0133_app_entity_versions_scoped_identity.sql',
+			'0134_app_entity_versions_intertenant_participant_scope.sql'
+		);
 	`); err != nil {
 		t.Fatalf("restore post-0132 schema shape: %v", err)
 	}
@@ -255,6 +259,13 @@ func TestAppEntityVersionsScopedIdentityUpgradeIntegration(t *testing.T) {
 	}
 	if ledgerCount != 1 {
 		t.Fatalf("0133 migration ledger count = %d, want 1", ledgerCount)
+	}
+	var participantScopeLedgerCount int
+	if err := pool.QueryRow(ctx, `select count(*) from schema_migrations where version = '0134_app_entity_versions_intertenant_participant_scope.sql'`).Scan(&participantScopeLedgerCount); err != nil {
+		t.Fatalf("read 0134 ledger state: %v", err)
+	}
+	if participantScopeLedgerCount != 1 {
+		t.Fatalf("0134 migration ledger count = %d, want 1", participantScopeLedgerCount)
 	}
 	var constraintDefinition string
 	if err := pool.QueryRow(ctx, `
@@ -285,6 +296,7 @@ func TestAppEntityVersionsScopedIdentityUpgradeIntegration(t *testing.T) {
 	`); err != nil {
 		t.Fatalf("create version trigger upgrade fixture: %v", err)
 	}
+
 	for _, scope := range []appEntityVersionsRLSScope{
 		{tenantCode: "tenant-upgrade-a", institutionID: "institution-a"},
 		{tenantCode: "tenant-upgrade-a", institutionID: "institution-b"},
