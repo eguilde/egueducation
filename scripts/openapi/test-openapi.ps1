@@ -484,6 +484,55 @@ if ((Compare-Object @($managerialDocumentRequest.properties.document_category.en
     throw 'Managerial document request must publish the handler enum/date contract and conditional approval-date requirement.'
 }
 
+$personnelRelatedEnumContracts = [ordered]@{
+    CreatePersonnelAssignmentRequest = [ordered]@{ assignment_type = @('diriginte','coordonator_proiect','responsabil_comisie','mentor','membru_comisie','administrator_structura'); status = @('propus','activ','suspendat','incetat') }
+    CreatePersonnelPersonalFileDocumentRequest = [ordered]@{ document_category = @('identificare','studii','cariera','evaluare','declaratie','medical','disciplina','management'); file_scope = @('dosar_personal','dosar_director','dosar_director_adjunct'); confidentiality_level = @('intern','confidential','strict_confidential') }
+    CreatePersonnelDisciplinaryCaseRequest = [ordered]@{ case_type = @('sesizare','cercetare','sanctiune','contestatie'); status = @('deschis','in_cercetare','solutionat','contestat','inchis') }
+    CreatePersonnelPersonalAccessEventRequest = [ordered]@{ event_type = @('consultare','predare','actualizare','arhivare','export'); access_channel = @('fizic','digital','mixt') }
+    CreatePersonnelEvaluationSelfReviewRequest = [ordered]@{ narrative_type = @('autoevaluare','performanta','dezvoltare','impact'); status = @('draft','submitted','validated','returned') }
+    CreatePersonnelEvaluationCriterionRequest = [ordered]@{ criterion_category = @('proiectare','predare','evaluare','management_clasa','dezvoltare','parteneriat'); status = @('draft','reviewed','validated','contested') }
+    CreatePersonnelEvaluationAppealRequest = [ordered]@{ status = @('submitted','review','accepted','rejected','resolved') }
+    CreatePersonnelEvaluationResultIssueRequest = [ordered]@{ document_type = @('fisa_evaluare','comunicare','decizie','raport_final'); delivery_channel = @('registratura','email','intern','posta'); delivery_status = @('pregatit','emis','transmis','confirmat') }
+}
+foreach ($schemaEntry in $personnelRelatedEnumContracts.GetEnumerator()) {
+    $schema = $specData.components.schemas[$schemaEntry.Key]
+    foreach ($propertyEntry in $schemaEntry.Value.GetEnumerator()) {
+        if (Compare-Object @($schema.properties[$propertyEntry.Key].enum | Sort-Object) @($propertyEntry.Value | Sort-Object)) {
+            throw "$($schemaEntry.Key).$($propertyEntry.Key) must publish the exact handler enum."
+        }
+    }
+}
+foreach ($dateContract in @(
+    @('CreatePersonnelAssignmentRequest','assigned_on','ended_on'),
+    @('CreatePersonnelPersonalFileDocumentRequest','issued_on','expires_on'),
+    @('CreatePersonnelDisciplinaryCaseRequest','reported_on','hearing_on','resolved_on'),
+    @('CreatePersonnelPersonalAccessEventRequest','accessed_on','closed_on'),
+    @('CreatePersonnelEvaluationSelfReviewRequest','completed_on'),
+    @('CreatePersonnelEvaluationAppealRequest','submitted_on','hearing_on','resolved_on'),
+    @('CreatePersonnelEvaluationResultIssueRequest','issued_on','delivered_on','acknowledged_on')
+)) {
+    $schema = $specData.components.schemas[$dateContract[0]]
+    foreach ($field in $dateContract[1..($dateContract.Count - 1)]) {
+        if ($schema.properties[$field].format -ne 'date') { throw "$($dateContract[0]).$field must publish format=date." }
+    }
+}
+$evaluationResultIssueRequest = $specData.components.schemas.CreatePersonnelEvaluationResultIssueRequest
+if ($evaluationResultIssueRequest.allOf[0].then.required -notcontains 'delivered_on' -or
+    $evaluationResultIssueRequest.allOf[1].then.required -notcontains 'acknowledged_on') {
+    throw 'Evaluation result issue must publish conditional delivery and acknowledgement date requirements.'
+}
+$evaluationAppealRequest = $specData.components.schemas.CreatePersonnelEvaluationAppealRequest
+if ($evaluationAppealRequest.allOf[0].then.required -notcontains 'resolved_on' -or
+    $evaluationAppealRequest.allOf[1].then.required -notcontains 'decision_summary') {
+    throw 'Evaluation appeal must publish conditional resolution date and decision summary requirements.'
+}
+$evaluationCriterionRequest = $specData.components.schemas.CreatePersonnelEvaluationCriterionRequest
+if ($evaluationCriterionRequest.properties.max_score.minimum -ne 0 -or
+    $evaluationCriterionRequest.properties.max_score.maximum -ne 100 -or
+    @($evaluationCriterionRequest.'x-cross-field-constraints').Count -ne 1) {
+    throw 'Evaluation criterion request must publish score bounds and cross-field constraints.'
+}
+
 $meritScoreRequest = $specData.components.schemas.CreateMeritCriterionScoreRequest
 $meritCategories = @('performanta','impact','dezvoltare','management','incluziune')
 $meritStages = @('autoevaluare','evaluare_comisie','validare_finala')

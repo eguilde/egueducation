@@ -8391,13 +8391,17 @@ export interface components {
             registry_reference?: string;
         };
         CreatePersonnelAssignmentRequest: {
+            /** Format: date */
             assigned_on: string;
             assignment_title: string;
-            assignment_type: string;
+            /** @enum {string} */
+            assignment_type: "diriginte" | "coordonator_proiect" | "responsabil_comisie" | "mentor" | "membru_comisie" | "administrator_structura";
             decision_reference?: string;
+            /** Format: date */
             ended_on?: string;
             notes?: string;
-            status: string;
+            /** @enum {string} */
+            status: "propus" | "activ" | "suspendat" | "incetat";
             /** Format: int32 */
             weekly_hours?: number;
         };
@@ -8412,29 +8416,39 @@ export interface components {
             valid_until?: string;
         };
         CreatePersonnelDisciplinaryCaseRequest: {
-            case_type: string;
+            /** @enum {string} */
+            case_type: "sesizare" | "cercetare" | "sanctiune" | "contestatie";
             committee_name?: string;
+            /** Format: date */
             hearing_on?: string;
             legal_basis?: string;
             notes?: string;
+            /** Format: date */
             reported_on: string;
+            /** Format: date */
             resolved_on?: string;
             sanction?: string;
-            status: string;
+            /** @enum {string} */
+            status: "deschis" | "in_cercetare" | "solutionat" | "contestat" | "inchis";
         };
         CreatePersonnelEvaluationAppealRequest: {
             attached_to_personnel_file?: boolean;
             committee_note?: string;
             decision_summary?: string;
             grounds: string;
+            /** Format: date */
             hearing_on?: string;
+            /** Format: date */
             resolved_on?: string;
-            status: string;
+            /** @enum {string} */
+            status: "submitted" | "review" | "accepted" | "rejected" | "resolved";
             submitted_by: string;
+            /** Format: date */
             submitted_on: string;
-        };
+        } & (unknown & unknown);
         CreatePersonnelEvaluationCriterionRequest: {
-            criterion_category: string;
+            /** @enum {string} */
+            criterion_category: "proiectare" | "predare" | "evaluare" | "management_clasa" | "dezvoltare" | "parteneriat";
             criterion_label: string;
             evidence_summary?: string;
             /** Format: double */
@@ -8446,7 +8460,8 @@ export interface components {
             reviewer_score?: number;
             /** Format: double */
             self_score?: number;
-            status: string;
+            /** @enum {string} */
+            status: "draft" | "reviewed" | "validated" | "contested";
         };
         CreatePersonnelEvaluationRequest: {
             employee_code: string;
@@ -8461,49 +8476,67 @@ export interface components {
             summary?: string;
         };
         CreatePersonnelEvaluationResultIssueRequest: {
+            /** Format: date */
             acknowledged_on?: string;
             attached_to_personnel_file?: boolean;
+            /** Format: date */
             delivered_on?: string;
-            delivery_channel: string;
-            delivery_status: string;
-            document_type: string;
+            /** @enum {string} */
+            delivery_channel: "registratura" | "email" | "intern" | "posta";
+            /** @enum {string} */
+            delivery_status: "pregatit" | "emis" | "transmis" | "confirmat";
+            /** @enum {string} */
+            document_type: "fisa_evaluare" | "comunicare" | "decizie" | "raport_final";
+            /** Format: date */
             issued_on: string;
             notes?: string;
             recipient_name: string;
             recipient_role?: string;
             registry_reference?: string;
-        };
+        } & (unknown & unknown);
         CreatePersonnelEvaluationSelfReviewRequest: {
             /** Format: double */
             assumed_score?: number;
+            /** Format: date */
             completed_on: string;
             evidence_summary?: string;
             improvement_needs?: string;
-            narrative_type: string;
+            /** @enum {string} */
+            narrative_type: "autoevaluare" | "performanta" | "dezvoltare" | "impact";
             notes?: string;
             section_title: string;
-            status: string;
+            /** @enum {string} */
+            status: "draft" | "submitted" | "validated" | "returned";
             strengths?: string;
         };
         CreatePersonnelPersonalAccessEventRequest: {
-            access_channel: string;
+            /** @enum {string} */
+            access_channel: "fizic" | "digital" | "mixt";
+            /** Format: date */
             accessed_on: string;
             actor_name: string;
             actor_role: string;
+            /** Format: date */
             closed_on?: string;
-            event_type: string;
+            /** @enum {string} */
+            event_type: "consultare" | "predare" | "actualizare" | "arhivare" | "export";
             notes?: string;
             purpose: string;
             sensitive_scope?: boolean;
         };
         CreatePersonnelPersonalFileDocumentRequest: {
-            confidentiality_level: string;
-            document_category: string;
+            /** @enum {string} */
+            confidentiality_level: "intern" | "confidential" | "strict_confidential";
+            /** @enum {string} */
+            document_category: "identificare" | "studii" | "cariera" | "evaluare" | "declaratie" | "medical" | "disciplina" | "management";
             document_title: string;
+            /** Format: date */
             expires_on?: string;
             file_reference?: string;
-            file_scope: string;
+            /** @enum {string} */
+            file_scope: "dosar_personal" | "dosar_director" | "dosar_director_adjunct";
             included_in_portfolio?: boolean;
+            /** Format: date */
             issued_on: string;
             notes?: string;
             sensitive_data?: boolean;

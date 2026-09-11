@@ -288,6 +288,23 @@ const committeeMemberTypes = ["presedinte", "secretar", "membru", "observator", 
 const committeeMemberStatuses = ["active", "inactive", "replaced"] as const;
 const meritScoreCategories = ["performanta", "impact", "dezvoltare", "management", "incluziune"] as const;
 const meritScoreStages = ["autoevaluare", "evaluare_comisie", "validare_finala"] as const;
+const personnelAssignmentTypes = ["diriginte", "coordonator_proiect", "responsabil_comisie", "mentor", "membru_comisie", "administrator_structura"] as const;
+const personnelAssignmentStatuses = ["propus", "activ", "suspendat", "incetat"] as const;
+const personnelDocumentCategories = ["identificare", "studii", "cariera", "evaluare", "declaratie", "medical", "disciplina", "management"] as const;
+const personnelFileScopes = ["dosar_personal", "dosar_director", "dosar_director_adjunct"] as const;
+const personnelConfidentialityLevels = ["intern", "confidential", "strict_confidential"] as const;
+const personnelDisciplinaryCaseTypes = ["sesizare", "cercetare", "sanctiune", "contestatie"] as const;
+const personnelDisciplinaryStatuses = ["deschis", "in_cercetare", "solutionat", "contestat", "inchis"] as const;
+const personnelAccessEventTypes = ["consultare", "predare", "actualizare", "arhivare", "export"] as const;
+const personnelAccessChannels = ["fizic", "digital", "mixt"] as const;
+const evaluationNarrativeTypes = ["autoevaluare", "performanta", "dezvoltare", "impact"] as const;
+const evaluationSelfReviewStatuses = ["draft", "submitted", "validated", "returned"] as const;
+const evaluationCriterionCategories = ["proiectare", "predare", "evaluare", "management_clasa", "dezvoltare", "parteneriat"] as const;
+const evaluationCriterionStatuses = ["draft", "reviewed", "validated", "contested"] as const;
+const evaluationAppealStatuses = ["submitted", "review", "accepted", "rejected", "resolved"] as const;
+const evaluationResultDocumentTypes = ["fisa_evaluare", "comunicare", "decizie", "raport_final"] as const;
+const evaluationResultDeliveryChannels = ["registratura", "email", "intern", "posta"] as const;
+const evaluationResultDeliveryStatuses = ["pregatit", "emis", "transmis", "confirmat"] as const;
 const requiredEnum = <T extends readonly string[]>(input: EducationRecordInput, key: string, allowed: T): T[number] => {
   const value = requiredText(input, key);
   if (!allowed.includes(value)) throw new Error(`education_enum_${key}`);
@@ -328,6 +345,10 @@ const requiredNumber = (input: EducationRecordInput, key: string): number => {
   if (value === undefined) throw new Error(`education_required_${key}`);
   return value;
 };
+const assertNumberRange = (key: string, value: number | undefined, minimum: number, maximum?: number): void => {
+  if (value === undefined) return;
+  if (value < minimum || (maximum !== undefined && value > maximum)) throw new Error(`education_range_${key}`);
+};
 const optionalBoolean = (input: EducationRecordInput, key: string): boolean | undefined => {
   const value = input[key];
   return typeof value === "boolean" ? value : undefined;
@@ -349,38 +370,68 @@ function personnelEvaluationBody(resource: "evaluation-appeals", input: Educatio
 function personnelEvaluationBody(resource: "evaluation-result-issues", input: EducationRecordInput): components["schemas"]["CreatePersonnelEvaluationResultIssueRequest"];
 function personnelEvaluationBody(resource: PersonnelEvaluationRelatedResource, input: EducationRecordInput): EducationRelatedCreateInputByResource[PersonnelEvaluationRelatedResource] {
   switch (resource) {
-    case "personnel-assignments": return {
-      assigned_on: requiredText(input, "assigned_on"), assignment_title: requiredText(input, "assignment_title"), assignment_type: requiredText(input, "assignment_type"), status: requiredText(input, "status"),
-      decision_reference: optionalText(input, "decision_reference"), ended_on: optionalText(input, "ended_on"), notes: optionalText(input, "notes"), weekly_hours: optionalNumber(input, "weekly_hours"),
-    } satisfies components["schemas"]["CreatePersonnelAssignmentRequest"];
+    case "personnel-assignments": {
+      const weeklyHours = optionalNumber(input, "weekly_hours");
+      assertNumberRange("weekly_hours", weeklyHours, 0);
+      return {
+        assigned_on: requiredText(input, "assigned_on"), assignment_title: requiredText(input, "assignment_title"), assignment_type: requiredEnum(input, "assignment_type", personnelAssignmentTypes), status: requiredEnum(input, "status", personnelAssignmentStatuses),
+        decision_reference: optionalText(input, "decision_reference"), ended_on: optionalText(input, "ended_on"), notes: optionalText(input, "notes"), weekly_hours: weeklyHours,
+      } satisfies components["schemas"]["CreatePersonnelAssignmentRequest"];
+    }
     case "personnel-file-documents": return {
-      confidentiality_level: requiredText(input, "confidentiality_level"), document_category: requiredText(input, "document_category"), document_title: requiredText(input, "document_title"), file_scope: requiredText(input, "file_scope"), issued_on: requiredText(input, "issued_on"),
+      confidentiality_level: requiredEnum(input, "confidentiality_level", personnelConfidentialityLevels), document_category: requiredEnum(input, "document_category", personnelDocumentCategories), document_title: requiredText(input, "document_title"), file_scope: requiredEnum(input, "file_scope", personnelFileScopes), issued_on: requiredText(input, "issued_on"),
       expires_on: optionalText(input, "expires_on"), file_reference: optionalText(input, "file_reference"), included_in_portfolio: optionalBoolean(input, "included_in_portfolio"), notes: optionalText(input, "notes"), sensitive_data: optionalBoolean(input, "sensitive_data"),
     } satisfies components["schemas"]["CreatePersonnelPersonalFileDocumentRequest"];
     case "personnel-disciplinary-cases": return {
-      case_type: requiredText(input, "case_type"), reported_on: requiredText(input, "reported_on"), status: requiredText(input, "status"),
+      case_type: requiredEnum(input, "case_type", personnelDisciplinaryCaseTypes), reported_on: requiredText(input, "reported_on"), status: requiredEnum(input, "status", personnelDisciplinaryStatuses),
       committee_name: optionalText(input, "committee_name"), hearing_on: optionalText(input, "hearing_on"), legal_basis: optionalText(input, "legal_basis"), notes: optionalText(input, "notes"), resolved_on: optionalText(input, "resolved_on"), sanction: optionalText(input, "sanction"),
     } satisfies components["schemas"]["CreatePersonnelDisciplinaryCaseRequest"];
     case "personnel-access-events": return {
-      access_channel: requiredText(input, "access_channel"), accessed_on: requiredText(input, "accessed_on"), actor_name: requiredText(input, "actor_name"), actor_role: requiredText(input, "actor_role"), event_type: requiredText(input, "event_type"), purpose: requiredText(input, "purpose"),
+      access_channel: requiredEnum(input, "access_channel", personnelAccessChannels), accessed_on: requiredText(input, "accessed_on"), actor_name: requiredText(input, "actor_name"), actor_role: requiredText(input, "actor_role"), event_type: requiredEnum(input, "event_type", personnelAccessEventTypes), purpose: requiredText(input, "purpose"),
       closed_on: optionalText(input, "closed_on"), notes: optionalText(input, "notes"), sensitive_scope: optionalBoolean(input, "sensitive_scope"),
     } satisfies components["schemas"]["CreatePersonnelPersonalAccessEventRequest"];
-    case "evaluation-self-reviews": return {
-      completed_on: requiredText(input, "completed_on"), narrative_type: requiredText(input, "narrative_type"), section_title: requiredText(input, "section_title"), status: requiredText(input, "status"),
-      assumed_score: optionalNumber(input, "assumed_score"), evidence_summary: optionalText(input, "evidence_summary"), improvement_needs: optionalText(input, "improvement_needs"), notes: optionalText(input, "notes"), strengths: optionalText(input, "strengths"),
-    } satisfies components["schemas"]["CreatePersonnelEvaluationSelfReviewRequest"];
-    case "evaluation-criteria": return {
-      criterion_category: requiredText(input, "criterion_category"), criterion_label: requiredText(input, "criterion_label"), max_score: requiredNumber(input, "max_score"), status: requiredText(input, "status"),
-      evidence_summary: optionalText(input, "evidence_summary"), final_score: optionalNumber(input, "final_score"), notes: optionalText(input, "notes"), reviewer_score: optionalNumber(input, "reviewer_score"), self_score: optionalNumber(input, "self_score"),
-    } satisfies components["schemas"]["CreatePersonnelEvaluationCriterionRequest"];
-    case "evaluation-appeals": return {
-      grounds: requiredText(input, "grounds"), status: requiredText(input, "status"), submitted_by: requiredText(input, "submitted_by"), submitted_on: requiredText(input, "submitted_on"),
-      attached_to_personnel_file: optionalBoolean(input, "attached_to_personnel_file"), committee_note: optionalText(input, "committee_note"), decision_summary: optionalText(input, "decision_summary"), hearing_on: optionalText(input, "hearing_on"), resolved_on: optionalText(input, "resolved_on"),
-    } satisfies components["schemas"]["CreatePersonnelEvaluationAppealRequest"];
-    case "evaluation-result-issues": return {
-      delivery_channel: requiredText(input, "delivery_channel"), delivery_status: requiredText(input, "delivery_status"), document_type: requiredText(input, "document_type"), issued_on: requiredText(input, "issued_on"), recipient_name: requiredText(input, "recipient_name"),
-      acknowledged_on: optionalText(input, "acknowledged_on"), attached_to_personnel_file: optionalBoolean(input, "attached_to_personnel_file"), delivered_on: optionalText(input, "delivered_on"), notes: optionalText(input, "notes"), recipient_role: optionalText(input, "recipient_role"), registry_reference: optionalText(input, "registry_reference"),
-    } satisfies components["schemas"]["CreatePersonnelEvaluationResultIssueRequest"];
+    case "evaluation-self-reviews": {
+      const assumedScore = optionalNumber(input, "assumed_score");
+      assertNumberRange("assumed_score", assumedScore, 0, 100);
+      return {
+        completed_on: requiredText(input, "completed_on"), narrative_type: requiredEnum(input, "narrative_type", evaluationNarrativeTypes), section_title: requiredText(input, "section_title"), status: requiredEnum(input, "status", evaluationSelfReviewStatuses),
+        assumed_score: assumedScore, evidence_summary: optionalText(input, "evidence_summary"), improvement_needs: optionalText(input, "improvement_needs"), notes: optionalText(input, "notes"), strengths: optionalText(input, "strengths"),
+      } satisfies components["schemas"]["CreatePersonnelEvaluationSelfReviewRequest"];
+    }
+    case "evaluation-criteria": {
+      const maxScore = requiredNumber(input, "max_score");
+      const selfScore = optionalNumber(input, "self_score");
+      const reviewerScore = optionalNumber(input, "reviewer_score");
+      const finalScore = optionalNumber(input, "final_score");
+      assertNumberRange("max_score", maxScore, 0, 100);
+      for (const [key, value] of [["self_score", selfScore], ["reviewer_score", reviewerScore], ["final_score", finalScore]] as const) assertNumberRange(key, value, 0, maxScore);
+      return {
+        criterion_category: requiredEnum(input, "criterion_category", evaluationCriterionCategories), criterion_label: requiredText(input, "criterion_label"), max_score: maxScore, status: requiredEnum(input, "status", evaluationCriterionStatuses),
+        evidence_summary: optionalText(input, "evidence_summary"), final_score: finalScore, notes: optionalText(input, "notes"), reviewer_score: reviewerScore, self_score: selfScore,
+      } satisfies components["schemas"]["CreatePersonnelEvaluationCriterionRequest"];
+    }
+    case "evaluation-appeals": {
+      const status = requiredEnum(input, "status", evaluationAppealStatuses);
+      const resolvedOn = optionalText(input, "resolved_on");
+      const decisionSummary = optionalText(input, "decision_summary");
+      if (["accepted", "rejected", "resolved"].includes(status) && !resolvedOn) throw new Error("education_required_resolved_on");
+      if (["accepted", "rejected"].includes(status) && !decisionSummary) throw new Error("education_required_decision_summary");
+      return {
+        grounds: requiredText(input, "grounds"), status, submitted_by: requiredText(input, "submitted_by"), submitted_on: requiredText(input, "submitted_on"),
+        attached_to_personnel_file: optionalBoolean(input, "attached_to_personnel_file"), committee_note: optionalText(input, "committee_note"), decision_summary: decisionSummary, hearing_on: optionalText(input, "hearing_on"), resolved_on: resolvedOn,
+      } satisfies components["schemas"]["CreatePersonnelEvaluationAppealRequest"];
+    }
+    case "evaluation-result-issues": {
+      const deliveryStatus = requiredEnum(input, "delivery_status", evaluationResultDeliveryStatuses);
+      const deliveredOn = optionalText(input, "delivered_on");
+      const acknowledgedOn = optionalText(input, "acknowledged_on");
+      if (["transmis", "confirmat"].includes(deliveryStatus) && !deliveredOn) throw new Error("education_required_delivered_on");
+      if (deliveryStatus === "confirmat" && !acknowledgedOn) throw new Error("education_required_acknowledged_on");
+      return {
+        delivery_channel: requiredEnum(input, "delivery_channel", evaluationResultDeliveryChannels), delivery_status: deliveryStatus, document_type: requiredEnum(input, "document_type", evaluationResultDocumentTypes), issued_on: requiredText(input, "issued_on"), recipient_name: requiredText(input, "recipient_name"),
+        acknowledged_on: acknowledgedOn, attached_to_personnel_file: optionalBoolean(input, "attached_to_personnel_file"), delivered_on: deliveredOn, notes: optionalText(input, "notes"), recipient_role: optionalText(input, "recipient_role"), registry_reference: optionalText(input, "registry_reference"),
+      } satisfies components["schemas"]["CreatePersonnelEvaluationResultIssueRequest"];
+    }
   }
 }
 const personnelEvaluationRelatedList = (client: ContractClient, resource: PersonnelEvaluationRelatedResource, parentID: string | undefined, input: EducationListQuery) => {

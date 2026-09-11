@@ -70,6 +70,39 @@ describe("School overlay lifecycle", () => {
     );
     expect(screen.getByRole("button", { name: "Salvează" })).toBeEnabled();
   });
+
+  it("mirrors appeal/result terminal-state requirements and evaluation score limits", () => {
+    const appeals = domainRelations.evaluations?.find((relation) => relation.resource === "evaluation-appeals")?.fields ?? [];
+    const common = { title: "Contestație", onClose: vi.fn(), onChange: vi.fn(), onSave: vi.fn() };
+    const { rerender } = render(
+      <PrimeReactProvider>
+        <RecordFormDialog {...common} fields={appeals} open={{ input: { status: "accepted", resolved_on: "", decision_summary: "" } }} />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByLabelText("Soluționat la")).toBeRequired();
+    expect(screen.getByLabelText("Decizie")).toBeRequired();
+    expect(screen.getByRole("button", { name: "Salvează" })).toBeDisabled();
+
+    const resultIssues = domainRelations.evaluations?.find((relation) => relation.resource === "evaluation-result-issues")?.fields ?? [];
+    rerender(
+      <PrimeReactProvider>
+        <RecordFormDialog {...common} fields={resultIssues} open={{ input: { delivery_status: "confirmat", delivered_on: "", acknowledged_on: "" } }} />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByLabelText("Livrat la")).toBeRequired();
+    expect(screen.getByLabelText("Confirmat la")).toBeRequired();
+
+    const criteria = domainRelations.evaluations?.find((relation) => relation.resource === "evaluation-criteria")?.fields ?? [];
+    rerender(
+      <PrimeReactProvider>
+        <RecordFormDialog {...common} fields={criteria} open={{ input: {} }} />
+      </PrimeReactProvider>,
+    );
+    expect(screen.getByLabelText("Maxim")).toHaveAttribute("min", "0");
+    expect(screen.getByLabelText("Maxim")).toHaveAttribute("max", "100");
+    expect(screen.getByLabelText("Autoevaluare")).toHaveAttribute("min", "0");
+    expect(screen.getByLabelText("Autoevaluare")).toHaveAttribute("max", "100");
+  });
 });
 
 describe("EducationListPanel", () => {
@@ -242,7 +275,7 @@ describe("School detail relations", () => {
     expect(hasDomainRelations("managerial")).toBe(true);
   });
 
-  it("binds merit score enums to PrimeReact selects without constraining evaluation criteria", () => {
+  it("binds merit and evaluation criterion enums to their distinct PrimeReact selects", () => {
     const meritCategory = domainRelations.merit
       ?.find((relation) => relation.resource === "merit-scores")
       ?.fields.find((field) => field.key === "criterion_category");
@@ -257,7 +290,34 @@ describe("School detail relations", () => {
     const evaluationCategory = domainRelations.evaluations
       ?.find((relation) => relation.resource === "evaluation-criteria")
       ?.fields.find((field) => field.key === "criterion_category");
-    expect(evaluationCategory?.kind).toBeUndefined();
+    expect(evaluationCategory).toMatchObject({
+      kind: "select",
+      options: expect.arrayContaining([
+        { label: "proiectare", value: "proiectare" },
+        { label: "predare", value: "predare" },
+        { label: "parteneriat", value: "parteneriat" },
+      ]),
+    });
+  });
+
+  it("binds personnel assignment enums to PrimeReact selects matching the API contract", () => {
+    const assignmentFields = domainRelations.personnel
+      ?.find((relation) => relation.resource === "personnel-assignments")
+      ?.fields;
+    expect(assignmentFields?.find((field) => field.key === "assignment_type")).toMatchObject({
+      kind: "select",
+      options: expect.arrayContaining([
+        { label: "diriginte", value: "diriginte" },
+        { label: "administrator_structura", value: "administrator_structura" },
+      ]),
+    });
+    expect(assignmentFields?.find((field) => field.key === "status")).toMatchObject({
+      kind: "select",
+      options: expect.arrayContaining([
+        { label: "propus", value: "propus" },
+        { label: "activ", value: "activ" },
+      ]),
+    });
   });
 
   it("binds committee member enums to PrimeReact selects that match the API contract", () => {

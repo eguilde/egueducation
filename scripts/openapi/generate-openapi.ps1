@@ -462,6 +462,95 @@ if ($personnelRecordSchema) {
     $personnelRecordSchema.properties.evaluation_status.enum = @('draft','in_review','finalized')
     $personnelRecordSchema.properties.mobility_stage.enum = @('none','transfer','detasare','restrangere')
 }
+$personnelAssignmentSchema = $common.components.schemas['CreatePersonnelAssignmentRequest']
+if ($personnelAssignmentSchema) {
+    $personnelAssignmentSchema.properties.assignment_type.enum = @('diriginte','coordonator_proiect','responsabil_comisie','mentor','membru_comisie','administrator_structura')
+    $personnelAssignmentSchema.properties.status.enum = @('propus','activ','suspendat','incetat')
+    $personnelAssignmentSchema.properties.assigned_on.format = 'date'
+    $personnelAssignmentSchema.properties.ended_on.format = 'date'
+    $personnelAssignmentSchema.properties.weekly_hours.minimum = 0
+}
+$personnelFileDocumentSchema = $common.components.schemas['CreatePersonnelPersonalFileDocumentRequest']
+if ($personnelFileDocumentSchema) {
+    $personnelFileDocumentSchema.properties.document_category.enum = @('identificare','studii','cariera','evaluare','declaratie','medical','disciplina','management')
+    $personnelFileDocumentSchema.properties.file_scope.enum = @('dosar_personal','dosar_director','dosar_director_adjunct')
+    $personnelFileDocumentSchema.properties.confidentiality_level.enum = @('intern','confidential','strict_confidential')
+    $personnelFileDocumentSchema.properties.issued_on.format = 'date'
+    $personnelFileDocumentSchema.properties.expires_on.format = 'date'
+}
+$personnelDisciplinarySchema = $common.components.schemas['CreatePersonnelDisciplinaryCaseRequest']
+if ($personnelDisciplinarySchema) {
+    $personnelDisciplinarySchema.properties.case_type.enum = @('sesizare','cercetare','sanctiune','contestatie')
+    $personnelDisciplinarySchema.properties.status.enum = @('deschis','in_cercetare','solutionat','contestat','inchis')
+    $personnelDisciplinarySchema.properties.reported_on.format = 'date'
+    $personnelDisciplinarySchema.properties.hearing_on.format = 'date'
+    $personnelDisciplinarySchema.properties.resolved_on.format = 'date'
+}
+$personnelAccessSchema = $common.components.schemas['CreatePersonnelPersonalAccessEventRequest']
+if ($personnelAccessSchema) {
+    $personnelAccessSchema.properties.event_type.enum = @('consultare','predare','actualizare','arhivare','export')
+    $personnelAccessSchema.properties.access_channel.enum = @('fizic','digital','mixt')
+    $personnelAccessSchema.properties.accessed_on.format = 'date'
+    $personnelAccessSchema.properties.closed_on.format = 'date'
+}
+$evaluationSelfReviewSchema = $common.components.schemas['CreatePersonnelEvaluationSelfReviewRequest']
+if ($evaluationSelfReviewSchema) {
+    $evaluationSelfReviewSchema.properties.narrative_type.enum = @('autoevaluare','performanta','dezvoltare','impact')
+    $evaluationSelfReviewSchema.properties.status.enum = @('draft','submitted','validated','returned')
+    $evaluationSelfReviewSchema.properties.completed_on.format = 'date'
+    $evaluationSelfReviewSchema.properties.assumed_score.minimum = 0
+    $evaluationSelfReviewSchema.properties.assumed_score.maximum = 100
+}
+$evaluationCriterionSchema = $common.components.schemas['CreatePersonnelEvaluationCriterionRequest']
+if ($evaluationCriterionSchema) {
+    $evaluationCriterionSchema.properties.criterion_category.enum = @('proiectare','predare','evaluare','management_clasa','dezvoltare','parteneriat')
+    $evaluationCriterionSchema.properties.status.enum = @('draft','reviewed','validated','contested')
+    foreach ($scoreField in @('max_score','self_score','reviewer_score','final_score')) {
+        $evaluationCriterionSchema.properties[$scoreField].minimum = 0
+        $evaluationCriterionSchema.properties[$scoreField].maximum = 100
+    }
+    $evaluationCriterionSchema['x-cross-field-constraints'] = @([ordered]@{
+        rule = 'criterion_scores_lte_max_score'
+        expression = 'self_score <= max_score && reviewer_score <= max_score && final_score <= max_score'
+        message = 'Every supplied score must be less than or equal to max_score.'
+    })
+}
+$evaluationAppealSchema = $common.components.schemas['CreatePersonnelEvaluationAppealRequest']
+if ($evaluationAppealSchema) {
+    $evaluationAppealSchema.properties.status.enum = @('submitted','review','accepted','rejected','resolved')
+    $evaluationAppealSchema.properties.submitted_on.format = 'date'
+    $evaluationAppealSchema.properties.hearing_on.format = 'date'
+    $evaluationAppealSchema.properties.resolved_on.format = 'date'
+    $evaluationAppealSchema.allOf = @(
+        [ordered]@{
+            'if' = [ordered]@{ properties = [ordered]@{ status = [ordered]@{ enum = @('accepted','rejected','resolved') } }; required = @('status') }
+            then = [ordered]@{ required = @('resolved_on') }
+        },
+        [ordered]@{
+            'if' = [ordered]@{ properties = [ordered]@{ status = [ordered]@{ enum = @('accepted','rejected') } }; required = @('status') }
+            then = [ordered]@{ required = @('decision_summary') }
+        }
+    )
+}
+$evaluationResultIssueSchema = $common.components.schemas['CreatePersonnelEvaluationResultIssueRequest']
+if ($evaluationResultIssueSchema) {
+    $evaluationResultIssueSchema.properties.document_type.enum = @('fisa_evaluare','comunicare','decizie','raport_final')
+    $evaluationResultIssueSchema.properties.delivery_channel.enum = @('registratura','email','intern','posta')
+    $evaluationResultIssueSchema.properties.delivery_status.enum = @('pregatit','emis','transmis','confirmat')
+    $evaluationResultIssueSchema.properties.issued_on.format = 'date'
+    $evaluationResultIssueSchema.properties.delivered_on.format = 'date'
+    $evaluationResultIssueSchema.properties.acknowledged_on.format = 'date'
+    $evaluationResultIssueSchema.allOf = @(
+        [ordered]@{
+            'if' = [ordered]@{ properties = [ordered]@{ delivery_status = [ordered]@{ enum = @('transmis','confirmat') } }; required = @('delivery_status') }
+            then = [ordered]@{ required = @('delivered_on') }
+        },
+        [ordered]@{
+            'if' = [ordered]@{ properties = [ordered]@{ delivery_status = [ordered]@{ enum = @('confirmat') } }; required = @('delivery_status') }
+            then = [ordered]@{ required = @('acknowledged_on') }
+        }
+    )
+}
 $meritScoreSchema = $common.components.schemas['CreateMeritCriterionScoreRequest']
 if ($meritScoreSchema) {
     $meritScoreSchema.properties.criterion_category.enum = @('performanta','impact','dezvoltare','management','incluziune')

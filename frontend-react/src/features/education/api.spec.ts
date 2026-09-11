@@ -169,14 +169,14 @@ describe("Education API", () => {
     ));
     const api = createEducationApi(fetcher);
     await api.relatedRecords("personnel-assignments", "person-1", { sort: "assigned_on", direction: "desc", filters: { assignment_code: "A-1", status: "ignored" } });
-    await api.saveRelated("personnel-assignments", "person-1", { assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "titular", status: "active", assignment_code: "server-owned" });
-    await api.saveRelated("personnel-file-documents", "person-1", { confidentiality_level: "restricted", document_category: "contract", document_title: "Contract", file_scope: "personnel", issued_on: "2026-09-01", document_code: "server-owned" });
-    await api.saveRelated("personnel-disciplinary-cases", "person-1", { case_type: "review", reported_on: "2026-09-01", status: "open", case_code: "server-owned" });
-    await api.saveRelated("personnel-access-events", "person-1", { access_channel: "ui", accessed_on: "2026-09-01", actor_name: "Administrator", actor_role: "admin", event_type: "view", purpose: "audit", institution_id: "server-owned" });
-    await api.saveRelated("evaluation-self-reviews", "evaluation-1", { completed_on: "2026-09-01", narrative_type: "annual", section_title: "Activitate", status: "draft", review_code: "server-owned" });
-    await api.saveRelated("evaluation-criteria", "evaluation-1", { criterion_category: "teaching", criterion_label: "Calitate", max_score: 10, status: "draft", criterion_code: "server-owned" });
+    await api.saveRelated("personnel-assignments", "person-1", { assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "diriginte", status: "activ", assignment_code: "server-owned" });
+    await api.saveRelated("personnel-file-documents", "person-1", { confidentiality_level: "confidential", document_category: "cariera", document_title: "Contract", file_scope: "dosar_personal", issued_on: "2026-09-01", document_code: "server-owned" });
+    await api.saveRelated("personnel-disciplinary-cases", "person-1", { case_type: "sesizare", reported_on: "2026-09-01", status: "deschis", case_code: "server-owned" });
+    await api.saveRelated("personnel-access-events", "person-1", { access_channel: "digital", accessed_on: "2026-09-01", actor_name: "Administrator", actor_role: "admin", event_type: "consultare", purpose: "audit", institution_id: "server-owned" });
+    await api.saveRelated("evaluation-self-reviews", "evaluation-1", { completed_on: "2026-09-01", narrative_type: "autoevaluare", section_title: "Activitate", status: "draft", review_code: "server-owned" });
+    await api.saveRelated("evaluation-criteria", "evaluation-1", { criterion_category: "predare", criterion_label: "Calitate", max_score: 10, status: "draft", criterion_code: "server-owned" });
     await api.saveRelated("evaluation-appeals", "evaluation-1", { grounds: "motiv", status: "submitted", submitted_by: "Ana", submitted_on: "2026-09-01", appeal_code: "server-owned" });
-    await api.saveRelated("evaluation-result-issues", "evaluation-1", { delivery_channel: "email", delivery_status: "sent", document_type: "result", issued_on: "2026-09-01", recipient_name: "Ana", issue_code: "server-owned" });
+    await api.saveRelated("evaluation-result-issues", "evaluation-1", { delivery_channel: "email", delivery_status: "pregatit", document_type: "fisa_evaluare", issued_on: "2026-09-01", recipient_name: "Ana", issue_code: "server-owned" });
     await api.relatedPdf("evaluation-appeals", "evaluation-1", "appeal-1");
     await api.relatedPdf("evaluation-result-issues", "evaluation-1", "issue-1");
     await api.deleteRelated("personnel-access-events", "person-1", "event-1");
@@ -186,7 +186,7 @@ describe("Education API", () => {
     expect(listUrl.searchParams.get("filter.assignment_code")).toBe("A-1");
     expect(listUrl.searchParams.has("filter.status")).toBe(false);
     expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/personnel/records/person-1/assignments");
-    await expect(requestAt(fetcher, 1).clone().json()).resolves.toEqual({ assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "titular", status: "active" });
+    await expect(requestAt(fetcher, 1).clone().json()).resolves.toEqual({ assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "diriginte", status: "activ" });
     expect(new URL(urlAt(fetcher, 8)).pathname).toBe("/api/education/evaluations/records/evaluation-1/result-issues");
     await expect(requestAt(fetcher, 8).clone().json()).resolves.not.toHaveProperty("issue_code");
     expect(new URL(urlAt(fetcher, 9)).pathname).toBe("/api/education/evaluations/records/evaluation-1/appeals/appeal-1/pdf");
@@ -194,6 +194,16 @@ describe("Education API", () => {
     expect(new URL(urlAt(fetcher, 10)).pathname).toBe("/api/education/evaluations/records/evaluation-1/result-issues/issue-1/pdf");
     expect(requestAt(fetcher, 11).method).toBe("DELETE");
     expect(new URL(urlAt(fetcher, 11)).pathname).toBe("/api/education/personnel/records/person-1/access-events/event-1");
+    await expect(api.saveRelated("personnel-assignments", "person-1", { assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "titular", status: "active" })).rejects.toThrow("education_enum_assignment_type");
+    await expect(api.saveRelated("personnel-assignments", "person-1", { assigned_on: "2026-09-01", assignment_title: "Profesor", assignment_type: "diriginte", status: "activ", weekly_hours: -1 })).rejects.toThrow("education_range_weekly_hours");
+    await expect(api.saveRelated("evaluation-self-reviews", "evaluation-1", { completed_on: "2026-09-01", narrative_type: "autoevaluare", section_title: "Activitate", status: "draft", assumed_score: 101 })).rejects.toThrow("education_range_assumed_score");
+    await expect(api.saveRelated("evaluation-criteria", "evaluation-1", { criterion_category: "predare", criterion_label: "Calitate", max_score: -1, status: "draft" })).rejects.toThrow("education_range_max_score");
+    await expect(api.saveRelated("evaluation-criteria", "evaluation-1", { criterion_category: "predare", criterion_label: "Calitate", max_score: 10, self_score: 11, status: "draft" })).rejects.toThrow("education_range_self_score");
+    await expect(api.saveRelated("evaluation-appeals", "evaluation-1", { grounds: "motiv", status: "accepted", submitted_by: "Ana", submitted_on: "2026-09-01" })).rejects.toThrow("education_required_resolved_on");
+    await expect(api.saveRelated("evaluation-appeals", "evaluation-1", { grounds: "motiv", status: "rejected", submitted_by: "Ana", submitted_on: "2026-09-01", resolved_on: "2026-09-02" })).rejects.toThrow("education_required_decision_summary");
+    await expect(api.saveRelated("evaluation-result-issues", "evaluation-1", { delivery_channel: "email", delivery_status: "transmis", document_type: "fisa_evaluare", issued_on: "2026-09-01", recipient_name: "Ana" })).rejects.toThrow("education_required_delivered_on");
+    await expect(api.saveRelated("evaluation-result-issues", "evaluation-1", { delivery_channel: "email", delivery_status: "confirmat", document_type: "fisa_evaluare", issued_on: "2026-09-01", recipient_name: "Ana", delivered_on: "2026-09-02" })).rejects.toThrow("education_required_acknowledged_on");
+    expect(fetcher).toHaveBeenCalledTimes(12);
   });
 
   it("uses literal generated mobility and merit routes, their sole documented filters, allow-listed DTO bodies and protected PDFs", async () => {

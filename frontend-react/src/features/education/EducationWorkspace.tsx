@@ -1158,8 +1158,8 @@ export const domainRelations: Partial<
       fields: [
         { key: "assignment_code", label: "Cod încadrare", form: false },
         { key: "assignment_title", label: "Titlu încadrare" },
-        { key: "assignment_type", label: "Tip" },
-        { key: "status", label: "Stare" },
+        { key: "assignment_type", label: "Tip", kind: "select", options: ["diriginte", "coordonator_proiect", "responsabil_comisie", "mentor", "membru_comisie", "administrator_structura"].map((value) => ({ value, label: value })) },
+        { key: "status", label: "Stare", kind: "select", options: ["propus", "activ", "suspendat", "incetat"].map((value) => ({ value, label: value })) },
         { key: "assigned_on", label: "Atribuit la", kind: "date" },
         { key: "ended_on", label: "Încheiat la", kind: "date" },
         { key: "weekly_hours", label: "Ore săptămânale", kind: "number" },
@@ -1174,10 +1174,10 @@ export const domainRelations: Partial<
       resource: "personnel-file-documents",
       fields: [
         { key: "document_code", label: "Cod document", form: false },
-        { key: "document_category", label: "Categorie document" },
+        { key: "document_category", label: "Categorie document", kind: "select", options: ["identificare", "studii", "cariera", "evaluare", "declaratie", "medical", "disciplina", "management"].map((value) => ({ value, label: value })) },
         { key: "document_title", label: "Titlu" },
-        { key: "confidentiality_level", label: "Nivel confidențialitate" },
-        { key: "file_scope", label: "Domeniu fișier" },
+        { key: "confidentiality_level", label: "Nivel confidențialitate", kind: "select", options: ["intern", "confidential", "strict_confidential"].map((value) => ({ value, label: value })) },
+        { key: "file_scope", label: "Domeniu fișier", kind: "select", options: ["dosar_personal", "dosar_director", "dosar_director_adjunct"].map((value) => ({ value, label: value })) },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "expires_on", label: "Expiră la", kind: "date" },
         { key: "file_reference", label: "Referință fișier" },
@@ -1192,8 +1192,8 @@ export const domainRelations: Partial<
       resource: "personnel-disciplinary-cases",
       fields: [
         { key: "case_code", label: "Cod caz", form: false },
-        { key: "case_type", label: "Tip caz" },
-        { key: "status", label: "Stare" },
+        { key: "case_type", label: "Tip caz", kind: "select", options: ["sesizare", "cercetare", "sanctiune", "contestatie"].map((value) => ({ value, label: value })) },
+        { key: "status", label: "Stare", kind: "select", options: ["deschis", "in_cercetare", "solutionat", "contestat", "inchis"].map((value) => ({ value, label: value })) },
         { key: "reported_on", label: "Raportat la", kind: "date" },
         { key: "hearing_on", label: "Audiere la", kind: "date" },
         { key: "resolved_on", label: "Soluționat la", kind: "date" },
@@ -1209,12 +1209,12 @@ export const domainRelations: Partial<
     managePermission: "education.personnel.access.manage",
       resource: "personnel-access-events",
       fields: [
-        { key: "event_type", label: "Tip" },
+        { key: "event_type", label: "Tip", kind: "select", options: ["consultare", "predare", "actualizare", "arhivare", "export"].map((value) => ({ value, label: value })) },
         { key: "accessed_on", label: "Accesat la", kind: "date" },
         { key: "closed_on", label: "Închis la", kind: "date" },
         { key: "actor_name", label: "Operator" },
         { key: "actor_role", label: "Rol operator" },
-        { key: "access_channel", label: "Canal acces" },
+        { key: "access_channel", label: "Canal acces", kind: "select", options: ["fizic", "digital", "mixt"].map((value) => ({ value, label: value })) },
         { key: "purpose", label: "Scop" },
         { key: "sensitive_scope", label: "Domeniu sensibil", kind: "boolean" },
         { key: "notes", label: "Note" },
@@ -1229,9 +1229,9 @@ export const domainRelations: Partial<
       fields: [
         { key: "review_code", label: "Cod autoevaluare", form: false },
         { key: "completed_on", label: "Finalizat la", kind: "date" },
-        { key: "narrative_type", label: "Tip relatare" },
+        { key: "narrative_type", label: "Tip relatare", kind: "select", options: ["autoevaluare", "performanta", "dezvoltare", "impact"].map((value) => ({ value, label: value })) },
         { key: "section_title", label: "Secțiune" },
-        { key: "status", label: "Stare" },
+        { key: "status", label: "Stare", kind: "select", options: ["draft", "submitted", "validated", "returned"].map((value) => ({ value, label: value })) },
         { key: "assumed_score", label: "Punctaj asumat", kind: "number" },
         { key: "evidence_summary", label: "Sinteză dovezi" },
         { key: "strengths", label: "Puncte forte" },
@@ -1245,13 +1245,13 @@ export const domainRelations: Partial<
       resource: "evaluation-criteria",
       fields: [
         { key: "criterion_code", label: "Cod criteriu", form: false },
-        { key: "criterion_category", label: "Categorie" },
+        { key: "criterion_category", label: "Categorie", kind: "select", options: ["proiectare", "predare", "evaluare", "management_clasa", "dezvoltare", "parteneriat"].map((value) => ({ value, label: value })) },
         { key: "criterion_label", label: "Criteriu" },
         { key: "max_score", label: "Maxim", kind: "number" },
         { key: "self_score", label: "Autoevaluare", kind: "number" },
         { key: "reviewer_score", label: "Evaluator", kind: "number" },
         { key: "final_score", label: "Final", kind: "number" },
-        { key: "status", label: "Stare" },
+        { key: "status", label: "Stare", kind: "select", options: ["draft", "reviewed", "validated", "contested"].map((value) => ({ value, label: value })) },
         { key: "evidence_summary", label: "Sinteză dovezi" },
         { key: "notes", label: "Note" },
       ],
@@ -1265,7 +1265,7 @@ export const domainRelations: Partial<
         { key: "appeal_code", label: "Cod contestație", form: false },
         { key: "submitted_by", label: "Depus de" },
         { key: "submitted_on", label: "Depus la", kind: "date" },
-        { key: "status", label: "Stare" },
+        { key: "status", label: "Stare", kind: "select", options: ["submitted", "review", "accepted", "rejected", "resolved"].map((value) => ({ value, label: value })) },
         { key: "grounds", label: "Motive" },
         { key: "hearing_on", label: "Audiere la", kind: "date" },
         { key: "resolved_on", label: "Soluționat la", kind: "date" },
@@ -1281,11 +1281,11 @@ export const domainRelations: Partial<
       pdf: true,
       fields: [
         { key: "issue_code", label: "Cod comunicare", form: false },
-        { key: "document_type", label: "Tip document" },
+        { key: "document_type", label: "Tip document", kind: "select", options: ["fisa_evaluare", "comunicare", "decizie", "raport_final"].map((value) => ({ value, label: value })) },
         { key: "recipient_name", label: "Destinatar" },
         { key: "recipient_role", label: "Rol destinatar" },
-        { key: "delivery_channel", label: "Canal" },
-        { key: "delivery_status", label: "Stare livrare" },
+        { key: "delivery_channel", label: "Canal", kind: "select", options: ["registratura", "email", "intern", "posta"].map((value) => ({ value, label: value })) },
+        { key: "delivery_status", label: "Stare livrare", kind: "select", options: ["pregatit", "emis", "transmis", "confirmat"].map((value) => ({ value, label: value })) },
         { key: "issued_on", label: "Emis la", kind: "date" },
         { key: "delivered_on", label: "Livrat la", kind: "date" },
         { key: "acknowledged_on", label: "Confirmat la", kind: "date" },
@@ -1883,6 +1883,8 @@ type RecordField = {
   key: string;
   label: string;
   kind?: "text" | "date" | "number" | "boolean" | "select";
+  min?: number;
+  max?: number;
   options?: Array<{ label: string; value: string }>;
   /** Optional server-side search control for a remotely populated Select. */
   search?: {
@@ -1898,7 +1900,12 @@ type RecordField = {
 };
 
 function isRecordFieldRequired(field: RecordField, input: EducationRecordInput = {}): boolean {
-  return typeof field.required === "function" ? field.required(input) : Boolean(field.required);
+  if (typeof field.required === "function" ? field.required(input) : Boolean(field.required)) return true;
+  if (field.key === "resolved_on") return ["accepted", "rejected", "resolved"].includes(String(input.status ?? ""));
+  if (field.key === "decision_summary") return ["accepted", "rejected"].includes(String(input.status ?? ""));
+  if (field.key === "delivered_on") return ["transmis", "confirmat"].includes(String(input.delivery_status ?? ""));
+  if (field.key === "acknowledged_on") return String(input.delivery_status ?? "") === "confirmat";
+  return false;
 }
 
 function isRecordFieldMissing(field: RecordField, input: EducationRecordInput = {}): boolean {
@@ -2831,6 +2838,8 @@ export function RecordFormDialog({
                               ? "number"
                               : "text"
                         }
+                        min={field.min ?? (field.kind === "number" && ["weekly_hours", "assumed_score", "max_score", "self_score", "reviewer_score", "final_score"].includes(field.key) ? 0 : undefined)}
+                        max={field.max ?? (field.kind === "number" && ["assumed_score", "max_score", "self_score", "reviewer_score", "final_score"].includes(field.key) ? 100 : undefined)}
                         value={String(open?.input[field.key] ?? "")}
                         onChange={(event: ChangeEvent<HTMLInputElement>) =>
                           set(field, event.target.value)
