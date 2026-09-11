@@ -11,12 +11,6 @@ alter table education_portfolio_documents
 	add column if not exists competencies text[] not null default '{}',
 	add column if not exists last_change_reason text not null default '';
 
-update education_portfolio_documents evidence
-set school_year = portfolio.school_year
-from education_portfolios portfolio
-where portfolio.id = evidence.portfolio_id
-	and btrim(evidence.school_year) = '';
-
 alter table education_portfolio_documents
 	drop constraint if exists education_portfolio_documents_pedagogical_metadata_check;
 alter table education_portfolio_documents

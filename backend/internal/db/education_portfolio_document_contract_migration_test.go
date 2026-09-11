@@ -26,4 +26,7 @@ func TestPortfolioDocumentContractMigrationRequiresMetadataAndArchiveSnapshot(t 
 	if strings.Contains(text, "disable row level security") {
 		t.Fatal("portfolio document contract migration must not weaken RLS")
 	}
+	if strings.Contains(text, "update education_portfolio_documents") {
+		t.Fatal("portfolio document contract migration must not rewrite legacy evidence through the immutable lifecycle trigger")
+	}
 }
