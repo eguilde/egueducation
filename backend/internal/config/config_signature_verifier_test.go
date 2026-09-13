@@ -11,7 +11,8 @@ func TestValidateSignatureVerifierRequiresCompleteHTTPSConfiguration(t *testing.
 		cfg     Config
 		wantErr string
 	}{
-		{name: "disabled", cfg: Config{}},
+		{name: "disabled outside production", cfg: Config{}},
+		{name: "disabled in production", cfg: Config{Environment: "production"}, wantErr: "required in production"},
 		{name: "missing token", cfg: Config{SignatureVerifierURL: "https://trust.example.test/validate"}, wantErr: "configured together"},
 		{name: "missing URL", cfg: Config{SignatureVerifierToken: strings.Repeat("s", 32)}, wantErr: "configured together"},
 		{name: "production HTTP", cfg: Config{Environment: "production", SignatureVerifierURL: "http://trust.example.test/validate", SignatureVerifierToken: strings.Repeat("s", 32)}, wantErr: "HTTPS"},

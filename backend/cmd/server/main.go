@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/eguilde/egueducation/internal/admin"
+	"github.com/eguilde/egueducation/internal/admission"
 	"github.com/eguilde/egueducation/internal/apidocs"
 	"github.com/eguilde/egueducation/internal/auth"
 	"github.com/eguilde/egueducation/internal/config"
@@ -26,6 +27,8 @@ import (
 	"github.com/eguilde/egueducation/internal/institution"
 	"github.com/eguilde/egueducation/internal/notification"
 	"github.com/eguilde/egueducation/internal/registratura"
+	"github.com/eguilde/egueducation/internal/regulatorysource"
+	"github.com/eguilde/egueducation/internal/schooloperations"
 	"github.com/eguilde/egueducation/internal/tenant"
 	"github.com/eguilde/egueducation/internal/workflow"
 )
@@ -113,7 +116,8 @@ func main() {
 	}
 	adminService := admin.NewService(cfg, sessionDB)
 	institutionService := institution.NewService(sessionDB)
-	educationService := education.NewService(sessionDB)
+	admissionService := admission.New(sessionDB)
+	educationService := education.NewService(sessionDB, education.WithPortfolioArchiveReader(archiveStorage))
 	if endpoint := strings.TrimSpace(cfg.SignatureVerifierURL); endpoint != "" {
 		verifier, verifierErr := education.NewRemoteSignedArtifactVerifier(endpoint, cfg.SignatureVerifierToken, time.Duration(cfg.SignatureVerifierTimeoutSeconds)*time.Second)
 		if verifierErr != nil {
@@ -129,13 +133,26 @@ func main() {
 	archiveDocumentService := earchiva.NewDocumentService(sessionDB, archiveStorage)
 	archiveDocumentService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
 	archiveAdminService := earchiva.NewArchiveAdminService(sessionDB, archiveStorage, archiveOCR, cfg.ArchiveWorkerMaxAttempts)
+	portfolioCustodyRecoveryAdmin := earchiva.NewRecoveryAdmin(sessionDB)
 	archiveClassificationService := earchiva.NewClassificationReviewService(sessionDB)
+	archiveRetentionService := earchiva.NewArchiveSeriesRetentionService(sessionDB)
 	archiveWorker := earchiva.NewIngestionWorkerWithMaxAttempts(sessionDB, archiveStorage, archiveOCR, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
 	registraturaArchiveOutboxWorker := earchiva.NewRegistraturaArchiveOutboxWorker(sessionDB, archiveStorage, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
+	portfolioStorageLifecycleWorker := earchiva.NewPortfolioStorageLifecycleWorker(sessionDB, archiveStorage, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
+	portfolioCustodyRecoveryWorker := earchiva.NewPortfolioCustodyRecoveryWorker(sessionDB, archiveStorage, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
+	portfolioRetentionDispositionWorker := earchiva.NewPortfolioRetentionDispositionWorker(sessionDB, archiveStorage, logger, time.Duration(cfg.ArchiveWorkerPollInterval)*time.Second, cfg.ArchiveWorkerMaxAttempts)
 	gdprService := gdpr.NewService(sessionDB)
 	registraturaService := registratura.NewService(sessionDB, archiveStorage)
 	registraturaService.SetScanner(registratura.ClamdScanner{Address: cfg.ClamdAddress, Timeout: 30 * time.Second})
 	workflowService := workflow.NewService(sessionDB)
+	schoolOperationsService := schooloperations.NewService(sessionDB)
+	// An empty or invalid operator allowlist leaves verification fail-closed;
+	// registration and evidence reads remain local database operations.
+	regulatoryFetcher, regulatoryFetcherErr := regulatorysource.NewFetcher(cfg.RegulatoryPublisherHosts)
+	if regulatoryFetcherErr != nil {
+		regulatoryFetcher = nil
+	}
+	regulatorySourceService := regulatorysource.NewService(sessionDB, regulatoryFetcher)
 
 	router := chi.NewRouter()
 	router.Use(chimw.RequestID)
@@ -147,8 +164,12 @@ func main() {
 	}
 	router.Use(cors(cfg.FrontendOrigin))
 
-	router.Get("/health", readinessHandler(pool))
-	router.Get("/readyz", readinessHandler(pool))
+	var verifierReadiness dependencyReadiness
+	if strings.TrimSpace(cfg.SignatureVerifierURL) != "" {
+		verifierReadiness = education.SignedArtifactVerifierReady
+	}
+	router.Get("/health", readinessHandler(pool, verifierReadiness))
+	router.Get("/readyz", readinessHandler(pool, verifierReadiness))
 	router.Get("/healthz", livenessHandler)
 
 	router.Route("/api", func(r chi.Router) {
@@ -193,6 +214,64 @@ func main() {
 			r.Get("/institution/capabilities", institutionService.GetCapabilities)
 			r.With(authService.RequirePermissions("institution.regulatory_profile.read")).Get("/institution/regulatory-profile", institutionService.GetRegulatoryProfile)
 			r.With(authService.RequirePermissions("institution.regulatory_profile.manage")).Put("/institution/regulatory-profile", institutionService.PutRegulatoryProfile)
+			r.With(authService.RequirePermissions("institution.regulatory_profile.manage")).Get("/institution/policy-cutover-preflight", institutionService.GetPolicyCutoverPreflight)
+			r.With(regulatorySourceService.RequirePermission("school.regulatory_sources.read")).Get("/regulatory-sources", regulatorySourceService.List)
+			r.With(regulatorySourceService.RequirePermission("school.regulatory_sources.manage")).Post("/regulatory-sources", regulatorySourceService.Register)
+			r.With(regulatorySourceService.RequirePermission("school.regulatory_sources.manage")).Post("/regulatory-sources/{sourceID}/verify", regulatorySourceService.Verify)
+			r.With(regulatorySourceService.RequirePermission("school.regulatory_sources.approve")).Post("/regulatory-sources/{sourceID}/activate", regulatorySourceService.Activate)
+			r.With(regulatorySourceService.RequirePermission("school.regulatory_sources.read")).Get("/regulatory-sources/{sourceID}/evidence/{evidenceID}", regulatorySourceService.DownloadEvidence)
+			r.With(authService.RequirePermissions("institution.offerings.read")).Get("/institution/locations", institutionService.ListSchoolLocations)
+			r.With(authService.RequirePermissions("institution.offerings.manage")).Post("/institution/locations", institutionService.CreateSchoolLocation)
+			r.With(authService.RequirePermissions("institution.offerings.manage")).Patch("/institution/locations/{locationID}", institutionService.UpdateSchoolLocation)
+			r.With(authService.RequirePermissions("institution.offerings.read")).Get("/institution/education-offerings", institutionService.ListEducationOfferings)
+			r.With(authService.RequirePermissions("institution.offerings.manage")).Post("/institution/education-offerings", institutionService.CreateEducationOffering)
+			r.With(authService.RequirePermissions("institution.offerings.manage")).Patch("/institution/education-offerings/{offeringID}", institutionService.UpdateEducationOffering)
+			r.With(authService.RequirePermissions("institution.offerings.read")).Get("/institution/offering-authorizations", institutionService.ListOfferingAuthorizations)
+			r.With(authService.RequirePermissions("institution.offerings.manage")).Post("/institution/offering-authorizations", institutionService.CreateOfferingAuthorization)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/class-offering-contexts", admissionService.ListClassOfferingContexts)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/class-offering-contexts", admissionService.CreateClassOfferingContext)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/regulatory-sources", admissionService.ListRegulatorySources)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/candidate-parties", admissionService.ListCandidateParties)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/students", admissionService.ListStudents)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/eligible-archive-versions", admissionService.ListEligibleArchiveVersions)
+			r.With(authService.RequirePermissions("education.admissions.retention.manage")).Post("/admissions/retention-rule-versions", admissionService.ProposeAdmissionRetentionRule)
+			r.With(authService.RequirePermissions("education.admissions.retention.approve")).Post("/admissions/retention-rule-versions/approve", admissionService.ApproveAdmissionRetentionRule)
+			r.With(authService.RequirePermissions("education.admissions.retention.manage")).Post("/admissions/dss-retention-policies", admissionService.ConfigureDSSRetentionPolicy)
+			r.With(authService.RequirePermissions("education.admissions.retention.manage")).Get("/admissions/dss-retention-policies/current", admissionService.CurrentDSSRetentionPolicy)
+			// Listing accepts signer.manage OR signer.approve, checked live by the handler.
+			r.Get("/admissions/signer-authorizations", admissionService.ListAdmissionSignerAuthorizations)
+			r.With(authService.RequirePermissions("education.admissions.signer.manage")).Post("/admissions/signer-authorizations", admissionService.ProposeAdmissionSignerAuthorization)
+			r.With(authService.RequirePermissions("education.admissions.signer.approve")).Post("/admissions/signer-authorizations/approve", admissionService.ApproveAdmissionSignerAuthorization)
+			r.With(authService.RequirePermissions("education.admissions.signer.manage")).Post("/admissions/signer-authorizations/{authorizationID}/revoke", admissionService.RevokeAdmissionSignerAuthorization)
+			r.With(authService.RequirePermissions("education.admissions.decide")).Post("/admissions/applications/{applicationID}/decision-preparations", admissionService.PrepareDecision)
+			r.With(authService.RequirePermissions("education.admissions.appeals.manage")).Post("/admissions/appeals/{appealID}/resolution-preparations", admissionService.PrepareAppealResolution)
+			// The preparation determines the specific decision/appeal permission;
+			// both handlers recheck it against live tenant-scoped RBAC.
+			r.Post("/admissions/legal-preparations/finalize", admissionService.FinalizeAdmissionLegalPreparation)
+			r.Post("/admissions/legal-preparations/{preparationID}/cancel", admissionService.CancelAdmissionLegalPreparation)
+			// The handler locks the preparation and rechecks decide/appeals
+			// authority. Archive management is a distinct outer boundary.
+			r.With(authService.RequirePermissions("earchiva.manage")).Get("/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}", archiveDocumentService.GetAdmissionLegalPreparationArtifact)
+			r.With(authService.RequirePermissions("earchiva.manage")).Post("/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}", archiveDocumentService.UploadAdmissionLegalPreparationArtifact)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/campaigns", admissionService.ListCampaigns)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/campaigns", admissionService.CreateCampaign)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/campaigns/{campaignID}/transitions", admissionService.TransitionCampaign)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/campaigns/{campaignID}/criteria", admissionService.ListCriteria)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/campaigns/{campaignID}/criteria", admissionService.AddCriterion)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/campaigns/{campaignID}/document-requirements", admissionService.ListDocumentRequirements)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/campaigns/{campaignID}/document-requirements", admissionService.AddDocumentRequirement)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/applications", admissionService.ListApplications)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/applications", admissionService.CreateApplication)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/applications/{applicationID}", admissionService.GetApplication)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/applications/{applicationID}/transitions", admissionService.TransitionApplication)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/applications/{applicationID}/assessments", admissionService.AssessCriterion)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/applications/{applicationID}/documents/{documentID}", admissionService.ReviewApplicationDocument)
+			r.With(authService.RequirePermissions("education.admissions.decide")).Post("/admissions/applications/{applicationID}/decisions", admissionService.IssueDecision)
+			r.With(authService.RequirePermissions("education.admissions.appeals.manage")).Post("/admissions/applications/{applicationID}/appeals", admissionService.CreateAppeal)
+			r.With(authService.RequirePermissions("education.admissions.manage")).Post("/admissions/applications/{applicationID}/enrolment", admissionService.EnrolApplication)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/decisions", admissionService.ListDecisions)
+			r.With(authService.RequirePermissions("education.admissions.read")).Get("/admissions/appeals", admissionService.ListAppeals)
+			r.With(authService.RequirePermissions("education.admissions.appeals.manage")).Post("/admissions/appeals/{appealID}/resolution", admissionService.ResolveAppeal)
 			r.Get("/passkeys", authService.ListPasskeys)
 			r.Post("/passkeys/register-options", authService.BeginPasskeyRegistration)
 			r.Post("/passkeys/register-finish", authService.FinishPasskeyRegistration)
@@ -310,6 +389,18 @@ func main() {
 			r.With(authService.RequirePermissions("workflow.manage")).Post("/workflow/tasks", workflowService.CreateTask)
 			r.With(authService.RequirePermissions("workflow.transition")).Post("/workflow/tasks/{taskID}/transition", workflowService.TransitionTask)
 
+			r.With(authService.RequirePermissions("school_operations.read")).Get("/school-operations/suppliers", schoolOperationsService.ListSuppliers)
+			r.With(authService.RequirePermissions("school_operations.read")).Get("/school-operations/contracts", schoolOperationsService.ListContracts)
+			// education.core is the common policy gate; specific public/private and
+			// public-funding controls are resolved into the immutable evaluation
+			// persisted by the command, while operational RBAC remains distinct.
+			r.With(authService.RequirePermissions("school_operations.manage"), institutionService.RequireCapability("education.core")).Post("/school-operations/contracts", schoolOperationsService.CreateContract)
+			r.With(authService.RequirePermissions("school_operations.read")).Get("/school-operations/contracts/{contractID}", schoolOperationsService.Contract)
+			r.With(authService.RequirePermissions("school_operations.manage"), institutionService.RequireCapability("education.core")).Patch("/school-operations/contracts/{contractID}", schoolOperationsService.AmendContract)
+			r.With(authService.RequirePermissions("school_operations.read")).Get("/school-operations/contracts/{contractID}/obligations", schoolOperationsService.ListContractObligations)
+			r.With(authService.RequirePermissions("school_operations.manage"), institutionService.RequireCapability("education.core")).Post("/school-operations/contracts/{contractID}/obligations", schoolOperationsService.CreateContractObligation)
+			r.With(authService.RequirePermissions("school_operations.approve"), institutionService.RequireCapability("education.core")).Post("/school-operations/contracts/{contractID}/transition", schoolOperationsService.TransitionContract)
+
 			r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/dashboard", earchivaService.Dashboard)
 			r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/records", earchivaService.ListRecords)
 			r.With(authService.RequirePermissions("earchiva.read")).Get("/earchiva/records/filters", earchivaService.Filters)
@@ -328,9 +419,16 @@ func main() {
 				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/stats", archiveAdminService.Stats)
 				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/jobs", archiveAdminService.ListJobs)
 				r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/admin/jobs/{jobID}/retry", archiveAdminService.RetryJob)
+				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/portfolio-custody-intents", portfolioCustodyRecoveryAdmin.List)
+				r.With(authService.RequirePermissions("earchiva.manage")).Post("/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile", portfolioCustodyRecoveryAdmin.Reconcile)
+				r.With(authService.RequirePermissions("earchiva.manage")).Get("/earchiva/admin/portfolio-custody-intents/{intentID}/recovery-operations/{operationID}", portfolioCustodyRecoveryAdmin.GetOperation)
 				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Get("/earchiva/classification-reviews", archiveClassificationService.ListPending)
 				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Post("/earchiva/classification-reviews/{reviewID}/approve", archiveClassificationService.Approve)
 				r.With(authService.RequirePermissions(earchiva.ArchiveReviewPermission)).Post("/earchiva/classification-reviews/{reviewID}/correct", archiveClassificationService.Correct)
+				r.With(authService.RequirePermissions("earchiva.retention.read")).Get("/earchiva/retention-rules", archiveRetentionService.ListArchiveSeriesRetentionRules)
+				r.With(authService.RequirePermissions("earchiva.retention.manage")).Post("/earchiva/retention-rules", archiveRetentionService.ProposeArchiveSeriesRetentionRule)
+				r.With(authService.RequirePermissions("earchiva.retention.approve")).Post("/earchiva/retention-rules/{ruleID}/approve", archiveRetentionService.ApproveArchiveSeriesRetentionRule)
+				r.With(authService.RequirePermissions("earchiva.retention.manage")).Post("/earchiva/retention-rules/{ruleID}/retire", archiveRetentionService.RetireArchiveSeriesRetentionRule)
 			})
 
 			r.Group(func(r chi.Router) {
@@ -745,6 +843,8 @@ func main() {
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me", educationService.PortfolioOwnRecords)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/archive-documents", educationService.PortfolioOwnArchiveDocuments)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}", educationService.PortfolioOwnRecordDetail)
+				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/procedure", educationService.PortfolioOwnAppliedProcedure)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.read_own", "education.portfolios.export_own")).Post("/education/portfolios/me/{recordID}/export", educationService.PortfolioOwnExport)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me", educationService.PortfolioOwnCreate)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Patch("/education/portfolios/me/{recordID}", educationService.PortfolioOwnUpdate)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/submit", educationService.PortfolioOwnSubmit)
@@ -753,11 +853,13 @@ func main() {
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/documents", educationService.PortfolioOwnDocuments)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/documents/{documentID}/versions", educationService.PortfolioOwnDocumentVersions)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/documents", educationService.PortfolioOwnDocumentCreate)
+				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/archive-documents", educationService.PortfolioOwnArchiveUpload(archiveDocumentService))
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Patch("/education/portfolios/me/{recordID}/documents/{documentID}", educationService.PortfolioOwnDocumentUpdate)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Delete("/education/portfolios/me/{recordID}/documents/{documentID}", educationService.PortfolioOwnDocumentDelete)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/checklist", educationService.PortfolioOwnChecklist)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/opis", educationService.PortfolioOwnOpis)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/opis/regenerate", educationService.PortfolioOwnOpisRegenerate)
+				r.With(educationService.RequireEducationPermission("education.portfolios.manage_own")).Post("/education/portfolios/me/{recordID}/lifecycle-operations/{operationID}/storage-transitions/{transitionID}/retention-dispositions", educationService.SubmitPortfolioRetentionDisposition)
 				r.With(educationService.RequireEducationPermission("education.portfolios.read_own")).Get("/education/portfolios/me/{recordID}/reviews", educationService.PortfolioOwnReviews)
 				r.With(educationService.RequireEducationPermission("education.portfolios.archive_grants.manage")).Get("/education/portfolios/archive-attachment-grants", educationService.PortfolioArchiveAttachmentGrants)
 				r.With(educationService.RequireEducationPermission("education.portfolios.archive_grants.manage")).Get("/education/portfolios/archive-attachment-grants/eligible-documents", educationService.PortfolioArchiveEligibleDocuments)
@@ -765,10 +867,16 @@ func main() {
 				r.With(educationService.RequireEducationPermission("education.portfolios.archive_grants.manage")).Post("/education/portfolios/archive-attachment-grants", educationService.CreatePortfolioArchiveAttachmentGrant)
 				r.With(educationService.RequireEducationPermission("education.portfolios.archive_grants.manage")).Delete("/education/portfolios/archive-attachment-grants/{grantID}", educationService.DeletePortfolioArchiveAttachmentGrant)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.verify", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/verify", educationService.PortfolioAdminVerify)
-				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.request_corrections", "education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/return", educationService.PortfolioAdminReturn)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.request_corrections", "education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/return", educationService.PortfolioReturnForCorrections)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/managerial-decision", educationService.PortfolioManagerialDecision)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.read", "education.portfolios.read", "education.portfolios.verify", "education.portfolios.manage")).Get("/education/portfolios/records/{recordID}/declarations", educationService.PortfolioDeclarationEvidence)
 				r.With(educationService.RequireEducationPermission("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/activity-cessation", educationService.RecordPortfolioActivityCessation)
 				r.With(educationService.RequireEducationPermission("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/legal-hold", educationService.SetPortfolioLegalHold)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.read", "education.portfolios.read_own")).Get("/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}", educationService.PortfolioLifecycleOperationStatus)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.read", "education.portfolios.read_own")).Get("/education/portfolios/records/{recordID}/lifecycle-operations", educationService.PortfolioLifecycleOperations)
+				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.read", "education.portfolios.read_own")).Get("/education/portfolios/records/{recordID}/retention-dispositions", educationService.PortfolioRetentionDispositions)
+				r.With(educationService.RequireEducationPermission("education.portfolios.school.manage")).Post("/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry", educationService.RetryPortfolioLifecycleOperation)
+				r.With(educationService.RequireEducationPermission("education.portfolios.custody.manage"), authService.RequirePermissions("earchiva.manage")).Post("/education/portfolios/records/{recordID}/retention-dispositions/{requestID}/decision", educationService.DecidePortfolioRetentionDisposition)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Post("/education/portfolios/records", educationService.CreatePortfolioRecord)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Get("/education/portfolios/eligible-owners", educationService.EligiblePortfolioOwners)
 				r.With(educationService.RequireEducationPermission("education.portfolios.manage")).Patch("/education/portfolios/records/{recordID}", educationService.UpdatePortfolioRecord)
@@ -790,9 +898,6 @@ func main() {
 				r.With(educationService.RequireEducationPermission("education.portfolios.transfer")).Patch("/education/portfolios/records/{recordID}/transfers/{itemID}", educationService.UpdatePortfolioTransfer)
 				r.With(educationService.RequireEducationPermission("education.portfolios.transfer")).Post("/education/portfolios/records/{recordID}/transfers/{itemID}/advance", educationService.AdvancePortfolioTransfer)
 				r.With(educationService.RequireEducationPermission("education.portfolios.transfer")).Delete("/education/portfolios/records/{recordID}/transfers/{itemID}", educationService.DeletePortfolioTransfer)
-				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.verify", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/reviews", educationService.CreatePortfolioReview)
-				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.verify", "education.portfolios.manage")).Patch("/education/portfolios/records/{recordID}/reviews/{itemID}", educationService.UpdatePortfolioReview)
-				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.verify", "education.portfolios.manage")).Delete("/education/portfolios/records/{recordID}/reviews/{itemID}", educationService.DeletePortfolioReview)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages", educationService.CreatePortfolioValorificationPackage)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages/{itemID}/advance", educationService.AdvancePortfolioValorificationPackage)
 				r.With(educationService.RequireAnyEducationPermissions("education.portfolios.school.manage", "education.portfolios.manage")).Post("/education/portfolios/records/{recordID}/valorification-packages/{itemID}/documents", educationService.AddPortfolioValorificationPackageDocument)
@@ -823,6 +928,9 @@ func main() {
 	if cfg.ArchiveWorkerEnabled {
 		archiveWorker.Start(ctx)
 		registraturaArchiveOutboxWorker.Start(ctx)
+		portfolioStorageLifecycleWorker.Start(ctx)
+		portfolioCustodyRecoveryWorker.Start(ctx)
+		portfolioRetentionDispositionWorker.Start(ctx)
 	}
 
 	server := &http.Server{
@@ -857,22 +965,34 @@ type databasePinger interface {
 	Ping(context.Context) error
 }
 
-func readinessHandler(pool databasePinger) http.HandlerFunc {
+type dependencyReadiness func(context.Context) error
+
+func readinessHandler(pool databasePinger, signatureVerifierReady dependencyReadiness) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		status := http.StatusOK
 		healthStatus := "ok"
 		dbStatus := "ok"
+		signatureVerifierStatus := "disabled"
 		if err := pool.Ping(r.Context()); err != nil {
 			status = http.StatusServiceUnavailable
 			healthStatus = "error"
 			dbStatus = "error"
 		}
+		if signatureVerifierReady != nil {
+			signatureVerifierStatus = "ok"
+			if err := signatureVerifierReady(r.Context()); err != nil {
+				status = http.StatusServiceUnavailable
+				healthStatus = "error"
+				signatureVerifierStatus = "error"
+			}
+		}
 		httpx.JSON(w, status, map[string]any{
-			"status":   healthStatus,
-			"service":  "egueducation-api",
-			"database": dbStatus,
-			"revision": sourceRevision,
-			"time":     time.Now().UTC(),
+			"status":             healthStatus,
+			"service":            "egueducation-api",
+			"database":           dbStatus,
+			"signature_verifier": signatureVerifierStatus,
+			"revision":           sourceRevision,
+			"time":               time.Now().UTC(),
 		})
 	}
 }

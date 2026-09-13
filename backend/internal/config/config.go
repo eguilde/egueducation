@@ -80,6 +80,7 @@ type Config struct {
 	SignatureVerifierURL                    string
 	SignatureVerifierToken                  string
 	SignatureVerifierTimeoutSeconds         int
+	RegulatoryPublisherHosts                []string
 }
 
 func Load() Config {
@@ -149,6 +150,7 @@ func Load() Config {
 		SignatureVerifierURL:                    strings.TrimSpace(os.Getenv("SIGNATURE_VERIFIER_URL")),
 		SignatureVerifierToken:                  strings.TrimSpace(os.Getenv("SIGNATURE_VERIFIER_TOKEN")),
 		SignatureVerifierTimeoutSeconds:         boundedEnvInt("SIGNATURE_VERIFIER_TIMEOUT_SECONDS", 30, 1, 180),
+		RegulatoryPublisherHosts:                parseCSV(os.Getenv("REGULATORY_PUBLISHER_HOSTS")),
 	}
 }
 
@@ -219,6 +221,9 @@ func (c Config) ValidateSignatureVerifier() error {
 	endpoint := strings.TrimSpace(c.SignatureVerifierURL)
 	token := strings.TrimSpace(c.SignatureVerifierToken)
 	if endpoint == "" && token == "" {
+		if c.IsProduction() {
+			return fmt.Errorf("SIGNATURE_VERIFIER_URL and SIGNATURE_VERIFIER_TOKEN are required in production")
+		}
 		return nil
 	}
 	if endpoint == "" || token == "" {

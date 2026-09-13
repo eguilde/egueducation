@@ -37,6 +37,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.15.0
+      - name: Test Go DTO schema generation
+        env:
+          GO111MODULE: 'off'
+        run: go test ./scripts/openapi/go-schema-helper
       - name: Regenerate the router contract
         shell: pwsh
         run: ./scripts/openapi/generate-openapi.ps1
@@ -63,6 +67,9 @@ jobs:
       - name: Vet
         working-directory: backend
         run: go vet ./...
+      - name: Regulatory publisher retrieval safety
+        working-directory: backend
+        run: go test -race ./internal/regulatorysource -count=1
       - name: Reachable vulnerability scan
         working-directory: backend
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
@@ -110,6 +117,20 @@ jobs:
       - name: School regulatory policy RLS and immutable evaluation contract
         working-directory: backend
         run: go test ./internal/db -run '^TestSchoolRegulatoryPolicyRLSIntegration$' -count=1 -timeout 120s
+      - name: School Stage1B normalized policy, RLS, and public-private contracts
+        working-directory: backend
+        run: |
+          go test ./internal/db -run '^TestSchoolRegulatoryStage1BPostgresIntegration$' -count=1 -timeout 180s
+          go test ./internal/db -run '^TestSchoolStage1BAndStage2PostgresContracts$' -count=1 -timeout 180s
+          go test ./internal/db -run '^TestSchoolPolicyV2CutoverUpgradePostgresIntegration$' -count=1 -timeout 240s
+          go test ./internal/db -run '^TestSchoolAdmissionsPostgresIntegration$' -count=1 -timeout 180s
+          go test ./internal/db -run '^TestSchoolAdmissionLegalGuardsPostgresIntegration$' -count=1 -timeout 180s
+          go test ./internal/admission -run '^TestExpireAdmissionPreparationsTxReleasesExpiredHoldPostgres$' -count=1 -timeout 180s
+          go test ./internal/admission -run '^TestAdmissionPreparationRetention(Snapshot|ResponseRoundTrip)Postgres$' -count=1 -timeout 180s
+          go test -tags=integration ./internal/admission -run '^TestAdmissionWORMIngestionIntent(Postgres|NOBYPASSRLS)$' -count=1 -timeout 180s
+          go test -tags=integration ./internal/db -run '^TestArchiveSeriesRetentionLifecyclePostgresIntegration$' -count=1 -timeout 180s
+          go test -tags=integration ./internal/earchiva -run '^TestArchiveSeriesRetentionHTTPPostgresIntegration$' -count=1 -timeout 180s
+          go test -tags=integration ./internal/earchiva -run '^TestRegulatorySourceHTTPPostgresIntegration$' -count=1 -timeout 180s
       - name: Tenant administrator cannot mutate a cross-tenant global identity
         working-directory: backend
         run: go test ./internal/admin -run '^TestTenantAdminCannotMutateSharedGlobalIdentityRegression$' -count=1 -timeout 120s
@@ -226,6 +247,12 @@ jobs:
       ARCHIVE_STORAGE_SECRET_KEY: minioadmin123
       ARCHIVE_STORAGE_USE_PATH_STYLE: true
       ARCHIVE_STORAGE_CREATE_BUCKET: true
+      ARCHIVE_STORAGE_REQUIRE_OBJECT_LOCK: true
+      ARCHIVE_PDF_VALIDATOR_PATH: /tmp/egueducation-pdf-validator
+      AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: http://127.0.0.1:9090
+      AZURE_DOCUMENT_INTELLIGENCE_KEY: system-e2e-azure-key
+      AZURE_DOCUMENT_INTELLIGENCE_MODEL: prebuilt-layout
+      AZURE_DOCUMENT_INTELLIGENCE_API_VERSION: "2024-11-30"
       CLAMD_ADDRESS: 127.0.0.1:3310
       ENABLE_EUDI_WALLET: false
       FORCE_SECURE_COOKIES: false
@@ -258,13 +285,37 @@ jobs:
           SQL
       - name: Start the pinned MinIO store for Registratura attachments and outbox delivery
         run: |
-          docker run --detach --rm --name egueducation-registratura-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+          docker run --detach --rm --name egueducation-registratura-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:9000/minio/health/live; then exit 0; fi
             sleep 1
           done
           docker logs egueducation-registratura-system-minio
           exit 1
+      - name: Verify exact WORM recovery against disposable MinIO
+        working-directory: backend
+        env:
+          TEST_WORM_MINIO_ENDPOINT: http://127.0.0.1:9000
+          TEST_WORM_MINIO_ACCESS_KEY: minioadmin
+          TEST_WORM_MINIO_SECRET_KEY: minioadmin123
+        run: go test -tags=integration ./internal/earchiva -run '^TestImmutableArchiveRecoveryMinIO$' -count=1 -timeout 120s
+      - name: Build archive PDF validator
+        working-directory: backend
+        run: go build -o "$ARCHIVE_PDF_VALIDATOR_PATH" ./cmd/archive-pdf-validator
+      - name: Verify teacher-owned portfolio upload with PostgreSQL and MinIO
+        working-directory: backend
+        env:
+          TEST_WORM_MINIO_ENDPOINT: http://127.0.0.1:9000
+          TEST_WORM_MINIO_ACCESS_KEY: minioadmin
+          TEST_WORM_MINIO_SECRET_KEY: minioadmin123
+        run: go test -tags=integration ./internal/education -run '^TestPortfolioOwnArchiveUploadIntegration$' -count=1 -timeout 180s
+      - name: Verify admission WORM HTTP adoption and recovery
+        working-directory: backend
+        env:
+          TEST_WORM_MINIO_ENDPOINT: http://127.0.0.1:9000
+          TEST_WORM_MINIO_ACCESS_KEY: minioadmin
+          TEST_WORM_MINIO_SECRET_KEY: minioadmin123
+        run: go test -tags=integration ./internal/admission -run '^TestAdmissionLegalArtifactUploadMinIOPostgres$' -count=1 -timeout 180s
       - name: Exercise real browser, OIDC, RBAC, API and PostgreSQL persistence
         working-directory: frontend-react
         run: npx playwright test --config=playwright.system.config.ts --workers=1

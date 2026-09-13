@@ -115,7 +115,7 @@ func TestReadinessHandlerReportsDatabaseFailure(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 
-			readinessHandler(tt.pinger).ServeHTTP(recorder, request)
+			readinessHandler(tt.pinger, nil).ServeHTTP(recorder, request)
 
 			if recorder.Code != tt.wantCode {
 				t.Fatalf("status = %d, want %d", recorder.Code, tt.wantCode)
@@ -126,7 +126,7 @@ func TestReadinessHandlerReportsDatabaseFailure(t *testing.T) {
 
 func TestReadinessHandlerReportsBuildRevision(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	readinessHandler(testPinger{}).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
+	readinessHandler(testPinger{}, nil).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
 
 	var payload struct {
 		Revision string `json:"revision"`
@@ -136,6 +136,24 @@ func TestReadinessHandlerReportsBuildRevision(t *testing.T) {
 	}
 	if payload.Revision != sourceRevision {
 		t.Fatalf("revision = %q, want %q", payload.Revision, sourceRevision)
+	}
+}
+
+func TestReadinessHandlerReportsSignatureVerifierFailure(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	readinessHandler(testPinger{}, func(context.Context) error { return errors.New("verifier unavailable") }).ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/readyz", nil))
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusServiceUnavailable)
+	}
+	var payload struct {
+		SignatureVerifier string `json:"signature_verifier"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode readiness response: %v", err)
+	}
+	if payload.SignatureVerifier != "error" {
+		t.Fatalf("signature_verifier = %q, want error", payload.SignatureVerifier)
 	}
 }
 
