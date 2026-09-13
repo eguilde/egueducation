@@ -157,6 +157,13 @@ type SchoolRowAction = {
 export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
   const [open, setOpen] = useState(false);
   const selectionPending = useRef(false);
+  const pendingAction = useRef<(() => void) | undefined>(undefined);
+  const closeTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => {
+    if (closeTimer.current !== undefined) window.clearTimeout(closeTimer.current);
+    pendingAction.current = undefined;
+  }, []);
 
   const selectAction = (action: SchoolRowAction) => {
     if (selectionPending.current) return;
@@ -167,16 +174,20 @@ export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] })
     // Schedule teardown after the current browser task so the user's click can
     // finish against the live Popover item. Closing synchronously can make a
     // portalled item vanish while that interaction is still completing.
-    window.setTimeout(() => {
+    pendingAction.current = action.onSelect;
+    closeTimer.current = window.setTimeout(() => {
+      closeTimer.current = undefined;
       setOpen(false);
-      // Let the Popover teardown complete before the selected action mounts a
-      // Dialog. Its outside-interaction cleanup would otherwise dismiss the
-      // newly mounted portalled overlay.
-      window.setTimeout(() => {
-        selectionPending.current = false;
-        action.onSelect();
-      }, 0);
     }, 0);
+  };
+
+  const selectAfterPopoverExit = () => {
+    const action = pendingAction.current;
+    pendingAction.current = undefined;
+    selectionPending.current = false;
+    // PrimeReact emits this only after the portal exit transition is complete,
+    // so a selected dialog cannot race the Popover's focus cleanup.
+    action?.();
   };
 
   return (
@@ -186,6 +197,7 @@ export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] })
       onOpenChange={(event: { value?: boolean }) => {
         setOpen(Boolean(event.value));
       }}
+      onExitComplete={selectAfterPopoverExit}
     >
       <Popover.Trigger
         as={Button}
