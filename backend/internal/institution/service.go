@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/eguilde/egueducation/internal/auth"
 	appdb "github.com/eguilde/egueducation/internal/db"
 	"github.com/eguilde/egueducation/internal/httpx"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -52,7 +54,29 @@ func (s *Service) GetRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_read_failed"})
 		return
 	}
+
 	httpx.JSON(w, http.StatusOK, profile)
+}
+
+func (s *Service) GetPolicyCutoverPreflight(w http.ResponseWriter, r *http.Request) {
+	report, err := appdb.ReadSchoolPolicyCutoverPreflight(r.Context(), s.pool)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "policy_cutover_preflight_failed"})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, PolicyCutoverPreflightResponse{
+		TenantCode: report.TenantCode, InstitutionID: report.InstitutionID, Phase: report.Phase,
+		LegacyProfiles: report.LegacyProfiles, UnmappedProfiles: report.UnmappedProfiles,
+		LegacyAssignments: report.LegacyAssignments, UnmappedAssignments: report.UnmappedAssignments,
+		LegacyOverrides: report.LegacyOverrides, UnmappedOverrides: report.UnmappedOverrides,
+		LegacyEvaluations: report.LegacyEvaluations, UnmappedEvaluations: report.UnmappedEvaluations,
+		MissingPackProvenance:        report.MissingPackProvenance,
+		InputsWithoutEffectiveDate:   report.InputsWithoutEffectiveDate,
+		InputsWithMultipleDecisions:  report.InputsWithMultipleDecisions,
+		ConsumerProvenanceMismatches: report.ConsumerProvenanceMismatches,
+		OpenBlockingIssues:           report.OpenBlockingIssues,
+		StructurallyReadyForDual:     report.ReadyForDual(),
+	})
 }
 
 func (s *Service) PutRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
@@ -123,6 +147,62 @@ func (s *Service) PutRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
 		now := time.Now().UTC()
 		approvedAt = &now
 	}
+	// Write the canonical Stage 1B lineage in the same transaction. Legacy v1
+	// profile remains an expand-phase projection only.
+	var v2Version int
+	var seriesID *string
+	if err = tx.QueryRow(r.Context(), `select coalesce(max(version),0), (array_agg(profile_series_id order by version desc))[1]::text from school_institution_profiles_v2 where tenant_code=$1 and institution_id=$2`, tenantCode, institutionID).Scan(&v2Version, &seriesID); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_v2_read_failed"})
+		return
+	}
+	newV2ID := uuid.NewString()
+	if seriesID == nil || *seriesID == "" {
+		seriesID = &newV2ID
+	}
+	sourceStatus := "draft"
+	var sourceVerifiedAt *time.Time
+	if approved {
+		sourceStatus = "active"
+		sourceVerifiedAt = approvedAt
+	}
+	var sourceID string
+	if err = tx.QueryRow(r.Context(), `insert into school_regulatory_sources(
+		tenant_code,institution_id,source_kind,citation,article_reference,issuer,source_url,published_on,consolidated_on,
+		checksum_sha256,status,verified_at,verified_by_subject,revalidation_owner_subject,created_by_subject,updated_by_subject
+	) values($1,$2,$3,$4,$5,$6,$7,nullif($8,'')::date,nullif($9,'')::date,$10,$11,$12,$13,$13,$13,$13) returning id::text`,
+		tenantCode, institutionID, input.Source.SourceKind, input.Source.Citation, input.Source.ArticleReference,
+		input.Source.Issuer, input.Source.SourceURL, optionalString(input.Source.PublishedOn), optionalString(input.Source.ConsolidatedOn),
+		input.Source.ChecksumSHA256, sourceStatus, sourceVerifiedAt, actor).Scan(&sourceID); err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "regulatory_source_persist_failed"})
+		return
+	}
+	if approved {
+		if _, err = tx.Exec(r.Context(), `update school_institution_profiles_v2 set effective_to=$3::date-1,updated_by_subject=$4,updated_at=now() where tenant_code=$1 and institution_id=$2 and status in('approved','active') and effective_from<$3 and (effective_to is null or effective_to >= $3)`, tenantCode, institutionID, effectiveFrom, actor); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_v2_close_failed"})
+			return
+		}
+		if _, err = tx.Exec(r.Context(), `update school_operation_policy_bindings_v2
+			set effective_to=$4::date-1,expected_version=expected_version+1,updated_by_subject=$5,updated_at=now()
+			where tenant_code=$1 and institution_id=$2 and profile_series_id=$3::uuid and status='active'
+			  and effective_from<$4 and (effective_to is null or effective_to >= $4)`, tenantCode, institutionID, *seriesID, effectiveFrom, actor); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_v2_binding_close_failed"})
+			return
+		}
+		if _, err = tx.Exec(r.Context(), `update school_operation_policy_bindings_v2
+			set status='superseded',expected_version=expected_version+1,updated_by_subject=$5,updated_at=now()
+			where tenant_code=$1 and institution_id=$2 and profile_series_id=$3::uuid and status='active' and effective_from >= $4`, tenantCode, institutionID, *seriesID, effectiveFrom, actor); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_v2_binding_supersede_failed"})
+			return
+		}
+	}
+	if _, err = tx.Exec(r.Context(), `insert into school_institution_profiles_v2(id,tenant_code,institution_id,version,status,legal_form,legal_personality,tax_identifier,accounting_basis,vat_profile,effective_from,effective_to,profile_series_id,approved_by_subject,approved_at,created_by_subject,updated_by_subject) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$16)`, newV2ID, tenantCode, institutionID, v2Version+1, input.Status, input.SchoolLegalForm, input.HasLegalPersonality, input.TaxIdentifier, input.AccountingProfile, input.VATProfile, effectiveFrom, effectiveTo, *seriesID, approvedBy, approvedAt, actor); err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "regulatory_profile_v2_persist_failed"})
+		return
+	}
+	if _, err = tx.Exec(r.Context(), `insert into school_profile_sources(tenant_code,institution_id,profile_id,source_id,purpose,created_by_subject) values($1,$2,$3,$4,'classification',$5)`, tenantCode, institutionID, newV2ID, sourceID, actor); err != nil {
+		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "regulatory_profile_v2_source_failed"})
+		return
+	}
 
 	input.AuthorizedLevels = normalizedStrings(input.AuthorizedLevels)
 	input.ProgramCodes = normalizedStrings(input.ProgramCodes)
@@ -166,9 +246,9 @@ func (s *Service) PutRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
 		input.RegulatoryProfile, input.AuthorizationStatus, input.AccreditationReference,
 		input.AuthorizedLevels, input.HasLegalPersonality, input.TaxIdentifier,
 		input.FounderName, input.FunderName, input.BudgetAuthorityName,
-		input.IsContractingAuthority, input.AccountingProfile, input.ProcurementProfile,
-		input.PayrollProfile, input.VATProfile, input.TreasuryRequired, input.PublicFunding,
-		input.ProgramCodes, effectiveFrom, effectiveTo, input.SourceReference, approvedBy,
+		false, input.AccountingProfile, input.ProcurementProfile,
+		input.PayrollProfile, input.VATProfile, false, false,
+		input.ProgramCodes, effectiveFrom, effectiveTo, input.Source.Citation, approvedBy,
 		approvedAt, actor).Scan(&profileID)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
@@ -178,12 +258,29 @@ func (s *Service) PutRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
 		httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "regulatory_profile_persist_failed"})
 		return
 	}
+	if _, err = tx.Exec(r.Context(), `insert into school_profile_cutover_identity(
+		tenant_code,institution_id,profile_v2_id,profile_v2_version,api_profile_id,api_version,
+		legacy_profile_id,legacy_profile_version,mapping_kind,created_by_subject
+	) values($1,$2,$3::uuid,$4,$5::uuid,$6,$5::uuid,$6,'dual_write',$7)`, tenantCode, institutionID, newV2ID, v2Version+1, profileID, currentVersion+1, actor); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_cutover_identity_persist_failed"})
+		return
+	}
+	if _, err = tx.Exec(r.Context(), `insert into school_institution_profile_api_projection(
+		tenant_code,institution_id,profile_v2_id,profile_v2_version,regulatory_profile,authorization_status,
+		authorized_levels,accreditation_reference,program_codes,founder_name,funder_name,budget_authority_name,
+		is_contracting_authority,has_legal_personality,tax_identifier,accounting_profile,procurement_profile,
+		payroll_profile,vat_profile,treasury_required,public_funding,source_reference,updated_by_subject
+	) values($1,$2,$3::uuid,$4,$5,$6,$7,$8,$9,$10,$11,$12,false,$13,$14,$15,$16,$17,$18,false,false,$19,$20)`,
+		tenantCode, institutionID, newV2ID, v2Version+1, input.RegulatoryProfile, input.AuthorizationStatus,
+		input.AuthorizedLevels, input.AccreditationReference, input.ProgramCodes, input.FounderName, input.FunderName,
+		input.BudgetAuthorityName, input.HasLegalPersonality, input.TaxIdentifier, input.AccountingProfile,
+		input.ProcurementProfile, input.PayrollProfile, input.VATProfile, input.Source.Citation, actor); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "regulatory_profile_api_projection_persist_failed"})
+		return
+	}
 
 	if approved {
 		packKinds := map[string]string{"common.ro": "common", "legal-form.ro." + input.SchoolLegalForm: "legal_form"}
-		if input.PublicFunding {
-			packKinds["funding.public"] = "funding"
-		}
 		for _, programCode := range input.ProgramCodes {
 			packKinds["program."+programCode] = "program"
 		}
@@ -194,23 +291,36 @@ func (s *Service) PutRegulatoryProfile(w http.ResponseWriter, r *http.Request) {
 		sort.Strings(packCodes)
 		for _, code := range packCodes {
 			var packID string
+			var packVersion int
 			err = tx.QueryRow(r.Context(), `
-				select id::text from school_policy_pack_versions
+				select id::text,version from school_policy_pack_versions
 				where tenant_code=$1 and institution_id=$2 and pack_code=$3 and status='approved'
 					and effective_from <= $4 and (effective_to is null or effective_to >= $4)
 				order by version desc limit 1
-			`, tenantCode, institutionID, code, effectiveFrom).Scan(&packID)
+			`, tenantCode, institutionID, code, effectiveFrom).Scan(&packID, &packVersion)
 			if err != nil {
 				httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "required_policy_pack_missing", "pack_code": code})
 				return
 			}
-			if _, err = tx.Exec(r.Context(), `
+			var legacyAssignmentID string
+			if err = tx.QueryRow(r.Context(), `
 				insert into school_policy_assignments(
 					tenant_code,institution_id,policy_pack_version_id,profile_id,profile_version,pack_code,assignment_kind,status,
 					effective_from,effective_to,assigned_by_subject,created_by_subject,updated_by_subject
 				) values ($1,$2,$3,$4,$5,$6,$7,'active',$8,$9,$10,$10,$10)
-			`, tenantCode, institutionID, packID, profileID, currentVersion+1, code, packKinds[code], effectiveFrom, effectiveTo, actor); err != nil {
+				returning id::text
+			`, tenantCode, institutionID, packID, profileID, currentVersion+1, code, packKinds[code], effectiveFrom, effectiveTo, actor).Scan(&legacyAssignmentID); err != nil {
 				httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "policy_assignment_persist_failed"})
+				return
+			}
+			if _, err = tx.Exec(r.Context(), `insert into school_operation_policy_bindings_v2(
+				tenant_code,institution_id,profile_v2_id,profile_v2_version,profile_series_id,policy_pack_version_id,
+				pack_code,policy_pack_version,assignment_kind,status,effective_from,effective_to,legacy_assignment_id,
+				created_by_subject,updated_by_subject
+			) values($1,$2,$3::uuid,$4,$5::uuid,$6::uuid,$7,$8,$9,'active',$10,$11,$12::uuid,$13,$13)`,
+				tenantCode, institutionID, newV2ID, v2Version+1, *seriesID, packID, code, packVersion,
+				packKinds[code], effectiveFrom, effectiveTo, legacyAssignmentID, actor); err != nil {
+				httpx.JSON(w, http.StatusUnprocessableEntity, map[string]any{"code": "policy_assignment_v2_persist_failed"})
 				return
 			}
 		}
@@ -383,12 +493,12 @@ func loadProfile(ctx context.Context, db queryer, predicate string, args []any) 
 	var effectiveFrom, effectiveTo, approvedAt *time.Time
 	var createdAt, updatedAt time.Time
 	err := db.QueryRow(ctx, `
-		select id::text,tenant_code,institution_id,version,status,school_legal_form,regulatory_profile,
-			authorization_status,accreditation_reference,authorized_levels,has_legal_personality,
+		select id::text,tenant_code,institution_id,version,status,school_legal_form,
+			regulatory_profile,authorization_status,accreditation_reference,authorized_levels,has_legal_personality,
 			tax_identifier,founder_name,funder_name,budget_authority_name,is_contracting_authority,
-			accounting_profile,procurement_profile,payroll_profile,vat_profile,treasury_required,
-			public_funding,program_codes,effective_from,effective_to,source_reference,
-			approved_by_subject,approved_at,created_by_subject,created_at,updated_by_subject,updated_at
+			accounting_profile,procurement_profile,payroll_profile,vat_profile,treasury_required,public_funding,
+			program_codes,effective_from,effective_to,source_reference,approved_by_subject,approved_at,
+			created_by_subject,created_at,updated_by_subject,updated_at
 		from school_institution_profiles
 		where tenant_code=public.current_tenant_code() and institution_id=public.current_institution_id()
 			and `+predicate+`
@@ -576,13 +686,19 @@ func persistEvaluation(ctx context.Context, db queryer, actor string, profile Re
 }
 
 func validateProfileInput(input *PutRegulatoryProfileRequest) string {
+	if input.ConfessionalOverlay != nil {
+		// The v2 overlay FK must be validated against the tenant-scoped party
+		// inside the write transaction. Until that dedicated command is wired,
+		// refuse rather than persisting an incomplete legal assertion.
+		return "confessional_overlay_atomic_command_required"
+	}
 	if input.ExpectedVersion <= 0 {
 		return "expected_version_required"
 	}
 	if input.Status != "draft" && input.Status != "approved" && input.Status != "active" {
 		return "invalid_regulatory_profile_status"
 	}
-	if input.SchoolLegalForm != "public" && input.SchoolLegalForm != "private" && input.SchoolLegalForm != "confessional" {
+	if input.SchoolLegalForm != "public" && input.SchoolLegalForm != "private" {
 		return "invalid_school_legal_form"
 	}
 	if strings.TrimSpace(input.RegulatoryProfile) == "" {
@@ -592,13 +708,15 @@ func validateProfileInput(input *PutRegulatoryProfileRequest) string {
 	if _, ok := validAuthorization[input.AuthorizationStatus]; !ok {
 		return "invalid_authorization_status"
 	}
+	if _, err := time.Parse(time.DateOnly, input.EffectiveFrom); err != nil {
+		return "effective_from_required"
+	}
 	if input.Status == "approved" || input.Status == "active" {
-		if _, err := time.Parse(time.DateOnly, input.EffectiveFrom); err != nil {
-			return "effective_from_required"
+		if code := validateRegulatorySource(input.Source, true); code != "" {
+			return code
 		}
-		if strings.TrimSpace(input.SourceReference) == "" {
-			return "source_reference_required"
-		}
+	} else if code := validateRegulatorySource(input.Source, false); code != "" {
+		return code
 	}
 	if input.EffectiveTo != nil && strings.TrimSpace(*input.EffectiveTo) != "" {
 		to, err := time.Parse(time.DateOnly, strings.TrimSpace(*input.EffectiveTo))
@@ -615,6 +733,46 @@ func validateProfileInput(input *PutRegulatoryProfileRequest) string {
 	return ""
 }
 
+func optionalString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
+func validateRegulatorySource(source RegulatorySourceRequest, verifiedRequired bool) string {
+	validKinds := map[string]struct{}{
+		"law": {}, "government_decision": {}, "ministerial_order": {}, "authorization": {},
+		"accreditation": {}, "founder_decision": {}, "contract": {}, "other": {},
+	}
+	if _, ok := validKinds[source.SourceKind]; !ok {
+		return "invalid_regulatory_source_kind"
+	}
+	if strings.TrimSpace(source.Citation) == "" {
+		return "regulatory_source_citation_required"
+	}
+	for _, value := range []*string{source.PublishedOn, source.ConsolidatedOn} {
+		if value != nil && strings.TrimSpace(*value) != "" {
+			if _, err := time.Parse(time.DateOnly, strings.TrimSpace(*value)); err != nil {
+				return "invalid_regulatory_source_date"
+			}
+		}
+	}
+	urlValue := strings.TrimSpace(source.SourceURL)
+	checksum := strings.TrimSpace(source.ChecksumSHA256)
+	if !verifiedRequired && urlValue == "" && checksum == "" {
+		return ""
+	}
+	parsed, err := url.ParseRequestURI(urlValue)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
+		return "invalid_regulatory_source_url"
+	}
+	decoded, err := hex.DecodeString(checksum)
+	if err != nil || len(decoded) != sha256.Size || checksum != strings.ToLower(checksum) {
+		return "invalid_regulatory_source_checksum"
+	}
+	return ""
+}
 func normalizedStrings(values []string) []string {
 	set := stringSet(values)
 	result := make([]string, 0, len(set))

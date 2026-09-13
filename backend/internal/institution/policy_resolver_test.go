@@ -1,6 +1,12 @@
 package institution
 
-import "testing"
+import (
+	"bytes"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+)
 
 func TestResolveCapabilitiesIntersectsPolicyModuleAndPermission(t *testing.T) {
 	packs := []assignedPolicyPack{{
@@ -80,7 +86,10 @@ func TestValidateProfileInput(t *testing.T) {
 	valid := PutRegulatoryProfileRequest{
 		ExpectedVersion: 1, Status: "approved", SchoolLegalForm: "private",
 		RegulatoryProfile: "ro.private.preuniversity", AuthorizationStatus: "accredited",
-		EffectiveFrom: "2026-09-11", SourceReference: "decision-1",
+		EffectiveFrom: "2026-09-11", Source: RegulatorySourceRequest{
+			SourceKind: "authorization", Citation: "decision-1", SourceURL: "https://example.test/decision-1",
+			ChecksumSHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		},
 	}
 	if code := validateProfileInput(&valid); code != "" {
 		t.Fatalf("valid profile rejected: %s", code)
@@ -91,11 +100,75 @@ func TestValidateProfileInput(t *testing.T) {
 	if code := validateProfileInput(&invalidForm); code != "invalid_school_legal_form" {
 		t.Fatalf("expected legal form validation, got %s", code)
 	}
+	directConfessionalForm := valid
+	directConfessionalForm.SchoolLegalForm = "confessional"
+	if code := validateProfileInput(&directConfessionalForm); code != "invalid_school_legal_form" {
+		t.Fatalf("confessional must be a typed private overlay, got %s", code)
+	}
 
 	invalidWindow := valid
 	to := "2026-01-01"
 	invalidWindow.EffectiveTo = &to
 	if code := validateProfileInput(&invalidWindow); code != "invalid_effective_window" {
 		t.Fatalf("expected effective window validation, got %s", code)
+	}
+
+	missingVerifiedSource := valid
+	missingVerifiedSource.Source.SourceURL = ""
+	missingVerifiedSource.Source.ChecksumSHA256 = ""
+	if code := validateProfileInput(&missingVerifiedSource); code != "invalid_regulatory_source_url" {
+		t.Fatalf("approved profile accepted without verifiable source: %s", code)
+	}
+
+	badChecksum := valid
+	badChecksum.Source.ChecksumSHA256 = "ABC"
+	if code := validateProfileInput(&badChecksum); code != "invalid_regulatory_source_checksum" {
+		t.Fatalf("approved profile accepted invalid source checksum: %s", code)
+	}
+
+	draft := valid
+	draft.Status = "draft"
+	draft.Source.SourceURL = ""
+	draft.Source.ChecksumSHA256 = ""
+	if code := validateProfileInput(&draft); code != "" {
+		t.Fatalf("draft profile with traceable citation rejected: %s", code)
+	}
+	draft.EffectiveFrom = ""
+	if code := validateProfileInput(&draft); code != "effective_from_required" {
+		t.Fatalf("draft profile without an effective date accepted: %s", code)
+	}
+}
+
+func TestRegulatoryProfileRejectsSpoofedLegalBooleans(t *testing.T) {
+	for _, field := range []string{"public_funding", "is_contracting_authority", "treasury_required"} {
+		t.Run(field, func(t *testing.T) {
+			req := httptest.NewRequest("PUT", "/institution/regulatory-profile", bytes.NewBufferString(`{"expected_version":1,"status":"draft","school_legal_form":"private","regulatory_profile":"ro.private","authorization_status":"unknown","`+field+`":true}`))
+			res := httptest.NewRecorder()
+			(&Service{}).PutRegulatoryProfile(res, req)
+			if res.Code != 400 {
+				t.Fatalf("spoofed %s accepted with status %d", field, res.Code)
+			}
+		})
+	}
+}
+
+func TestPutRegulatoryProfileDualWritesCompleteV2Bridge(t *testing.T) {
+	body, err := os.ReadFile("service.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(body)
+	for _, required := range []string{
+		"insert into school_profile_cutover_identity",
+		"insert into school_institution_profile_api_projection",
+		"insert into school_operation_policy_bindings_v2",
+		"legacy_assignment_id",
+		"'dual_write'",
+		"regulatory_profile_v2_binding_close_failed",
+		"regulatory_profile_v2_binding_supersede_failed",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("PutRegulatoryProfile no longer dual-writes %q", required)
+		}
 	}
 }
