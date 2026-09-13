@@ -64,8 +64,10 @@ async function openDetails(page: Page, title: string): Promise<void> {
   await row.getByLabel('Acțiuni înregistrare').click();
   const menu = page.locator('[role="menu"]:visible').last(); await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name: 'Detalii', exact: true }); await expect(action).toBeVisible();
-  await action.click({ force: true });
-  await expect(page.getByRole('dialog').last()).toBeVisible(); await page.keyboard.press('Escape');
+  await action.click();
+  await expect(menu).toBeHidden();
+  const details = page.locator('[role="dialog"]:visible').last();
+  await expect(details).toBeVisible(); await page.keyboard.press('Escape');
 }
 
 async function createRelated(page: Page, add: string, endpoint: string, values: Record<string, string>): Promise<void> {

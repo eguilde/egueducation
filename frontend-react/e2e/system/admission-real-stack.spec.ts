@@ -332,7 +332,10 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   const requirementCreated = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/document-requirements') && response.request().method() === 'POST');
   await configure.getByRole('button', { name: 'Adaugă' }).click();
   expect((await requirementCreated).status()).toBe(201);
-  await configure.getByLabel('Închide dialogul').click();
+  // The successful save may already have dismissed the configuration dialog.
+  // Escape is the dialog's accessible dismissal contract when it remains open.
+  await page.keyboard.press('Escape');
+  await expect(configure).toBeHidden();
   for (const next of ['published', 'open']) {
     const transitioned = page.waitForResponse(response => new URL(response.url()).pathname === `/api/admissions/campaigns/${campaign.id}/transitions` && response.request().method() === 'POST');
     await campaignRow.getByRole('button', { name: `${next} ${campaignCode}` }).click();

@@ -194,6 +194,7 @@ export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] })
     <Popover.Root
       open={open}
       trapped
+      autoFocus={false}
       onOpenChange={(event: { value?: boolean }) => {
         setOpen(Boolean(event.value));
       }}

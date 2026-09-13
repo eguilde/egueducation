@@ -68,7 +68,10 @@ async function searchAndSelectPortfolioOwner(page: Page, query: string, optionNa
 }
 
 async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
-  const menu = page.locator('[role="menu"]:visible').last();
+  // PrimeReact keeps an exiting portal mounted for its leave transition. Scope
+  // to the popup that is still marked open so this remains a real interaction
+  // with the current row menu rather than a fading overlay from a prior action.
+  const menu = page.locator('[data-scope="popover"][data-part="popup"][data-open] [role="menu"]').last();
   await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name, exact: true });
   await expect(action).toBeVisible();
