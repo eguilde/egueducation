@@ -317,19 +317,39 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // already entered verified custody; the administrator still grants each
   // one separately through the React control below. The seventh remains
   // same-tenant but intentionally ungranted to prove the access boundary.
+  // The archive-version guard verifies this custody provenance even for the
+  // privileged deterministic fixture connection, so reserve a legitimate
+  // owner-bound portfolio solely for these independent archive uploads.
+  const custodyFixturePortfolioID = databaseScalar('select gen_random_uuid()::text');
+  const custodyFixtureSchoolYear = '2030-2031';
+  const approverPersonnelID = databaseScalar(`select id::text from education_personnel where institution_id='inst-001' and app_user_id='${approverID}'`);
+  databaseExec(`
+    insert into education_portfolios(id,portfolio_code,owner_name,owner_role,school_year,status,section_count,last_updated_on,transfer_status,institution_id,owner_user_id,owner_personnel_id)
+    values ('${custodyFixturePortfolioID}','PORT-CUSTODY-${custodyFixturePortfolioID}','${marker} Profesor portofoliu','Profesor','${custodyFixtureSchoolYear}','draft',0,current_date,'none','inst-001','${approverID}','${approverPersonnelID}')
+  `);
   const portfolioArchives = requiredPortfolioComponents.map(([section, component], index) => ({
     section, component, index, id: databaseScalar('select gen_random_uuid()::text'),
+    versionID: databaseScalar('select gen_random_uuid()::text'), intentID: databaseScalar('select gen_random_uuid()::text'),
     title: `${marker} ${section}-${component}`, hash: String(index + 1).repeat(64),
   }));
-  const ungrantedArchiveID = databaseScalar('select gen_random_uuid()::text');
-  const seedArchive = ({ id, title, hash, index }: { id: string; title: string; hash: string; index: number }) => databaseExec(`
+  const ungrantedArchive = {
+    id: databaseScalar('select gen_random_uuid()::text'), versionID: databaseScalar('select gen_random_uuid()::text'), intentID: databaseScalar('select gen_random_uuid()::text'),
+    title: `${marker} negrantat`, hash: 'f'.repeat(64), index: 99,
+  };
+  const seedArchive = ({ id, versionID, intentID, title, hash, index }: { id: string; versionID: string; intentID: string; title: string; hash: string; index: number }) => databaseExec(`
+    set app.actor_subject='oidc-browser-fixture-subject';
     insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
     values ('${id}','inst-001','${title}','${index}.pdf','application/pdf','upload','ready','system-e2e','${marker}/${index}.pdf','system-e2e','${marker}/${index}.pdf',1,'oidc-browser-fixture-subject');
-    insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,source_bucket,source_object_key,source_sha256,status,text_status,custody_hold_active)
-    values ('${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}','system-e2e','${marker}/${index}.pdf','${hash}','active','processed',true)
+    insert into portfolio_custody_upload_intents(id,tenant_code,institution_id,portfolio_id,actor_subject,idempotency_key,expected_sha256,expected_size_bytes,expected_mime_type,bucket_name,object_key,reserved_document_id,reserved_version_id)
+    values ('${intentID}','tenant-egueducation','inst-001','${custodyFixturePortfolioID}','oidc-browser-fixture-subject','system-e2e-${intentID}','${hash}',1,'application/pdf','system-e2e','${marker}/${index}.pdf','${id}','${versionID}');
+    update portfolio_custody_upload_intents set status='stored',stored_version_id='fixture-version-${index}',stored_etag='fixture-etag-${index}',stored_size_bytes=1 where id='${intentID}';
+    insert into archive_document_versions (id,document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,source_bucket,source_object_key,source_sha256,source_size_bytes,source_object_version_id,source_object_etag,status,text_status,custody_hold_active,portfolio_custody_intent_id)
+    values ('${versionID}','${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}',1,'system-e2e','${marker}/${index}.pdf','${hash}',1,'fixture-version-${index}','fixture-etag-${index}','active','processed',true,'${intentID}');
+    update portfolio_custody_upload_intents set status='committed',final_disposition='teacher_access',recovery_committed_at=now() where id='${intentID}'
   `);
   portfolioArchives.forEach(seedArchive);
-  seedArchive({ id: ungrantedArchiveID, title: `${marker} negrantat`, hash: 'f'.repeat(64), index: 99 });
+  seedArchive(ungrantedArchive);
+  const ungrantedArchiveID = ungrantedArchive.id;
 
   // Elevate only long enough to operate the administrator UI, then demote and
   // perform a fresh teacher authorization-code exchange before self-service.

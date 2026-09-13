@@ -118,6 +118,49 @@ async function uploadPreparationArtifact(page: Page, token: string, preparationI
   return recovered.body;
 }
 
+const fixtureMembershipCleanups: Array<() => Promise<void>> = [];
+
+test.afterEach(async () => {
+  while (fixtureMembershipCleanups.length) await fixtureMembershipCleanups.pop()!();
+});
+
+async function ensureEffectiveDirectorMembership(page: Page, token: string, userID: string, actorLabel: string): Promise<void> {
+  const memberships = await api<PageResult<Membership>>(page, token, '/api/admin/memberships?page=1&pageSize=100&sort=user_name&direction=asc');
+  expect(memberships.status).toBe(200);
+  const userMemberships = memberships.body.items.filter(item => item.user_id === userID);
+  const todayDate = today();
+  const activeDirector = userMemberships.find(item => item.position_code === 'director'
+    && item.active && item.start_date <= todayDate && (!item.end_date || item.end_date >= todayDate));
+  if (activeDirector) return;
+
+  const basis = userMemberships.find(item => item.active) ?? userMemberships[0];
+  expect(basis, `${actorLabel} fixture must have an existing tenant membership to establish its institution scope.`).toBeTruthy();
+  const assigned = await api<Membership>(page, token, '/api/admin/memberships', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: '', user_id: userID, position_code: 'director',
+      org_unit_code: basis!.org_unit_code, organization_name: basis!.organization_name,
+      is_primary: false, active: true, start_date: todayDate, end_date: '',
+    }),
+  });
+  expect(assigned.status, `Admin command must grant ${actorLabel} an effective director membership.`).toBe(201);
+  expect(assigned.body.position_code).toBe('director');
+
+  fixtureMembershipCleanups.push(async () => {
+    const removed = await api<Membership>(page, token, '/api/admin/memberships', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: assigned.body.id, user_id: userID, position_code: assigned.body.position_code,
+        org_unit_code: assigned.body.org_unit_code, organization_name: assigned.body.organization_name,
+        is_primary: assigned.body.is_primary, active: false,
+        start_date: assigned.body.start_date, end_date: todayDate,
+      }),
+    });
+    expect(removed.status, `Admin command must deactivate the temporary ${actorLabel} director membership.`).toBe(201);
+    expect(removed.body.active).toBe(false);
+  });
+}
+
 /**
  * Retention authority needs a distinct effective director. The ordinary
  * approver fixture already completes the same OIDC flow as a real user; this
@@ -136,27 +179,7 @@ async function retentionApprover(browser: import('@playwright/test').Browser, pa
   expect(users.status).toBe(200);
   const user = users.body.items.find(item => item.email.toLowerCase() === fixture.identifier);
   expect(user, 'OIDC approver fixture must exist in the same tenant user directory.').toBeTruthy();
-
-  const memberships = await api<PageResult<Membership>>(page, directorToken, '/api/admin/memberships?page=1&pageSize=100&sort=user_name&direction=asc');
-  expect(memberships.status).toBe(200);
-  const userMemberships = memberships.body.items.filter(item => item.user_id === user!.id);
-  const todayDate = today();
-  const activeDirector = userMemberships.find(item => item.position_code === 'director'
-    && item.active && item.start_date <= todayDate && (!item.end_date || item.end_date >= todayDate));
-  if (!activeDirector) {
-    const basis = userMemberships.find(item => item.active) ?? userMemberships[0];
-    expect(basis, 'OIDC approver fixture must have an existing tenant membership to establish its institution scope.').toBeTruthy();
-    const assigned = await api<Membership>(page, directorToken, '/api/admin/memberships', {
-      method: 'POST',
-      body: JSON.stringify({
-        id: '', user_id: user!.id, position_code: 'director',
-        org_unit_code: basis!.org_unit_code, organization_name: basis!.organization_name,
-        is_primary: false, active: true, start_date: todayDate, end_date: '',
-      }),
-    });
-    expect(assigned.status, 'Admin command must grant the independent effective director membership.').toBe(201);
-    expect(assigned.body.position_code).toBe('director');
-  }
+  await ensureEffectiveDirectorMembership(page, directorToken, user!.id, 'OIDC approver');
 
   const context = await browser.newContext({ baseURL: 'http://localhost:4174' });
   const approverPage = await context.newPage();
@@ -200,8 +223,12 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   const me = await api<{ permissions: string[]; user: { id: string } }>(page, token, '/api/me');
   expect(me.status).toBe(200);
   expect(me.body.permissions).toEqual(expect.arrayContaining(['education.admissions.read', 'education.admissions.manage', 'education.admissions.decide', 'education.admissions.appeals.manage', 'education.admissions.retention.manage', 'education.admissions.signer.manage', 'education.admissions.signer.approve']));
+  // The production handler independently requires an eligible director
+  // membership, in addition to the route's retention.manage permission.
+  await ensureEffectiveDirectorMembership(page, token, me.body.user.id, 'OIDC proposer');
   const f = await bootstrapFixture(page, token);
   const approver = await retentionApprover(browser, page, token);
+  expect(approver.userID, 'Retention approval must be performed by a different effective director.').not.toBe(me.body.user.id);
   const proposed = await api<RetentionRule>(page, token, '/api/admissions/retention-rule-versions', {
     method: 'POST',
     body: JSON.stringify({ artifact_kind: 'admission_dss', minimum_retention_days: 1, effective_from: f.effectiveFrom, effective_to: null, source_id: f.retentionSourceID }),

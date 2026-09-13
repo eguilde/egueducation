@@ -89,14 +89,28 @@ async function login(page: Page, loginIdentifier = identifier, loginOtp = otp, l
   return token!;
 }
 
+async function openSchoolPortfolioDetails(page: Page, ownerName: string, schoolYear: string): Promise<void> {
+  const row = page.getByRole('row')
+    .filter({ hasText: ownerName })
+    .filter({ hasText: schoolYear })
+    .filter({ has: page.getByRole('button', { name: 'Acțiuni înregistrare', exact: true }) });
+  await expect(row).toHaveCount(1);
+  await row.getByRole('button', { name: 'Acțiuni înregistrare', exact: true }).click();
+  const menu = page.locator('[role="menu"]:visible').last();
+  await expect(menu).toBeVisible();
+  await menu.getByRole('button', { name: 'Detalii', exact: true }).click();
+  await expect(page.getByText('Portofoliu — operațiuni dosar', { exact: true })).toBeVisible();
+}
+
 test('teacher portfolio upload, submission, director return, correction and validation through the real stack', async ({ page, browser }) => {
   const userID = db("select id::text from app_users where sub='oidc-browser-approver-subject'");
   const startYear = Number(db(`select greatest(2031, coalesce(max(split_part(school_year,'-',1)::int) + 1,2031)) from education_portfolios where owner_user_id='${userID}'`));
   const schoolYear = `${startYear}-${startYear + 1}`;
+  const portfolioOwnerName = `${marker} Profesor`;
   const personnelCode = `${marker}-PERSONNEL`;
   db(`update app_memberships set position_code='profesor' where user_id='${userID}' and tenant_code='${tenant}'; delete from app_user_roles where user_id='${userID}' and tenant_code='${tenant}'; delete from app_user_platform_roles where user_id='${userID}';
       insert into education_personnel (employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,assigned_unit,phone,email,has_portfolio,institution_id,notes,app_user_id)
-      values ('${personnelCode}','${marker} Profesor','Profesor','titular','active','draft','none','${schoolYear}','Învățământ gimnazial','+40100000888','${personnelCode.toLowerCase()}@example.test',true,'${institution}','teacher upload E2E','${userID}')
+      values ('${personnelCode}','${portfolioOwnerName}','Profesor','titular','active','draft','none','${schoolYear}','Învățământ gimnazial','+40100000888','${personnelCode.toLowerCase()}@example.test',true,'${institution}','teacher upload E2E','${userID}')
       on conflict (institution_id,app_user_id) where app_user_id is not null do update set employee_code=excluded.employee_code,full_name=excluded.full_name,school_year=excluded.school_year,has_portfolio=true`);
   const token = await login(page);
   const me = await page.evaluate(async (token) => { const response = await fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } }); return { status: response.status, body: await response.json() }; }, token);
@@ -218,8 +232,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   };
   await submit();
   await adminPage.goto(`${adminOrigin}/scoala/portfolios`);
-  const selectedRow = adminPage.getByRole('row').filter({ hasText: schoolYear });
-  await selectedRow.getByRole('button', { name: 'Detalii' }).click();
+  await openSchoolPortfolioDetails(adminPage, portfolioOwnerName, schoolYear);
   await adminPage.getByRole('button', { name: 'Returnează pentru completări', exact: true }).click();
   const correction = adminPage.getByRole('dialog', { name: 'Returnează pentru completări' });
   const correctionText = `${marker} Completați observațiile privind planificarea.`;
@@ -264,7 +277,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   expect((await saved).status()).toBe(200);
   await submit();
   await adminPage.reload();
-  await adminPage.getByRole('row').filter({ hasText: schoolYear }).getByRole('button', { name: 'Detalii' }).click();
+  await openSchoolPortfolioDetails(adminPage, portfolioOwnerName, schoolYear);
   await adminPage.getByRole('button', { name: 'Decizie managerială', exact: true }).click();
   const decision = adminPage.getByRole('dialog', { name: 'Decizie managerială' });
   await decision.getByLabel('Observații').fill(`${marker} Portofoliu verificat după completări.`);
@@ -353,7 +366,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   // All WORM changes below affect only this disposable fixture's exact versions.
   const lifecycle = async (label: string, command: string, date?: string) => {
     await adminPage.reload();
-    await adminPage.getByRole('row').filter({ hasText: schoolYear }).getByRole('button', { name: 'Detalii' }).click();
+    await openSchoolPortfolioDetails(adminPage, portfolioOwnerName, schoolYear);
     await adminPage.getByRole('button', { name: label, exact: true }).click();
     const dialog = adminPage.getByRole('dialog', { name: label, exact: true });
     if (date) await dialog.getByLabel('Data încetării *').fill(date);
@@ -389,7 +402,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   }
   // Rediscover persisted operations after losing all component-local state.
   await adminPage.reload();
-  await adminPage.getByRole('row').filter({ hasText: schoolYear }).getByRole('button', { name: 'Detalii' }).click();
+  await openSchoolPortfolioDetails(adminPage, portfolioOwnerName, schoolYear);
   const lifecycleHistoryResponse = adminPage.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolioID}/lifecycle-operations`);
   await adminPage.getByRole('button', { name: 'Istoric operații de protecție', exact: true }).click();
   const lifecycleHistory = adminPage.getByRole('dialog', { name: 'Istoric operații de protecție', exact: true });
@@ -458,8 +471,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   const requestID = db(`select id::text from portfolio_retention_disposition_requests where transition_id='${retentionTransitionID}' and status='submitted'`);
 
   await adminPage.goto(`${adminOrigin}/scoala/portfolios`);
-  const retentionAdminRow = adminPage.getByRole('row').filter({ hasText: retentionSchoolYear });
-  await retentionAdminRow.getByRole('button', { name: 'Detalii' }).click();
+  await openSchoolPortfolioDetails(adminPage, portfolioOwnerName, retentionSchoolYear);
   await adminPage.getByRole('button', { name: 'Istoric operații de protecție', exact: true }).click();
   const adminRetentionHistory = adminPage.getByRole('dialog', { name: 'Istoric operații de protecție', exact: true });
   await adminRetentionHistory.getByRole('button', { name: /^Stare operație / }).click();
