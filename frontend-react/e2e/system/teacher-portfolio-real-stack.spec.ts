@@ -162,6 +162,10 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   expect((await created).status()).toBe(201);
   const createdPortfolio = await (await created).json();
   const portfolioID = createdPortfolio.id as string;
+  const portfolioReviewOwnerName = createdPortfolio.owner_name as string;
+  const portfolioReviewSchoolYear = createdPortfolio.school_year as string;
+  expect(portfolioReviewOwnerName).toBeTruthy();
+  expect(portfolioReviewSchoolYear).toBe(schoolYear);
   expect(db(`select (activity_ceased_on is null and retention_until is null)::text from education_portfolios where id='${portfolioID}' and owner_user_id='${userID}'`), 'Active custody must not invent a cessation date or retention deadline').toBe('true');
   await expect(page.getByText(createdPortfolio.portfolio_code, { exact: true })).toBeVisible();
   const appliedProcedureLoaded = page.waitForResponse(r => r.request().method() === 'GET' && new URL(r.url()).pathname === `/api/education/portfolios/me/${portfolioID}/procedure`);
@@ -252,7 +256,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   };
   await submit();
   await loadPortfolioReviewWorkspace(adminPage, `${adminOrigin}/scoala/portfolio/workflow`);
-  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
+  await openPortfolioReviewDetails(adminPage, portfolioReviewOwnerName, portfolioReviewSchoolYear);
   await adminPage.getByRole('button', { name: 'Returnează pentru completări', exact: true }).click();
   const correction = adminPage.getByRole('dialog', { name: 'Returnează pentru completări' });
   const correctionText = `${marker} Completați observațiile privind planificarea.`;
@@ -297,7 +301,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   expect((await saved).status()).toBe(200);
   await submit();
   await loadPortfolioReviewWorkspace(adminPage);
-  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
+  await openPortfolioReviewDetails(adminPage, portfolioReviewOwnerName, portfolioReviewSchoolYear);
   await adminPage.getByRole('button', { name: 'Decizie managerială', exact: true }).click();
   const decision = adminPage.getByRole('dialog', { name: 'Decizie managerială' });
   await decision.getByLabel('Observații').fill(`${marker} Portofoliu verificat după completări.`);
@@ -386,7 +390,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   // All WORM changes below affect only this disposable fixture's exact versions.
   const lifecycle = async (label: string, command: string, date?: string) => {
     await loadPortfolioReviewWorkspace(adminPage);
-    await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
+    await openPortfolioReviewDetails(adminPage, portfolioReviewOwnerName, portfolioReviewSchoolYear);
     await adminPage.getByRole('button', { name: label, exact: true }).click();
     const dialog = adminPage.getByRole('dialog', { name: label, exact: true });
     if (date) await dialog.getByLabel('Data încetării *').fill(date);
@@ -422,7 +426,7 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   }
   // Rediscover persisted operations after losing all component-local state.
   await loadPortfolioReviewWorkspace(adminPage);
-  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
+  await openPortfolioReviewDetails(adminPage, portfolioReviewOwnerName, portfolioReviewSchoolYear);
   const lifecycleHistoryResponse = adminPage.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolioID}/lifecycle-operations`);
   await adminPage.getByRole('button', { name: 'Istoric operații de protecție', exact: true }).click();
   const lifecycleHistory = adminPage.getByRole('dialog', { name: 'Istoric operații de protecție', exact: true });

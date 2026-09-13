@@ -268,12 +268,12 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   });
   expect(signerProposal.status).toBe(201);
   const signerApproval = await api<Command>(approver.page, approver.token, '/api/admissions/signer-authorizations/approve', { method: 'POST', body: JSON.stringify({ proposal_id: signerProposal.body.id }) });
-  expect(signerApproval.status).toBe(200);
+  expect(signerApproval.status).toBe(201);
   const appealSignerProposal = await api<Command>(page, token, '/api/admissions/signer-authorizations', {
     method: 'POST', body: JSON.stringify({ certificate_sha256: systemTestCertificateSHA256, user_id: approver.userID, permission_code: 'education.admissions.appeals.manage', valid_until: '2027-09-12T00:00:00Z' }),
   });
   expect(appealSignerProposal.status).toBe(201);
-  expect((await api<Command>(approver.page, approver.token, '/api/admissions/signer-authorizations/approve', { method: 'POST', body: JSON.stringify({ proposal_id: appealSignerProposal.body.id }) })).status).toBe(200);
+  expect((await api<Command>(approver.page, approver.token, '/api/admissions/signer-authorizations/approve', { method: 'POST', body: JSON.stringify({ proposal_id: appealSignerProposal.body.id }) })).status).toBe(201);
 
   // The React table must call the server with its filter/pagination contract.
   await page.goto('/scoala/admitere');
