@@ -7,10 +7,22 @@ Thumbs.db
 # Logs
 *.log
 
+# Local verification artifacts
+.cache/
+.ci-artifacts-*/
+.gocache-*/
+.tools/
+.git-index-*
+.git-objects-*/
+.gitops-diagnose/
+/tmp/
+
 # Backend
 backend/bin/
 backend/tmp/
 backend/.env
+backend/.cache/
+services/**/target/
 scripts/openapi/go-schema-helper/openapi-schema-helper.exe
 docs/earchiva-balotesti/*checkpoint*.json
 docs/earchiva-balotesti/*checkpoint*.tmp
