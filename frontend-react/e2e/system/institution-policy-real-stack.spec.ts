@@ -53,7 +53,7 @@ async function select(page: Page, label: string, option: string): Promise<void> 
   await page.locator('[role="listbox"]:visible').last().getByRole('option', { name: option, exact: true }).click();
 }
 
-async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală publică' | 'Școală privată', publicFunding: boolean): Promise<string> {
+async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală publică' | 'Școală privată'): Promise<string> {
   const userID = sql(fixture, `select id::text from app_users where sub='${fixture.subject}'`);
   sql(fixture, `update app_memberships set position_code='director', active=true where user_id='${userID}' and tenant_code='${fixture.tenant}'; delete from app_user_roles where user_id='${userID}' and tenant_code='${fixture.tenant}'; insert into app_user_roles(tenant_code,user_id,role_code) values ('${fixture.tenant}','${userID}','admin') on conflict do nothing`);
   const accessToken = await login(page, fixture);
@@ -62,12 +62,9 @@ async function classify(page: Page, fixture: TenantFixture, legalForm: 'Școală
   await page.getByRole('button', { name: /Versiune nouă/ }).click();
   await select(page, 'Formă juridică', legalForm);
   await select(page, 'Stare profil', 'Activ');
-  await page.getByLabel('Sursa aprobării').fill(`E2E-${fixture.tenant}`);
-  if (publicFunding) {
-    const fundingField = page.getByText('Finanțare publică', { exact: true }).locator('..');
-    await fundingField.getByRole('combobox').click();
-    await page.locator('[role="listbox"]:visible').last().getByRole('option', { name: 'Da', exact: true }).click();
-  }
+  await page.getByLabel('Citare act').fill(`E2E-${fixture.tenant}`);
+  await page.getByLabel('URL oficial HTTPS').fill('https://legislatie.just.ro/');
+  await page.getByLabel('SHA-256 document').fill('a'.repeat(64));
   const save = page.waitForResponse((response) => response.request().method() === 'PUT' && new URL(response.url()).pathname === '/api/institution/regulatory-profile');
   await page.getByRole('button', { name: 'Salvează versiunea' }).click();
   expect((await save).status()).toBe(200);
@@ -123,16 +120,18 @@ async function assertServerDerivedPolicyScope(page: Page, accessToken: string, f
   expect(sql(fixture, `select count(*)::text from education_publications where entity_label='FORGED-POLICY-SCOPE'`)).toBe('0');
 }
 
-test('public and private-with-public-funding institutions resolve and enforce distinct policy overlays', async ({ browser }) => {
-  for (const [fixture, legalForm, publicFunding] of [[publicSchool, 'Școală publică', false], [privateSchool, 'Școală privată', true]] as const) {
+test('public and private institutions resolve and enforce distinct legal-form policy overlays', async ({ browser }) => {
+  // Public funding is an independent, effective-dated Stage 1B instrument and
+  // must not be accepted as a user-controlled institution-profile boolean.
+  for (const [fixture, legalForm] of [[publicSchool, 'Școală publică'], [privateSchool, 'Școală privată']] as const) {
     const context = await browser.newContext();
     const page = await context.newPage();
-    const accessToken = await classify(page, fixture, legalForm, publicFunding);
+    const accessToken = await classify(page, fixture, legalForm);
     await createPublication(page, fixture);
     await assertServerDerivedPolicyScope(page, accessToken, fixture, fixture === publicSchool ? privateSchool : publicSchool);
     const legalPack = legalForm === 'Școală publică' ? 'legal-form.ro.public' : 'legal-form.ro.private';
     expect(sql(fixture, `select count(*)::text from school_policy_assignments where tenant_code='${fixture.tenant}' and institution_id='${fixture.institution}' and pack_code='${legalPack}' and status='active'`)).toBe('1');
-    expect(sql(fixture, `select count(*)::text from school_policy_assignments where tenant_code='${fixture.tenant}' and institution_id='${fixture.institution}' and pack_code='funding.public' and status='active'`)).toBe(publicFunding ? '1' : '0');
+    expect(sql(fixture, `select count(*)::text from school_policy_assignments where tenant_code='${fixture.tenant}' and institution_id='${fixture.institution}' and pack_code='funding.public' and status='active'`)).toBe('0');
     await context.close();
   }
 });

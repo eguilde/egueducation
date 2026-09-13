@@ -17,7 +17,6 @@ type Fixture = {
 	retentionSourceID: string;
   schoolYear: string; effectiveFrom: string;
   candidateSearch: string; candidateLabel: string; secondCandidatePartyID: string;
-  archiveDocumentID: string; archiveVersionID: string; archiveSearch: string; archiveLabel: string;
 };
 type TokenResponse = { access_token: string };
 type Command = { id: string; status: string; expected_version?: number };
@@ -91,18 +90,6 @@ function singlePagePDF(): string {
   const xref = new TextEncoder().encode(body).length;
   body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<</Size ${objects.length + 1}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`;
   return body;
-}
-
-async function uploadWORMPDF(page: Page, token: string, title: string): Promise<{ id: string }> {
-  return page.evaluate(async ({ bearer, title, pdf }) => {
-    const body = new FormData();
-    body.set('file', new File([pdf], 'admission-evidence.pdf', { type: 'application/pdf' }));
-    body.set('title', title); body.set('source_kind', 'manual_upload');
-    const response = await fetch('/api/earchiva/documents', { method: 'POST', headers: { Authorization: `Bearer ${bearer}`, 'Idempotency-Key': crypto.randomUUID() }, credentials: 'include', body });
-    const text = await response.text();
-    if (!response.ok) throw new Error(`archive_upload_${response.status}: ${text}`);
-    return JSON.parse(text) as { id: string };
-  }, { bearer: token, title, pdf: singlePagePDF() });
 }
 
 type PreparationArtifact = { preparation_id: string; artifact_slot: 'primary' | 'resulting_decision'; document: { id: string; status: string }; version: { id: string; document_id: string } };
@@ -198,18 +185,7 @@ async function bootstrapFixture(page: Page, token: string): Promise<Fixture> {
   const schoolClass = await create<{ id: string }>('/api/education/classes', { class_code: `${key}CLS`, class_name: `${label} class`, school_year: schoolYear, grade_level: 'I', study_shift: 'day', active: true });
   await create<{ id: string }>('/api/registratura/parties', { code: `${key}C1`, party_type: 'physical', display_name: `${label} candidate one`, first_name: 'Candidate', last_name: key, active: true });
   const secondCandidate = await create<{ id: string }>('/api/registratura/parties', { code: `${key}C2`, party_type: 'physical', display_name: `${label} candidate two`, first_name: 'Candidate', last_name: `${key}B`, active: true });
-  const archive = await uploadWORMPDF(page, token, `${label} WORM evidence`);
-  await expect.poll(async () => {
-    const result = await api<{ items: Array<{ document_id: string; version_id: string }> }>(page, token, `/api/admissions/eligible-archive-versions?purpose=decision&q=${encodeURIComponent(label)}&page=1&pageSize=10&sort=title&direction=asc`);
-    return result.status === 200 ? result.body.items.find(item => item.document_id === archive.id) : undefined;
-  }, { timeout: 60_000, intervals: [500, 1_000, 2_000] }).toBeTruthy();
-  // Re-read the public selector after worker completion; its response is the
-  // only archive evidence used by the admission workflow.
-  const versions = await api<{ items: Array<{ document_id: string; version_id: string }> }>(page, token, `/api/admissions/eligible-archive-versions?purpose=decision&q=${encodeURIComponent(label)}&page=1&pageSize=10&sort=title&direction=asc`);
-  expect(versions.status).toBe(200);
-  const version = versions.body.items.find(item => item.document_id === archive.id);
-  expect(version).toBeTruthy();
-  return { classSearch: key, classLabel: label, classIDPrefix: schoolClass.id.slice(0, 8), authorizationSearch: `${key}OFF`, authorizationLabel: label, sourceSearch: label, sourceLabel: label, retentionSourceID: sources.body.items[0]!.id, schoolYear, effectiveFrom, candidateSearch: label, candidateLabel: `${label} candidate one`, secondCandidatePartyID: secondCandidate.id, archiveDocumentID: version!.document_id, archiveVersionID: version!.version_id, archiveSearch: label, archiveLabel: label };
+  return { classSearch: key, classLabel: label, classIDPrefix: schoolClass.id.slice(0, 8), authorizationSearch: `${key}OFF`, authorizationLabel: label, sourceSearch: label, sourceLabel: label, retentionSourceID: sources.body.items[0]!.id, schoolYear, effectiveFrom, candidateSearch: label, candidateLabel: `${label} candidate one`, secondCandidatePartyID: secondCandidate.id };
 }
 
 async function choose(page: Page, label: string, option: string | RegExp): Promise<void> {
@@ -337,16 +313,15 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   expect(application.status).toBe('draft');
 
   // Submission/review/document and criterion transitions are rendered by the
-  // app; WORM is selected from the server-backed archive selector.
+  // app. The first application has a documented dispensation; its signed
+  // decision is then the first governed WORM artifact available to selectors.
   await page.getByLabel(`Deschide ${marker}-A1`).click();
   await page.getByRole('button', { name: 'Depune' }).click();
   await page.getByRole('button', { name: 'Începe verificarea' }).click();
   await page.getByRole('button', { name: 'Verifică' }).click();
   const document = page.getByRole('dialog', { name: 'Verificare document' });
-  await document.getByLabel('Notă document').fill('WORM verificat');
-  await document.getByLabel('Caută versiune arhivă').fill(f.archiveSearch);
-  await choose(page, 'Versiune arhivă WORM', new RegExp(f.archiveLabel));
-  await document.getByRole('button', { name: 'Acceptă' }).click();
+  await document.getByLabel('Notă document').fill('dispensă documentată pentru fluxul de test');
+  await document.getByRole('button', { name: 'Dispensă' }).click();
   await page.getByRole('button', { name: 'Evaluează' }).click();
   const assessment = page.getByRole('dialog', { name: 'Evaluare criteriu' });
   await assessment.getByLabel('Motivare criteriu').fill('criteriu îndeplinit');
@@ -383,6 +358,17 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   await decision.getByRole('button', { name: 'Finalizează decizia semnată' }).click();
   expect((await decisionResponse).status()).toBe(201);
 
+  // The only archive evidence used below is created by the governed
+  // preparation-bound WORM endpoint. Re-read it through the public selector;
+  // this proves the immutable object version and retention invariants rather
+  // than manufacturing an archive database row in the fixture.
+  const archiveLabel = 'Admission legal artifact primary';
+  const archive = { documentID: decisionArtifact.document.id, versionID: decisionArtifact.version.id, search: archiveLabel, label: archiveLabel };
+  await expect.poll(async () => {
+    const result = await api<{ items: Array<{ document_id: string; version_id: string }> }>(page, token, `/api/admissions/eligible-archive-versions?purpose=application_document&q=${encodeURIComponent(archive.search)}&page=1&pageSize=10&sort=title&direction=asc`);
+    return result.status === 200 ? result.body.items.find(item => item.document_id === archive.documentID && item.version_id === archive.versionID) : undefined;
+  }, { timeout: 60_000, intervals: [500, 1_000, 2_000] }).toBeTruthy();
+
   // Use public commands for a second complete application: admission capacity
   // must reject its decision, rather than letting a client counter decide.
   const second = await api<Command>(page, token, '/api/admissions/applications', { method: 'POST', body: JSON.stringify({ campaign_id: campaign.id, application_no: `${marker}-A2`, candidate_party_id: f.secondCandidatePartyID, consent_snapshot: { confirmed: true } }) });
@@ -392,11 +378,11 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
     expect((await api<Command>(page, token, `/api/admissions/applications/${second.body.id}/transitions`, { method: 'POST', body: JSON.stringify({ status, expected_version: secondDetail.body.application.expected_version }) })).status).toBe(200);
     secondDetail = await api<Detail>(page, token, `/api/admissions/applications/${second.body.id}`);
   }
-  expect((await api<Command>(page, token, `/api/admissions/applications/${second.body.id}/documents/${secondDetail.body.documents[0]!.id}`, { method: 'POST', body: JSON.stringify({ status: 'accepted', review_note: 'WORM', expected_version: secondDetail.body.documents[0]!.expected_version, archive: { document_id: f.archiveDocumentID, version_id: f.archiveVersionID } }) })).status).toBe(200);
+  expect((await api<Command>(page, token, `/api/admissions/applications/${second.body.id}/documents/${secondDetail.body.documents[0]!.id}`, { method: 'POST', body: JSON.stringify({ status: 'accepted', review_note: 'WORM', expected_version: secondDetail.body.documents[0]!.expected_version, archive: { document_id: archive.documentID, version_id: archive.versionID } }) })).status).toBe(200);
   secondDetail = await api<Detail>(page, token, `/api/admissions/applications/${second.body.id}`);
   expect((await api<Command>(page, token, `/api/admissions/applications/${second.body.id}/assessments`, { method: 'POST', body: JSON.stringify({ criterion_id: secondDetail.body.assessments[0]!.criterion_id, outcome: 'met', rationale: 'met', evidence_snapshot: {}, expected_version: secondDetail.body.assessments[0]!.expected_version }) })).status).toBe(200);
   secondDetail = await api<Detail>(page, token, `/api/admissions/applications/${second.body.id}`);
-  expect((await api<unknown>(page, token, `/api/admissions/applications/${second.body.id}/decisions`, { method: 'POST', body: JSON.stringify({ decision_no: `${marker}-D2`, outcome: 'admitted', rationale: 'legacy must fail closed', expected_version: secondDetail.body.application.expected_version, archive: { document_id: f.archiveDocumentID, version_id: f.archiveVersionID } }) })).status).toBe(409);
+  expect((await api<unknown>(page, token, `/api/admissions/applications/${second.body.id}/decisions`, { method: 'POST', body: JSON.stringify({ decision_no: `${marker}-D2`, outcome: 'admitted', rationale: 'legacy must fail closed', expected_version: secondDetail.body.application.expected_version, archive: { document_id: archive.documentID, version_id: archive.versionID } }) })).status).toBe(409);
   expect((await api<unknown>(page, token, `/api/admissions/applications/${second.body.id}/decision-preparations`, { method: 'POST', body: JSON.stringify({ decision_no: `${marker}-D2`, outcome: 'admitted', rationale: 'capacity invariant', expected_version: secondDetail.body.application.expected_version }) })).status).toBe(422);
   const cancellable = await api<LegalPreparation>(page, token, `/api/admissions/applications/${second.body.id}/decision-preparations`, { method: 'POST', body: JSON.stringify({ decision_no: `${marker}-D2W`, outcome: 'waitlisted', rationale: 'cancellation proof', expected_version: secondDetail.body.application.expected_version }) });
   expect(cancellable.status).toBe(201);
@@ -408,8 +394,8 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   const appeal = page.getByRole('dialog', { name: 'Contestație' });
   await appeal.getByLabel('Număr contestație').fill(`${marker}-C1`);
   await appeal.getByLabel('Motivare contestație').fill('reverificare');
-  await appeal.getByLabel('Caută versiune arhivă').fill(f.archiveSearch);
-  await choose(page, 'Versiune arhivă WORM', new RegExp(f.archiveLabel));
+  await appeal.getByLabel('Caută versiune arhivă').fill(archive.search);
+  await choose(page, 'Versiune arhivă WORM', new RegExp(archive.label));
   await appeal.getByRole('button', { name: 'Înregistrează contestația' }).click();
   const appeals = await api<{ items: Array<{ id: string; expected_version: number }> }>(approver.page, approver.token, `/api/admissions/appeals?page=1&pageSize=20&sort=submitted_at&direction=desc&filter.appeal_no=${marker}`);
   expect(appeals.status).toBe(200); expect(appeals.body.items).toHaveLength(1);
@@ -417,7 +403,7 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   // Legacy one-step resolution stays fail-closed. A favourable resolution has
   // two independently signed artifacts: the appeal resolution and resulting
   // replacement decision, each stored as a distinct WORM version.
-  expect((await api<unknown>(approver.page, approver.token, `/api/admissions/appeals/${appeals.body.items[0]!.id}/resolution`, { method: 'POST', body: JSON.stringify({ outcome: 'upheld', rationale: 'legacy must fail closed', expected_version: appeals.body.items[0]!.expected_version, application_expected_version: finalDetail.body.application.expected_version, resulting_decision_no: `${marker}-D1R`, resulting_outcome: 'admitted', archive: { document_id: f.archiveDocumentID, version_id: f.archiveVersionID } }) })).status).toBe(409);
+  expect((await api<unknown>(approver.page, approver.token, `/api/admissions/appeals/${appeals.body.items[0]!.id}/resolution`, { method: 'POST', body: JSON.stringify({ outcome: 'upheld', rationale: 'legacy must fail closed', expected_version: appeals.body.items[0]!.expected_version, application_expected_version: finalDetail.body.application.expected_version, resulting_decision_no: `${marker}-D1R`, resulting_outcome: 'admitted', archive: { document_id: archive.documentID, version_id: archive.versionID } }) })).status).toBe(409);
   const preparedAppeal = await api<LegalPreparation>(approver.page, approver.token, `/api/admissions/appeals/${appeals.body.items[0]!.id}/resolution-preparations`, { method: 'POST', body: JSON.stringify({ outcome: 'upheld', rationale: 'analiză independentă favorabilă', expected_version: appeals.body.items[0]!.expected_version, application_expected_version: finalDetail.body.application.expected_version, resulting_decision_no: `${marker}-D1R`, resulting_outcome: 'admitted' }) });
   expect(preparedAppeal.status).toBe(201);
   expect(preparedAppeal.body.canonical_payload_base64).toBeTruthy();

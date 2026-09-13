@@ -312,10 +312,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   expect(databaseScalar(`select coalesce(string_agg(section_code || '/' || component_code, ',' order by sort_order, section_code, component_code), '') from education_portfolio_sections where active and required`))
     .toBe(requiredPortfolioComponents.map(([section, component]) => `${section}/${component}`).join(','));
 
-  // Seed five independent ready archive documents with active, stored source
-  // versions. Each one is granted separately by the administrator through the
-  // React control below; the seventh remains same-tenant but intentionally
-  // ungranted to prove the access boundary.
+  // Seed five independent ready archive documents with active, custody-held
+  // source versions. An active portfolio can only attach a version that has
+  // already entered verified custody; the administrator still grants each
+  // one separately through the React control below. The seventh remains
+  // same-tenant but intentionally ungranted to prove the access boundary.
   const portfolioArchives = requiredPortfolioComponents.map(([section, component], index) => ({
     section, component, index, id: databaseScalar('select gen_random_uuid()::text'),
     title: `${marker} ${section}-${component}`, hash: String(index + 1).repeat(64),
@@ -324,8 +325,8 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   const seedArchive = ({ id, title, hash, index }: { id: string; title: string; hash: string; index: number }) => databaseExec(`
     insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
     values ('${id}','inst-001','${title}','${index}.pdf','application/pdf','upload','ready','system-e2e','${marker}/${index}.pdf','system-e2e','${marker}/${index}.pdf',1,'oidc-browser-fixture-subject');
-    insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,source_bucket,source_object_key,source_sha256,status,text_status)
-    values ('${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}','system-e2e','${marker}/${index}.pdf','${hash}','active','processed')
+    insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,source_bucket,source_object_key,source_sha256,status,text_status,custody_hold_active)
+    values ('${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}','system-e2e','${marker}/${index}.pdf','${hash}','active','processed',true)
   `);
   portfolioArchives.forEach(seedArchive);
   seedArchive({ id: ungrantedArchiveID, title: `${marker} negrantat`, hash: 'f'.repeat(64), index: 99 });

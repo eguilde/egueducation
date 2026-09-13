@@ -662,7 +662,7 @@ export function App() {
               <Route
                 path="scoala/portfolios"
                 element={
-                  <PortfolioReviewRoute />
+                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
                 }
               />
               <Route
