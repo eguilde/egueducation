@@ -5,6 +5,8 @@ param(
     [ValidatePattern('^egueducation_system_e2e(?:_[a-z0-9_]+)?$')]
     [string]$DatabaseName = 'egueducation_system_e2e',
     [ValidateRange(1024,65535)]
+    [int]$DatabasePort = 55438,
+    [ValidateRange(1024,65535)]
     [int]$FrontendPort = 4173,
     [ValidateRange(1024,65535)]
     [int]$TeacherFrontendPort = 4174,
@@ -21,8 +23,8 @@ $env:APP_ENV = 'test'
 $env:GOCACHE = Join-Path $workspace '.cache/go-verifier-v2'
 $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $workspace '.cache/playwright-browsers'
 $env:PORT = '8080'
-$env:DATABASE_URL = "postgres://egueducation_app:egueducation_app@127.0.0.1:55438/${DatabaseName}?sslmode=disable"
-$env:MIGRATION_DATABASE_URL = "postgres://egueducation:egueducation@127.0.0.1:55438/${DatabaseName}?sslmode=disable"
+$env:DATABASE_URL = "postgres://egueducation_app:egueducation_app@127.0.0.1:${DatabasePort}/${DatabaseName}?sslmode=disable"
+$env:MIGRATION_DATABASE_URL = "postgres://egueducation:egueducation@127.0.0.1:${DatabasePort}/${DatabaseName}?sslmode=disable"
 $env:TEST_DATABASE_URL = $env:MIGRATION_DATABASE_URL
 $env:E2E_PRIMARY_FRONTEND_PORT = [string]$FrontendPort
 $env:E2E_TEACHER_FRONTEND_PORT = [string]$TeacherFrontendPort

@@ -42,3 +42,12 @@ func TestPortfolioProcedureExpectedUpdatedAtRequiresRFC3339(t *testing.T) {
 		t.Fatal("valid RFC3339Nano timestamp rejected")
 	}
 }
+
+func TestPortfolioProcedureTimestampsAreSerializedAsActualUTC(t *testing.T) {
+	for _, column := range []string{"approved_at", "published_at", "created_at", "updated_at", "superseded_at", "withdrawn_at"} {
+		projection := "to_char(" + column + " at time zone 'UTC'"
+		if !strings.Contains(portfolioProcedureColumns, projection) {
+			t.Fatalf("portfolio procedure timestamp %s is labelled Z without an explicit UTC conversion", column)
+		}
+	}
+}
