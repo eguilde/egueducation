@@ -367,6 +367,8 @@ func seedGovernanceAuthorizationFixture(t *testing.T, ctx context.Context, pool 
 func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context, pool *pgxpool.Pool, institutionID, granteeUserID string) string {
 	t.Helper()
 	storedID := uuid.NewString()
+	storedVersionID := uuid.NewString()
+	storedIntentID := uuid.NewString()
 	noVersionID := uuid.NewString()
 	noStorageID := uuid.NewString()
 	tx, err := pool.Begin(ctx)
@@ -374,8 +376,12 @@ func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context
 		t.Fatalf("begin archive attachment fixture: %v", err)
 	}
 	defer tx.Rollback(ctx)
-	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin','true',true), set_config('app.institution_id',$1,true)`, institutionID); err != nil {
+	if _, err := tx.Exec(ctx, `select set_config('app.is_super_admin','true',true), set_config('app.institution_id',$1,true),set_config('app.actor_subject','governance-archive-fixture',true)`, institutionID); err != nil {
 		t.Fatalf("bind archive attachment fixture session: %v", err)
+	}
+	var custodyPortfolioID string
+	if err := tx.QueryRow(ctx, `select id::text from education_portfolios where institution_id=$1 and owner_user_id=$2::uuid and activity_ceased_on is null order by created_at desc limit 1`, institutionID, granteeUserID).Scan(&custodyPortfolioID); err != nil {
+		t.Fatalf("resolve custody portfolio fixture: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `
 		insert into archive_documents (id, institution_id, title, original_file_name, mime_type, source_kind, status, current_version_no)
@@ -386,14 +392,26 @@ func seedGovernancePortfolioArchiveAttachments(t *testing.T, ctx context.Context
 	`, storedID, noVersionID, noStorageID, institutionID); err != nil {
 		t.Fatalf("seed archive attachment documents: %v", err)
 	}
+	if _, err := tx.Exec(ctx, `insert into portfolio_custody_upload_intents(
+		id,tenant_code,institution_id,portfolio_id,actor_subject,idempotency_key,expected_sha256,expected_size_bytes,
+		expected_mime_type,bucket_name,object_key,reserved_document_id,reserved_version_id)
+		select $1::uuid,t.code,$2,$3::uuid,'governance-archive-fixture',$4,lower($5),3,'application/pdf','archive','evidence.pdf',$6::uuid,$7::uuid
+		from app_tenants t where t.institution_id=$2 and t.active limit 1`, storedIntentID, institutionID, custodyPortfolioID,
+		"governance-fixture-"+storedIntentID, "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF", storedID, storedVersionID); err != nil {
+		t.Fatalf("seed archive attachment custody intent: %v", err)
+	}
+	if _, err := tx.Exec(ctx, `update portfolio_custody_upload_intents set status='stored',stored_version_id='fixture-version-1',stored_etag='fixture-etag-1',stored_size_bytes=3 where id=$1::uuid`, storedIntentID); err != nil {
+		t.Fatalf("store archive attachment custody intent: %v", err)
+	}
 	if _, err := tx.Exec(ctx, `
 		insert into archive_document_versions (
-			document_id, institution_id, version_no, mime_type, title, bucket_name, object_key, hash_sha256, status,
-			source_bucket, source_object_key, source_sha256
+			id,document_id, institution_id, version_no, mime_type, title, bucket_name, object_key, hash_sha256, status,
+			source_bucket, source_object_key, source_sha256, source_size_bytes, source_object_version_id,
+			source_object_etag, custody_hold_active,portfolio_custody_intent_id
 		) values
-			($1::uuid, $3, 1, 'application/pdf', 'Eligible portfolio evidence', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'active', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'),
-			($2::uuid, $3, 1, 'application/pdf', 'No stored source', '', '', 'hash-empty', 'active', '', '', 'hash-empty')
-		`, storedID, noStorageID, institutionID); err != nil {
+			($1::uuid,$2::uuid, $4, 1, 'application/pdf', 'Eligible portfolio evidence', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'active', 'archive', 'evidence.pdf', '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 3, 'fixture-version-1', 'fixture-etag-1',true,$5::uuid),
+			(gen_random_uuid(),$3::uuid, $4, 1, 'application/pdf', 'No stored source', '', '', 'hash-empty', 'active', '', '', 'hash-empty', 0, '', '',false,null)
+		`, storedVersionID, storedID, noStorageID, institutionID, storedIntentID); err != nil {
 		t.Fatalf("seed archive attachment versions: %v", err)
 	}
 	if _, err := tx.Exec(ctx, `

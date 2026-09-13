@@ -93,13 +93,24 @@ func TestSchoolClassesDelegationParity(t *testing.T) {
 	// accepted evidence row through the migration owner solely to prove the
 	// runtime RLS predicate denies it by validity date.
 	expiredID := uuid.NewString()
-	if _, err := admin.Exec(ctx, `
-		set session_replication_role = replica;
+	seedTx, err := admin.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin historical delegation fixture: %v", err)
+	}
+	defer seedTx.Rollback(ctx)
+	// Keep historical-fixture trigger suppression transaction-local so an
+	// error cannot leave a pooled connection with replication mode enabled.
+	if _, err := seedTx.Exec(ctx, `set local session_replication_role = replica`); err != nil {
+		t.Fatalf("configure historical delegation fixture: %v", err)
+	}
+	if _, err := seedTx.Exec(ctx, `
 		insert into education_role_delegations(id,tenant_code,institution_id,delegator_user_id,delegate_user_id,permission_code,resource_type,status,valid_from,valid_until,offered_by_user_id,offered_at,accepted_by_user_id,accepted_at)
-		values($1::uuid,$2,$3,$4::uuid,$5::uuid,'education.classes.read','institution','accepted',current_date-10,current_date-1,$4::uuid,now()-interval '10 days',$5::uuid,now()-interval '9 days');
-		set session_replication_role = origin;
+		values($1::uuid,$2,$3,$4::uuid,$5::uuid,'education.classes.read','institution','accepted',current_date-10,current_date-1,$4::uuid,now()-interval '10 days',$5::uuid,now()-interval '9 days')
 	`, expiredID, fixture.tenantA, fixture.institutionA, director.userID, adjunct.userID); err != nil {
 		t.Fatalf("seed expired class delegation evidence: %v", err)
+	}
+	if err := seedTx.Commit(ctx); err != nil {
+		t.Fatalf("commit historical delegation fixture: %v", err)
 	}
 	assertAccess(classesReadPermission, false)
 }

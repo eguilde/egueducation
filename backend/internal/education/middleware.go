@@ -1,6 +1,7 @@
 package education
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -147,8 +148,14 @@ func (s *Service) authorizeGovernanceMeetingActionForSubject(r *http.Request, su
 }
 
 func (s *Service) currentSubjectHasPermission(r *http.Request, subject string, permission string) (bool, error) {
+	return educationSubjectHasPermission(r.Context(), s.pool, subject, permission)
+}
+
+func educationSubjectHasPermission(ctx context.Context, query interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}, subject string, permission string) (bool, error) {
 	var allowed bool
-	err := s.pool.QueryRow(r.Context(), `
+	err := query.QueryRow(ctx, `
 		select exists(
 			select 1
 			from (

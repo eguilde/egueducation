@@ -1,6 +1,7 @@
 package education
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,19 +29,49 @@ type SignedArtifactVerifier interface {
 	Verify(r *http.Request, evidence SignedArtifactEvidence) SignedArtifactValidationResult
 }
 
+// SignedArtifactVerifierReadiness is implemented only by verifiers that can
+// prove their remote trust capability is reachable and protocol-compatible.
+// A verifier that merely implements Verify is not considered ready.
+type SignedArtifactVerifierReadiness interface {
+	Ready(context.Context) error
+}
+
 type SignedArtifactValidationResult struct {
-	Status               string
-	TrustedListProvider  string
-	TimestampTokenSHA256 string
-	TimestampAt          *time.Time
-	TimestampAuthority   string
-	Findings             map[string]any
+	Status                string
+	SignatureFormat       string
+	SignatureLevel        string
+	SignatureSubject      string
+	CertificateIssuer     string
+	CertificateSerial     string
+	CertificateValidFrom  *time.Time
+	CertificateValidUntil *time.Time
+	TrustedListProvider   string
+	ValidatorProvider     string
+	ValidatorVersion      string
+	ValidationPolicy      string
+	ObservedSHA256        string
+	ObservedSizeBytes     int64
+	SignedPayloadSHA256   string
+	CertificateSHA256     string
+	SignedActorSubject    string
+	DiagnosticData        map[string]any
+	DetailedReport        map[string]any
+	SimpleReport          map[string]any
+	ETSIValidationReport  map[string]any
+	TimestampTokenSHA256  string
+	TimestampAt           *time.Time
+	TimestampAuthority    string
+	Findings              map[string]any
 }
 
 type failClosedSignedArtifactVerifier struct{}
 
 func (failClosedSignedArtifactVerifier) Verify(_ *http.Request, _ SignedArtifactEvidence) SignedArtifactValidationResult {
 	return SignedArtifactValidationResult{Status: "error", Findings: map[string]any{"code": "trust_verifier_not_configured"}}
+}
+
+func (failClosedSignedArtifactVerifier) Ready(context.Context) error {
+	return fmt.Errorf("signed artifact trust verifier is not configured")
 }
 
 var signedArtifactVerifierRuntime = struct {
@@ -66,25 +97,55 @@ func activeSignedArtifactVerifier() SignedArtifactVerifier {
 	return signedArtifactVerifierRuntime.verifier
 }
 
+// SignedArtifactVerifierReady is suitable for the server readiness path. It
+// fails closed when no verifier is configured or when the configured verifier
+// cannot actively prove its readiness contract.
+func SignedArtifactVerifierReady(ctx context.Context) error {
+	verifier := activeSignedArtifactVerifier()
+	readiness, ok := verifier.(SignedArtifactVerifierReadiness)
+	if !ok {
+		return fmt.Errorf("signed artifact trust verifier has no readiness capability")
+	}
+	return readiness.Ready(ctx)
+}
+
+// VerifyConfiguredSignedArtifact is the server-side entry point for bounded
+// contexts that must verify an artifact before committing their legal record.
+// Scope is supplied only by an already authenticated handler, never a DTO.
+func VerifyConfiguredSignedArtifact(ctx context.Context, tenantCode, institutionID string, evidence SignedArtifactEvidence) SignedArtifactValidationResult {
+	if verifier, ok := activeSignedArtifactVerifier().(interface {
+		VerifyForScope(context.Context, string, string, SignedArtifactEvidence) SignedArtifactValidationResult
+	}); ok {
+		return verifier.VerifyForScope(ctx, tenantCode, institutionID, evidence)
+	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "http://signed-artifact.internal", nil)
+	return activeSignedArtifactVerifier().Verify(req, evidence)
+}
+
 type SignedArtifactEvidence struct {
-	ID                    string                    `json:"id"`
-	ArtifactType          string                    `json:"artifact_type"`
-	ArtifactID            string                    `json:"artifact_id"`
-	DocumentSHA256        string                    `json:"document_sha256"`
-	SignatureFormat       string                    `json:"signature_format"`
-	SignatureLevel        string                    `json:"signature_level"`
-	SignatureSubject      string                    `json:"signature_subject"`
-	CertificateIssuer     string                    `json:"certificate_issuer"`
-	CertificateSerial     string                    `json:"certificate_serial"`
-	CertificateValidFrom  string                    `json:"certificate_valid_from"`
-	CertificateValidUntil string                    `json:"certificate_valid_until"`
-	StorageDocumentID     string                    `json:"storage_document_id,omitempty"`
-	StorageVersionID      string                    `json:"storage_version_id,omitempty"`
-	StorageBucket         string                    `json:"storage_bucket,omitempty"`
-	StorageObjectKey      string                    `json:"storage_object_key,omitempty"`
-	SubmittedBySubject    string                    `json:"submitted_by_subject"`
-	SubmittedAt           string                    `json:"submitted_at"`
-	LatestValidation      *SignedArtifactValidation `json:"latest_validation,omitempty"`
+	ID                                  string                    `json:"id"`
+	ArtifactType                        string                    `json:"artifact_type"`
+	ArtifactID                          string                    `json:"artifact_id"`
+	DocumentSHA256                      string                    `json:"document_sha256"`
+	DocumentSizeBytes                   int64                     `json:"document_size_bytes,omitempty"`
+	ExpectedCanonicalLegalPayloadSHA256 string                    `json:"expected_canonical_legal_payload_sha256,omitempty"`
+	ExpectedActorSubject                string                    `json:"expected_actor_subject,omitempty"`
+	SignatureFormat                     string                    `json:"signature_format"`
+	SignatureLevel                      string                    `json:"signature_level"`
+	SignatureSubject                    string                    `json:"signature_subject"`
+	CertificateIssuer                   string                    `json:"certificate_issuer"`
+	CertificateSerial                   string                    `json:"certificate_serial"`
+	CertificateValidFrom                string                    `json:"certificate_valid_from"`
+	CertificateValidUntil               string                    `json:"certificate_valid_until"`
+	StorageDocumentID                   string                    `json:"storage_document_id,omitempty"`
+	StorageVersionID                    string                    `json:"storage_version_id,omitempty"`
+	StorageBucket                       string                    `json:"storage_bucket,omitempty"`
+	StorageObjectKey                    string                    `json:"storage_object_key,omitempty"`
+	StorageObjectVersionID              string                    `json:"storage_object_version_id,omitempty"`
+	StorageRetentionUntil               string                    `json:"storage_retention_until,omitempty"`
+	SubmittedBySubject                  string                    `json:"submitted_by_subject"`
+	SubmittedAt                         string                    `json:"submitted_at"`
+	LatestValidation                    *SignedArtifactValidation `json:"latest_validation,omitempty"`
 }
 
 type SignedArtifactValidation struct {
@@ -97,6 +158,18 @@ type SignedArtifactValidation struct {
 	TimestampAuthority   string         `json:"timestamp_authority,omitempty"`
 	Findings             map[string]any `json:"findings"`
 	ValidatedBySubject   string         `json:"validated_by_subject"`
+	ValidatorProvider    string         `json:"validator_provider,omitempty"`
+	ValidatorVersion     string         `json:"validator_version,omitempty"`
+	ValidationPolicy     string         `json:"validation_policy,omitempty"`
+	ObservedSHA256       string         `json:"observed_sha256,omitempty"`
+	ObservedSizeBytes    int64          `json:"observed_size_bytes,omitempty"`
+	SignedPayloadSHA256  string         `json:"signed_payload_sha256,omitempty"`
+	CertificateSHA256    string         `json:"certificate_sha256,omitempty"`
+	SignedActorSubject   string         `json:"signed_actor_subject,omitempty"`
+	DiagnosticData       map[string]any `json:"diagnostic_data,omitempty"`
+	DetailedReport       map[string]any `json:"detailed_report,omitempty"`
+	SimpleReport         map[string]any `json:"simple_report,omitempty"`
+	ETSIValidationReport map[string]any `json:"etsi_validation_report,omitempty"`
 }
 
 type SubmitSignedArtifactEvidenceRequest struct {
@@ -287,7 +360,7 @@ func (s *Service) RevalidateSignedArtifactEvidence(w http.ResponseWriter, r *htt
 	}
 	defer func() { _ = tx.Rollback(r.Context()) }()
 	var validation SignedArtifactValidation
-	err = tx.QueryRow(r.Context(), `insert into education_signed_artifact_validations(evidence_id,tenant_code,institution_id,validation_status,trusted_list_provider,timestamp_token_sha256,timestamp_at,timestamp_authority,findings) values($1::uuid,public.current_tenant_code(),public.current_institution_id(),$2,$3,lower($4),$5,$6,$7::jsonb) returning id::text,validation_status,trusted_list_provider,to_char(validated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),timestamp_token_sha256,coalesce(to_char(timestamp_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),timestamp_authority,findings,validated_by_subject`, id, result.Status, result.TrustedListProvider, result.TimestampTokenSHA256, result.TimestampAt, result.TimestampAuthority, string(findings)).Scan(&validation.ID, &validation.ValidationStatus, &validation.TrustedListProvider, &validation.ValidatedAt, &validation.TimestampTokenSHA256, &validation.TimestampAt, &validation.TimestampAuthority, &validation.Findings, &validation.ValidatedBySubject)
+	err = tx.QueryRow(r.Context(), `insert into education_signed_artifact_validations(evidence_id,tenant_code,institution_id,validation_status,trusted_list_provider,timestamp_token_sha256,timestamp_at,timestamp_authority,signed_payload_sha256,certificate_sha256,signed_actor_subject,findings) values($1::uuid,public.current_tenant_code(),public.current_institution_id(),$2,$3,lower($4),$5,$6,lower($7),lower($8),$9,$10::jsonb) returning id::text,validation_status,trusted_list_provider,to_char(validated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),timestamp_token_sha256,coalesce(to_char(timestamp_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),timestamp_authority,signed_payload_sha256,certificate_sha256,signed_actor_subject,findings,validated_by_subject`, id, result.Status, result.TrustedListProvider, result.TimestampTokenSHA256, result.TimestampAt, result.TimestampAuthority, result.SignedPayloadSHA256, result.CertificateSHA256, result.SignedActorSubject, string(findings)).Scan(&validation.ID, &validation.ValidationStatus, &validation.TrustedListProvider, &validation.ValidatedAt, &validation.TimestampTokenSHA256, &validation.TimestampAt, &validation.TimestampAuthority, &validation.SignedPayloadSHA256, &validation.CertificateSHA256, &validation.SignedActorSubject, &validation.Findings, &validation.ValidatedBySubject)
 	if err != nil {
 		httpx.JSON(w, 422, map[string]any{"code": "education_signature_revalidation_rejected"})
 		return
@@ -317,14 +390,14 @@ func logSignedArtifactAuditTx(r *http.Request, tx audit.DB, action, evidenceID, 
 	})
 }
 
-const signedArtifactEvidenceSelect = `select e.id::text,e.artifact_type,e.artifact_id::text,e.document_sha256,e.signature_format,e.signature_level,e.signature_subject,e.certificate_issuer,e.certificate_serial,to_char(e.certificate_valid_from,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),to_char(e.certificate_valid_until,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(e.storage_document_id::text,''),coalesce(e.storage_version_id::text,''),e.storage_bucket,e.storage_object_key,e.submitted_by_subject,to_char(e.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') from education_signed_artifact_evidence e`
-const signedArtifactEvidenceWithValidationSelect = `select e.id::text,e.artifact_type,e.artifact_id::text,e.document_sha256,e.signature_format,e.signature_level,e.signature_subject,e.certificate_issuer,e.certificate_serial,to_char(e.certificate_valid_from,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),to_char(e.certificate_valid_until,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(e.storage_document_id::text,''),coalesce(e.storage_version_id::text,''),e.storage_bucket,e.storage_object_key,e.submitted_by_subject,to_char(e.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(v.id::text,''),coalesce(v.validation_status,''),coalesce(v.trusted_list_provider,''),coalesce(to_char(v.validated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),coalesce(v.timestamp_token_sha256,''),coalesce(to_char(v.timestamp_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),coalesce(v.timestamp_authority,''),coalesce(v.findings,'{}'::jsonb),coalesce(v.validated_by_subject,'') from education_signed_artifact_evidence e`
+const signedArtifactEvidenceSelect = `select e.id::text,e.artifact_type,e.artifact_id::text,e.document_sha256,coalesce(e.expected_canonical_legal_payload_sha256,''),coalesce(e.expected_actor_subject,''),e.signature_format,e.signature_level,e.signature_subject,e.certificate_issuer,e.certificate_serial,to_char(e.certificate_valid_from,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),to_char(e.certificate_valid_until,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(e.storage_document_id::text,''),coalesce(e.storage_version_id::text,''),e.storage_bucket,e.storage_object_key,e.submitted_by_subject,to_char(e.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"') from education_signed_artifact_evidence e`
+const signedArtifactEvidenceWithValidationSelect = `select e.id::text,e.artifact_type,e.artifact_id::text,e.document_sha256,coalesce(e.expected_canonical_legal_payload_sha256,''),coalesce(e.expected_actor_subject,''),e.signature_format,e.signature_level,e.signature_subject,e.certificate_issuer,e.certificate_serial,to_char(e.certificate_valid_from,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),to_char(e.certificate_valid_until,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(e.storage_document_id::text,''),coalesce(e.storage_version_id::text,''),e.storage_bucket,e.storage_object_key,e.submitted_by_subject,to_char(e.submitted_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),coalesce(v.id::text,''),coalesce(v.validation_status,''),coalesce(v.trusted_list_provider,''),coalesce(to_char(v.validated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),coalesce(v.timestamp_token_sha256,''),coalesce(to_char(v.timestamp_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),''),coalesce(v.timestamp_authority,''),coalesce(v.findings,'{}'::jsonb),coalesce(v.validated_by_subject,''),coalesce(v.validator_provider,''),coalesce(v.validator_version,''),coalesce(v.validation_policy,''),coalesce(v.observed_sha256,''),coalesce(v.observed_size_bytes,0),coalesce(v.signed_payload_sha256,''),coalesce(v.certificate_sha256,''),coalesce(v.signed_actor_subject,''),coalesce(v.diagnostic_data,'{}'::jsonb),coalesce(v.detailed_report,'{}'::jsonb),coalesce(v.simple_report,'{}'::jsonb),coalesce(v.etsi_validation_report,'{}'::jsonb) from education_signed_artifact_evidence e`
 
 type signedArtifactRow interface{ Scan(...any) error }
 
 func scanSignedArtifactEvidence(row signedArtifactRow) (SignedArtifactEvidence, error) {
 	var x SignedArtifactEvidence
-	err := row.Scan(&x.ID, &x.ArtifactType, &x.ArtifactID, &x.DocumentSHA256, &x.SignatureFormat, &x.SignatureLevel, &x.SignatureSubject, &x.CertificateIssuer, &x.CertificateSerial, &x.CertificateValidFrom, &x.CertificateValidUntil, &x.StorageDocumentID, &x.StorageVersionID, &x.StorageBucket, &x.StorageObjectKey, &x.SubmittedBySubject, &x.SubmittedAt)
+	err := row.Scan(&x.ID, &x.ArtifactType, &x.ArtifactID, &x.DocumentSHA256, &x.ExpectedCanonicalLegalPayloadSHA256, &x.ExpectedActorSubject, &x.SignatureFormat, &x.SignatureLevel, &x.SignatureSubject, &x.CertificateIssuer, &x.CertificateSerial, &x.CertificateValidFrom, &x.CertificateValidUntil, &x.StorageDocumentID, &x.StorageVersionID, &x.StorageBucket, &x.StorageObjectKey, &x.SubmittedBySubject, &x.SubmittedAt)
 	return x, err
 }
 
@@ -332,7 +405,7 @@ func scanSignedArtifactEvidenceWithValidation(row signedArtifactRow) (SignedArti
 	var evidence SignedArtifactEvidence
 	var validation SignedArtifactValidation
 	err := row.Scan(
-		&evidence.ID, &evidence.ArtifactType, &evidence.ArtifactID, &evidence.DocumentSHA256,
+		&evidence.ID, &evidence.ArtifactType, &evidence.ArtifactID, &evidence.DocumentSHA256, &evidence.ExpectedCanonicalLegalPayloadSHA256, &evidence.ExpectedActorSubject,
 		&evidence.SignatureFormat, &evidence.SignatureLevel, &evidence.SignatureSubject,
 		&evidence.CertificateIssuer, &evidence.CertificateSerial, &evidence.CertificateValidFrom,
 		&evidence.CertificateValidUntil, &evidence.StorageDocumentID, &evidence.StorageVersionID,
@@ -340,7 +413,7 @@ func scanSignedArtifactEvidenceWithValidation(row signedArtifactRow) (SignedArti
 		&evidence.SubmittedAt, &validation.ID, &validation.ValidationStatus,
 		&validation.TrustedListProvider, &validation.ValidatedAt, &validation.TimestampTokenSHA256,
 		&validation.TimestampAt, &validation.TimestampAuthority, &validation.Findings,
-		&validation.ValidatedBySubject,
+		&validation.ValidatedBySubject, &validation.ValidatorProvider, &validation.ValidatorVersion, &validation.ValidationPolicy, &validation.ObservedSHA256, &validation.ObservedSizeBytes, &validation.SignedPayloadSHA256, &validation.CertificateSHA256, &validation.SignedActorSubject, &validation.DiagnosticData, &validation.DetailedReport, &validation.SimpleReport, &validation.ETSIValidationReport,
 	)
 	if err == nil && validation.ID != "" {
 		evidence.LatestValidation = &validation

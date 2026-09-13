@@ -34,6 +34,16 @@ type PortfolioTransferSummaryPortfolio struct {
 	TransferStatus   string `json:"transfer_status"`
 }
 
+func portfolioReadyForTransfer(
+	completeness PortfolioCompletenessSummary,
+	transfer PortfolioTransferSummaryTransfer,
+) bool {
+	if !completeness.ReadyForReview || completeness.TotalDocuments == 0 {
+		return false
+	}
+	return transfer.TotalEvents > 0
+}
+
 type PortfolioTransferSummaryTransfer struct {
 	TotalEvents      int                                `json:"total_events"`
 	PreparedEvents   int                                `json:"prepared_events"`
@@ -246,7 +256,6 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 	}
 	summary.Completeness.Blockers = completenessBlockers
 	summary.Completeness.ReadyForReview = len(completenessBlockers) == 0
-	summary.Completeness.ReadyForTransfer = summary.Completeness.ReadyForReview && summary.Completeness.TotalDocuments > 0 && summary.Transfer.TotalEvents > 0
 
 	if err := s.pool.QueryRow(r.Context(), `
 		select
@@ -269,6 +278,7 @@ func (s *Service) PortfolioTransferSummary(w http.ResponseWriter, r *http.Reques
 	}
 
 	var lastTransfer PortfolioTransferSummaryLastEvent
+	summary.Completeness.ReadyForTransfer = portfolioReadyForTransfer(summary.Completeness, summary.Transfer)
 	err = s.pool.QueryRow(r.Context(), `
 		select
 			id::text,

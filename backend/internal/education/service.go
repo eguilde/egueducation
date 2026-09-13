@@ -1,9 +1,11 @@
 package education
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -18,8 +20,17 @@ import (
 	"github.com/eguilde/egueducation/internal/httpx"
 )
 
+// PortfolioArchiveReader reads an immutable archive object by its storage
+// version. The education boundary needs no broader archive administration API.
+type PortfolioArchiveReader interface {
+	Bucket() string
+	OpenObjectVersion(ctx context.Context, key, versionID string) (io.ReadCloser, error)
+}
+
 type Service struct {
-	pool *appdb.SessionPool
+	pool                    *appdb.SessionPool
+	portfolioArchiveReader  PortfolioArchiveReader
+	portfolioExportMaxBytes int64
 }
 
 const (
@@ -28,8 +39,30 @@ const (
 	governanceMeetingAuditDelete = "education.governance.meeting.delete"
 )
 
-func NewService(pool *appdb.SessionPool) *Service {
-	return &Service{pool: pool}
+type ServiceOption func(*Service)
+
+const defaultPortfolioExportMaxBytes int64 = 512 << 20
+
+func WithPortfolioArchiveReader(reader PortfolioArchiveReader) ServiceOption {
+	return func(service *Service) { service.portfolioArchiveReader = reader }
+}
+
+// WithPortfolioExportMaxBytes makes the aggregate staged export limit
+// explicit. Non-positive values retain the conservative default.
+func WithPortfolioExportMaxBytes(maxBytes int64) ServiceOption {
+	return func(service *Service) {
+		if maxBytes > 0 {
+			service.portfolioExportMaxBytes = maxBytes
+		}
+	}
+}
+
+func NewService(pool *appdb.SessionPool, options ...ServiceOption) *Service {
+	service := &Service{pool: pool, portfolioExportMaxBytes: defaultPortfolioExportMaxBytes}
+	for _, option := range options {
+		option(service)
+	}
+	return service
 }
 
 func (s *Service) logAudit(r *http.Request, action string, targetType string, targetID string, summary string, details map[string]any) {
@@ -2144,22 +2177,7 @@ func (s *Service) PortfolioRecords(w http.ResponseWriter, r *http.Request) {
 	args = append(args, query.PageSize, offset)
 
 	sql := fmt.Sprintf(`
-		select
-			epf.id::text,
-			epf.portfolio_code,
-			epf.owner_name,
-			epf.owner_role,
-			epf.school_year,
-			epf.status,
-			epf.section_count,
-			to_char(epf.last_updated_on, 'YYYY-MM-DD'),
-			coalesce(to_char(epf.retention_until, 'YYYY-MM-DD'), ''),
-			epf.transfer_status,
-			epf.authenticity_declared,
-			epf.consent_captured,
-			epf.custodian,
-			epf.institution_id,
-			epf.notes
+		select `+portfolioRecordColumns+`
 		from education_portfolios epf
 		%s
 		order by %s %s, epf.owner_name asc
@@ -2176,23 +2194,7 @@ func (s *Service) PortfolioRecords(w http.ResponseWriter, r *http.Request) {
 	items := make([]PortfolioRecord, 0, query.PageSize)
 	for rows.Next() {
 		var item PortfolioRecord
-		if err := rows.Scan(
-			&item.ID,
-			&item.PortfolioCode,
-			&item.OwnerName,
-			&item.OwnerRole,
-			&item.SchoolYear,
-			&item.Status,
-			&item.SectionCount,
-			&item.LastUpdatedOn,
-			&item.RetentionUntil,
-			&item.TransferStatus,
-			&item.AuthenticityDeclared,
-			&item.ConsentCaptured,
-			&item.Custodian,
-			&item.InstitutionID,
-			&item.Notes,
-		); err != nil {
+		if err := scanPortfolioRecord(rows, &item); err != nil {
 			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolios_failed"})
 			return
 		}
@@ -4340,86 +4342,6 @@ func (s *Service) DeletePortfolioRecord(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RecordPortfolioActivityCessation is a server-side lifecycle command. The
-// router/OpenAPI contract must expose it under a dedicated lifecycle
-// permission; until then it is intentionally not reachable through generic
-// portfolio CRUD.
-func (s *Service) RecordPortfolioActivityCessation(w http.ResponseWriter, r *http.Request) {
-	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	allowed, err := s.portfolioAdminAllowed(r, "education.portfolios.school.manage")
-	if err != nil || !allowed {
-		writePortfolioAccessFailure(w, err)
-		return
-	}
-	var req PortfolioCessationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_cessation_payload"})
-		return
-	}
-	req.ActivityCeasedOn = strings.TrimSpace(req.ActivityCeasedOn)
-	req.Reason = strings.TrimSpace(req.Reason)
-	if _, err := time.Parse("2006-01-02", req.ActivityCeasedOn); err != nil || req.Reason == "" {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_cessation"})
-		return
-	}
-	var item PortfolioRecord
-	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
-		update education_portfolios
-		set activity_ceased_on = $1::date, activity_cessation_reason = $2, updated_at = now()
-		where id = $3::uuid and institution_id = $4 and activity_ceased_on is null and withdrawn_at is null
-		returning `+portfolioRecordColumns,
-		req.ActivityCeasedOn, req.Reason, recordID, s.institutionID(r)), &item)
-	if errors.Is(err, pgx.ErrNoRows) {
-		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_cessation_not_available"})
-		return
-	}
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_cessation_failed"})
-		return
-	}
-	s.logAudit(r, "education.portfolios.activity_ceased", "portfolio_record", item.ID, "Portfolio cessation recorded; retention deadline calculated by server.", map[string]any{"activity_ceased_on": item.ActivityCeasedOn, "retention_until": item.RetentionUntil})
-	httpx.JSON(w, http.StatusOK, item)
-}
-
-// SetPortfolioLegalHold is a server-side lifecycle command. A legal hold
-// blocks further lifecycle mutations and any attempted withdrawal.
-func (s *Service) SetPortfolioLegalHold(w http.ResponseWriter, r *http.Request) {
-	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	allowed, err := s.portfolioAdminAllowed(r, "education.portfolios.school.manage")
-	if err != nil || !allowed {
-		writePortfolioAccessFailure(w, err)
-		return
-	}
-	var req PortfolioLegalHoldRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_legal_hold_payload"})
-		return
-	}
-	req.Reason = strings.TrimSpace(req.Reason)
-	if req.Reason == "" {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "portfolio_legal_hold_reason_required"})
-		return
-	}
-	var item PortfolioRecord
-	err = scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
-		update education_portfolios
-		set legal_hold_active = $1, legal_hold_reason = $2,
-			legal_hold_set_at = now(), legal_hold_set_by_subject = $3, updated_at = now()
-		where id = $4::uuid and institution_id = $5 and withdrawn_at is null
-		returning `+portfolioRecordColumns,
-		req.Active, req.Reason, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)), recordID, s.institutionID(r)), &item)
-	if errors.Is(err, pgx.ErrNoRows) {
-		writeEducationNotFound(w, "portfolio_not_found")
-		return
-	}
-	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_legal_hold_failed"})
-		return
-	}
-	s.logAudit(r, "education.portfolios.legal_hold", "portfolio_record", item.ID, "Portfolio legal hold state changed.", map[string]any{"active": item.LegalHoldActive, "reason": item.LegalHoldReason})
-	httpx.JSON(w, http.StatusOK, item)
-}
-
 func (s *Service) UpdateMobilityCase(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
 	if recordID == "" {
@@ -5217,43 +5139,17 @@ func (s *Service) DeclarationDetail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) PortfolioRecordDetail(w http.ResponseWriter, r *http.Request) {
+	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
+	if uuid.Validate(recordID) != nil {
+		writeEducationNotFound(w, "education_portfolio_not_found")
+		return
+	}
 	var item PortfolioRecord
-	err := s.pool.QueryRow(r.Context(), `
-		select
-			id::text,
-			portfolio_code,
-			owner_name,
-			owner_role,
-			school_year,
-			status,
-			section_count,
-			to_char(last_updated_on, 'YYYY-MM-DD'),
-			coalesce(to_char(retention_until, 'YYYY-MM-DD'), ''),
-			transfer_status,
-			authenticity_declared,
-			consent_captured,
-			custodian,
-			institution_id,
-			notes
+	err := scanPortfolioRecord(s.pool.QueryRow(r.Context(), `
+		select `+portfolioRecordColumns+`
 		from education_portfolios
 		where id = $1::uuid and institution_id = $2
-	`, chi.URLParam(r, "recordID"), s.institutionID(r)).Scan(
-		&item.ID,
-		&item.PortfolioCode,
-		&item.OwnerName,
-		&item.OwnerRole,
-		&item.SchoolYear,
-		&item.Status,
-		&item.SectionCount,
-		&item.LastUpdatedOn,
-		&item.RetentionUntil,
-		&item.TransferStatus,
-		&item.AuthenticityDeclared,
-		&item.ConsentCaptured,
-		&item.Custodian,
-		&item.InstitutionID,
-		&item.Notes,
-	)
+	`, recordID, s.institutionID(r)), &item)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeEducationNotFound(w, "education_portfolio_not_found")
 		return

@@ -70,8 +70,21 @@ func TestPost0060EducationRLSIntegration(t *testing.T) {
 			"education_committees",
 			"education_committee_members",
 		} {
+			own := fixtures[scope.tenantCode]
+			foreign := fixtures["tenant-balotesti"]
+			if scope.tenantCode == "tenant-balotesti" {
+				foreign = fixtures["tenant-egueducation"]
+			}
+			column, ownID, foreignID := "id", own.committeeID, foreign.committeeID
+			if table == "education_portfolio_valorifications" {
+				column, ownID, foreignID = "portfolio_id", own.portfolioID, foreign.portfolioID
+			} else if table == "education_committee_members" {
+				column = "committee_id"
+			}
 			var visible int
-			if err := servicePool.QueryRow(requestContext, fmt.Sprintf("select count(*) from %s", table)).Scan(&visible); err != nil {
+			// Include both scopes' fixture IDs: a broken RLS policy exposes two
+			// rows, while unrelated migration seed rows do not affect this proof.
+			if err := servicePool.QueryRow(requestContext, fmt.Sprintf("select count(*) from %s where %s in ($1,$2)", table, column), ownID, foreignID).Scan(&visible); err != nil {
 				release()
 				t.Fatalf("read %s as %s: %v", table, scope.tenantCode, err)
 			}
@@ -114,12 +127,28 @@ func seedPost0060EducationRLSRows(t *testing.T, ctx context.Context, pool *pgxpo
 	} {
 		portfolioID := uuid.New()
 		committeeID := uuid.New()
+		ownerID, personnelID := uuid.New(), uuid.New()
+		ownerSubject := "post0060-owner-" + uuid.NewString()
+		if _, err := tx.Exec(ctx, `insert into app_users(id,sub,name,email,locale,status) values($1,$2,'RLS integration owner',$3,'ro','active')`, ownerID, ownerSubject, ownerSubject+"@example.test"); err != nil {
+			t.Fatalf("seed portfolio owner: %v", err)
+		}
+		tag, err := tx.Exec(ctx, `insert into app_memberships(user_id,tenant_code,position_code,org_unit_code,organization_name,is_primary,active,start_date)
+			select $1,$2,m.position_code,m.org_unit_code,m.organization_name,false,true,current_date
+			from app_memberships m where m.tenant_code=$2 and public.education_membership_is_eligible(m.user_id,$2,$3,null)
+			order by m.id limit 1`, ownerID, scope.tenantCode, scope.institutionID)
+		if err != nil || tag.RowsAffected() != 1 {
+			t.Fatalf("seed eligible portfolio owner membership for %s: rows=%d err=%v", scope.tenantCode, tag.RowsAffected(), err)
+		}
+		if _, err := tx.Exec(ctx, `insert into education_personnel(id,app_user_id,employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,institution_id)
+			values($1,$2,$3,'RLS integration owner','Profesor','titular','active','draft','none','2026-2027',$4)`, personnelID, ownerID, "RLS-PER-"+uuid.NewString(), scope.institutionID); err != nil {
+			t.Fatalf("seed canonical portfolio personnel: %v", err)
+		}
 		if _, err := tx.Exec(ctx, `
 			insert into education_portfolios (
 				id, portfolio_code, owner_name, owner_role, school_year, status,
-				section_count, last_updated_on, transfer_status, institution_id
-			) values ($1, $2, 'RLS integration owner', 'Profesor', '2026-2027', 'draft', 0, current_date, 'none', $3)
-		`, portfolioID, "RLS-"+scope.tenantCode+"-"+uuid.NewString(), scope.institutionID); err != nil {
+				section_count, last_updated_on, transfer_status, institution_id, owner_user_id, owner_personnel_id
+			) values ($1, $2, 'RLS integration owner', 'Profesor', '2026-2027', 'draft', 0, current_date, 'none', $3, $4, $5)
+		`, portfolioID, "RLS-"+scope.tenantCode+"-"+uuid.NewString(), scope.institutionID, ownerID, personnelID); err != nil {
 			t.Fatalf("seed portfolio for %s: %v", scope.tenantCode, err)
 		}
 		if _, err := tx.Exec(ctx, `

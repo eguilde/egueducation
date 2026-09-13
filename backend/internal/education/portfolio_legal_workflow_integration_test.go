@@ -132,30 +132,105 @@ func TestPortfolioLegalWorkflowRequiresInstitutionProcedureDeclarationsAndLifecy
 	// Retention is produced only by the institution lifecycle command, then a
 	// legal hold is persisted and visible in the returned authoritative record.
 	cessation := httptest.NewRecorder()
-	service.RecordPortfolioActivityCessation(cessation, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, `{"activity_ceased_on":"2027-10-01","reason":"Încetarea activității didactice"}`, map[string]string{"recordID": portfolio.ID}))
-	if cessation.Code != http.StatusOK {
+	service.RecordPortfolioActivityCessation(cessation, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, `{"activity_ceased_on":"2023-10-01","reason":"Încetarea activității didactice"}`, map[string]string{"recordID": portfolio.ID}))
+	if cessation.Code != http.StatusAccepted {
 		t.Fatalf("record activity cessation: status=%d body=%s", cessation.Code, cessation.Body.String())
 	}
-	var ceased PortfolioRecord
-	if err := json.Unmarshal(cessation.Body.Bytes(), &ceased); err != nil {
+	var cessationResponse PortfolioLifecycleOperationResponse
+	if err := json.Unmarshal(cessation.Body.Bytes(), &cessationResponse); err != nil {
 		t.Fatalf("decode cessation: %v", err)
 	}
-	if ceased.ActivityCeasedOn != "2027-10-01" || ceased.RetentionUntil != "2030-09-30" {
-		t.Fatalf("retention must be calculated from cessation event, got %#v", ceased)
+	if cessationResponse.Portfolio.ActivityCeasedOn != "2023-10-01" || cessationResponse.Portfolio.RetentionUntil != "2026-10-01" || cessationResponse.Operation.Type != "cessation_retention" || cessationResponse.Operation.TotalVersions == 0 {
+		t.Fatalf("retention and durable storage work must be calculated from cessation event, got %#v", cessationResponse)
 	}
 
 	hold := httptest.NewRecorder()
 	service.SetPortfolioLegalHold(hold, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, `{"active":true,"reason":"Litigiu în curs"}`, map[string]string{"recordID": portfolio.ID}))
-	if hold.Code != http.StatusOK {
+	if hold.Code != http.StatusAccepted {
 		t.Fatalf("set legal hold: status=%d body=%s", hold.Code, hold.Body.String())
 	}
-	var held PortfolioRecord
-	if err := json.Unmarshal(hold.Body.Bytes(), &held); err != nil {
+	var holdResponse PortfolioLifecycleOperationResponse
+	if err := json.Unmarshal(hold.Body.Bytes(), &holdResponse); err != nil {
 		t.Fatalf("decode legal hold: %v", err)
 	}
-	if !held.LegalHoldActive || held.LegalHoldReason != "Litigiu în curs" {
-		t.Fatalf("legal hold was not persisted in authoritative response: %#v", held)
+	if !holdResponse.Portfolio.LegalHoldActive || holdResponse.Portfolio.LegalHoldReason != "Litigiu în curs" || holdResponse.Operation.Type != "legal_hold_reconcile" {
+		t.Fatalf("legal hold was not persisted with durable reconciliation: %#v", holdResponse)
 	}
+
+	var persisted PortfolioRecord
+	if err := scanPortfolioRecord(service.pool.QueryRow(ownerCtx, `select `+portfolioRecordColumns+` from education_portfolios where id=$1::uuid and institution_id=$2`, portfolio.ID, fixture.institutionA), &persisted); err != nil {
+		t.Fatalf("load canonical persisted lifecycle portfolio: %v", err)
+	}
+	detailRecorder := httptest.NewRecorder()
+	service.PortfolioRecordDetail(detailRecorder, legalWorkflowRequest(ownerCtx, fixture, http.MethodGet, "", map[string]string{"recordID": portfolio.ID}))
+	if detailRecorder.Code != http.StatusOK {
+		t.Fatalf("generic portfolio detail: status=%d body=%s", detailRecorder.Code, detailRecorder.Body.String())
+	}
+	var genericDetail PortfolioRecord
+	if err := json.Unmarshal(detailRecorder.Body.Bytes(), &genericDetail); err != nil {
+		t.Fatalf("decode generic portfolio detail: %v", err)
+	}
+	listRecorder := httptest.NewRecorder()
+	service.PortfolioRecords(listRecorder, legalWorkflowRequest(ownerCtx, fixture, http.MethodGet, "", nil))
+	if listRecorder.Code != http.StatusOK {
+		t.Fatalf("generic portfolio list: status=%d body=%s", listRecorder.Code, listRecorder.Body.String())
+	}
+	var genericList struct {
+		Items []PortfolioRecord `json:"items"`
+	}
+	if err := json.Unmarshal(listRecorder.Body.Bytes(), &genericList); err != nil {
+		t.Fatalf("decode generic portfolio list: %v", err)
+	}
+	var genericListed PortfolioRecord
+	for _, candidate := range genericList.Items {
+		if candidate.ID == portfolio.ID {
+			genericListed = candidate
+			break
+		}
+	}
+	assertLifecycleProjection := func(label string, got PortfolioRecord) {
+		t.Helper()
+		if got.ID != persisted.ID || got.OwnerUserID != persisted.OwnerUserID || got.OwnerPersonnelID != persisted.OwnerPersonnelID ||
+			got.ActivityCeasedOn != persisted.ActivityCeasedOn || got.RetentionUntil != persisted.RetentionUntil ||
+			got.RetentionPeriodDays != persisted.RetentionPeriodDays || got.LegalHoldActive != persisted.LegalHoldActive ||
+			got.LegalHoldReason != persisted.LegalHoldReason || got.AppliedProcedureID != persisted.AppliedProcedureID {
+			t.Fatalf("%s lifecycle projection diverged: got=%#v persisted=%#v", label, got, persisted)
+		}
+	}
+	assertLifecycleProjection("generic detail", genericDetail)
+	assertLifecycleProjection("generic list", genericListed)
+
+	statusRecorder := httptest.NewRecorder()
+	service.PortfolioLifecycleOperationStatus(statusRecorder, legalWorkflowRequest(ownerCtx, fixture, http.MethodGet, "", map[string]string{"recordID": portfolio.ID, "operationID": cessationResponse.Operation.ID}))
+	if statusRecorder.Code != http.StatusOK || !bytes.Contains(statusRecorder.Body.Bytes(), []byte(cessationResponse.Operation.ID)) {
+		t.Fatalf("read owner-visible lifecycle operation: status=%d body=%s", statusRecorder.Code, statusRecorder.Body.String())
+	}
+
+	if _, err := service.pool.Exec(ownerCtx, `select set_config('app.actor_subject','portfolio-storage-lifecycle-worker',false)`); err != nil {
+		t.Fatalf("bind lifecycle retry fixture worker: %v", err)
+	}
+	if _, err := service.pool.Exec(ownerCtx, `update education_portfolio_storage_transitions set status='blocked',last_error='storage_reconciliation_failed',locked_at=null,locked_by='' where operation_id=$1::uuid and status='pending'`, cessationResponse.Operation.ID); err != nil {
+		t.Fatalf("block lifecycle transition for retry fixture: %v", err)
+	}
+	if _, err := service.pool.Exec(ownerCtx, `select set_config('app.actor_subject',$1,false)`, fixture.memberSubject); err != nil {
+		t.Fatalf("restore lifecycle retry actor: %v", err)
+	}
+	retry := httptest.NewRecorder()
+	service.RetryPortfolioLifecycleOperation(retry, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, `{"reason":"Storage operator remediation completed"}`, map[string]string{"recordID": portfolio.ID, "operationID": cessationResponse.Operation.ID}))
+	if retry.Code != http.StatusAccepted {
+		t.Fatalf("retry blocked lifecycle operation: status=%d body=%s", retry.Code, retry.Body.String())
+	}
+	var retryResponse PortfolioLifecycleOperationResponse
+	if err := json.Unmarshal(retry.Body.Bytes(), &retryResponse); err != nil || retryResponse.Operation.Status != "pending" {
+		t.Fatalf("retry response=%#v err=%v", retryResponse, err)
+	}
+	var retryHistory int
+	if err := service.pool.QueryRow(ownerCtx, `select count(*) from education_portfolio_storage_transition_history where operation_id=$1::uuid`, cessationResponse.Operation.ID).Scan(&retryHistory); err != nil || retryHistory == 0 {
+		t.Fatalf("durable retry history count=%d err=%v", retryHistory, err)
+	}
+	duplicateRetry := httptest.NewRecorder()
+	service.RetryPortfolioLifecycleOperation(duplicateRetry, legalWorkflowRequest(ownerCtx, fixture, http.MethodPost, `{"reason":"Duplicate retry"}`, map[string]string{"recordID": portfolio.ID, "operationID": cessationResponse.Operation.ID}))
+	assertHandlerCode(t, duplicateRetry, http.StatusConflict, "portfolio_lifecycle_retry_not_available")
 }
 
 func grantPortfolioLegalWorkflowPermissions(t *testing.T, ctx context.Context, pool *pgxpool.Pool, fixture governanceAuthorizationFixture) {

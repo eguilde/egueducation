@@ -28,11 +28,54 @@ type ArchiveStorage struct {
 }
 
 type ImmutableArchiveObject struct {
+	Bucket          string
+	Key             string
+	VersionID       string
+	ETag            string
+	SizeBytes       int64
+	RetentionUntil  time.Time
+	ObjectLockMode  s3types.ObjectLockMode
+	LegalHoldActive bool
+	Metadata        map[string]string
+}
+
+// VersionedArchiveObject identifies the exact stored original. A key alone is
+// mutable and must never be used as evidence provenance.
+type VersionedArchiveObject struct {
 	Bucket    string
 	Key       string
 	VersionID string
 	ETag      string
+	SizeBytes int64
 }
+
+// ImmutableArchiveWrite is server-owned storage intent. Callers derive its
+// deadline and metadata from an approved retention policy; browser input must
+// never be passed through as this structure.
+type ImmutableArchiveWrite struct {
+	Key            string
+	ContentType    string
+	Body           io.Reader
+	ContentLength  int64
+	RetentionUntil time.Time
+	LegalHold      bool
+	Metadata       map[string]string
+}
+
+// ImmutableArchiveWriteVerificationError means S3 accepted a version but the
+// post-write HEAD check could not prove the required WORM facts. The returned
+// object identity is safe to persist only as a recovery intent; it is not a
+// verified archive version and must be reconciled before being made active.
+type ImmutableArchiveWriteVerificationError struct {
+	Object ImmutableArchiveObject
+	Err    error
+}
+
+func (e *ImmutableArchiveWriteVerificationError) Error() string {
+	return fmt.Sprintf("immutable archive object %s version %s requires reconciliation: %v", e.Object.Key, e.Object.VersionID, e.Err)
+}
+
+func (e *ImmutableArchiveWriteVerificationError) Unwrap() error { return e.Err }
 
 func NewArchiveStorage(ctx context.Context, cfg config.Config) (*ArchiveStorage, error) {
 	endpoint := strings.TrimSpace(cfg.ArchiveStorageEndpoint)
@@ -178,31 +221,20 @@ func (s *ArchiveStorage) PutObject(ctx context.Context, key, contentType string,
 	return nil
 }
 
-// PutImmutableObject stores one exact S3 version under COMPLIANCE retention.
-// Callers must derive retainUntil from the applicable archive-series policy;
-// this boundary deliberately refuses missing or elapsed deadlines instead of
-// inventing a bucket-wide retention period.
-func (s *ArchiveStorage) PutImmutableObject(ctx context.Context, key, contentType string, body io.Reader, contentLength int64, retainUntil time.Time, legalHold bool) (ImmutableArchiveObject, error) {
+// PutVersionedObject requires bucket versioning and verifies the returned
+// exact version before returning it for authoritative persistence.
+func (s *ArchiveStorage) PutVersionedObject(ctx context.Context, key, contentType string, body io.Reader, contentLength int64) (VersionedArchiveObject, error) {
 	if !s.Enabled() {
-		return ImmutableArchiveObject{}, fmt.Errorf("archive storage is disabled")
+		return VersionedArchiveObject{}, fmt.Errorf("archive storage is disabled")
 	}
-	if !s.requireObjectLock {
-		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires verified Object Lock storage")
+	versioning, err := s.client.GetBucketVersioning(ctx, &s3.GetBucketVersioningInput{Bucket: aws.String(s.bucket)})
+	if err != nil {
+		return VersionedArchiveObject{}, fmt.Errorf("verify archive bucket versioning: %w", err)
 	}
-	retainUntil = retainUntil.UTC()
-	if !retainUntil.After(time.Now().UTC()) {
-		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires a future retention deadline")
+	if versioning.Status != s3types.BucketVersioningStatusEnabled {
+		return VersionedArchiveObject{}, fmt.Errorf("archive bucket versioning must be enabled for original evidence")
 	}
-	input := &s3.PutObjectInput{
-		Bucket:                    aws.String(s.bucket),
-		Key:                       aws.String(key),
-		Body:                      body,
-		ObjectLockMode:            s3types.ObjectLockModeCompliance,
-		ObjectLockRetainUntilDate: aws.Time(retainUntil),
-	}
-	if legalHold {
-		input.ObjectLockLegalHoldStatus = s3types.ObjectLockLegalHoldStatusOn
-	}
+	input := &s3.PutObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key), Body: body}
 	if strings.TrimSpace(contentType) != "" {
 		input.ContentType = aws.String(contentType)
 	}
@@ -211,13 +243,152 @@ func (s *ArchiveStorage) PutImmutableObject(ctx context.Context, key, contentTyp
 	}
 	output, err := s.client.PutObject(ctx, input)
 	if err != nil {
+		return VersionedArchiveObject{}, fmt.Errorf("put versioned archive object %s: %w", key, err)
+	}
+	object := VersionedArchiveObject{Bucket: s.bucket, Key: key, VersionID: strings.TrimSpace(aws.ToString(output.VersionId)), ETag: strings.Trim(aws.ToString(output.ETag), `"`)}
+	if object.VersionID == "" || object.VersionID == "null" {
+		return VersionedArchiveObject{}, fmt.Errorf("archive object has no storage version id")
+	}
+	head, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key), VersionId: aws.String(object.VersionID)})
+	if err != nil {
+		return VersionedArchiveObject{}, fmt.Errorf("head exact versioned archive object: %w", err)
+	}
+	object.SizeBytes = aws.ToInt64(head.ContentLength)
+	object.ETag = strings.Trim(aws.ToString(head.ETag), `"`)
+	if strings.TrimSpace(aws.ToString(head.VersionId)) != object.VersionID || (contentLength >= 0 && object.SizeBytes != contentLength) {
+		return VersionedArchiveObject{}, fmt.Errorf("versioned archive object verification mismatch")
+	}
+	return object, nil
+}
+
+// PutCustodyHeldObject is restricted to active-record custody: it requires
+// Object Lock and a verified ON legal hold, but deliberately records no
+// cessation-derived retention deadline.
+func (s *ArchiveStorage) PutCustodyHeldObject(ctx context.Context, key, contentType string, body io.Reader, contentLength int64, expectedSHA256 string, metadata map[string]string) (ImmutableArchiveObject, error) {
+	if !s.Enabled() || !s.requireObjectLock || contentLength < 0 || strings.TrimSpace(key) == "" || body == nil {
+		return ImmutableArchiveObject{}, fmt.Errorf("custody-held archive write requires Object Lock, key, body, and length")
+	}
+	normalizedMetadata := make(map[string]string, len(metadata))
+	for metadataKey, value := range metadata {
+		metadataKey, value = strings.ToLower(strings.TrimSpace(metadataKey)), strings.TrimSpace(value)
+		if metadataKey == "" || value == "" {
+			return ImmutableArchiveObject{}, fmt.Errorf("custody-held archive metadata must have non-empty keys and values")
+		}
+		if _, exists := normalizedMetadata[metadataKey]; exists {
+			return ImmutableArchiveObject{}, fmt.Errorf("custody-held archive metadata has duplicate key %q", metadataKey)
+		}
+		normalizedMetadata[metadataKey] = value
+	}
+	input := &s3.PutObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key), Body: body, ContentLength: aws.Int64(contentLength), IfNoneMatch: aws.String("*"), ObjectLockLegalHoldStatus: s3types.ObjectLockLegalHoldStatusOn, Metadata: normalizedMetadata}
+	if contentType = strings.TrimSpace(contentType); contentType != "" {
+		input.ContentType = aws.String(contentType)
+	}
+	output, err := s.client.PutObject(ctx, input)
+	if err != nil {
+		return ImmutableArchiveObject{}, fmt.Errorf("put custody-held archive object: %w", err)
+	}
+	object := ImmutableArchiveObject{Bucket: s.bucket, Key: key, VersionID: strings.TrimSpace(aws.ToString(output.VersionId)), ETag: strings.Trim(aws.ToString(output.ETag), `"`)}
+	if object.VersionID == "" || object.VersionID == "null" {
+		return object, &ImmutableArchiveWriteVerificationError{Object: object, Err: fmt.Errorf("custody-held archive object has no storage version id")}
+	}
+	verified, err := s.ReconcileCustodyHeldObject(ctx, CustodyHeldArchiveRecovery{Key: key, VersionID: object.VersionID, ExpectedSHA256: expectedSHA256, ContentLength: contentLength, ETag: object.ETag, ContentType: contentType, Metadata: normalizedMetadata})
+	if err != nil {
+		return object, err
+	}
+	return verified, nil
+}
+
+// PutImmutableObject stores one new exact S3 version under COMPLIANCE
+// retention. It refuses overwrite/retry writes with If-None-Match: *, then
+// reads the exact returned VersionId back and verifies storage-observed WORM
+// facts. It deliberately does not delete on any post-PUT error: a COMPLIANCE
+// version may exist and must be reconciled through a durable caller intent.
+func (s *ArchiveStorage) PutImmutableObject(ctx context.Context, write ImmutableArchiveWrite) (ImmutableArchiveObject, error) {
+	if !s.Enabled() {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive storage is disabled")
+	}
+	if !s.requireObjectLock {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires verified Object Lock storage")
+	}
+	key := strings.TrimSpace(write.Key)
+	if key == "" || write.Body == nil || write.ContentLength < 0 {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires key, body, and non-negative content length")
+	}
+	retainUntil := write.RetentionUntil.UTC()
+	if !retainUntil.After(time.Now().UTC()) {
+		return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write requires a future retention deadline")
+	}
+	// Smithy's S3 timestamp serializer emits milliseconds. Round upward at
+	// that boundary so a PostgreSQL microsecond deadline is never shortened.
+	// Keep the policy deadline unchanged and validate the observed retention.
+	storageDeadline := retainUntil.Truncate(time.Millisecond)
+	if storageDeadline.Before(retainUntil) {
+		storageDeadline = storageDeadline.Add(time.Millisecond)
+	}
+	metadata := make(map[string]string, len(write.Metadata))
+	for key, value := range write.Metadata {
+		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
+		if key == "" || value == "" {
+			return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write metadata must have non-empty keys and values")
+		}
+		normalizedKey := strings.ToLower(key)
+		if _, exists := metadata[normalizedKey]; exists {
+			return ImmutableArchiveObject{}, fmt.Errorf("archive immutable write metadata has duplicate key %q", key)
+		}
+		metadata[normalizedKey] = value
+	}
+	input := &s3.PutObjectInput{
+		Bucket:                    aws.String(s.bucket),
+		Key:                       aws.String(key),
+		Body:                      write.Body,
+		ObjectLockMode:            s3types.ObjectLockModeCompliance,
+		ObjectLockRetainUntilDate: aws.Time(storageDeadline),
+		IfNoneMatch:               aws.String("*"),
+		Metadata:                  metadata,
+	}
+	if write.LegalHold {
+		input.ObjectLockLegalHoldStatus = s3types.ObjectLockLegalHoldStatusOn
+	}
+	if contentType := strings.TrimSpace(write.ContentType); contentType != "" {
+		input.ContentType = aws.String(contentType)
+	}
+	input.ContentLength = aws.Int64(write.ContentLength)
+	output, err := s.client.PutObject(ctx, input)
+	if err != nil {
 		return ImmutableArchiveObject{}, fmt.Errorf("put immutable archive object %s: %w", key, err)
 	}
 	versionID := strings.TrimSpace(aws.ToString(output.VersionId))
-	if versionID == "" {
-		return ImmutableArchiveObject{}, fmt.Errorf("immutable archive object %s has no storage version id", key)
+	object := ImmutableArchiveObject{Bucket: s.bucket, Key: key, VersionID: versionID, ETag: strings.Trim(aws.ToString(output.ETag), `"`)}
+	if versionID == "" || versionID == "null" {
+		return object, &ImmutableArchiveWriteVerificationError{Object: object, Err: fmt.Errorf("immutable archive object has no storage version id")}
 	}
-	return ImmutableArchiveObject{Bucket: s.bucket, Key: key, VersionID: versionID, ETag: strings.Trim(aws.ToString(output.ETag), `"`)}, nil
+	putETag := object.ETag
+	head, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key), VersionId: aws.String(versionID)})
+	if err != nil {
+		return object, &ImmutableArchiveWriteVerificationError{Object: object, Err: fmt.Errorf("head exact immutable object version: %w", err)}
+	}
+	object.SizeBytes = aws.ToInt64(head.ContentLength)
+	object.ETag = strings.Trim(aws.ToString(head.ETag), `"`)
+	object.RetentionUntil = aws.ToTime(head.ObjectLockRetainUntilDate).UTC()
+	object.ObjectLockMode = head.ObjectLockMode
+	object.LegalHoldActive = head.ObjectLockLegalHoldStatus == s3types.ObjectLockLegalHoldStatusOn
+	object.Metadata = make(map[string]string, len(head.Metadata))
+	for key, value := range head.Metadata {
+		object.Metadata[strings.ToLower(strings.TrimSpace(key))] = strings.TrimSpace(value)
+	}
+	if strings.TrimSpace(aws.ToString(head.VersionId)) != versionID || (putETag != "" && object.ETag != putETag) || object.SizeBytes != write.ContentLength || object.ObjectLockMode != s3types.ObjectLockModeCompliance || object.RetentionUntil.Before(retainUntil) || (write.LegalHold && !object.LegalHoldActive) || !immutableMetadataMatches(metadata, object.Metadata) {
+		return object, &ImmutableArchiveWriteVerificationError{Object: object, Err: fmt.Errorf("immutable object verification mismatch")}
+	}
+	return object, nil
+}
+
+func immutableMetadataMatches(expected, observed map[string]string) bool {
+	for key, value := range expected {
+		if observed[strings.ToLower(strings.TrimSpace(key))] != value {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *ArchiveStorage) OpenObjectVersion(ctx context.Context, key, versionID string) (io.ReadCloser, error) {

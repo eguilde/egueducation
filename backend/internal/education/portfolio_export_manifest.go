@@ -1,6 +1,7 @@
 package education
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -14,16 +15,25 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const portfolioExportManifestVersion = "egueducation.portfolio-export-manifest/v1"
+type portfolioManifestQuerier interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+}
+
+// v2 adds the exact storage-version, source size, and MIME provenance used by
+// downloadable bundles. Existing v1 payloads retain their original bytes and
+// hashes; they are never reserialized as v2.
+const portfolioExportManifestVersion = "egueducation.portfolio-export-manifest/v2"
 
 type PortfolioExportManifest struct {
-	ManifestVersion string                            `json:"manifest_version"`
-	HashAlgorithm   string                            `json:"hash_algorithm"`
-	ManifestSHA256  string                            `json:"manifest_sha256"`
-	TenantCode      string                            `json:"tenant_code"`
-	InstitutionID   string                            `json:"institution_id"`
-	Portfolio       PortfolioExportManifestPortfolio  `json:"portfolio"`
-	Documents       []PortfolioExportManifestDocument `json:"documents"`
+	ManifestVersion string                                 `json:"manifest_version"`
+	HashAlgorithm   string                                 `json:"hash_algorithm"`
+	ManifestSHA256  string                                 `json:"manifest_sha256"`
+	TenantCode      string                                 `json:"tenant_code"`
+	InstitutionID   string                                 `json:"institution_id"`
+	Portfolio       PortfolioExportManifestPortfolio       `json:"portfolio"`
+	Documents       []PortfolioExportManifestDocument      `json:"documents"`
+	GeneratedFiles  []PortfolioExportManifestGeneratedFile `json:"generated_files,omitempty"`
 }
 
 type PortfolioExportManifestPortfolio struct {
@@ -35,19 +45,32 @@ type PortfolioExportManifestPortfolio struct {
 }
 
 type PortfolioExportManifestDocument struct {
-	EvidenceRecordID  string `json:"evidence_record_id"`
-	SectionCode       string `json:"section_code"`
-	ComponentCode     string `json:"component_code"`
-	DocumentTitle     string `json:"document_title"`
-	ChronologicalNo   int    `json:"chronological_no"`
-	IssuedOn          string `json:"issued_on"`
-	EvidenceType      string `json:"evidence_type"`
-	ArchiveDocumentID string `json:"archive_document_id"`
-	ArchiveVersionID  string `json:"archive_version_id"`
-	ArchiveVersionNo  int    `json:"archive_version_no"`
-	SourceBucket      string `json:"source_bucket"`
-	SourceObjectKey   string `json:"source_object_key"`
-	SourceSHA256      string `json:"source_sha256"`
+	EvidenceRecordID      string `json:"evidence_record_id"`
+	SectionCode           string `json:"section_code"`
+	ComponentCode         string `json:"component_code"`
+	DocumentTitle         string `json:"document_title"`
+	ChronologicalNo       int    `json:"chronological_no"`
+	IssuedOn              string `json:"issued_on"`
+	EvidenceType          string `json:"evidence_type"`
+	ArchiveDocumentID     string `json:"archive_document_id"`
+	ArchiveVersionID      string `json:"archive_version_id"`
+	ArchiveVersionNo      int    `json:"archive_version_no"`
+	SourceBucket          string `json:"source_bucket"`
+	SourceObjectKey       string `json:"source_object_key"`
+	SourceObjectVersionID string `json:"source_object_version_id"`
+	SourceSHA256          string `json:"source_sha256"`
+	SourceSizeBytes       int64  `json:"source_size_bytes"`
+	MimeType              string `json:"mime_type"`
+	ZIPPath               string `json:"zip_path"`
+}
+
+// PortfolioExportManifestGeneratedFile binds the exact, deterministic bytes
+// produced from the portfolio snapshot. Manifest sidecars are excluded so the
+// manifest digest has no circular dependency on itself.
+type PortfolioExportManifestGeneratedFile struct {
+	ZIPPath   string `json:"zip_path"`
+	SHA256    string `json:"sha256"`
+	SizeBytes int64  `json:"size_bytes"`
 }
 
 type PortfolioExportManifestResponse struct {
@@ -93,6 +116,16 @@ func (s *Service) createPortfolioExportManifestEvidence(r *http.Request, recordI
 	if err != nil {
 		return PortfolioExportManifestResponse{}, err
 	}
+	// The pre-existing institution/transfer manifest remains a completed
+	// evidence artefact. The owner ZIP export deliberately permits a lifecycle
+	// snapshot with no evidence, but this legacy creator does not.
+	if manifest.Portfolio.Status == "draft" || manifest.Portfolio.Status == "returned" || len(manifest.Documents) == 0 {
+		return PortfolioExportManifestResponse{}, errPortfolioExportNotReady
+	}
+	return s.persistPortfolioExportManifestEvidence(r, recordID, manifest)
+}
+
+func (s *Service) persistPortfolioExportManifestEvidence(r *http.Request, recordID string, manifest PortfolioExportManifest) (PortfolioExportManifestResponse, error) {
 	payload, err := json.Marshal(manifest)
 	if err != nil {
 		return PortfolioExportManifestResponse{}, err
@@ -155,30 +188,36 @@ func (s *Service) portfolioExportManifestAllowed(r *http.Request, recordID strin
 var errPortfolioExportNotReady = errors.New("portfolio export provenance incomplete")
 
 func (s *Service) buildPortfolioExportManifest(r *http.Request, recordID string) (PortfolioExportManifest, error) {
+	return s.buildPortfolioExportManifestWithQuerier(r, recordID, s.pool)
+}
+
+func (s *Service) buildPortfolioExportManifestWithQuerier(r *http.Request, recordID string, queryer portfolioManifestQuerier) (PortfolioExportManifest, error) {
 	var manifest PortfolioExportManifest
 	manifest.ManifestVersion = portfolioExportManifestVersion
 	manifest.HashAlgorithm = "SHA-256"
+	manifest.Documents = []PortfolioExportManifestDocument{}
 	manifest.InstitutionID = s.institutionID(r)
-	if err := s.pool.QueryRow(r.Context(), `select public.current_tenant_code()`).Scan(&manifest.TenantCode); err != nil {
+	if err := queryer.QueryRow(r.Context(), `select public.current_tenant_code()`).Scan(&manifest.TenantCode); err != nil {
 		return PortfolioExportManifest{}, err
 	}
-	if err := s.pool.QueryRow(r.Context(), `
+	if err := queryer.QueryRow(r.Context(), `
 		select id::text, portfolio_code, school_year, status, coalesce(applied_procedure_id::text, '')
 		from education_portfolios
 		where id=$1::uuid and institution_id=$2 and withdrawn_at is null
 	`, recordID, manifest.InstitutionID).Scan(&manifest.Portfolio.ID, &manifest.Portfolio.PortfolioCode, &manifest.Portfolio.SchoolYear, &manifest.Portfolio.Status, &manifest.Portfolio.AppliedProcedureID); err != nil {
 		return PortfolioExportManifest{}, err
 	}
-	if manifest.Portfolio.Status == "draft" || manifest.Portfolio.Status == "returned" {
-		return PortfolioExportManifest{}, errPortfolioExportNotReady
-	}
-	rows, err := s.pool.Query(r.Context(), `
-		select id::text, section_code, component_code, document_title, chronological_index,
-			to_char(issued_on, 'YYYY-MM-DD'), evidence_type,
-			coalesce(archive_document_id::text, ''), coalesce(archive_version_id::text, ''),
-			archive_version_no, archive_source_bucket, archive_source_object_key, archive_sha256
-		from education_portfolio_documents
-		where portfolio_id=$1::uuid and institution_id=$2 and status='active' and source_scope='portofoliu'
+	rows, err := queryer.Query(r.Context(), `
+		select document.id::text, document.section_code, document.component_code, document.document_title, document.chronological_index,
+			to_char(document.issued_on, 'YYYY-MM-DD'), document.evidence_type,
+			coalesce(document.archive_document_id::text, ''), coalesce(document.archive_version_id::text, ''),
+			document.archive_version_no, document.archive_source_bucket, document.archive_source_object_key, document.archive_sha256,
+			coalesce(version.source_object_version_id, ''), coalesce(version.source_size_bytes, 0), coalesce(version.mime_type, '')
+		from education_portfolio_documents document
+		left join archive_document_versions version
+			on version.id=document.archive_version_id and version.document_id=document.archive_document_id
+			and version.institution_id=document.institution_id
+		where document.portfolio_id=$1::uuid and document.institution_id=$2 and document.status='active' and document.source_scope='portofoliu'
 		order by chronological_index, issued_on, id
 	`, recordID, manifest.InstitutionID)
 	if err != nil {
@@ -187,20 +226,18 @@ func (s *Service) buildPortfolioExportManifest(r *http.Request, recordID string)
 	defer rows.Close()
 	for rows.Next() {
 		var document PortfolioExportManifestDocument
-		if err := rows.Scan(&document.EvidenceRecordID, &document.SectionCode, &document.ComponentCode, &document.DocumentTitle, &document.ChronologicalNo, &document.IssuedOn, &document.EvidenceType, &document.ArchiveDocumentID, &document.ArchiveVersionID, &document.ArchiveVersionNo, &document.SourceBucket, &document.SourceObjectKey, &document.SourceSHA256); err != nil {
+		if err := rows.Scan(&document.EvidenceRecordID, &document.SectionCode, &document.ComponentCode, &document.DocumentTitle, &document.ChronologicalNo, &document.IssuedOn, &document.EvidenceType, &document.ArchiveDocumentID, &document.ArchiveVersionID, &document.ArchiveVersionNo, &document.SourceBucket, &document.SourceObjectKey, &document.SourceSHA256, &document.SourceObjectVersionID, &document.SourceSizeBytes, &document.MimeType); err != nil {
 			return PortfolioExportManifest{}, err
 		}
 		document.SourceSHA256 = strings.ToLower(document.SourceSHA256)
-		if document.ArchiveDocumentID == "" || document.ArchiveVersionID == "" || document.ArchiveVersionNo < 1 || document.SourceBucket == "" || document.SourceObjectKey == "" || !isSHA256Hex(document.SourceSHA256) {
+		if document.ArchiveDocumentID == "" || document.ArchiveVersionID == "" || document.ArchiveVersionNo < 1 || document.SourceBucket == "" || document.SourceObjectKey == "" || document.SourceObjectVersionID == "" || document.SourceSizeBytes < 1 || document.MimeType == "" || !isSHA256Hex(document.SourceSHA256) {
 			return PortfolioExportManifest{}, errPortfolioExportNotReady
 		}
+		document.ZIPPath = portfolioExportEvidenceZipPath(len(manifest.Documents)+1, document.MimeType)
 		manifest.Documents = append(manifest.Documents, document)
 	}
 	if err := rows.Err(); err != nil {
 		return PortfolioExportManifest{}, err
-	}
-	if len(manifest.Documents) == 0 {
-		return PortfolioExportManifest{}, errPortfolioExportNotReady
 	}
 	manifest.ManifestSHA256 = portfolioExportManifestSHA256(manifest)
 	return manifest, nil

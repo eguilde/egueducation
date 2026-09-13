@@ -97,6 +97,86 @@ type PortfolioLegalHoldRequest struct {
 	Reason string `json:"reason"`
 }
 
+type PortfolioLifecycleRetryRequest struct {
+	Reason string `json:"reason"`
+}
+
+// PortfolioRetentionDispositionRequest captures the owner's immutable
+// evidence for an expired-retention review. It intentionally contains no
+// object identifiers: those are copied from the locked transition.
+type PortfolioRetentionDispositionRequest struct {
+	Evidence PortfolioRetentionDispositionEvidence `json:"evidence"`
+}
+
+type PortfolioRetentionDispositionEvidence struct {
+	Statement string `json:"statement"`
+	Reference string `json:"reference,omitempty"`
+}
+
+type PortfolioRetentionDispositionDecisionRequest struct {
+	Approve bool   `json:"approve"`
+	Reason  string `json:"reason"`
+}
+
+type PortfolioRetentionDispositionCommandResponse struct {
+	ID       string `json:"id"`
+	Status   string `json:"status"`
+	Decision string `json:"decision,omitempty"`
+	Outcome  string `json:"outcome,omitempty"`
+}
+
+// PortfolioRetentionDisposition is the safe, tenant-scoped review projection.
+// Exact bucket/key/version identifiers remain server-only custody evidence.
+type PortfolioRetentionDisposition struct {
+	ID                 string                                `json:"id"`
+	TransitionID       string                                `json:"transition_id"`
+	PortfolioID        string                                `json:"portfolio_id"`
+	Status             string                                `json:"status"`
+	Evidence           PortfolioRetentionDispositionEvidence `json:"evidence"`
+	RequestedBySubject string                                `json:"requested_by_subject"`
+	RequestedAt        string                                `json:"requested_at"`
+	Decision           string                                `json:"decision,omitempty"`
+	DecisionReason     string                                `json:"decision_reason,omitempty"`
+	DecidedBySubject   string                                `json:"decided_by_subject,omitempty"`
+	DecidedAt          string                                `json:"decided_at,omitempty"`
+	Outcome            string                                `json:"outcome,omitempty"`
+	OperationID        string                                `json:"operation_id,omitempty"`
+	OperationStatus    string                                `json:"operation_status,omitempty"`
+	OperationAttempts  int                                   `json:"operation_attempts"`
+	LastErrorCode      string                                `json:"last_error_code,omitempty"`
+}
+
+// PortfolioLifecycleOperation is the durable status of one human lifecycle
+// command and all exact archive-version transitions caused by it.
+type PortfolioLifecycleOperation struct {
+	ID                string `json:"id"`
+	PortfolioID       string `json:"portfolio_id"`
+	Type              string `json:"type"`
+	Status            string `json:"status"`
+	RequestedAt       string `json:"requested_at"`
+	CompletedAt       string `json:"completed_at,omitempty"`
+	TotalVersions     int    `json:"total_versions"`
+	CompletedVersions int    `json:"completed_versions"`
+	BlockedVersions   int    `json:"blocked_versions"`
+	LastError         string `json:"last_error,omitempty"`
+}
+
+type PortfolioLifecycleOperationResponse struct {
+	Operation   PortfolioLifecycleOperation  `json:"operation"`
+	Portfolio   PortfolioRecord              `json:"portfolio"`
+	Transitions []PortfolioStorageTransition `json:"transitions"`
+}
+
+// PortfolioStorageTransition intentionally omits bucket, key, VersionId,
+// ETag and content digest. Those exact identifiers remain server-side.
+type PortfolioStorageTransition struct {
+	ID                     string `json:"id"`
+	Status                 string `json:"status"`
+	LastError              string `json:"last_error,omitempty"`
+	RequiredRetentionUntil string `json:"required_retention_until,omitempty"`
+	CompletedAt            string `json:"completed_at,omitempty"`
+}
+
 // OwnPortfolioRequest is the public command contract for a portfolio owner.
 // Identity, lifecycle, custody, transfer and retention are server-controlled.
 type OwnPortfolioRequest struct {
@@ -333,7 +413,6 @@ type PortfolioReviewEvent struct {
 type CreatePortfolioReviewEventRequest struct {
 	ReviewStage      string `json:"review_stage"`
 	Outcome          string `json:"outcome"`
-	ReviewerName     string `json:"reviewer_name"`
 	ReviewedOn       string `json:"reviewed_on"`
 	MissingDocuments int    `json:"missing_documents"`
 	ComplianceScore  int    `json:"compliance_score"`

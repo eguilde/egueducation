@@ -101,3 +101,91 @@ func TestOwnPortfolioDocumentForcesArchiveBackedAdministrativeFields(t *testing.
 		t.Fatalf("archive reference was not preserved: %#v", command)
 	}
 }
+
+func TestPortfolioReviewValidationAndOutcomeAuthorization(t *testing.T) {
+	managerialAccept := CreatePortfolioReviewEventRequest{
+		ReviewStage: "validare_manageriala", Outcome: "acceptat", ReviewedOn: "2026-09-11", ComplianceScore: 100,
+	}
+	if !validPortfolioReviewRequest(managerialAccept) {
+		t.Fatal("valid managerial acceptance was rejected")
+	}
+	if !portfolioReviewOutcomeAllowed(managerialAccept, true, false, true) {
+		t.Fatal("an institution manager must be able to create a managerial acceptance")
+	}
+	if portfolioReviewOutcomeAllowed(managerialAccept, true, true, false) {
+		t.Fatal("a verifier must not claim a managerial acceptance without manager permission")
+	}
+	if portfolioReviewOutcomeAllowed(managerialAccept, false, true, false) {
+		t.Fatal("request-corrections-only user must not accept a portfolio")
+	}
+
+	managerialReject := managerialAccept
+	managerialReject.Outcome = "respins"
+	if portfolioReviewOutcomeAllowed(managerialReject, false, true, false) {
+		t.Fatal("request-corrections-only user must not reject a portfolio")
+	}
+
+	correction := managerialAccept
+	correction.ReviewStage, correction.Outcome = "verificare_secretariat", "completari"
+	if !portfolioReviewOutcomeAllowed(correction, false, true, false) {
+		t.Fatal("request-corrections permission must be limited to a correction review")
+	}
+	if portfolioReviewOutcomeAllowed(correction, false, false, false) {
+		t.Fatal("an unauthorised user must not create correction evidence")
+	}
+	if portfolioReviewOutcomeAllowed(CreatePortfolioReviewEventRequest{ReviewStage: "initial", Outcome: "returned"}, true, true, true) {
+		t.Fatal("legacy UI stage/outcome values must be rejected")
+	}
+}
+
+func TestPortfolioReturnForCorrectionsRequestIsNarrowAndValidated(t *testing.T) {
+	valid := PortfolioReturnForCorrectionsRequest{
+		ReviewedOn: " 2026-09-11 ", MissingDocuments: 2, ComplianceScore: 80, Notes: "  Lipsesc dovezile pentru activități. ",
+	}
+	normalizePortfolioReturnForCorrectionsRequest(&valid)
+	if valid.ReviewedOn != "2026-09-11" || valid.Notes != "Lipsesc dovezile pentru activități." || !validPortfolioReturnForCorrectionsRequest(valid) {
+		t.Fatalf("valid dedicated correction request was altered or rejected: %#v", valid)
+	}
+	for _, invalid := range []PortfolioReturnForCorrectionsRequest{
+		{ReviewedOn: "", Notes: "motiv"},
+		{ReviewedOn: "2026-09-11", Notes: ""},
+		{ReviewedOn: "2026-09-11", Notes: "motiv", MissingDocuments: -1},
+		{ReviewedOn: "2026-09-11", Notes: "motiv", ComplianceScore: 101},
+	} {
+		if validPortfolioReturnForCorrectionsRequest(invalid) {
+			t.Fatalf("invalid dedicated correction request was accepted: %#v", invalid)
+		}
+	}
+}
+
+func TestPortfolioManagerialDecisionContractAndLifecycleMapping(t *testing.T) {
+	decision := PortfolioManagerialDecisionRequest{
+		ReviewedOn: " 2026-09-11 ", Outcome: " acceptat ", MissingDocuments: 0, ComplianceScore: 96, Notes: "  Verificat integral. ",
+	}
+	normalizePortfolioManagerialDecisionRequest(&decision)
+	if !validPortfolioManagerialDecisionRequest(decision) {
+		t.Fatalf("valid managerial decision rejected: %#v", decision)
+	}
+	if status, supported := portfolioManagerialDecisionTargetStatus(decision.Outcome); !supported || status != "validated" {
+		t.Fatalf("acceptance target = (%q, %t), want validated", status, supported)
+	}
+
+	rejection := decision
+	rejection.Outcome = "respins"
+	if !validPortfolioManagerialDecisionRequest(rejection) {
+		t.Fatal("the typed contract must recognize a rejection outcome")
+	}
+	if status, supported := portfolioManagerialDecisionTargetStatus(rejection.Outcome); !supported || status != "rejected" {
+		t.Fatalf("rejection target = (%q, %t), want rejected", status, supported)
+	}
+	for _, invalid := range []PortfolioManagerialDecisionRequest{
+		{ReviewedOn: "", Outcome: "acceptat", Notes: "motiv"},
+		{ReviewedOn: "2026-09-11", Outcome: "validat", Notes: "motiv"},
+		{ReviewedOn: "2026-09-11", Outcome: "acceptat", Notes: ""},
+		{ReviewedOn: "2026-09-11", Outcome: "acceptat", Notes: "motiv", MissingDocuments: -1},
+	} {
+		if validPortfolioManagerialDecisionRequest(invalid) {
+			t.Fatalf("invalid managerial decision accepted: %#v", invalid)
+		}
+	}
+}

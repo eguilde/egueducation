@@ -49,6 +49,18 @@ type DocumentService struct {
 	scanner Scanner
 }
 
+// ScopedUploadAuthorizer is invoked after storage and inside the archive write
+// transaction. Consumers use it to lock their aggregate and recheck authority.
+type ScopedUploadAuthorizer func(context.Context, pgx.Tx) error
+type ScopedUploadScope struct {
+	InstitutionID string
+	ActorSubject  string
+	OwnerUserID   string
+	PortfolioID   string
+	Authorize     ScopedUploadAuthorizer
+	PersistAccess func(context.Context, pgx.Tx, string) error
+}
+
 func (s *DocumentService) SetScanner(scanner Scanner) { s.scanner = scanner }
 
 func NewDocumentService(pool *appdb.SessionPool, storage *ArchiveStorage) *DocumentService {
@@ -126,6 +138,7 @@ type ArchiveTaxonomyNode struct {
 }
 
 type archiveUploadPayload struct {
+	TenantCode        string
 	Title             string
 	SourceKind        string
 	SourceSystem      string
@@ -673,12 +686,15 @@ func (s *DocumentService) DownloadOriginal(w http.ResponseWriter, r *http.Reques
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_document_id"})
 		return
 	}
-	var objectKey string
+	var objectKey, objectVersionID string
 	if err := s.pool.QueryRow(r.Context(), `
-		select original_object_key
-		from archive_documents
-		where id = $1::uuid and institution_id = $2
-	`, documentID, institutionID).Scan(&objectKey); errors.Is(err, pgx.ErrNoRows) {
+		select coalesce(nullif(v.source_object_key, ''), d.original_object_key),
+		       coalesce(v.source_object_version_id, '')
+		from archive_documents d
+		left join archive_document_versions v on v.document_id=d.id
+		     and v.institution_id=d.institution_id and v.version_no=1
+		where d.id = $1::uuid and d.institution_id = $2
+	`, documentID, institutionID).Scan(&objectKey, &objectVersionID); errors.Is(err, pgx.ErrNoRows) {
 		httpx.JSON(w, http.StatusNotFound, map[string]any{"code": "archive_document_not_found"})
 		return
 	} else if err != nil {
@@ -690,7 +706,15 @@ func (s *DocumentService) DownloadOriginal(w http.ResponseWriter, r *http.Reques
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_document_download_audit_failed"})
 		return
 	}
-	content, err := s.storage.OpenObject(r.Context(), objectKey)
+	var content io.ReadCloser
+	var err error
+	if objectVersionID != "" {
+		content, err = s.storage.OpenObjectVersion(r.Context(), objectKey, objectVersionID)
+	} else {
+		// Legacy mutable records do not carry a source version. Never use
+		// latest-object semantics when immutable provenance has been recorded.
+		content, err = s.storage.OpenObject(r.Context(), objectKey)
+	}
 	if err != nil {
 		httpx.JSON(w, http.StatusBadGateway, map[string]any{"code": "archive_document_download_failed"})
 		return
@@ -845,6 +869,10 @@ func (s *DocumentService) ListTaxonomyNodes(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request) {
+	s.uploadDocument(w, r, nil)
+}
+
+func (s *DocumentService) uploadDocument(w http.ResponseWriter, r *http.Request, scope *ScopedUploadScope) {
 	if s.storage == nil || !s.storage.Enabled() {
 		httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "archive_storage_unavailable"})
 		return
@@ -863,6 +891,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload", "message": truncateWorkerError(err.Error())})
 		return
 	}
+	defer r.MultipartForm.RemoveAll() //nolint:errcheck
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
@@ -878,26 +907,36 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	}
 
 	payload, err := parseArchiveUploadPayload(r, header)
+	if scope != nil {
+		var input portfolioUploadInput
+		input, err = parsePortfolioUploadInput(r.MultipartForm, r.Header.Get("Idempotency-Key"))
+		if err == nil {
+			payload = portfolioArchivePayload(input, *scope)
+		}
+	}
 	if err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload", "message": err.Error()})
 		return
 	}
+	payload.TenantCode = strings.TrimSpace(authruntime.CurrentTenantCodeFromRequest(r))
 
 	if err := validateArchiveUploadPayload(payload); err != nil {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_archive_upload", "message": err.Error()})
 		return
 	}
-	if existingID, found, err := s.findIdempotentArchiveDocument(r.Context(), institutionID, payload.IdempotencyKey); err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_idempotency_lookup_failed"})
-		return
-	} else if found {
-		detail, err := s.loadDocumentDetail(r.Context(), institutionID, existingID)
-		if err != nil {
-			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+	if scope == nil {
+		if existingID, found, err := s.findIdempotentArchiveDocument(r.Context(), institutionID, payload.IdempotencyKey); err != nil {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_idempotency_lookup_failed"})
+			return
+		} else if found {
+			detail, err := s.loadDocumentDetail(r.Context(), institutionID, existingID)
+			if err != nil {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+				return
+			}
+			httpx.JSON(w, http.StatusOK, detail)
 			return
 		}
-		httpx.JSON(w, http.StatusOK, detail)
-		return
 	}
 
 	staged, err := stageAndValidateArchivePDF(r.Context(), file, s.scanner)
@@ -910,6 +949,23 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	payload.MimeType = "application/pdf"
 	payload.Metadata["source_file_name"] = payload.FileName
 	payload.Metadata["source_page_count"] = staged.PageCount
+	if scope != nil {
+		payload.Metadata["portfolio_upload_fingerprint"] = portfolioUploadFingerprint(payload)
+		// Scanner/network work can outlive a permission change. Replays must
+		// recheck authority too, not only newly persisted documents.
+		checkTx, checkErr := s.pool.Begin(r.Context())
+		if checkErr == nil {
+			checkErr = scope.Authorize(r.Context(), checkTx)
+			rollbackErr := checkTx.Rollback(r.Context())
+			if checkErr == nil {
+				checkErr = rollbackErr
+			}
+		}
+		if checkErr != nil {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_authority_changed"})
+			return
+		}
+	}
 	if payload.IdempotencyKey == "" {
 		payload.IdempotencyKey = deriveArchiveIdempotencyKey(payload)
 	}
@@ -919,6 +975,10 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	} else if found {
 		detail, loadErr := s.loadDocumentDetail(r.Context(), institutionID, existingID)
 		if loadErr != nil {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+			return
+		}
+		if scope != nil && !portfolioUploadReplayMatches(payload, detail) {
 			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
 			return
 		}
@@ -932,6 +992,85 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	payload.ArtifactBucket = s.storage.Bucket()
 	payload.OriginalObjectKey = s.storage.OriginalObjectKey(institutionID, documentID, canonicalArchiveStorageFileName(documentID))
 	payload.ArtifactObjectKey = s.storage.ArtifactObjectKey(institutionID, documentID, 1)
+	var existingCustodyIntent portfolioCustodyIntent
+	reuseStoredCustodyObject := false
+	hasExistingCustodyIntent := false
+	if existing, found, lookupErr := s.findPortfolioCustodyIntent(r.Context(), scope, payload); lookupErr != nil {
+		if errors.Is(lookupErr, errPortfolioCustodyIntentConflict) {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+		} else {
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_upload_intent_lookup_failed"})
+		}
+		return
+	} else if found {
+		existingCustodyIntent = existing
+		hasExistingCustodyIntent = true
+		documentID, versionID = existing.DocumentID, existing.VersionID
+		payload.OriginalBucket, payload.OriginalObjectKey = existing.Bucket, existing.ObjectKey
+		payload.ArtifactBucket = s.storage.Bucket()
+		payload.ArtifactObjectKey = s.storage.ArtifactObjectKey(institutionID, documentID, 1)
+		// A reserved intent may represent an accepted-but-unacknowledged Object
+		// Lock PUT. Discovery never reads the mutable key and never writes a
+		// second version: exactly one version must match the durable evidence.
+		if existing.Status == "reserved" {
+			stored, recoveryErr := s.storage.DiscoverCustodyHeldObjectVersion(r.Context(), CustodyHeldArchiveRecovery{Key: existing.ObjectKey, ExpectedSHA256: existing.SHA256, ContentLength: existing.Size, ContentType: existing.MimeType, Metadata: existing.Metadata})
+			if errors.Is(recoveryErr, errCustodyHeldObjectAbsent) {
+				// No version exists for the exact key. Conditional creation below is
+				// safe: a concurrent writer receives a precondition failure and the
+				// next retry must reconcile, never overwrite or duplicate.
+			} else if recoveryErr != nil {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_recovery_required"})
+				return
+			} else {
+				intentCtx, cancelIntent := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
+				defer cancelIntent()
+				if err := s.markPortfolioCustodyIntentStored(intentCtx, existing.ID, stored); err != nil {
+					if !errors.Is(err, errPortfolioCustodyIntentTransition) {
+						httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "portfolio_upload_intent_failed"})
+						return
+					}
+					reloaded, found, reloadErr := s.findPortfolioCustodyIntent(r.Context(), scope, payload)
+					if reloadErr != nil || !found {
+						httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "portfolio_upload_intent_lookup_failed"})
+						return
+					}
+					if reloaded.Status != "stored" || reloaded.StoredVersionID != stored.VersionID || reloaded.StoredETag != stored.ETag {
+						httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_recovery_required"})
+						return
+					}
+					existing = reloaded
+				}
+				existing.Status, existing.StoredVersionID, existing.StoredETag = "stored", stored.VersionID, stored.ETag
+			}
+		}
+		if existing.Status == "committed" {
+			detail, loadErr := s.loadDocumentDetail(r.Context(), institutionID, existing.DocumentID)
+			if loadErr != nil || !portfolioUploadReplayMatches(payload, detail) {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+				return
+			}
+			httpx.JSON(w, http.StatusOK, detail)
+			return
+		}
+		if existing.Status != "stored" {
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_recovery_required"})
+			return
+		}
+		existingCustodyIntent = existing
+		reuseStoredCustodyObject = true
+	}
+	intentID := existingCustodyIntent.ID
+	if !reuseStoredCustodyObject && !hasExistingCustodyIntent {
+		intentID, err = s.reservePortfolioCustodyIntent(r.Context(), scope, payload, documentID, versionID)
+		if err != nil {
+			if _, found, lookupErr := s.findPortfolioCustodyIntent(r.Context(), scope, payload); lookupErr == nil && found {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_recovery_required"})
+				return
+			}
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_upload_intent_failed"})
+			return
+		}
+	}
 
 	stagedFile, err := os.Open(staged.Path)
 	if err != nil {
@@ -939,7 +1078,46 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer stagedFile.Close() //nolint:errcheck
-	if err := s.storage.PutObject(r.Context(), payload.OriginalObjectKey, payload.MimeType, stagedFile, payload.FileSize); err != nil {
+	var sourceVersionID, sourceETag string
+	custodyHold := false
+	if scope != nil {
+		intentCtx, cancelIntent := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
+		defer cancelIntent()
+		var stored ImmutableArchiveObject
+		if reuseStoredCustodyObject {
+			stored, err = s.storage.ReconcileCustodyHeldObject(r.Context(), CustodyHeldArchiveRecovery{Key: existingCustodyIntent.ObjectKey, VersionID: existingCustodyIntent.StoredVersionID, ExpectedSHA256: existingCustodyIntent.SHA256, ContentLength: existingCustodyIntent.Size, ETag: existingCustodyIntent.StoredETag, ContentType: existingCustodyIntent.MimeType, Metadata: existingCustodyIntent.Metadata})
+		} else {
+			stored, err = s.storage.PutCustodyHeldObject(r.Context(), payload.OriginalObjectKey, payload.MimeType, stagedFile, payload.FileSize, payload.ChecksumSHA256, portfolioCustodyMetadata(intentID, scope, payload.TenantCode, documentID, versionID, payload.ChecksumSHA256))
+		}
+		if err != nil && !reuseStoredCustodyObject {
+			// A conditional PUT may have reached S3 while its response was lost or
+			// may have lost a race. Reconcile the exact intent key; never retry PUT.
+			stored, err = s.storage.DiscoverCustodyHeldObjectVersion(r.Context(), CustodyHeldArchiveRecovery{Key: payload.OriginalObjectKey, ExpectedSHA256: payload.ChecksumSHA256, ContentLength: payload.FileSize, ContentType: payload.MimeType, Metadata: portfolioCustodyMetadata(intentID, scope, payload.TenantCode, documentID, versionID, payload.ChecksumSHA256)})
+		}
+		if err != nil {
+			httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "archive_upload_storage_failed"})
+			return
+		}
+		sourceVersionID, sourceETag, custodyHold = stored.VersionID, stored.ETag, true
+		if !reuseStoredCustodyObject {
+			if markErr := s.markPortfolioCustodyIntentStored(intentCtx, intentID, stored); markErr != nil {
+				if !errors.Is(markErr, errPortfolioCustodyIntentTransition) {
+					httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "portfolio_upload_intent_failed"})
+					return
+				}
+				reloaded, found, reloadErr := s.findPortfolioCustodyIntent(r.Context(), scope, payload)
+				if reloadErr != nil || !found || reloaded.Status != "stored" {
+					httpx.JSON(w, http.StatusServiceUnavailable, map[string]any{"code": "portfolio_upload_intent_lookup_failed"})
+					return
+				}
+				stored, err = s.storage.ReconcileCustodyHeldObject(r.Context(), CustodyHeldArchiveRecovery{Key: reloaded.ObjectKey, VersionID: reloaded.StoredVersionID, ExpectedSHA256: reloaded.SHA256, ContentLength: reloaded.Size, ETag: reloaded.StoredETag, ContentType: reloaded.MimeType, Metadata: reloaded.Metadata})
+				if err != nil || stored.VersionID != sourceVersionID || stored.ETag != sourceETag {
+					httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_recovery_required"})
+					return
+				}
+			}
+		}
+	} else if err := s.storage.PutObject(r.Context(), payload.OriginalObjectKey, payload.MimeType, stagedFile, payload.FileSize); err != nil {
 		httpx.JSON(w, http.StatusBadGateway, map[string]any{"code": "archive_upload_storage_failed"})
 		return
 	}
@@ -950,6 +1128,9 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	persistCtx, cancelPersist := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 	defer cancelPersist()
 	cleanupObject := func() {
+		if scope != nil {
+			return
+		} // exact held version is recoverable through its durable intent, never key-deleted
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 30*time.Second)
 		defer cancel()
 		_ = s.storage.DeleteObject(cleanupCtx, payload.OriginalObjectKey)
@@ -962,6 +1143,33 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	defer tx.Rollback(persistCtx) //nolint:errcheck
+	if scope != nil {
+		if err := scope.Authorize(persistCtx, tx); err != nil {
+			cleanupObject()
+			httpx.JSON(w, http.StatusConflict, map[string]any{"code": "portfolio_upload_authority_changed"})
+			return
+		}
+		// The portfolio lock serializes same-owner uploads. Recheck replay after
+		// acquiring it: another request may have committed during object storage.
+		var existingID string
+		err := tx.QueryRow(persistCtx, `select id::text from archive_documents where institution_id=$1 and idempotency_key=$2`, institutionID, payload.IdempotencyKey).Scan(&existingID)
+		if err == nil {
+			_ = tx.Rollback(persistCtx)
+			cleanupObject()
+			detail, loadErr := s.loadDocumentDetail(persistCtx, institutionID, existingID)
+			if loadErr != nil || !portfolioUploadReplayMatches(payload, detail) {
+				httpx.JSON(w, http.StatusConflict, map[string]any{"code": "archive_idempotency_conflict"})
+				return
+			}
+			httpx.JSON(w, http.StatusOK, detail)
+			return
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			cleanupObject()
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_idempotency_lookup_failed"})
+			return
+		}
+	}
 
 	taxonomyNodeID, taxonomyCode, taxonomyLabel, err := s.ensureTaxonomyNodeTx(persistCtx, tx, institutionID, payload.TaxonomyCode, payload.TaxonomyLabel, payload.TaxonomyParent)
 	if err != nil {
@@ -1069,7 +1277,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 		if isArchiveIdempotencyConflict(err) {
 			if existingID, found, lookupErr := s.findIdempotentArchiveDocument(persistCtx, institutionID, payload.IdempotencyKey); lookupErr == nil && found {
 				detail, loadErr := s.loadDocumentDetail(persistCtx, institutionID, existingID)
-				if loadErr == nil {
+				if loadErr == nil && (scope == nil || portfolioUploadReplayMatches(payload, detail)) {
 					httpx.JSON(w, http.StatusOK, detail)
 					return
 				}
@@ -1112,7 +1320,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			text_status,
 			extracted_text,
 			extracted_metadata,
-			created_by
+			created_by,source_object_version_id,source_object_etag,legal_hold_active,custody_hold_active,portfolio_custody_intent_id
 		) values (
 			$1::uuid,
 			$2,
@@ -1137,7 +1345,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			'pending',
 			'',
 			$10::jsonb,
-			$13
+			$13,$14,$15,$16,$17,nullif($18,'')::uuid
 		)
 		returning
 			id::text,
@@ -1153,7 +1361,7 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 			text_status,
 			created_by,
 			to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-	`, versionID, institutionID, documentID, payload.MimeType, payload.Title, payload.OriginalBucket, payload.OriginalObjectKey, payload.ChecksumSHA256, payload.FileSize, metadataJSON, payload.ArtifactBucket, payload.ArtifactObjectKey, authruntime.CurrentSubjectFromRequest(r)).Scan(
+	`, versionID, institutionID, documentID, payload.MimeType, payload.Title, payload.OriginalBucket, payload.OriginalObjectKey, payload.ChecksumSHA256, payload.FileSize, metadataJSON, payload.ArtifactBucket, payload.ArtifactObjectKey, authruntime.CurrentSubjectFromRequest(r), sourceVersionID, sourceETag, false, custodyHold, intentID).Scan(
 		&version.ID,
 		&version.DocumentID,
 		&version.VersionNo,
@@ -1193,6 +1401,17 @@ func (s *DocumentService) UploadDocument(w http.ResponseWriter, r *http.Request)
 	if err := audit.Log(persistCtx, tx, audit.Event{ActorSubject: authruntime.CurrentSubjectFromRequest(r), Action: "earchiva.document.upload", TargetType: "archive_document", TargetID: documentID, Summary: "Archive document accepted for ingestion.", Details: map[string]any{"source_kind": payload.SourceKind, "page_count": staged.PageCount}}); err != nil {
 		cleanupObject()
 		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "archive_upload_audit_failed"})
+		return
+	}
+	if scope != nil {
+		if err := scope.PersistAccess(persistCtx, tx, documentID); err != nil {
+			cleanupObject()
+			httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_upload_access_failed"})
+			return
+		}
+	}
+	if err := commitPortfolioCustodyIntent(persistCtx, tx, intentID); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_upload_intent_failed"})
 		return
 	}
 

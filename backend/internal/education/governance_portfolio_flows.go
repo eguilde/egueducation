@@ -866,15 +866,13 @@ func (s *Service) CreatePortfolioReview(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	normalizePortfolioReviewRequest(&req)
-	if req.ReviewStage == "" || req.Outcome == "" || req.ReviewerName == "" || req.ReviewedOn == "" {
+	// Reviewer identity is evidence and is derived from the authenticated
+	// session below; it is deliberately absent from the request contract.
+	if req.ReviewStage == "" || req.Outcome == "" || req.ReviewedOn == "" {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_review_fields"})
 		return
 	}
-	if req.MissingDocuments < 0 || req.ComplianceScore < 0 || req.ComplianceScore > 100 {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_scores"})
-		return
-	}
-	if !containsString([]string{"depunere", "verificare_secretariat", "validare_manageriala", "reverificare"}, req.ReviewStage) || !containsString([]string{"acceptat", "completari", "respins"}, req.Outcome) {
+	if !validPortfolioReviewRequest(req) {
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_fields"})
 		return
 	}
@@ -882,9 +880,28 @@ func (s *Service) CreatePortfolioReview(w http.ResponseWriter, r *http.Request) 
 		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_reviewed_on"})
 		return
 	}
+	canVerify, canReturn, canManage, err := s.portfolioReviewPermissions(r)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_authorization_failed"})
+		return
+	}
+	if !portfolioReviewOutcomeAllowed(req, canVerify, canReturn, canManage) {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_review_outcome_forbidden"})
+		return
+	}
+	subject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+	reviewerName, err := s.currentActorName(r, subject)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_reviewer_lookup_failed"})
+		return
+	}
+	if reviewerName == "" {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_reviewer_required"})
+		return
+	}
 	code := newEducationCode("REV")
 	var item PortfolioReviewEvent
-	err := s.pool.QueryRow(r.Context(), `
+	err = s.pool.QueryRow(r.Context(), `
 		insert into education_portfolio_reviews (
 			portfolio_id, review_code, review_stage, outcome, reviewer_name, reviewed_on, missing_documents, compliance_score, institution_id, notes
 		)
@@ -893,7 +910,7 @@ func (s *Service) CreatePortfolioReview(w http.ResponseWriter, r *http.Request) 
 		where ep.id = $1 and ep.institution_id = $10
 		returning id::text, portfolio_id::text, review_code, review_stage, outcome, reviewer_name, to_char(reviewed_on, 'YYYY-MM-DD'),
 			missing_documents, compliance_score, institution_id, notes
-	`, recordID, code, req.ReviewStage, req.Outcome, req.ReviewerName, req.ReviewedOn, req.MissingDocuments, req.ComplianceScore, req.Notes, s.institutionID(r)).Scan(
+	`, recordID, code, req.ReviewStage, req.Outcome, reviewerName, req.ReviewedOn, req.MissingDocuments, req.ComplianceScore, req.Notes, s.institutionID(r)).Scan(
 		&item.ID, &item.PortfolioID, &item.ReviewCode, &item.ReviewStage, &item.Outcome, &item.ReviewerName, &item.ReviewedOn, &item.MissingDocuments, &item.ComplianceScore, &item.InstitutionID, &item.Notes,
 	)
 	if err != nil {
@@ -910,69 +927,172 @@ func (s *Service) CreatePortfolioReview(w http.ResponseWriter, r *http.Request) 
 	httpx.JSON(w, http.StatusCreated, item)
 }
 
-func (s *Service) UpdatePortfolioReview(w http.ResponseWriter, r *http.Request) {
+// PortfolioReturnForCorrections is the dedicated correction command. It keeps
+// the status transition and its immutable review evidence in one transaction;
+// a correction-only role has no path through the generic review endpoint.
+// The route must replace the legacy PortfolioAdminReturn handler.
+func (s *Service) PortfolioReturnForCorrections(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	var req CreatePortfolioReviewEventRequest
+	var req PortfolioReturnForCorrectionsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_payload"})
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_return_payload"})
 		return
 	}
-	normalizePortfolioReviewRequest(&req)
-	if req.ReviewStage == "" || req.Outcome == "" || req.ReviewerName == "" || req.ReviewedOn == "" {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "missing_portfolio_review_fields"})
-		return
-	}
-	if req.MissingDocuments < 0 || req.ComplianceScore < 0 || req.ComplianceScore > 100 {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_scores"})
-		return
-	}
-	if !containsString([]string{"depunere", "verificare_secretariat", "validare_manageriala", "reverificare"}, req.ReviewStage) || !containsString([]string{"acceptat", "completari", "respins"}, req.Outcome) {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_fields"})
+	normalizePortfolioReturnForCorrectionsRequest(&req)
+	if !validPortfolioReturnForCorrectionsRequest(req) {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_return_fields"})
 		return
 	}
 	if _, err := time.Parse("2006-01-02", req.ReviewedOn); err != nil {
-		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_review_reviewed_on"})
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_return_reviewed_on"})
 		return
 	}
-	var item PortfolioReviewEvent
-	err := s.pool.QueryRow(r.Context(), `
-		update education_portfolio_reviews
-		set review_stage = $1, outcome = $2, reviewer_name = $3, reviewed_on = $4, missing_documents = $5, compliance_score = $6, notes = $7, updated_at = now()
-		where id = $8 and portfolio_id = $9 and institution_id = $10
-		returning id::text, portfolio_id::text, review_code, review_stage, outcome, reviewer_name, to_char(reviewed_on, 'YYYY-MM-DD'),
-			missing_documents, compliance_score, institution_id, notes
-	`, req.ReviewStage, req.Outcome, req.ReviewerName, req.ReviewedOn, req.MissingDocuments, req.ComplianceScore, req.Notes, itemID, recordID, s.institutionID(r)).Scan(
-		&item.ID, &item.PortfolioID, &item.ReviewCode, &item.ReviewStage, &item.Outcome, &item.ReviewerName, &item.ReviewedOn, &item.MissingDocuments, &item.ComplianceScore, &item.InstitutionID, &item.Notes,
-	)
+	_, canReturn, _, err := s.portfolioReviewPermissions(r)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			writeEducationNotFound(w, "education_portfolio_review_not_found")
-			return
-		}
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_review_update_failed"})
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_authorization_failed"})
 		return
 	}
-	s.logAudit(r, "education.portfolios.review.update", "portfolio_review", item.ID, "Portfolio review updated.", map[string]any{
-		"portfolio_id": item.PortfolioID, "review_code": item.ReviewCode, "outcome": item.Outcome, "review_stage": item.ReviewStage,
+	if !canReturn {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_access_denied"})
+		return
+	}
+	reviewerName, err := s.currentActorName(r, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)))
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_reviewer_lookup_failed"})
+		return
+	}
+	if reviewerName == "" {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_reviewer_required"})
+		return
+	}
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_return_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context())
+	var item PortfolioRecord
+	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `
+		update education_portfolios set status = 'returned', updated_at = now()
+		where id = $1::uuid and institution_id = $2 and status = 'submitted'
+			and withdrawn_at is null and not legal_hold_active
+		returning `+portfolioRecordColumns, recordID, s.institutionID(r)), &item)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_transition_invalid"})
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_return_failed"})
+		return
+	}
+	_, err = tx.Exec(r.Context(), `
+		insert into education_portfolio_reviews (
+			portfolio_id, review_code, review_stage, outcome, reviewer_name, reviewed_on,
+			missing_documents, compliance_score, institution_id, notes
+		) values ($1::uuid, $2, 'verificare_secretariat', 'completari', $3, $4::date, $5, $6, $7, $8)
+	`, recordID, newEducationCode("REV"), reviewerName, req.ReviewedOn, req.MissingDocuments, req.ComplianceScore, s.institutionID(r), req.Notes)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_return_failed"})
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_return_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.returned", "portfolio_record", item.ID, "Portfolio returned for corrections with immutable review evidence.", map[string]any{
+		"review_stage": "verificare_secretariat", "outcome": "completari", "missing_documents": req.MissingDocuments,
 	})
 	httpx.JSON(w, http.StatusOK, item)
 }
 
-func (s *Service) DeletePortfolioReview(w http.ResponseWriter, r *http.Request) {
+// PortfolioManagerialDecision performs the final managerial decision and its
+// immutable evidence append atomically. `respins` uses the explicit rejected
+// lifecycle state, never the correction-only returned state.
+func (s *Service) PortfolioManagerialDecision(w http.ResponseWriter, r *http.Request) {
 	recordID := strings.TrimSpace(chi.URLParam(r, "recordID"))
-	itemID := strings.TrimSpace(chi.URLParam(r, "itemID"))
-	tag, err := s.pool.Exec(r.Context(), `delete from education_portfolio_reviews where id = $1 and portfolio_id = $2 and institution_id = $3`, itemID, recordID, s.institutionID(r))
+	var req PortfolioManagerialDecisionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_managerial_decision_payload"})
+		return
+	}
+	normalizePortfolioManagerialDecisionRequest(&req)
+	if !validPortfolioManagerialDecisionRequest(req) {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_managerial_decision_fields"})
+		return
+	}
+	if _, err := time.Parse("2006-01-02", req.ReviewedOn); err != nil {
+		httpx.JSON(w, http.StatusBadRequest, map[string]any{"code": "invalid_portfolio_managerial_decision_reviewed_on"})
+		return
+	}
+	nextStatus, _ := portfolioManagerialDecisionTargetStatus(req.Outcome)
+	_, _, canManage, err := s.portfolioReviewPermissions(r)
 	if err != nil {
-		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "portfolio_review_delete_failed"})
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_authorization_failed"})
 		return
 	}
-	if tag.RowsAffected() == 0 {
-		writeEducationNotFound(w, "education_portfolio_review_not_found")
+	if !canManage {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_managerial_decision_forbidden"})
 		return
 	}
-	s.logAudit(r, "education.portfolios.review.delete", "portfolio_review", itemID, "Portfolio review deleted.", map[string]any{"portfolio_id": recordID})
-	w.WriteHeader(http.StatusNoContent)
+	reviewerName, err := s.currentActorName(r, strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r)))
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_reviewer_lookup_failed"})
+		return
+	}
+	if reviewerName == "" {
+		httpx.JSON(w, http.StatusForbidden, map[string]any{"code": "education_portfolio_reviewer_required"})
+		return
+	}
+	tx, err := s.pool.Begin(r.Context())
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_managerial_decision_failed"})
+		return
+	}
+	defer tx.Rollback(r.Context())
+	var item PortfolioRecord
+	err = scanPortfolioRecord(tx.QueryRow(r.Context(), `
+		update education_portfolios set status = $1, updated_at = now()
+		where id = $2::uuid and institution_id = $3 and status = 'submitted'
+			and withdrawn_at is null and not legal_hold_active
+		returning `+portfolioRecordColumns, nextStatus, recordID, s.institutionID(r)), &item)
+	if errors.Is(err, pgx.ErrNoRows) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_transition_invalid"})
+		return
+	}
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_managerial_decision_failed"})
+		return
+	}
+	_, err = tx.Exec(r.Context(), `
+		insert into education_portfolio_reviews (
+			portfolio_id, review_code, review_stage, outcome, reviewer_name, reviewed_on,
+			missing_documents, compliance_score, institution_id, notes
+		) values ($1::uuid, $2, 'validare_manageriala', $3, $4, $5::date, $6, $7, $8, $9)
+	`, recordID, newEducationCode("REV"), req.Outcome, reviewerName, req.ReviewedOn, req.MissingDocuments, req.ComplianceScore, s.institutionID(r), req.Notes)
+	if err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_managerial_decision_failed"})
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		httpx.JSON(w, http.StatusInternalServerError, map[string]any{"code": "education_portfolio_managerial_decision_failed"})
+		return
+	}
+	s.logAudit(r, "education.portfolios.managerial_decision", "portfolio_record", item.ID, "Portfolio managerial decision recorded with immutable review evidence.", map[string]any{
+		"review_stage": "validare_manageriala", "outcome": req.Outcome, "status": nextStatus,
+	})
+	httpx.JSON(w, http.StatusOK, item)
+}
+
+func (s *Service) UpdatePortfolioReview(w http.ResponseWriter, r *http.Request) {
+	// Reviews are legal workflow evidence. Corrections are represented by a new
+	// event and a new state transition, never by mutating historic evidence.
+	httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_review_immutable"})
+}
+
+func (s *Service) DeletePortfolioReview(w http.ResponseWriter, r *http.Request) {
+	// Evidence is append-only. Retention/erasure policy is handled by the
+	// archive subsystem, not by an operational DELETE endpoint.
+	httpx.JSON(w, http.StatusConflict, map[string]any{"code": "education_portfolio_review_immutable"})
 }
 
 func buildGovernanceMembershipFilters(filters map[string]string, institutionID string) (string, []any) {
@@ -1162,7 +1282,110 @@ func normalizeUpdatePortfolioTransferRequest(req *UpdatePreparedPortfolioTransfe
 func normalizePortfolioReviewRequest(req *CreatePortfolioReviewEventRequest) {
 	req.ReviewStage = strings.TrimSpace(req.ReviewStage)
 	req.Outcome = strings.TrimSpace(req.Outcome)
-	req.ReviewerName = strings.TrimSpace(req.ReviewerName)
 	req.ReviewedOn = strings.TrimSpace(req.ReviewedOn)
 	req.Notes = strings.TrimSpace(req.Notes)
+}
+
+// PortfolioReturnForCorrectionsRequest is intentionally separate from a
+// generic review event: a browser may state the factual correction reason,
+// but never the reviewer, outcome or workflow stage.
+type PortfolioReturnForCorrectionsRequest struct {
+	ReviewedOn       string `json:"reviewed_on"`
+	MissingDocuments int    `json:"missing_documents"`
+	ComplianceScore  int    `json:"compliance_score"`
+	Notes            string `json:"notes"`
+}
+
+func normalizePortfolioReturnForCorrectionsRequest(req *PortfolioReturnForCorrectionsRequest) {
+	req.ReviewedOn = strings.TrimSpace(req.ReviewedOn)
+	req.Notes = strings.TrimSpace(req.Notes)
+}
+
+func validPortfolioReturnForCorrectionsRequest(req PortfolioReturnForCorrectionsRequest) bool {
+	return req.ReviewedOn != "" && req.Notes != "" && req.MissingDocuments >= 0 && req.ComplianceScore >= 0 && req.ComplianceScore <= 100
+}
+
+// PortfolioManagerialDecisionRequest has no reviewer/stage/status fields: all
+// three are immutable server decisions tied to the authenticated manager.
+type PortfolioManagerialDecisionRequest struct {
+	ReviewedOn       string `json:"reviewed_on"`
+	Outcome          string `json:"outcome"`
+	MissingDocuments int    `json:"missing_documents"`
+	ComplianceScore  int    `json:"compliance_score"`
+	Notes            string `json:"notes"`
+}
+
+func normalizePortfolioManagerialDecisionRequest(req *PortfolioManagerialDecisionRequest) {
+	req.ReviewedOn = strings.TrimSpace(req.ReviewedOn)
+	req.Outcome = strings.TrimSpace(req.Outcome)
+	req.Notes = strings.TrimSpace(req.Notes)
+}
+
+func validPortfolioManagerialDecisionRequest(req PortfolioManagerialDecisionRequest) bool {
+	return req.ReviewedOn != "" && req.Notes != "" &&
+		containsString([]string{"acceptat", "respins"}, req.Outcome) &&
+		req.MissingDocuments >= 0 && req.ComplianceScore >= 0 && req.ComplianceScore <= 100
+}
+
+func portfolioManagerialDecisionTargetStatus(outcome string) (string, bool) {
+	switch outcome {
+	case "acceptat":
+		return "validated", true
+	case "respins":
+		return "rejected", true
+	default:
+		return "", false
+	}
+}
+
+func validPortfolioReviewRequest(req CreatePortfolioReviewEventRequest) bool {
+	if req.MissingDocuments < 0 || req.ComplianceScore < 0 || req.ComplianceScore > 100 {
+		return false
+	}
+	if !containsString([]string{"depunere", "verificare_secretariat", "validare_manageriala", "reverificare"}, req.ReviewStage) {
+		return false
+	}
+	return containsString([]string{"acceptat", "completari", "respins"}, req.Outcome)
+}
+
+// portfolioReviewPermissions deliberately distinguishes verification from the
+// narrow correction action. A caller holding only request_corrections must
+// never turn a submitted portfolio into accepted/rejected evidence.
+func (s *Service) portfolioReviewPermissions(r *http.Request) (canVerify, canReturn, canManage bool, err error) {
+	subject := strings.TrimSpace(authruntime.CurrentSubjectFromRequest(r))
+	if subject == "" {
+		return false, false, false, nil
+	}
+	canVerify, err = s.currentSubjectHasPermission(r, subject, "education.portfolios.verify")
+	if err != nil {
+		return false, false, false, err
+	}
+	canReturn, err = s.currentSubjectHasPermission(r, subject, "education.portfolios.request_corrections")
+	if err != nil {
+		return false, false, false, err
+	}
+	for _, permission := range []string{"education.portfolios.school.manage", "education.portfolios.manage"} {
+		allowed, checkErr := s.currentSubjectHasPermission(r, subject, permission)
+		if checkErr != nil {
+			return false, false, false, checkErr
+		}
+		canManage = canManage || allowed
+	}
+	// Historical manage grants retain their documented administrative scope but
+	// are made explicit here instead of implicitly upgrading verify.
+	canReturn = canReturn || canManage
+	return canVerify, canReturn, canManage, nil
+}
+
+func portfolioReviewOutcomeAllowed(req CreatePortfolioReviewEventRequest, canVerify, canReturn, canManage bool) bool {
+	switch req.Outcome {
+	case "acceptat", "respins":
+		// Acceptance/rejection is the managerial decision, not a secretariat
+		// completeness check.
+		return canManage && req.ReviewStage == "validare_manageriala"
+	case "completari":
+		return (canVerify || canReturn) && (req.ReviewStage == "verificare_secretariat" || req.ReviewStage == "reverificare")
+	default:
+		return false
+	}
 }

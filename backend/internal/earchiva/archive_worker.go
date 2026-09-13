@@ -76,6 +76,7 @@ type archiveIngestionContext struct {
 	VersionNo                int
 	SourceBucket             string
 	SourceObjectKey          string
+	SourceObjectVersionID    string
 	SourceSHA256             string
 	SourceSizeBytes          int64
 	ArtifactVersionBucket    string
@@ -319,7 +320,12 @@ func (w *IngestionWorker) processJob(ctx context.Context, job *archiveIngestionJ
 		return w.failJob(ctx, job, err)
 	}
 
-	tmpPath, err := w.downloadToTempFile(ctx, ctxInfo.SourceObjectKey, ctxInfo.SourceSizeBytes)
+	tmpPath, err := w.downloadToTempFile(
+		ctx,
+		ctxInfo.SourceObjectKey,
+		ctxInfo.SourceObjectVersionID,
+		ctxInfo.SourceSizeBytes,
+	)
 	if err != nil {
 		return w.failJob(ctx, job, err)
 	}
@@ -670,6 +676,7 @@ func (w *IngestionWorker) loadIngestionContext(ctx context.Context, documentID, 
 			v.version_no,
 			v.source_bucket,
 			v.source_object_key,
+			coalesce(v.source_object_version_id, ''),
 			v.artifact_bucket,
 			v.artifact_object_key,
 			v.source_sha256,
@@ -705,6 +712,7 @@ func (w *IngestionWorker) loadIngestionContext(ctx context.Context, documentID, 
 		&info.VersionNo,
 		&info.SourceBucket,
 		&info.SourceObjectKey,
+		&info.SourceObjectVersionID,
 		&info.ArtifactVersionBucket,
 		&info.ArtifactVersionObjectKey,
 		&info.SourceSHA256,
@@ -737,11 +745,24 @@ func (w *IngestionWorker) loadIngestionContext(ctx context.Context, documentID, 
 	return info, nil
 }
 
-func (w *IngestionWorker) downloadToTempFile(ctx context.Context, objectKey string, expectedSize int64) (string, error) {
+func (w *IngestionWorker) downloadToTempFile(
+	ctx context.Context,
+	objectKey string,
+	versionID string,
+	expectedSize int64,
+) (string, error) {
 	if expectedSize <= 0 || expectedSize > archiveUploadMaxBytes {
 		return "", fmt.Errorf("archive source has an invalid expected size")
 	}
-	reader, err := w.storage.OpenObject(ctx, objectKey)
+	var reader io.ReadCloser
+	var err error
+	if versionID != "" {
+		reader, err = w.storage.OpenObjectVersion(ctx, objectKey, versionID)
+	} else {
+		// Existing mutable archive records have no S3 version. WORM records
+		// always use their persisted exact version, never the latest object.
+		reader, err = w.storage.OpenObject(ctx, objectKey)
+	}
 	if err != nil {
 		return "", err
 	}
