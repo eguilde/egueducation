@@ -199,7 +199,9 @@ func TestRetentionAuthorityRequestsSeparateLegalProposalFromOperationalConfigura
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := string(raw)
+	// Source assertions describe Go syntax, whose line terminators are not part
+	// of the handler contract. Normalize Windows checkouts before matching.
+	source := strings.ReplaceAll(string(raw), "\r\n", "\n")
 	for _, required := range []string{
 		"type ConfigureDSSRetentionPolicyRequest struct {\n\tRuleVersionID string",
 		"ProposeAdmissionRetentionRule", "ApproveAdmissionRetentionRule",
@@ -237,7 +239,9 @@ func TestCurrentDSSRetentionPolicySelectsOnlyEffectiveActivePolicy(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := string(raw)
+	// Source assertions describe Go syntax, whose line terminators are not part
+	// of the handler contract. Normalize Windows checkouts before matching.
+	source := strings.ReplaceAll(string(raw), "\r\n", "\n")
 	for _, required := range []string{
 		"p.status='active' and p.effective_from<=current_date",
 		"(p.effective_to is null or p.effective_to>=current_date)",
