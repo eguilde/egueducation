@@ -26,6 +26,11 @@ async function openAdd(label: string) {
   await screen.findByRole("button", { name: `Adaugă ${label}` });
   fireEvent.click(screen.getByRole("button", { name: `Adaugă ${label}` }));
 }
+async function selectRowMenuItem(name: string) {
+  // PrimeReact Menu activates a menuitem on the real pointer's mouse-down,
+  // then closes its portal before the deferred row action runs.
+  fireEvent.mouseDown(await screen.findByRole("menuitem", { name }), { detail: 1 });
+}
 
 describe("PortfolioRelationsPanel contractual managers", () => {
   it("sends an exact document DTO without server-owned output fields", async () => {
@@ -86,7 +91,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     } as never], total: 1, page: 1, pageSize: 20 });
     renderPanel(managing);
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Șterge" }));
+    await selectRowMenuItem("Șterge");
     expect(managing.deletePortfolioDocument).not.toHaveBeenCalled();
     const confirmation = await screen.findByRole("dialog", { name: "Confirmă ștergerea" });
     fireEvent.click(within(confirmation).getByRole("button", { name: "Șterge" }));
@@ -105,7 +110,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     renderPanel(api);
 
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+    await selectRowMenuItem("Detalii");
 
     expect(await screen.findByRole("dialog", { name: "Documente" })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
@@ -117,7 +122,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     vi.mocked(api.portfolioDocumentVersions).mockResolvedValue({ items: [{ version_no: 1, change_type: "create", changed_by: "director", changed_at: "2026-09-02T10:00:00Z", reason: "inițial", snapshot: {} }], total: 1, page: 1, pageSize: 20 });
     renderPanel(api);
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Istoric versiuni" }));
+    await selectRowMenuItem("Istoric versiuni");
     expect(await screen.findByRole("dialog", { name: "Istoric versiuni — Plan" })).toBeInTheDocument();
     await waitFor(() => expect(api.portfolioDocumentVersions).toHaveBeenCalledWith("portfolio-1", "doc-1", expect.objectContaining({ page: 1, pageSize: 20, sort: "version_no", direction: "desc" })));
     expect(screen.getByText("director")).toBeInTheDocument();
@@ -157,7 +162,7 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     fireEvent.change(await screen.findByLabelText("Filtru Instituție destinație"), { target: { value: "Școala B" } });
     await waitFor(() => expect(api.portfolioTransferHistory).toHaveBeenLastCalledWith("portfolio-1", expect.objectContaining({ transferType: "handover", destinationInstitution: "Școala B" })));
     fireEvent.click(await screen.findByRole("button", { name: "Acțiuni înregistrare" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+    await selectRowMenuItem("Detalii");
     expect(await screen.findByRole("dialog", { name: "Detalii transfer" })).toHaveTextContent("TR-1");
   });
 });

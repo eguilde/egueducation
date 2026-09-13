@@ -347,7 +347,7 @@ test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacit
   await page.getByRole('button', { name: 'Aplicații' }).click();
   await page.getByLabel('Adaugă aplicație').click();
   const create = page.getByRole('dialog', { name: 'Aplicație nouă' });
-  await create.getByLabel('Caută Campanie').fill(campaignCode);
+  await create.getByLabel('Caută Campanie').fill(marker);
   await choose(page, 'Campanie', new RegExp(campaignCode));
   await create.getByLabel('Caută Candidat').fill(f.candidateSearch);
   await choose(page, 'Candidat', new RegExp(f.candidateLabel));

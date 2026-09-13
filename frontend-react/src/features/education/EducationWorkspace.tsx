@@ -16,7 +16,7 @@ import { InputText } from "@primereact/ui/inputtext";
 import { Textarea } from "@primereact/ui/textarea";
 import { Checkbox } from "@primereact/ui/checkbox";
 import { Message } from "@primereact/ui/message";
-import { Popover } from "@primereact/ui/popover";
+import { Menu } from "@primereact/ui/menu";
 import { ProgressSpinner } from "@primereact/ui/progressspinner";
 import { Select } from "@primereact/ui/select";
 import type { SelectValueChangeEvent } from "@primereact/ui/select";
@@ -155,52 +155,34 @@ type SchoolRowAction = {
 
 /** A compact, accessible action menu shared by School registry tables. */
 export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
-  const [open, setOpen] = useState(false);
   const selectionPending = useRef(false);
   const pendingAction = useRef<(() => void) | undefined>(undefined);
-  const closeTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => {
-    if (closeTimer.current !== undefined) window.clearTimeout(closeTimer.current);
     pendingAction.current = undefined;
   }, []);
 
   const selectAction = (action: SchoolRowAction) => {
     if (selectionPending.current) return;
     selectionPending.current = true;
-    // Close the portalled overlay before the selected action mounts a dialog
-    // or refreshes the table. Keeping both mounted lets focus management race
-    // the row re-render and can leave the action button detached mid-click.
-    // Schedule teardown after the current browser task so the user's click can
-    // finish against the live Popover item. Closing synchronously can make a
-    // portalled item vanish while that interaction is still completing.
+    // Menu.Item owns its mouse-down and keyboard activation lifecycle, then
+    // closes its portal. Defer mounts that can refresh the table until the
+    // documented exit callback, so the interactive item is never torn down
+    // while the browser is still dispatching its selection.
     pendingAction.current = action.onSelect;
-    closeTimer.current = window.setTimeout(() => {
-      closeTimer.current = undefined;
-      setOpen(false);
-    }, 0);
   };
 
-  const selectAfterPopoverExit = () => {
+  const selectAfterMenuExit = () => {
     const action = pendingAction.current;
     pendingAction.current = undefined;
     selectionPending.current = false;
-    // PrimeReact emits this only after the portal exit transition is complete,
-    // so a selected dialog cannot race the Popover's focus cleanup.
+    // PrimeReact emits this after the Menu popup's exit transition completes.
     action?.();
   };
 
   return (
-    <Popover.Root
-      open={open}
-      trapped
-      autoFocus={false}
-      onOpenChange={(event: { value?: boolean }) => {
-        setOpen(Boolean(event.value));
-      }}
-      onExitComplete={selectAfterPopoverExit}
-    >
-      <Popover.Trigger
+    <Menu.Root>
+      <Menu.Trigger
         as={Button}
         iconOnly
         rounded
@@ -210,33 +192,27 @@ export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] })
         title="Acțiuni înregistrare"
       >
         <i className="pi pi-ellipsis-v" aria-hidden="true" />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="left" align="start" sideOffset={6}>
-          <Popover.Popup>
-            <Popover.Content>
-              <div className="flex min-w-40 flex-col gap-1" role="menu">
-                {actions.map((action) => (
-                  <Button
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="left" align="start" sideOffset={6}>
+          <Menu.Popup motionProps={{ onAfterLeave: selectAfterMenuExit }}>
+            <Menu.List aria-label="Acțiuni înregistrare" className="min-w-40">
+              {actions.map((action) => (
+                  <Menu.Item
                     key={action.label}
-                    size="small"
-                    variant="text"
-                    severity={action.severity}
                     disabled={action.disabled}
-                    aria-label={action.label}
-                    title={action.label}
-                    onClick={() => selectAction(action)}
+                    value={action.label}
+                    onSelect={() => selectAction(action)}
                   >
                     <i className={action.icon} aria-hidden="true" />
                     {action.label}
-                  </Button>
-                ))}
-              </div>
-            </Popover.Content>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+                  </Menu.Item>
+              ))}
+            </Menu.List>
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
   );
 }
 

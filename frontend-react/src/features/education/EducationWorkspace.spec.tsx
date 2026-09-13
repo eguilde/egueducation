@@ -5,7 +5,7 @@ import { EducationListPanel, EducationMetadata, RecordFormDialog, SchoolRowActio
 import type { EducationApi } from "./types";
 
 describe("School overlay lifecycle", () => {
-  it("closes the action popover before invoking an action that may mount a dialog", async () => {
+  it("closes the action menu before invoking an action that may mount a dialog", async () => {
     const onSelect = vi.fn();
     render(
       <PrimeReactProvider>
@@ -14,7 +14,8 @@ describe("School overlay lifecycle", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Acțiuni înregistrare" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Detalii" }));
+    // Menu.Item activates on the same mouse-down event used by a real pointer.
+    fireEvent.mouseDown(await screen.findByRole("menuitem", { name: "Detalii" }), { detail: 1 });
     expect(onSelect).not.toHaveBeenCalled();
     await waitFor(() => expect(onSelect).toHaveBeenCalledOnce());
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
