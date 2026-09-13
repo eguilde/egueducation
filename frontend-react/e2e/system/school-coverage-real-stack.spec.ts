@@ -64,7 +64,7 @@ async function openDetails(page: Page, title: string): Promise<void> {
   await row.getByLabel('Acțiuni înregistrare').click();
   const menu = page.locator('[role="menu"]:visible').last(); await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name: 'Detalii', exact: true }); await expect(action).toBeVisible();
-  await action.focus(); await action.press('Enter');
+  await action.click({ force: true });
   await expect(page.getByRole('dialog').last()).toBeVisible(); await page.keyboard.press('Escape');
 }
 

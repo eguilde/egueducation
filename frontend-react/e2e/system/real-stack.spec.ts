@@ -679,9 +679,19 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // The institution-authorized reviewer returns the submitted portfolio. The
   // owner remedies it through the own-only contract, resubmits, and the
   // reviewer verifies it. This proves the role/state split on the real stack.
-  const returnedPortfolio = await api<OwnPortfolio>(page, token, `/api/education/portfolios/records/${ownPortfolio.id}/return`, { method: 'POST' });
+  // This dedicated command does not accept a client version: its concurrency
+  // precondition is the atomic `status = submitted` transition. It does require
+  // the immutable review evidence stated by the public contract.
+  const returnedOn = databaseScalar("select (current_timestamp at time zone 'UTC')::date::text");
+  const returnNotes = 'Completați observațiile privind planificarea.';
+  const returnedPortfolio = await api<OwnPortfolio>(page, token, `/api/education/portfolios/records/${ownPortfolio.id}/return`, {
+    method: 'POST',
+    body: JSON.stringify({ reviewed_on: returnedOn, missing_documents: 1, compliance_score: 80, notes: returnNotes }),
+  });
   expect(returnedPortfolio.status).toBe(200);
   expect(returnedPortfolio.body.status).toBe('returned');
+  expect(databaseScalar(`select review_stage || '|' || outcome || '|' || reviewed_on::text || '|' || missing_documents::text || '|' || compliance_score::text || '|' || notes from education_portfolio_reviews where portfolio_id='${ownPortfolio.id}' order by created_at desc limit 1`))
+    .toBe(`verificare_secretariat|completari|${returnedOn}|1|80|${returnNotes}`);
   const remediedPortfolio = await api<OwnPortfolio>(approverPage, approverToken, `/api/education/portfolios/me/${ownPortfolio.id}`, {
     method: 'PATCH',
     body: JSON.stringify({

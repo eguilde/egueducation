@@ -213,12 +213,15 @@ async function bootstrapFixture(page: Page, token: string): Promise<Fixture> {
   const location = await create<{ id: string }>('/api/institution/locations', { code: `${key}LOC`, name: `${label} location`, address: 'CI', active: true, effective_from: effectiveFrom, effective_to: null, idempotency_key: crypto.randomUUID() });
   const offering = await create<{ id: string }>('/api/institution/education-offerings', { code: `${key}OFF`, education_level: 'PRIMARY', specialization_code: '', language_code: 'ro', title: `${label} offering`, active: true, effective_from: effectiveFrom, effective_to: null, idempotency_key: crypto.randomUUID() });
   await create<{ id: string }>('/api/institution/offering-authorizations', { offering_id: offering.id, location_id: location.id, status: 'accredited', authority_name: 'ARACIP', decision_reference: `${key}-AUTH`, capacity: 2, capacity_unit: 'students', shift: 'day', effective_from: effectiveFrom, effective_to: null, source: { source_kind: 'accreditation', citation: `${label} authorization`, article_reference: '1', issuer: 'ARACIP', source_url: `https://example.test/${key}`, published_on: effectiveFrom, consolidated_on: null, checksum_sha256: 'a'.repeat(64) }, replaces_authorization_id: null, expected_version: null, idempotency_key: crypto.randomUUID() });
-	const sources = await api<{ items: Array<{ id: string }> }>(page, token, `/api/admissions/regulatory-sources?q=${encodeURIComponent(label)}&page=1&pageSize=10&sort=citation&direction=asc`);
-	expect(sources.status).toBe(200); expect(sources.body.items[0]).toBeTruthy();
+  const sources = await api<{ items: Array<{ id: string; effective_from: string | null; effective_to: string | null }> }>(page, token, `/api/admissions/regulatory-sources?q=${encodeURIComponent(label)}&page=1&pageSize=10&sort=citation&direction=asc`);
+  expect(sources.status).toBe(200); expect(sources.body.items[0]).toBeTruthy();
+  const retentionSource = sources.body.items[0]!;
+  expect(retentionSource.effective_from).toBe(effectiveFrom);
+  expect(retentionSource.effective_to).toBeNull();
   const schoolClass = await create<{ id: string }>('/api/education/classes', { class_code: `${key}CLS`, class_name: `${label} class`, school_year: schoolYear, grade_level: 'I', study_shift: 'day', active: true });
   await create<{ id: string }>('/api/registratura/parties', { code: `${key}C1`, party_type: 'physical', display_name: `${label} candidate one`, first_name: 'Candidate', last_name: key, active: true });
   const secondCandidate = await create<{ id: string }>('/api/registratura/parties', { code: `${key}C2`, party_type: 'physical', display_name: `${label} candidate two`, first_name: 'Candidate', last_name: `${key}B`, active: true });
-  return { classSearch: key, classLabel: label, classIDPrefix: schoolClass.id.slice(0, 8), authorizationSearch: `${key}OFF`, authorizationLabel: label, sourceSearch: label, sourceLabel: label, retentionSourceID: sources.body.items[0]!.id, schoolYear, effectiveFrom, candidateSearch: label, candidateLabel: `${label} candidate one`, secondCandidatePartyID: secondCandidate.id };
+  return { classSearch: key, classLabel: label, classIDPrefix: schoolClass.id.slice(0, 8), authorizationSearch: `${key}OFF`, authorizationLabel: label, sourceSearch: label, sourceLabel: label, retentionSourceID: retentionSource.id, schoolYear, effectiveFrom, candidateSearch: label, candidateLabel: `${label} candidate one`, secondCandidatePartyID: secondCandidate.id };
 }
 
 async function choose(page: Page, label: string, option: string | RegExp): Promise<void> {
