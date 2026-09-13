@@ -124,14 +124,20 @@ test.afterEach(async () => {
   while (fixtureMembershipCleanups.length) await fixtureMembershipCleanups.pop()!();
 });
 
-async function ensureEffectiveDirectorMembership(page: Page, token: string, userID: string, actorLabel: string): Promise<void> {
+async function reauthenticate(page: Page, actor: typeof director, expectedOrigin = origin): Promise<string> {
+  await page.getByRole('button', { name: 'Deconectare' }).click();
+  await expect(page.getByRole('button', { name: 'Autentificare' }).last()).toBeVisible();
+  return login(page, actor, expectedOrigin);
+}
+
+async function ensureEffectiveDirectorMembership(page: Page, token: string, userID: string, actorLabel: string): Promise<Membership | undefined> {
   const memberships = await api<PageResult<Membership>>(page, token, '/api/admin/memberships?page=1&pageSize=100&sort=user_name&direction=asc');
   expect(memberships.status).toBe(200);
   const userMemberships = memberships.body.items.filter(item => item.user_id === userID);
   const todayDate = today();
   const activeDirector = userMemberships.find(item => item.position_code === 'director'
     && item.active && item.start_date <= todayDate && (!item.end_date || item.end_date >= todayDate));
-  if (activeDirector) return;
+  if (activeDirector) return undefined;
 
   const basis = userMemberships.find(item => item.active) ?? userMemberships[0];
   expect(basis, `${actorLabel} fixture must have an existing tenant membership to establish its institution scope.`).toBeTruthy();
@@ -145,15 +151,19 @@ async function ensureEffectiveDirectorMembership(page: Page, token: string, user
   });
   expect(assigned.status, `Admin command must grant ${actorLabel} an effective director membership.`).toBe(201);
   expect(assigned.body.position_code).toBe('director');
+  return assigned.body;
+}
 
+function scheduleTemporaryDirectorMembershipCleanup(page: Page, token: string, membership: Membership | undefined, actorLabel: string): void {
+  if (!membership) return;
   fixtureMembershipCleanups.push(async () => {
     const removed = await api<Membership>(page, token, '/api/admin/memberships', {
       method: 'POST',
       body: JSON.stringify({
-        id: assigned.body.id, user_id: userID, position_code: assigned.body.position_code,
-        org_unit_code: assigned.body.org_unit_code, organization_name: assigned.body.organization_name,
-        is_primary: assigned.body.is_primary, active: false,
-        start_date: assigned.body.start_date, end_date: todayDate,
+        id: membership.id, user_id: membership.user_id, position_code: membership.position_code,
+        org_unit_code: membership.org_unit_code, organization_name: membership.organization_name,
+        is_primary: membership.is_primary, active: false,
+        start_date: membership.start_date, end_date: today(),
       }),
     });
     expect(removed.status, `Admin command must deactivate the temporary ${actorLabel} director membership.`).toBe(201);
@@ -179,7 +189,7 @@ async function retentionApprover(browser: import('@playwright/test').Browser, pa
   expect(users.status).toBe(200);
   const user = users.body.items.find(item => item.email.toLowerCase() === fixture.identifier);
   expect(user, 'OIDC approver fixture must exist in the same tenant user directory.').toBeTruthy();
-  await ensureEffectiveDirectorMembership(page, directorToken, user!.id, 'OIDC approver');
+  scheduleTemporaryDirectorMembershipCleanup(page, directorToken, await ensureEffectiveDirectorMembership(page, directorToken, user!.id, 'OIDC approver'), 'OIDC approver');
 
   const context = await browser.newContext({ baseURL: 'http://localhost:4174' });
   const approverPage = await context.newPage();
@@ -219,13 +229,15 @@ async function choose(page: Page, label: string, option: string | RegExp): Promi
 }
 
 test('admission browser workflow proves OIDC, React/OpenAPI, RBAC, WORM, capacity, appeal and enrolment', async ({ page, browser }) => {
-  const token = await login(page, director);
+  let token = await login(page, director);
   const me = await api<{ permissions: string[]; user: { id: string } }>(page, token, '/api/me');
   expect(me.status).toBe(200);
   expect(me.body.permissions).toEqual(expect.arrayContaining(['education.admissions.read', 'education.admissions.manage', 'education.admissions.decide', 'education.admissions.appeals.manage', 'education.admissions.retention.manage', 'education.admissions.signer.manage', 'education.admissions.signer.approve']));
   // The production handler independently requires an eligible director
   // membership, in addition to the route's retention.manage permission.
-  await ensureEffectiveDirectorMembership(page, token, me.body.user.id, 'OIDC proposer');
+  const proposerMembership = await ensureEffectiveDirectorMembership(page, token, me.body.user.id, 'OIDC proposer');
+  if (proposerMembership) token = await reauthenticate(page, director);
+  scheduleTemporaryDirectorMembershipCleanup(page, token, proposerMembership, 'OIDC proposer');
   const f = await bootstrapFixture(page, token);
   const approver = await retentionApprover(browser, page, token);
   expect(approver.userID, 'Retention approval must be performed by a different effective director.').not.toBe(me.body.user.id);

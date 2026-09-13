@@ -319,13 +319,23 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
   // same-tenant but intentionally ungranted to prove the access boundary.
   // The archive-version guard verifies this custody provenance even for the
   // privileged deterministic fixture connection, so reserve a legitimate
-  // owner-bound portfolio solely for these independent archive uploads.
+  // owner-bound portfolio for a disposable neutral actor. It must not belong
+  // to either browser identity: both prove the initial no-portfolio state.
   const custodyFixturePortfolioID = databaseScalar('select gen_random_uuid()::text');
+  const custodyFixtureUserID = databaseScalar('select gen_random_uuid()::text');
+  const custodyFixturePersonnelID = databaseScalar('select gen_random_uuid()::text');
   const custodyFixtureSchoolYear = '2030-2031';
-  const approverPersonnelID = databaseScalar(`select id::text from education_personnel where institution_id='inst-001' and app_user_id='${approverID}'`);
+  const custodyFixtureSubject = `system-e2e-custody-${custodyFixtureUserID}`;
+  const custodyFixturePersonnelCode = `PORT-CUSTODY-${custodyFixtureUserID}`;
   databaseExec(`
+    insert into app_users(id,sub,name,email,locale,status)
+    values ('${custodyFixtureUserID}','${custodyFixtureSubject}','${marker} Custodie fixture','${custodyFixtureSubject}@example.test','ro','active');
+    insert into app_memberships(user_id,tenant_code,position_code,org_unit_code,organization_name,is_primary,active,start_date)
+    values ('${custodyFixtureUserID}','tenant-egueducation','profesor','unit-root','${marker} Custodie fixture',true,true,current_date);
+    insert into education_personnel(id,app_user_id,employee_code,full_name,role_title,employment_type,status,evaluation_status,mobility_stage,school_year,institution_id)
+    values ('${custodyFixturePersonnelID}','${custodyFixtureUserID}','${custodyFixturePersonnelCode}','${marker} Custodie fixture','Profesor','titular','active','draft','none','${custodyFixtureSchoolYear}','inst-001');
     insert into education_portfolios(id,portfolio_code,owner_name,owner_role,school_year,status,section_count,last_updated_on,transfer_status,institution_id,owner_user_id,owner_personnel_id)
-    values ('${custodyFixturePortfolioID}','PORT-CUSTODY-${custodyFixturePortfolioID}','${marker} Profesor portofoliu','Profesor','${custodyFixtureSchoolYear}','draft',0,current_date,'none','inst-001','${approverID}','${approverPersonnelID}')
+    values ('${custodyFixturePortfolioID}','PORT-CUSTODY-${custodyFixturePortfolioID}','${marker} Custodie fixture','Profesor','${custodyFixtureSchoolYear}','draft',0,current_date,'none','inst-001','${custodyFixtureUserID}','${custodyFixturePersonnelID}')
   `);
   const portfolioArchives = requiredPortfolioComponents.map(([section, component], index) => ({
     section, component, index, id: databaseScalar('select gen_random_uuid()::text'),
@@ -337,11 +347,11 @@ test('real React, two OIDC users, RBAC, Flux, tenant isolation and PostgreSQL co
     title: `${marker} negrantat`, hash: 'f'.repeat(64), index: 99,
   };
   const seedArchive = ({ id, versionID, intentID, title, hash, index }: { id: string; versionID: string; intentID: string; title: string; hash: string; index: number }) => databaseExec(`
-    set app.actor_subject='oidc-browser-fixture-subject';
+    set app.actor_subject='${custodyFixtureSubject}';
     insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
-    values ('${id}','inst-001','${title}','${index}.pdf','application/pdf','upload','ready','system-e2e','${marker}/${index}.pdf','system-e2e','${marker}/${index}.pdf',1,'oidc-browser-fixture-subject');
+    values ('${id}','inst-001','${title}','${index}.pdf','application/pdf','upload','ready','system-e2e','${marker}/${index}.pdf','system-e2e','${marker}/${index}.pdf',1,'${custodyFixtureSubject}');
     insert into portfolio_custody_upload_intents(id,tenant_code,institution_id,portfolio_id,actor_subject,idempotency_key,expected_sha256,expected_size_bytes,expected_mime_type,bucket_name,object_key,reserved_document_id,reserved_version_id)
-    values ('${intentID}','tenant-egueducation','inst-001','${custodyFixturePortfolioID}','oidc-browser-fixture-subject','system-e2e-${intentID}','${hash}',1,'application/pdf','system-e2e','${marker}/${index}.pdf','${id}','${versionID}');
+    values ('${intentID}','tenant-egueducation','inst-001','${custodyFixturePortfolioID}','${custodyFixtureSubject}','system-e2e-${intentID}','${hash}',1,'application/pdf','system-e2e','${marker}/${index}.pdf','${id}','${versionID}');
     update portfolio_custody_upload_intents set status='stored',stored_version_id='fixture-version-${index}',stored_etag='fixture-etag-${index}',stored_size_bytes=1 where id='${intentID}';
     insert into archive_document_versions (id,document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,source_bucket,source_object_key,source_sha256,source_size_bytes,source_object_version_id,source_object_etag,status,text_status,custody_hold_active,portfolio_custody_intent_id)
     values ('${versionID}','${id}','inst-001',1,'application/pdf','${title}','system-e2e','${marker}/${index}.pdf','${hash}',1,'system-e2e','${marker}/${index}.pdf','${hash}',1,'fixture-version-${index}','fixture-etag-${index}','active','processed',true,'${intentID}');

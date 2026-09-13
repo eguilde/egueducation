@@ -72,7 +72,7 @@ async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name, exact: true });
   await expect(action).toBeVisible();
-  await action.click();
+  await action.click({ force: true });
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {
@@ -443,8 +443,22 @@ test('React creates portfolio relations and drives transfer/valorification lifec
   // eArhivă. Seed only that external storage/OCR precondition; creation and
   // subsequent removal of the portfolio reference remain browser operations.
   const institutionalArchiveTitle = `${marker} document instituțional`;
-  const institutionalArchiveDocumentID = sql(`insert into archive_documents (institution_id,title,original_file_name,mime_type,source_kind,source_system,external_reference,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by) values ('inst-001','${institutionalArchiveTitle}','${marker}-institutional.pdf','application/pdf','upload','e2e','${marker}-institutional','ready','earhive','e2e/${marker}-institutional.pdf','earhive','e2e/${marker}-institutional.pdf',1,'e2e') returning id::text`);
-  sql(`insert into archive_document_versions (document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,status,source_bucket,source_object_key,source_sha256,source_size_bytes,text_status) values ('${institutionalArchiveDocumentID}','inst-001',1,'application/pdf','${institutionalArchiveTitle}','earhive','e2e/${marker}-institutional.pdf','${'c'.repeat(64)}',128,'active','earhive','e2e/${marker}-institutional.pdf','${'c'.repeat(64)}',128,'processed')`);
+  const institutionalArchiveDocumentID = crypto.randomUUID();
+  const institutionalArchiveVersionID = crypto.randomUUID();
+  const institutionalCustodyIntentID = crypto.randomUUID();
+  const institutionalKey = `e2e/${marker}-institutional.pdf`;
+  const institutionalStorageVersion = `fixture-${crypto.randomUUID()}`;
+  const institutionalETag = crypto.randomUUID().replaceAll('-', '');
+  const institutionalSHA = 'c'.repeat(64);
+  sql(`set app.actor_subject='e2e';
+    insert into archive_documents (id,institution_id,title,original_file_name,mime_type,source_kind,source_system,external_reference,status,original_bucket,original_object_key,artifact_bucket,artifact_object_key,current_version_no,created_by)
+      values ('${institutionalArchiveDocumentID}','inst-001','${institutionalArchiveTitle}','${marker}-institutional.pdf','application/pdf','upload','e2e','${marker}-institutional','ready','earhive','${institutionalKey}','earhive','${institutionalKey}',1,'e2e');
+    insert into portfolio_custody_upload_intents (id,tenant_code,institution_id,portfolio_id,actor_subject,idempotency_key,expected_sha256,expected_size_bytes,expected_mime_type,expected_request_fingerprint,expected_metadata,bucket_name,object_key,reserved_document_id,reserved_version_id)
+      values ('${institutionalCustodyIntentID}','tenant-egueducation','inst-001','${portfolio.id}','e2e','${marker}-institutional','${institutionalSHA}',128,'application/pdf','${institutionalSHA}','{}'::jsonb,'earhive','${institutionalKey}','${institutionalArchiveDocumentID}','${institutionalArchiveVersionID}');
+    update portfolio_custody_upload_intents set status='stored',stored_version_id='${institutionalStorageVersion}',stored_etag='${institutionalETag}',stored_size_bytes=128 where id='${institutionalCustodyIntentID}';
+    insert into archive_document_versions (id,document_id,institution_id,version_no,mime_type,title,bucket_name,object_key,hash_sha256,size_bytes,status,source_bucket,source_object_key,source_sha256,source_size_bytes,source_object_version_id,source_object_etag,custody_hold_active,portfolio_custody_intent_id,text_status)
+      values ('${institutionalArchiveVersionID}','${institutionalArchiveDocumentID}','inst-001',1,'application/pdf','${institutionalArchiveTitle}','earhive','${institutionalKey}','${institutionalSHA}',128,'active','earhive','${institutionalKey}','${institutionalSHA}',128,'${institutionalStorageVersion}','${institutionalETag}',true,'${institutionalCustodyIntentID}','processed');
+    update portfolio_custody_upload_intents set status='committed' where id='${institutionalCustodyIntentID}'`);
   const document = await createManagerialChildThroughReact(page, 'Adaugă document', `/api/education/portfolios/records/${portfolio.id}/documents`, {
     Titlu: `${marker} document portofoliu`, 'Descriere pedagogică': 'Dovadă instituțională verificată', 'An școlar': '2026-2027', Disciplina: 'Management educațional', 'Clasa aplicabilă': 'Instituție', 'Competențe (separate prin virgulă)': 'management, conformitate', 'Tip dovadă': 'decizie', Secțiune: 'identificare_profesionala', Componentă: 'structura_cadru', 'Domeniu sursă': 'portofoliu', Autenticitate: 'verificat', 'Data emiterii': '2026-09-10', 'Data adăugării': '2026-09-10', 'Ordine cronologică': '1', 'Referință arhivă': `archive://${institutionalArchiveDocumentID}`, Observații: marker,
   });
