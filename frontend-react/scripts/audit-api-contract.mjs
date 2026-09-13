@@ -21,12 +21,31 @@ const [authProvider, runtimeValidators, packageJson, generated, schoolWizardApi,
 ]);
 
 const violations = [];
+const retentionAdapter = await load('../src/features/earchiva/archive-retention-api.ts');
+const sourcesAdapter = await load('../src/features/regulatory-sources/api.ts');
+const administrationWorkspace = await load('../src/features/admin/AdministrationWorkspace.tsx');
 const requirePattern = (source, pattern, message) => {
   if (!pattern.test(source)) violations.push(message);
 };
 const forbidPattern = (source, pattern, message) => {
   if (pattern.test(source)) violations.push(message);
 };
+
+requirePattern(retentionAdapter, /ContractClient/, 'Archive retention must use the generated client contract.');
+requirePattern(sourcesAdapter, /ContractClient/, 'Regulatory sources must use the generated API client.');
+forbidPattern(administrationWorkspace, /school\.regulatory_sources\.(verify|activate)/, 'Source command UI must use registered manage/approve permissions, not invented action names.');
+requirePattern(sourcesAdapter, /components\["schemas"\]\["get_api_regulatory_sources_item"\]/, 'Regulatory source DTO must derive from OpenAPI.');
+forbidPattern(sourcesAdapter, /\bfetch\(/, 'Regulatory sources must not bypass the generated client.');
+forbidPattern(sourcesAdapter, /import\("\.\.\/\.\.\/api\/runtime-validators"\)/, 'Regulatory validators must use static, typechecked imports.');
+for (const validator of ['validateGetApiRegulatorySourcesResponse', 'validatePostApiRegulatorySourcesResponse', 'validatePostApiRegulatorySourcesSourceidVerifyResponse', 'validatePostApiRegulatorySourcesSourceidActivateResponse']) {
+  requirePattern(sourcesAdapter, new RegExp(validator), `Regulatory sources must use ${validator}.`);
+  requirePattern(runtimeValidators, new RegExp(`export const ${validator}\\b`), `Missing source validator ${validator}.`);
+}
+forbidPattern(retentionAdapter, /\bfetch\(/, 'Archive retention must not call browser fetch directly.');
+for (const validator of ['validateGetApiEarchivaRetentionRulesResponse', 'validatePostApiEarchivaRetentionRulesResponse', 'validatePostApiEarchivaRetentionRulesRuleidApproveResponse', 'validatePostApiEarchivaRetentionRulesRuleidRetireResponse']) {
+  requirePattern(retentionAdapter, new RegExp(validator), `Archive retention must validate its response using ${validator}.`);
+  requirePattern(runtimeValidators, new RegExp(`export const ${validator}\\b`), `Generated validator missing: ${validator}.`);
+}
 
 requirePattern(authProvider, /createContractClient/, '/api/me must use the generated OpenAPI transport.');
 requirePattern(authProvider, /validateSessionContext/, '/api/me must use its generated runtime validator.');
@@ -133,5 +152,5 @@ if (violations.length) {
   console.error(violations.join('\n'));
   process.exitCode = 1;
 } else {
-  console.log(`API contract policy passed for ${adapterPaths.length} production adapters, /api/me and generated runtime validators.`);
+  console.log(`API contract policy passed for ${adapterPaths.length + 2} production adapters, /api/me and generated runtime validators.`);
 }

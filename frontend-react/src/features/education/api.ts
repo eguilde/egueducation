@@ -1,6 +1,7 @@
 import { createContractClient, type ContractClient } from "../../api/client";
 import type { components } from "../../api/generated";
-import type { CreatePortfolioChecklistItemInput, CreatePortfolioCustodyEventInput, CreatePortfolioDocumentInput, CreatePortfolioOpisEntryInput, CreatePortfolioReviewEventInput, CreatePortfolioValorificationEventInput, DirectorCockpit, EducationApi, EducationCommand, EducationListQuery, EducationMetadataResource, EducationMetadataResultByResource, EducationPage, EducationPdfRecordsDomain, EducationRecord, EducationRecordInput, EducationRecordsDomain, EducationRelatedCreateInputByResource, EducationRelatedResource, EducationRequirementListQuery, EducationRootCreateInputByDomain, EducationRootRecordByDomain, EducationRootUpdateInputByDomain, EligibleGovernanceUser, GovernanceDashboard, GovernanceMeeting, GovernanceMeetingInput, OwnPortfolio, OwnPortfolioArchiveDocument, PortfolioAttachmentGrant, PortfolioChecklistListQuery, PortfolioCustodyListQuery, PortfolioDeclarationAcknowledgement, PortfolioDeclarationEvidence, PortfolioDocument, PortfolioDocumentListQuery, PortfolioDocumentVersion, PortfolioDocumentVersionListQuery, PortfolioEvidenceManifestResponse, PortfolioOpisListQuery, PortfolioOpisRegeneration, PortfolioProcedure, PortfolioProcedureRule, PortfolioReviewListQuery, PortfolioSectionListQuery, PortfolioTransferHistoryQuery, PortfolioValorificationListQuery, TaxonomyCatalogQuery } from "./types";
+import { validateGetApiEducationPortfoliosMeRecordidProcedureResponse, validatePostApiEducationPortfoliosMeRecordidArchiveDocumentsResponse } from "../../api/runtime-validators";
+import type { CreatePortfolioChecklistItemInput, CreatePortfolioCustodyEventInput, CreatePortfolioDocumentInput, CreatePortfolioOpisEntryInput, CreatePortfolioValorificationEventInput, DirectorCockpit, EducationApi, EducationCommand, EducationListQuery, EducationMetadataResource, EducationMetadataResultByResource, EducationPage, EducationPdfRecordsDomain, EducationRecord, EducationRecordInput, EducationRecordsDomain, EducationRelatedCreateInputByResource, EducationRelatedResource, EducationRequirementListQuery, EducationRootCreateInputByDomain, EducationRootRecordByDomain, EducationRootUpdateInputByDomain, EligibleGovernanceUser, GovernanceDashboard, GovernanceMeeting, GovernanceMeetingInput, OwnPortfolio, OwnPortfolioArchiveDocument, PortfolioAttachmentGrant, PortfolioChecklistListQuery, PortfolioCustodyListQuery, PortfolioDeclarationAcknowledgement, PortfolioDeclarationEvidence, PortfolioDocument, PortfolioDocumentListQuery, PortfolioDocumentVersion, PortfolioDocumentVersionListQuery, PortfolioEvidenceManifestResponse, PortfolioOpisListQuery, PortfolioOpisRegeneration, PortfolioProcedure, PortfolioProcedureRule, PortfolioReturnForCorrectionsInput, PortfolioManagerialDecisionInput, PortfolioReviewListQuery, PortfolioSectionListQuery, PortfolioTransferHistoryQuery, PortfolioValorificationListQuery, TaxonomyCatalogQuery } from "./types";
 
 export type AuthenticatedFetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type Result<T> = { data?: T; error?: unknown; response: Response };
@@ -16,7 +17,11 @@ function page(value: unknown): EducationPage<EducationRecord> {
 }
 async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
   const result = await promise;
-  if (!result.response.ok || result.error) throw new Error(`education_request_${result.response.status}`);
+  if (!result.response.ok || result.error) {
+    const error = result.error;
+    const code = error && typeof error === "object" && "code" in error && typeof error.code === "string" ? error.code : undefined;
+    throw new Error(`education_request_${result.response.status}`, { cause: code });
+  }
   if (result.data === undefined && result.response.status !== 204) throw new Error("education_contract_response_missing_data");
   return result.data!;
 }
@@ -720,9 +725,8 @@ export function createEducationApi(fetcher: AuthenticatedFetcher, apiBase = "/ap
   async deletePortfolioCustodyEvent(recordID,itemID) { await unwrap(client.DELETE("/api/education/portfolios/records/{recordID}/custody/{itemID}", { params: { path: { recordID, itemID } } })); },
   async portfolioReviews(recordID,input={}) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/reviews", { params: { path: { recordID }, query: portfolioReviewParams(input) } })); },
   async portfolioReview(recordID,itemID) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/reviews/{itemID}", { params: { path: { recordID, itemID } } })); },
-  async createPortfolioReview(recordID,input: CreatePortfolioReviewEventInput) { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/reviews", { params: { path: { recordID } }, body: input })); },
-  async updatePortfolioReview(recordID,itemID,input: CreatePortfolioReviewEventInput) { return unwrap(client.PATCH("/api/education/portfolios/records/{recordID}/reviews/{itemID}", { params: { path: { recordID, itemID } }, body: input })); },
-  async deletePortfolioReview(recordID,itemID) { await unwrap(client.DELETE("/api/education/portfolios/records/{recordID}/reviews/{itemID}", { params: { path: { recordID, itemID } } })); },
+  async returnPortfolioForCorrections(recordID: string, input: PortfolioReturnForCorrectionsInput): Promise<OwnPortfolio> { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/return", { params: { path: { recordID } }, body: input })); },
+  async recordPortfolioManagerialDecision(recordID: string, input: PortfolioManagerialDecisionInput): Promise<OwnPortfolio> { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/managerial-decision", { params: { path: { recordID } }, body: input })); },
   async portfolioTransferHistory(recordID,input={}) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/transfers", { params: { path: { recordID }, query: portfolioTransferParams(input) } })); },
   async portfolioValorifications(recordID,input={}) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/valorifications", { params: { path: { recordID }, query: portfolioValorificationParams(input) } })); },
   async portfolioValorification(recordID,itemID) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/valorifications/{itemID}", { params: { path: { recordID, itemID } } })); },
@@ -736,8 +740,6 @@ export function createEducationApi(fetcher: AuthenticatedFetcher, apiBase = "/ap
   async command(command: EducationCommand, portfolioID: string) {
     switch (command) {
       case "portfolio-opis-regenerate": return unwrap(client.POST("/api/education/portfolios/records/{recordID}/opis/regenerate", { params: { path: { recordID: portfolioID } } }));
-      case "portfolio-return": return unwrap(client.POST("/api/education/portfolios/records/{recordID}/return", { params: { path: { recordID: portfolioID } } }));
-      case "portfolio-verify": return unwrap(client.POST("/api/education/portfolios/records/{recordID}/verify", { params: { path: { recordID: portfolioID } } }));
     }
   },
   async ownPortfolios(input = {}) { return unwrap(client.GET("/api/education/portfolios/me", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 50, sort: input.sort === "school_year" ? "school_year" : input.sort === "status" ? "status" : input.sort === "updated_at" ? "updated_at" : undefined, direction: input.direction, "filter.school_year": input.filters?.school_year, "filter.status": input.filters?.status } } })); },
@@ -777,15 +779,51 @@ export function createEducationApi(fetcher: AuthenticatedFetcher, apiBase = "/ap
   async regenerateOwnPortfolioOpis(id) { return unwrap(client.POST("/api/education/portfolios/me/{recordID}/opis/regenerate", { params: { path: { recordID: id } } })); },
   async recordPortfolioCessation(id, input) { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/activity-cessation", { params: { path: { recordID: id } }, body: input })); },
   async setPortfolioLegalHold(id, input) { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/legal-hold", { params: { path: { recordID: id } }, body: input })); },
+  async portfolioLifecycleOperation(id, operationID) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}", { params: { path: { recordID: id, operationID } } })); },
+  async portfolioLifecycleOperations(id, query = {}) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/lifecycle-operations", { params: { path: { recordID: id }, query } })); },
+  async retryPortfolioLifecycleOperation(id, operationID, input) { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry", { params: { path: { recordID: id, operationID } }, body: input })); },
+  async portfolioRetentionDispositions(id, query = {}) { return unwrap(client.GET("/api/education/portfolios/records/{recordID}/retention-dispositions", { params: { path: { recordID: id }, query } })); },
+  async submitPortfolioRetentionDisposition(id, operationID, transitionID, input) { return unwrap(client.POST("/api/education/portfolios/me/{recordID}/lifecycle-operations/{operationID}/storage-transitions/{transitionID}/retention-dispositions", { params: { path: { recordID: id, operationID, transitionID } }, body: input })); },
+  async decidePortfolioRetentionDisposition(id, requestID, input) { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/retention-dispositions/{requestID}/decision", { params: { path: { recordID: id, requestID } }, body: input })); },
   async createOwnPortfolioDocument(id, input): Promise<PortfolioDocument> { return unwrap(client.POST("/api/education/portfolios/me/{recordID}/documents", { params: { path: { recordID: id } }, body: input })); },
+  async updateOwnPortfolioDocument(portfolioID, documentID, input): Promise<PortfolioDocument> { return unwrap(client.PATCH("/api/education/portfolios/me/{recordID}/documents/{documentID}", { params: { path: { recordID: portfolioID, documentID } }, body: input })); },
+  async ownPortfolioAppliedProcedure(recordID) {
+    const result = await unwrap(client.GET("/api/education/portfolios/me/{recordID}/procedure", { params: { path: { recordID } } }));
+    if (!validateGetApiEducationPortfoliosMeRecordidProcedureResponse(result)) throw new Error("education_applied_procedure_contract_mismatch");
+    return result;
+  },
   async ownPortfolioDocumentVersions(portfolioID, documentID, input = {}) { return unwrap(client.GET("/api/education/portfolios/me/{recordID}/documents/{documentID}/versions", { params: { path: { recordID: portfolioID, documentID }, query: portfolioDocumentVersionParams(input) } })); },
   async deleteOwnPortfolioDocument(portfolioID, documentID) { await unwrap(client.DELETE("/api/education/portfolios/me/{recordID}/documents/{documentID}", { params: { path: { recordID: portfolioID, documentID } } })); },
   async ownPortfolioArchiveDocuments(input = {}) { return unwrap(client.GET("/api/education/portfolios/me/archive-documents", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 25, sort: input.sort === "current_version_no" ? "current_version_no" : "title", direction: input.direction ?? "asc", "filter.title": input.filters?.title } } })); },
+  async uploadOwnPortfolioArchiveDocument(id, input, idempotencyKey) {
+    const form = new FormData();
+    form.set("file", input.file);
+    form.set("title", input.title);
+    if (input.document_date) form.set("document_date", input.document_date);
+    const result = await client.POST("/api/education/portfolios/me/{recordID}/archive-documents", {
+      params: { path: { recordID: id }, header: { "Idempotency-Key": idempotencyKey } },
+      body: { file: input.file.name, title: input.title, ...(input.document_date ? { document_date: input.document_date } : {}) },
+      bodySerializer: () => form,
+    });
+    const data = await unwrap(Promise.resolve(result));
+    if (!validatePostApiEducationPortfoliosMeRecordidArchiveDocumentsResponse(data)) throw new Error("education_upload_contract_mismatch");
+    return data;
+  },
   async attachmentGrants(input = {}) { return unwrap(client.GET("/api/education/portfolios/archive-attachment-grants", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 50, sort: input.sort === "document_title" ? "document_title" : input.sort === "grantee_name" ? "grantee_name" : undefined, direction: input.direction, "filter.document_title": input.filters?.document_title, "filter.grantee_name": input.filters?.grantee_name } } })); },
   async eligibleAttachmentDocuments(input = {}) { return unwrap(client.GET("/api/education/portfolios/archive-attachment-grants/eligible-documents", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 50, sort: input.sort === "title" ? "title" : input.sort === "current_version_no" ? "current_version_no" : undefined, direction: input.direction, "filter.title": input.filters?.title } } })); },
   async eligibleAttachmentUsers(input = {}) { return unwrap(client.GET("/api/education/portfolios/archive-attachment-grants/eligible-users", { params: { query: { page: input.page ?? 1, pageSize: input.pageSize ?? 100, sort: input.sort === "name" ? "name" : input.sort === "role_title" ? "role_title" : undefined, direction: input.direction, "filter.name": input.filters?.name } } })); },
   async createAttachmentGrant(input) { return unwrap(client.POST("/api/education/portfolios/archive-attachment-grants", { body: input })); },
   async deleteAttachmentGrant(id) { await unwrap(client.DELETE("/api/education/portfolios/archive-attachment-grants/{grantID}", { params: { path: { grantID: id } } })); },
   async createPortfolioExportManifest(id): Promise<PortfolioEvidenceManifestResponse> { return unwrap(client.POST("/api/education/portfolios/records/{recordID}/export-manifests", { params: { path: { recordID: id } } })); },
+  async exportOwnPortfolio(id, signal): Promise<Blob> {
+    const result = await client.POST("/api/education/portfolios/me/{recordID}/export", {
+      params: { path: { recordID: id } }, parseAs: "blob", headers: { Accept: "application/zip" }, signal,
+    });
+    const blob = await unwrap(Promise.resolve(result));
+    if (!(blob instanceof Blob) || blob.size === 0 || blob.type.split(";")[0] !== "application/zip") {
+      throw new Error("education_contract_response_invalid");
+    }
+    return blob;
+  },
  };
 }

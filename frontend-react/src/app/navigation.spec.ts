@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { navigation } from "./navigation";
 
 describe("school role cockpit navigation", () => {
+  it("exposes the admission workspace only through admission RBAC", () => {
+    expect(navigation).toContainEqual(expect.objectContaining({
+      label: "Admitere",
+      to: "/scoala/admitere",
+      module: "education",
+      permissions: ["education.admissions.read", "education.admissions.manage", "education.admissions.decide", "education.admissions.appeals.manage", "education.admissions.retention.manage"],
+    }));
+  });
+
   it("exposes each cockpit only with its precise capability", () => {
     expect(navigation).toEqual(expect.arrayContaining([
       expect.objectContaining({ to: "/scoala/secretariat", permission: "education.cockpit.secretariat.read" }),

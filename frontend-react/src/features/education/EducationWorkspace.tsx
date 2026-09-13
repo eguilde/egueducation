@@ -31,6 +31,9 @@ import { useInstitutionPolicy } from "../institution/InstitutionPolicyProvider";
 import { createEducationApi, type AuthenticatedFetcher } from "./api";
 import { educationAreas, visibleEducationAreas } from "./catalog";
 import { PortfolioArchiveGrantManager } from "./PortfolioArchiveGrantManager";
+import { PortfolioLifecycleDialog, type PortfolioLifecycleDraft } from "./PortfolioLifecycleDialog";
+import { PortfolioLifecycleStatus } from "./PortfolioLifecycleStatus";
+import type { PortfolioLifecycleResult } from "./types";
 import {
   createEducationDelegationApi,
   EducationDelegationManager,
@@ -65,7 +68,6 @@ import type {
   CreatePortfolioCustodyEventInput,
   CreatePortfolioDocumentInput,
   CreatePortfolioOpisEntryInput,
-  CreatePortfolioReviewEventInput,
   GovernanceMeeting,
   GovernanceMeetingInput,
   PortfolioSection,
@@ -2247,8 +2249,6 @@ function DomainRecordsPage({
   canManage,
   canManageRecord,
   canManageRelation,
-  canVerifyPortfolio = false,
-  canVerifyPortfolioRecord,
   canManageSchoolPortfolios = false,
   canManageSchoolPortfolioRecord,
   portfolioTransferApi,
@@ -2266,8 +2266,6 @@ function DomainRecordsPage({
   canManage: boolean;
   canManageRecord?: (recordID: string) => boolean;
   canManageRelation?: (relation: RelatedConfig, recordID: string) => boolean;
-  canVerifyPortfolio?: boolean;
-  canVerifyPortfolioRecord?: (recordID: string) => boolean;
   canManageSchoolPortfolios?: boolean;
   canManageSchoolPortfolioRecord?: (recordID: string) => boolean;
   portfolioTransferApi?: IntertenantPortfolioTransferApi;
@@ -2310,13 +2308,8 @@ function DomainRecordsPage({
   const [refresh, setRefresh] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<string>();
   const [selectedRecordId, setSelectedRecordId] = useState<string>();
-  const [portfolioLifecycle, setPortfolioLifecycle] = useState<{
-    record: EducationRecord;
-    kind: "cessation" | "legal_hold";
-    date: string;
-    reason: string;
-    active: boolean;
-  }>();
+  const [portfolioLifecycle, setPortfolioLifecycle] = useState<PortfolioLifecycleDraft>();
+  const [lifecycleResult, setLifecycleResult] = useState<PortfolioLifecycleResult>();
   const fields = domainFields[domain];
   const metadata = domainMetadata[domain];
   const action = async (fn: () => Promise<void>) => {
@@ -2381,7 +2374,6 @@ function DomainRecordsPage({
             action: true,
             render: (item) => {
               const rowCanManage = canManage || Boolean(canManageRecord?.(item.id));
-              const rowCanVerifyPortfolio = canVerifyPortfolio || Boolean(canVerifyPortfolioRecord?.(item.id));
               const rowCanManageSchoolPortfolio = canManageSchoolPortfolios || Boolean(canManageSchoolPortfolioRecord?.(item.id));
               return (
               <SchoolRowActionMenu
@@ -2431,32 +2423,13 @@ function DomainRecordsPage({
                         onSelect: () => void action(async () => {
                           await api.command("portfolio-opis-regenerate", item.id);
                         }),
-                      }, {
-                        label: "Solicită completări",
-                        icon: "pi pi-replay",
-                        severity: "warn" as const,
-                        disabled: String(item.status ?? "") !== "submitted",
-                        onSelect: () => void action(async () => {
-                          await api.command("portfolio-return", item.id);
-                        }),
-                      }]
-                    : []),
-                  ...(domain === "portfolios" && rowCanVerifyPortfolio
-                    ? [{
-                        label: "Validează portofoliul",
-                        icon: "pi pi-check-circle",
-                        severity: "success" as const,
-                        disabled: String(item.status ?? "") !== "submitted",
-                        onSelect: () => void action(async () => {
-                          await api.command("portfolio-verify", item.id);
-                        }),
                       }]
                     : []),
                   ...(domain === "portfolios" && rowCanManageSchoolPortfolio
                     ? [{
                         label: "Înregistrează încetarea activității",
                         icon: "pi pi-calendar-times",
-                        onSelect: () => setPortfolioLifecycle({ record: item, kind: "cessation", date: new Date().toISOString().slice(0, 10), reason: "", active: false }),
+                        onSelect: () => setPortfolioLifecycle({ record: item, kind: "cessation", date: "", reason: "", active: false }),
                       }, {
                         label: Boolean(item.legal_hold_active) ? "Ridică blocarea juridică" : "Aplică blocare juridică",
                         icon: "pi pi-lock",
@@ -2520,7 +2493,24 @@ function DomainRecordsPage({
           })
         }
       />
-      <Dialog.Root open={Boolean(portfolioLifecycle)} onOpenChange={(event: { value?: boolean }) => !event.value && setPortfolioLifecycle(undefined)}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>{portfolioLifecycle?.kind === "cessation" ? "Înregistrează încetarea activității" : portfolioLifecycle?.active ? "Aplică blocare juridică" : "Ridică blocarea juridică"}</Dialog.Title><Dialog.Close aria-label="Închide operația de ciclu de viață" /></Dialog.Header><Dialog.Content>{portfolioLifecycle && <div className="flex flex-col gap-3">{portfolioLifecycle.kind === "cessation" && <label className="flex flex-col gap-1"><span>Data încetării *</span><InputText type="date" value={portfolioLifecycle.date} onChange={(event: ChangeEvent<HTMLInputElement>) => setPortfolioLifecycle((current) => current ? { ...current, date: event.target.value } : current)} /></label>}{portfolioLifecycle.kind === "legal_hold" && <label className="flex items-center gap-2"><Checkbox.Root checked={portfolioLifecycle.active} disabled><Checkbox.Box><Checkbox.Indicator /></Checkbox.Box></Checkbox.Root><span>{portfolioLifecycle.active ? "Blocarea juridică va fi activată." : "Blocarea juridică va fi ridicată."}</span></label>}<label className="flex flex-col gap-1"><span>Motiv {portfolioLifecycle.kind === "cessation" || portfolioLifecycle.active ? "*" : ""}</span><Textarea value={portfolioLifecycle.reason} onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setPortfolioLifecycle((current) => current ? { ...current, reason: event.target.value } : current)} /></label></div>}</Dialog.Content><Dialog.Footer><div className="flex justify-end gap-2"><Button variant="outlined" severity="secondary" onClick={() => setPortfolioLifecycle(undefined)}>Renunță</Button><Button disabled={!portfolioLifecycle || (portfolioLifecycle.kind === "cessation" && (!portfolioLifecycle.date || !portfolioLifecycle.reason.trim())) || (portfolioLifecycle.kind === "legal_hold" && portfolioLifecycle.active && !portfolioLifecycle.reason.trim())} onClick={() => portfolioLifecycle && void action(async () => { if (portfolioLifecycle.kind === "cessation") await api.recordPortfolioCessation(portfolioLifecycle.record.id, { activity_ceased_on: portfolioLifecycle.date, reason: portfolioLifecycle.reason }); else await api.setPortfolioLegalHold(portfolioLifecycle.record.id, { active: portfolioLifecycle.active, reason: portfolioLifecycle.reason }); setPortfolioLifecycle(undefined); })}>Confirmă</Button></div></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>
+      <PortfolioLifecycleDialog
+        value={portfolioLifecycle && (canManageSchoolPortfolios || canManageSchoolPortfolioRecord?.(portfolioLifecycle.record.id)) ? portfolioLifecycle : undefined}
+        onClose={() => setPortfolioLifecycle(undefined)}
+        onSubmit={async (input) => {
+          if (!canManageSchoolPortfolios && !canManageSchoolPortfolioRecord?.(input.record.id)) throw new Error("portfolio_lifecycle_permission_revoked");
+          if (input.kind === "cessation") {
+            setLifecycleResult(await api.recordPortfolioCessation(input.record.id, { activity_ceased_on: input.date, reason: input.reason }));
+          } else {
+            setLifecycleResult(await api.setPortfolioLegalHold(input.record.id, { active: input.active, reason: input.reason }));
+          }
+          setRefresh((value) => value + 1);
+        }}
+      />
+      {domain === "portfolios" && lifecycleResult && <PortfolioLifecycleStatus
+        api={api}
+        initial={lifecycleResult}
+        canRetry={canManageSchoolPortfolios || Boolean(canManageSchoolPortfolioRecord?.(lifecycleResult.operation.portfolio_id))}
+      />}
       {selectedRecordId && hasDomainRelations(domain) && (
         <GovernanceMeetingRelations
           api={api}
@@ -3231,18 +3221,6 @@ function portfolioCustodyInput(input: PortfolioRelationInput): CreatePortfolioCu
     started_on: portfolioRelationString(input, "started_on"),
   };
 }
-function portfolioReviewInput(input: PortfolioRelationInput): CreatePortfolioReviewEventInput {
-  return {
-    compliance_score: portfolioRelationOptionalNumber(input, "compliance_score"),
-    missing_documents: portfolioRelationOptionalNumber(input, "missing_documents"),
-    notes: portfolioRelationOptionalString(input, "notes"),
-    outcome: portfolioRelationString(input, "outcome"),
-    review_stage: portfolioRelationString(input, "review_stage"),
-    reviewed_on: portfolioRelationString(input, "reviewed_on"),
-    reviewer_name: portfolioRelationString(input, "reviewer_name"),
-  };
-}
-
 type PortfolioRelationManagerConfig = {
   title: string;
   itemLabel: string;
@@ -3252,11 +3230,12 @@ type PortfolioRelationManagerConfig = {
   /** Exact server-declared sort allowlist; no browser-side sorting. */
   sortableFields: readonly string[];
   columns: EducationListPanelProps<PortfolioRelationItem>["columns"];
+  readOnly?: boolean;
   readOnlyActions?: (item: PortfolioRelationItem) => SchoolRowAction[];
   load: (page: number, pageSize: number, sort?: { field?: string; direction?: "asc" | "desc" }, filters?: Record<string, string>) => Promise<EducationPage<{ id: string }>>;
-  create: (input: PortfolioRelationInput) => Promise<{ id: string }>;
-  update: (id: string, input: PortfolioRelationInput) => Promise<{ id: string }>;
-  remove: (id: string) => Promise<void>;
+  create?: (input: PortfolioRelationInput) => Promise<{ id: string }>;
+  update?: (id: string, input: PortfolioRelationInput) => Promise<{ id: string }>;
+  remove?: (id: string) => Promise<void>;
 };
 
 type PortfolioRelationManagerBaseConfig = Omit<PortfolioRelationManagerConfig, "filterableFields" | "load"> & {
@@ -3287,20 +3266,21 @@ function PortfolioRelationManager({ config, canManage }: { config: PortfolioRela
     finally { setSaving(false); }
   };
   const load = useCallback(async (_query: string, page = 1, pageSize = 20, sort?: { field?: string; direction?: "asc" | "desc" }, filters?: Record<string, string>) => config.load(page, pageSize, sort, filters), [config]);
+  const canMutate = canManage && !config.readOnly;
   const columns: EducationListPanelProps<PortfolioRelationItem>["columns"] = [
     ...config.columns,
     { header: "Acțiuni", action: true, render: (item) => <SchoolRowActionMenu actions={[
       { label: "Detalii", icon: "pi pi-eye", onSelect: () => setDetail(item) },
       ...(config.readOnlyActions?.(item) ?? []),
-      ...(canManage ? [{ label: "Editează", icon: "pi pi-pencil", onSelect: () => setEditing({ id: item.id, input: relationInputFromItem(item) }) }, { label: "Șterge", icon: "pi pi-trash", severity: "danger" as const, onSelect: () => setPendingDelete(item.id) }] : []),
+      ...(canMutate ? [{ label: "Editează", icon: "pi pi-pencil", onSelect: () => setEditing({ id: item.id, input: relationInputFromItem(item) }) }, { label: "Șterge", icon: "pi pi-trash", severity: "danger" as const, onSelect: () => setPendingDelete(item.id) }] : []),
     ]} /> },
   ];
   return <div className="flex flex-col gap-3">
     {error && <Message.Root severity="error"><Message.Content><Message.Text>{error}</Message.Text></Message.Content></Message.Root>}
-    <EducationListPanel key={revision} title={config.title} description="Date contractuale ale portofoliului; filtrarea, sortarea și paginarea sunt executate de server." emptyMessage="Nu există înregistrări pentru filtrul curent." load={load} columns={columns} onAdd={canManage ? () => setEditing({ input: {} }) : undefined} addLabel={config.itemLabel} filterableFields={config.filterableFields} sortableFields={config.sortableFields} />
-    <RecordFormDialog open={editing ? { id: editing.id, input: editing.input as EducationRecordInput } : undefined} title={`${editing?.id ? "Editează" : "Adaugă"} — ${config.title}`} fields={config.fields} onClose={() => !saving && setEditing(undefined)} onChange={(input) => setEditing((current) => current ? { ...current, input: input as PortfolioRelationInput } : current)} onSave={() => editing && void action(async () => { if (editing.id) await config.update(editing.id, editing.input); else await config.create(editing.input); })} />
+    <EducationListPanel key={revision} title={config.title} description="Date contractuale ale portofoliului; filtrarea, sortarea și paginarea sunt executate de server." emptyMessage="Nu există înregistrări pentru filtrul curent." load={load} columns={columns} onAdd={canMutate ? () => setEditing({ input: {} }) : undefined} addLabel={config.itemLabel} filterableFields={config.filterableFields} sortableFields={config.sortableFields} />
+    <RecordFormDialog open={editing ? { id: editing.id, input: editing.input as EducationRecordInput } : undefined} title={`${editing?.id ? "Editează" : "Adaugă"} — ${config.title}`} fields={config.fields} onClose={() => !saving && setEditing(undefined)} onChange={(input) => setEditing((current) => current ? { ...current, input: input as PortfolioRelationInput } : current)} onSave={() => editing && config.create && void action(async () => { if (editing.id && config.update) await config.update(editing.id, editing.input); else if (!editing.id) await config.create!(editing.input); })} />
     <PortfolioRelationDetailDialog title={config.title} record={detail} fields={config.fields} onClose={() => setDetail(undefined)} />
-    <DeleteDialog open={pendingDelete} onClose={() => !saving && setPendingDelete(undefined)} onConfirm={() => pendingDelete && void action(async () => { await config.remove(pendingDelete); setPendingDelete(undefined); })} />
+    <DeleteDialog open={pendingDelete} onClose={() => !saving && setPendingDelete(undefined)} onConfirm={() => pendingDelete && config.remove && void action(async () => { await config.remove!(pendingDelete); setPendingDelete(undefined); })} />
   </div>;
 }
 
@@ -3337,7 +3317,7 @@ export function PortfolioRelationsPanel({ api, recordID, canManage = false }: { 
     checklist: { title: "Checklist", itemLabel: "cerință", filterField: "requirement_code", fields: [{ key: "requirement_code", label: "Cod cerință *", kind: "text" }, { key: "requirement_label", label: "Cerință *", kind: "text" }, { key: "section_code", label: "Secțiune *", kind: "text" }, { key: "source_scope", label: "Domeniu sursă *", kind: "text" }, { key: "status", label: "Stare *", kind: "text" }, { key: "last_checked_on", label: "Ultima verificare *", kind: "date" }, { key: "checked_by", label: "Verificat de", kind: "text" }, { key: "document_count", label: "Număr documente", kind: "number" }, { key: "mandatory", label: "Obligatoriu", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "requirement_code", header: "Cod cerință", render: (item) => item.requirement_code }, { field: "requirement_label", header: "Cerință", render: (item) => item.requirement_label }, { field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "status", header: "Stare", render: (item) => <Tag value={item.status} severity="secondary" /> }, { field: "document_count", header: "Documente", render: (item) => String(item.document_count) }], sortableFields: ["requirement_code", "requirement_label", "section_code", "status", "document_count"], load: (page, pageSize, sort, requirementCode) => api.portfolioChecklist(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, requirementCode }), create: async (input) => api.createPortfolioChecklistItem(recordID, portfolioChecklistInput(input)), update: async (id, input) => api.updatePortfolioChecklistItem(recordID, id, portfolioChecklistInput(input)), remove: (id) => api.deletePortfolioChecklistItem(recordID, id) },
     opis: { title: "Opis", itemLabel: "poziție opis", filterField: "section_code", fields: [{ key: "section_code", label: "Secțiune *", kind: "text" }, { key: "component_code", label: "Componentă *", kind: "text" }, { key: "entry_title", label: "Titlu *", kind: "text" }, { key: "document_reference", label: "Referință document *", kind: "text" }, { key: "source_scope", label: "Domeniu sursă *", kind: "text" }, { key: "checked_on", label: "Data verificării *", kind: "date" }, { key: "checked_by", label: "Verificat de", kind: "text" }, { key: "chronological_index", label: "Ordine cronologică", kind: "number" }, { key: "included_in_transfer", label: "Inclus în transfer", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "section_code", header: "Secțiune", render: (item) => item.section_code }, { field: "component_code", header: "Componentă", render: (item) => item.component_code }, { field: "entry_title", header: "Titlu", render: (item) => item.entry_title }, { field: "chronological_index", header: "Ordine", render: (item) => String(item.chronological_index) }, { field: "document_reference", header: "Referință", render: (item) => item.document_reference }], sortableFields: ["section_code", "component_code", "entry_title", "chronological_index", "document_reference"], load: (page, pageSize, sort, sectionCode) => api.portfolioOpis(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, sectionCode }), create: async (input) => api.createPortfolioOpisEntry(recordID, portfolioOpisInput(input)), update: async (id, input) => api.updatePortfolioOpisEntry(recordID, id, portfolioOpisInput(input)), remove: (id) => api.deletePortfolioOpisEntry(recordID, id) },
     custody: { title: "Custodie", itemLabel: "eveniment de custodie", filterField: "event_type", fields: [{ key: "event_type", label: "Tip eveniment *", kind: "text" }, { key: "holder_name", label: "Custode *", kind: "text" }, { key: "holder_role", label: "Rol custode *", kind: "text" }, { key: "location_label", label: "Locație *", kind: "text" }, { key: "access_mode", label: "Mod acces *", kind: "text" }, { key: "access_reason", label: "Motiv acces *", kind: "text" }, { key: "started_on", label: "Început *", kind: "date" }, { key: "ended_on", label: "Sfârșit", kind: "date" }, { key: "sensitive_data_access", label: "Acces date sensibile", kind: "boolean" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "event_type", header: "Tip eveniment", render: (item) => item.event_type }, { field: "holder_name", header: "Custode", render: (item) => item.holder_name }, { field: "holder_role", header: "Rol custode", render: (item) => item.holder_role }, { field: "started_on", header: "Început", render: (item) => item.started_on }, { field: "ended_on", header: "Sfârșit", render: (item) => item.ended_on }], sortableFields: ["event_type", "holder_name", "holder_role", "started_on", "ended_on"], load: (page, pageSize, sort, eventType) => api.portfolioCustody(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, eventType }), create: async (input) => api.createPortfolioCustodyEvent(recordID, portfolioCustodyInput(input)), update: async (id, input) => api.updatePortfolioCustodyEvent(recordID, id, portfolioCustodyInput(input)), remove: (id) => api.deletePortfolioCustodyEvent(recordID, id) },
-    reviews: { title: "Revizuiri", itemLabel: "revizuire", filterField: "review_code", fields: [{ key: "review_stage", label: "Etapă *", kind: "text" }, { key: "outcome", label: "Rezultat *", kind: "text" }, { key: "reviewer_name", label: "Evaluator *", kind: "text" }, { key: "reviewed_on", label: "Data revizuirii *", kind: "date" }, { key: "compliance_score", label: "Scor conformitate", kind: "number" }, { key: "missing_documents", label: "Documente lipsă", kind: "number" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "review_code", header: "Cod", render: (item) => item.review_code }, { field: "review_stage", header: "Etapă", render: (item) => item.review_stage }, { field: "outcome", header: "Rezultat", render: (item) => item.outcome }, { field: "reviewer_name", header: "Evaluator", render: (item) => item.reviewer_name }, { field: "reviewed_on", header: "Data", render: (item) => item.reviewed_on }], sortableFields: ["review_code", "review_stage", "outcome", "reviewer_name", "reviewed_on"], load: (page, pageSize, sort, reviewCode) => api.portfolioReviews(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, reviewCode }), create: async (input) => api.createPortfolioReview(recordID, portfolioReviewInput(input)), update: async (id, input) => api.updatePortfolioReview(recordID, id, portfolioReviewInput(input)), remove: (id) => api.deletePortfolioReview(recordID, id) },
+    reviews: { title: "Revizuiri", itemLabel: "revizuire", readOnly: true, filterField: "review_code", fields: [{ key: "review_stage", label: "Etapă", kind: "text" }, { key: "outcome", label: "Rezultat", kind: "text" }, { key: "reviewer_name", label: "Evaluator", kind: "text" }, { key: "reviewed_on", label: "Data revizuirii", kind: "date" }, { key: "compliance_score", label: "Scor conformitate", kind: "number" }, { key: "missing_documents", label: "Documente lipsă", kind: "number" }, { key: "notes", label: "Observații", kind: "text" }], columns: [{ field: "review_code", header: "Cod", render: (item) => item.review_code }, { field: "review_stage", header: "Etapă", render: (item) => item.review_stage }, { field: "outcome", header: "Rezultat", render: (item) => item.outcome }, { field: "reviewer_name", header: "Evaluator", render: (item) => item.reviewer_name }, { field: "reviewed_on", header: "Data", render: (item) => item.reviewed_on }], sortableFields: ["review_code", "review_stage", "outcome", "reviewer_name", "reviewed_on"], load: (page, pageSize, sort, reviewCode) => api.portfolioReviews(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, reviewCode }) },
   };
   const managers: Record<Extract<PortfolioRelationTab, "documents" | "checklist" | "opis" | "custody" | "reviews">, PortfolioRelationManagerConfig> = {
     documents: { ...baseManagers.documents, fields: portfolioDocumentRelationFields, columns: portfolioDocumentRelationColumns, filterableFields: ["section_code", "component_code", "document_title", "description", "school_year", "subject_discipline", "applicable_class", "competencies", "evidence_type", "authenticity_status", "archive_version_no"], sortableFields: ["section_code", "component_code", "document_title", "description", "school_year", "subject_discipline", "applicable_class", "evidence_type", "authenticity_status", "archive_version_no"], load: (page, pageSize, sort, filters) => api.portfolioDocuments(recordID, { page, pageSize, sort: sort?.field, direction: sort?.direction, sectionCode: filters?.section_code, componentCode: filters?.component_code, documentTitle: filters?.document_title, description: filters?.description, schoolYear: filters?.school_year, subjectDiscipline: filters?.subject_discipline, applicableClass: filters?.applicable_class, competencies: filters?.competencies, evidenceType: filters?.evidence_type, authenticityStatus: filters?.authenticity_status, archiveVersionNo: filters?.archive_version_no }), readOnlyActions: (item) => [{ label: "Istoric versiuni", icon: "pi pi-history", onSelect: () => setDocumentVersion({ id: item.id, title: String(item.document_title ?? "Document") }) }] },
@@ -3574,8 +3554,6 @@ export function EducationWorkspace(props: EducationWorkspaceProps) {
               delegationResourceTypeForDomain(current.id as EducationRecordsDomain),
               recordID,
             )}
-            canVerifyPortfolio={allows("education.portfolios.verify")}
-            canVerifyPortfolioRecord={(recordID) => allows("education.portfolios.verify", "portfolio", recordID)}
             canManageSchoolPortfolios={allows("education.portfolios.school.manage")}
             canManageSchoolPortfolioRecord={(recordID) => allows("education.portfolios.school.manage", "portfolio", recordID)}
             portfolioTransferApi={portfolioTransferApi}

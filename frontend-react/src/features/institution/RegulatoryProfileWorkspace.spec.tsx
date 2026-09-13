@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PrimeReactProvider } from "@primereact/core/config";
 import { primeTheme } from "../../components/ThemeMenu";
 import { RegulatoryProfileWorkspace } from "./RegulatoryProfileWorkspace";
-import type { InstitutionCapabilities, InstitutionPolicyApi, RegulatoryProfile } from "./api";
+import type { InstitutionCapabilities, InstitutionPolicyApi, PolicyCutoverPreflight, RegulatoryProfile } from "./api";
 
 vi.mock("../../auth/AuthProvider", () => ({ useAuth: () => ({ session: null }) }));
 
@@ -23,6 +23,14 @@ const capabilities: InstitutionCapabilities = {
   effective_policies: [], capabilities: [],
 };
 const api = (): InstitutionPolicyApi => ({ profile: vi.fn().mockResolvedValue(profile), capabilities: vi.fn().mockResolvedValue(capabilities), saveProfile: vi.fn() });
+
+const preflight: PolicyCutoverPreflight = {
+  tenant_code: "tenant-a", institution_id: "inst-a", phase: "legacy",
+  legacy_profiles: 2, unmapped_profiles: 0, legacy_assignments: 3, unmapped_assignments: 0,
+  legacy_overrides: 1, unmapped_overrides: 0, legacy_evaluations: 4, unmapped_evaluations: 0,
+  missing_pack_provenance: 0, inputs_without_effective_date: 0, inputs_with_multiple_decisions: 0,
+  consumer_provenance_mismatches: 0, open_blocking_issues: 0, structurally_ready_for_dual: true,
+};
 
 describe("RegulatoryProfileWorkspace", () => {
   it("keeps reads available but explains fail-closed regulated writes for an unclassified school", async () => {
@@ -45,11 +53,20 @@ describe("RegulatoryProfileWorkspace", () => {
     fireEvent.click(await screen.findByRole("button", { name: /versiune nouă/i }));
     fireEvent.click(screen.getByRole("combobox", { name: "Formă juridică" }));
     fireEvent.click(await screen.findByRole("option", { name: "Școală publică" }));
-    fireEvent.change(screen.getByLabelText("Sursa aprobării"), { target: { value: "Hotărâre E2E" } });
+    fireEvent.change(screen.getByLabelText("Citare act"), { target: { value: "Hotărâre E2E" } });
     const save = screen.getByRole("button", { name: "Salvează versiunea" });
     expect(save).toBeEnabled();
     fireEvent.click(save);
-    await waitFor(() => expect(client.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ school_legal_form: "public", regulatory_profile: "ro.public.preuniversity", source_reference: "Hotărâre E2E" })));
+    await waitFor(() => expect(client.saveProfile).toHaveBeenCalledWith(expect.objectContaining({ school_legal_form: "public", regulatory_profile: "ro.public.preuniversity", source: expect.objectContaining({ citation: "Hotărâre E2E" }) })));
+  });
+
+  it("shows the scope-bound cutover preflight only to a profile administrator", async () => {
+    const client = { ...api(), cutoverPreflight: vi.fn().mockResolvedValue(preflight) };
+    render(<PrimeReactProvider {...primeTheme}><RegulatoryProfileWorkspace api={client} canManage /></PrimeReactProvider>);
+    expect(await screen.findByText("Pregătire migrare policy v2")).toBeInTheDocument();
+    expect(await screen.findByText("Structură reconciliată")).toBeInTheDocument();
+    expect(screen.getByText("0/2")).toBeInTheDocument();
+    expect(client.cutoverPreflight).toHaveBeenCalledTimes(1);
   });
 
   it("ignores an older institutional response that completes after a new load", async () => {

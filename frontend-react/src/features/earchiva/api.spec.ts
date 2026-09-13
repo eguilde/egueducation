@@ -28,6 +28,28 @@ describe('eArhivă API adapter', () => {
     expect(requestAt(fetcher, 3).method).toBe('POST');
   });
 
+  it('uses the scoped custody-recovery contracts without client tenant or storage identity', async () => {
+    const recoveryResult = { operation_id: '33333333-3333-4333-8333-333333333333', intent_id: '11111111-1111-4111-8111-111111111111', portfolio_id: '22222222-2222-4222-8222-222222222222', status: 'queued', disposition: 'teacher_access', reason: 'recuperare documentată', title: 'Plan', original_file_name: 'plan.pdf', created_at: '2026-09-12T08:00:00Z', updated_at: '2026-09-12T08:00:00Z' };
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(json({ items: [], total: 0, page: 1, pageSize: 20 }))
+      .mockResolvedValueOnce(json(recoveryResult, 202))
+      .mockResolvedValueOnce(json({ ...recoveryResult, status: 'committed' }));
+    const api = createArchiveApi(fetcher);
+    await api.portfolioCustodyRecoveries({ page: 2, pageSize: 20, status: 'stored', disposition: 'teacher_access', title: 'plan', original_file_name: 'plan.pdf', sort: 'created_at', direction: 'desc' });
+    await api.reconcilePortfolioCustody('intent/one', { reason: 'recuperare documentată', disposition: 'teacher_access', title: 'Plan', original_file_name: 'plan.pdf' });
+    await api.portfolioCustodyRecovery('intent/one', 'op/one');
+
+    const list = new URL(requestAt(fetcher).url);
+    expect(list.pathname).toBe('/api/earchiva/admin/portfolio-custody-intents');
+    expect(Object.fromEntries(list.searchParams)).toEqual({ page: '2', pageSize: '20', status: 'stored', disposition: 'teacher_access', title: 'plan', original_file_name: 'plan.pdf', sort: 'created_at', direction: 'desc' });
+    expect(list.searchParams.has('institution_id')).toBe(false);
+    const command = requestAt(fetcher, 1);
+    expect(new URL(command.url).pathname).toBe('/api/earchiva/admin/portfolio-custody-intents/intent%2Fone/reconcile');
+    expect(await command.json()).toEqual({ reason: 'recuperare documentată', disposition: 'teacher_access', title: 'Plan', original_file_name: 'plan.pdf' });
+    expect(new URL(requestAt(fetcher, 2).url).pathname).toBe('/api/earchiva/admin/portfolio-custody-intents/intent%2Fone/recovery-operations/op%2Fone');
+    expect(command.headers.get('X-Institution-ID')).toBeNull();
+  });
+
   it('downloads original content only through the protected document route', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(new Blob(['pdf'], { type: 'application/pdf' }), { status: 200, headers: { 'content-type': 'application/pdf' } }));
     const api = createArchiveApi(fetcher);

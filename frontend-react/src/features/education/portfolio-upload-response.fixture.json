@@ -1,0 +1,33 @@
+{
+  "id": "2e9c1418-2de4-4849-9d5f-c3d6525367c3",
+  "institution_id": "inst-001",
+  "title": "TEACHER-UPLOAD-local-1789217064160 Planificare",
+  "original_file_name": "TEACHER-UPLOAD-local-1789217064160.pdf",
+  "mime_type": "application/pdf",
+  "source_kind": "upload",
+  "source_system": "education_portfolio_own",
+  "external_reference": "",
+  "status": "queued",
+  "metadata": {
+    "portfolio_id": "f723fce2-0d72-49b0-a039-805e12628c83",
+    "portfolio_owner_user_id": "135fc2be-8302-5088-af13-d1b03b27eea3",
+    "portfolio_upload_fingerprint": "a5d3715419efb32302612dc76e0d5977139733e701995de3e6f038a5e8f07b67",
+    "source_file_name": "TEACHER-UPLOAD-local-1789217064160.pdf",
+    "source_page_count": 1,
+    "upload_purpose": "education_portfolio_own"
+  },
+  "current_version_no": 1,
+  "received_at": "2026-09-12T12:44:42Z",
+  "created_at": "2026-09-12T12:44:42Z",
+  "updated_at": "2026-09-12T12:44:42Z",
+  "latest_version": {
+    "id": "f635ed27-784b-4e7d-ab49-a0981d68bed8",
+    "document_id": "2e9c1418-2de4-4849-9d5f-c3d6525367c3",
+    "version_no": 1,
+    "source_sha256": "b83cbcefed159f598137c599e37433a75f5481431992c9a04de92a52bf56ffc1",
+    "source_size_bytes": 552,
+    "page_count": 0,
+    "text_status": "pending",
+    "created_at": "2026-09-12T12:44:42Z"
+  }
+}

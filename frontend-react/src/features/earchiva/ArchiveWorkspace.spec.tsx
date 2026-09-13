@@ -7,7 +7,7 @@ import type { ArchiveApi } from './api';
 
 const api = (): ArchiveApi => ({
   documents: vi.fn().mockResolvedValue({ items: [{ id: 'doc-1', title: 'Catalog', original_file_name: 'catalog.pdf', mime_type: 'application/pdf', source_kind: 'scan', source_system: '', external_reference: '', status: 'queued', current_version_no: 1, received_at: '2026-01-01', created_at: '2026-01-01', updated_at: '2026-01-01' }], total: 1, page: 1, pageSize: 25 }),
-  taxonomy: vi.fn().mockResolvedValue([]), document: vi.fn(), versions: vi.fn(), download: vi.fn(), upload: vi.fn(), adminHealth: vi.fn(), adminStats: vi.fn(), adminJobs: vi.fn(), retryJob: vi.fn(), classificationReviews: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 25 }), approveClassificationReview: vi.fn(), correctClassificationReview: vi.fn(),
+  taxonomy: vi.fn().mockResolvedValue([]), document: vi.fn(), versions: vi.fn(), download: vi.fn(), upload: vi.fn(), adminHealth: vi.fn(), adminStats: vi.fn(), adminJobs: vi.fn(), retryJob: vi.fn(), portfolioCustodyRecoveries: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 }), reconcilePortfolioCustody: vi.fn(), portfolioCustodyRecovery: vi.fn(), classificationReviews: vi.fn().mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 25 }), approveClassificationReview: vi.fn(), correctClassificationReview: vi.fn(),
 });
 
 describe('ArchiveWorkspace authorization', () => {
@@ -33,6 +33,19 @@ describe('ArchiveWorkspace authorization', () => {
     const calls = (transport.documents as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls[0][0]).not.toHaveProperty('institution_id');
     expect(calls[0][0]).not.toHaveProperty('tenant_id');
+  });
+
+  it('gates custody recovery behind the combined archive and portfolio capability', async () => {
+    const denied = api();
+    render(<PrimeReactProvider {...primeTheme}><ArchiveWorkspace api={denied} canManage canRecoverPortfolioCustody={false} /></PrimeReactProvider>);
+    await screen.findByText('Catalog');
+    expect(screen.queryByText('Recuperare custodie portofoliu')).not.toBeInTheDocument();
+    expect(denied.portfolioCustodyRecoveries).not.toHaveBeenCalled();
+
+    const allowed = api();
+    render(<PrimeReactProvider {...primeTheme}><ArchiveWorkspace api={allowed} canManage canRecoverPortfolioCustody /></PrimeReactProvider>);
+    await screen.findByText('Recuperare custodie portofoliu');
+    expect(allowed.portfolioCustodyRecoveries).toHaveBeenCalledWith(expect.objectContaining({ page: 1, pageSize: 20 }));
   });
 
   it('submits the default browser-upload source kind accepted by the archive contract', async () => {

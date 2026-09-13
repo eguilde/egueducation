@@ -13,6 +13,7 @@ import type { FileUploadSelectEvent } from 'primereact/fileupload';
 import type { SelectValueChangeEvent } from 'primereact/select';
 import { createArchiveApi, type ArchiveApi, type ArchiveAdminHealth, type ArchiveAdminStats, type ArchiveDocument, type ArchiveDocumentDetail, type ArchiveDocumentVersion, type ArchiveJob, type ArchiveTaxonomy, type SearchMode, type UploadArchiveDocumentInput } from './api';
 import { ClassificationReviewPanel } from './ClassificationReviewPanel';
+import { PortfolioCustodyRecoveryPanel } from './PortfolioCustodyRecoveryPanel';
 
 const PAGE_SIZE = 25;
 const MAX_PDF_BYTES = 100 * 1024 * 1024;
@@ -24,7 +25,7 @@ type UploadItem = { key: string; file: File; title: string; state: 'pending' | '
 export const archiveUploadOutcome = (status: string): 'processed' | 'failed' | undefined => status === 'ready' || status === 'archived' ? 'processed' : status === 'failed' ? 'failed' : undefined;
 export const archiveBrowserUploadSourceKind = 'upload' as const;
 
-export function ArchiveWorkspace({ api = createArchiveApi(), canManage = false, canReadContent = false, canReview = false }: { api?: ArchiveApi; canManage?: boolean; canReadContent?: boolean; canReview?: boolean }) {
+export function ArchiveWorkspace({ api = createArchiveApi(), canManage = false, canRecoverPortfolioCustody = false, canReadContent = false, canReview = false }: { api?: ArchiveApi; canManage?: boolean; canRecoverPortfolioCustody?: boolean; canReadContent?: boolean; canReview?: boolean }) {
   const [documents, setDocuments] = useState<ArchiveDocument[]>([]); const [taxonomy, setTaxonomy] = useState<ArchiveTaxonomy[]>([]);
   const [total, setTotal] = useState(0); const [page, setPage] = useState(1); const [query, setQuery] = useState(''); const [mode, setMode] = useState<SearchMode>('hybrid');
   const [status, setStatus] = useState(''); const [sourceKind, setSourceKind] = useState(''); const [taxonomyCode, setTaxonomyCode] = useState(''); const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export function ArchiveWorkspace({ api = createArchiveApi(), canManage = false, 
     {error && <Message.Root severity="error"><Message.Content><Message.Text>{error}</Message.Text></Message.Content></Message.Root>}
     {notice && <Message.Root severity="success"><Message.Content><Message.Text>{notice}</Message.Text></Message.Content></Message.Root>}
     <Card.Root><Card.Body><Card.Content>{loading ? <div className="flex justify-center p-8"><Spinner /></div> : <><DocumentTable documents={documents} onDetail={showDetail} /><Pager page={page} total={total} hasNext={documents.length === PAGE_SIZE} onPrevious={() => setPage((value) => Math.max(1, value - 1))} onNext={() => setPage((value) => value + 1)} /></>}</Card.Content></Card.Body></Card.Root>
-    {canManage && <ArchiveAdministration api={api} />}
+    {canManage && <ArchiveAdministration api={api} canRecoverPortfolioCustody={canRecoverPortfolioCustody} />}
     {canReview && <ClassificationReviewPanel api={api} canReview={canReview} />}
     <DocumentDialog document={detail} versions={versions} canReadContent={canReadContent} onDownload={download} onClose={() => setDetail(undefined)} />
   </section>;
@@ -73,7 +74,7 @@ function UploadDialog({ api, taxonomy, onComplete }: { api: ArchiveApi; taxonomy
 
 function DocumentDialog({ document, versions, canReadContent, onDownload, onClose }: { document?: ArchiveDocumentDetail; versions: ArchiveDocumentVersion[]; canReadContent: boolean; onDownload: (document: ArchiveDocumentDetail) => Promise<void>; onClose: () => void }) { return <Dialog.Root open={Boolean(document)} onOpenChange={(event: { value?: boolean }) => !event.value && onClose()}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>Document arhivistic</Dialog.Title><Dialog.Close aria-label="Închide" /></Dialog.Header><Dialog.Content>{document && <div className="flex flex-col gap-3"><dl><dt>Fișier original</dt><dd>{document.original_file_name}</dd><dt>Taxonomie</dt><dd>{document.taxonomy_label ?? document.taxonomy_code ?? '—'}</dd><dt>Stare</dt><dd>{document.status}</dd><dt>Primit</dt><dd>{document.received_at}</dd></dl><h3>Versiuni și procesare</h3>{versions.length ? <ul>{versions.map((version) => <li key={version.id}>v{version.version_no} · {version.text_status} · {version.page_count} pagini · {version.chunk_count ?? 0} fragmente</li>)}</ul> : <p>Nu există versiuni.</p>}</div>}</Dialog.Content><Dialog.Footer>{document && canReadContent && <Button onClick={() => void onDownload(document)}>Descarcă originalul PDF</Button>}<Button variant="outlined" onClick={onClose}>Închide</Button></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>; }
 
-function ArchiveAdministration({ api }: { api: ArchiveApi }) {
+function ArchiveAdministration({ api, canRecoverPortfolioCustody }: { api: ArchiveApi; canRecoverPortfolioCustody: boolean }) {
   const [health, setHealth] = useState<ArchiveAdminHealth>();
   const [stats, setStats] = useState<ArchiveAdminStats>();
   const [jobs, setJobs] = useState<ArchiveJob[]>([]);
@@ -97,12 +98,12 @@ function ArchiveAdministration({ api }: { api: ArchiveApi }) {
     try { await api.retryJob(retryCandidate.id); setRetryCandidate(undefined); await load(); }
     catch { setError('Reîncercarea jobului a eșuat.'); }
   };
-  return <Card.Root><Card.Body><Card.Title>Administrare eArhivă</Card.Title><Card.Content><div className="flex flex-col gap-4">
+  return <div className="flex flex-col gap-4"><Card.Root><Card.Body><Card.Title>Administrare eArhivă</Card.Title><Card.Content><div className="flex flex-col gap-4">
     <div className="flex flex-wrap items-center gap-2"><Select.Root value={statusFilter || null} options={options(['pending', 'running', 'succeeded', 'failed'])} optionLabel="label" optionValue="value" onValueChange={(event: SelectValueChangeEvent) => setStatusFilter(String(event.value ?? ''))}><Select.Trigger aria-label="Filtrează joburile după stare"><Select.Value placeholder="Toate joburile" /><Select.Indicator /></Select.Trigger><Select.Portal><Select.Positioner><Select.Popup><Select.List /></Select.Popup></Select.Positioner></Select.Portal></Select.Root><Button variant="outlined" disabled={loading} onClick={() => void load()}>Actualizează</Button></div>
     {error && <Message.Root severity="error"><Message.Content><Message.Text>{error}</Message.Text></Message.Content></Message.Root>}
     {health && <div aria-label="Stare servicii" className="grid gap-3 md:grid-cols-2"><Card.Root><Card.Body><Card.Title>Storage</Card.Title><Card.Content><Tag value={health.storage?.status ?? 'necunoscut'} severity={health.storage_enabled ? 'info' : 'danger'} /><p>{health.storage?.message ?? 'Configurație disponibilă.'}</p></Card.Content></Card.Body></Card.Root><Card.Root><Card.Body><Card.Title>OCR</Card.Title><Card.Content><Tag value={`${health.ocr?.provider ?? 'OCR'}: ${health.ocr?.status ?? 'necunoscut'}`} severity={health.ocr?.configured ? 'info' : 'danger'} /><p>{health.ocr?.message ?? 'Configurație disponibilă.'}</p></Card.Content></Card.Body></Card.Root></div>}
     {stats && <div aria-label="Statistici eArhivă" className="flex flex-wrap gap-2"><Tag value={`Documente: ${stats.total_documents}`} /><Tag value={`Pagini: ${stats.total_pages}`} /><Tag value={`În așteptare: ${stats.queued}`} /><Tag value={`În procesare: ${stats.processing}`} /><Tag value={`Finalizate: ${stats.completed}`} /><Tag value={`Eșuate: ${stats.failed}`} severity={stats.failed ? 'danger' : undefined} /></div>}
     {jobs.length === 0 ? <Message.Root severity="info"><Message.Content><Message.Text>Nu există joburi pentru filtrul ales.</Message.Text></Message.Content></Message.Root> : <DataTable.Root data={jobs as unknown as Record<string, unknown>[]} dataKey="id"><DataTable.Table><DataTable.THead><DataTable.THeadRow><DataTable.THeadCell>Job</DataTable.THeadCell><DataTable.THeadCell>Etapă</DataTable.THeadCell><DataTable.THeadCell>Stare</DataTable.THeadCell><DataTable.THeadCell>Încercări</DataTable.THeadCell><DataTable.THeadCell>Acțiune</DataTable.THeadCell></DataTable.THeadRow></DataTable.THead><DataTable.TBody>{({ item, index }) => { const job = item as unknown as ArchiveJob; return <DataTable.Row key={job.id} index={index}><DataTable.Cell>{job.id}</DataTable.Cell><DataTable.Cell>{job.stage ?? job.job_type ?? '—'}</DataTable.Cell><DataTable.Cell><Tag value={job.status} /></DataTable.Cell><DataTable.Cell>{job.attempts}</DataTable.Cell><DataTable.Cell><Button size="small" variant="text" disabled={loading || job.status !== 'failed'} onClick={() => setRetryCandidate(job)}>Reîncearcă</Button></DataTable.Cell></DataTable.Row>; }}</DataTable.TBody></DataTable.Table></DataTable.Root>}
     <Dialog.Root open={Boolean(retryCandidate)} onOpenChange={(event: { value?: boolean }) => !event.value && setRetryCandidate(undefined)}><Dialog.Portal><Dialog.Backdrop /><Dialog.Positioner><Dialog.Popup><Dialog.Header><Dialog.Title>Confirmă reîncercarea</Dialog.Title><Dialog.Close aria-label="Închide" /></Dialog.Header><Dialog.Content>Jobul va fi repus în coada OCR de la prima încercare.</Dialog.Content><Dialog.Footer><Button variant="outlined" onClick={() => setRetryCandidate(undefined)}>Renunță</Button><Button onClick={() => void retry()}>Reîncearcă jobul</Button></Dialog.Footer></Dialog.Popup></Dialog.Positioner></Dialog.Portal></Dialog.Root>
-  </div></Card.Content></Card.Body></Card.Root>;
+  </div></Card.Content></Card.Body></Card.Root>{canRecoverPortfolioCustody && <PortfolioCustodyRecoveryPanel api={api} />}</div>;
 }

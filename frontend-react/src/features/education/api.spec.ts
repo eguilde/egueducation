@@ -1,12 +1,109 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { components } from "../../api/generated";
 import { createEducationApi } from "./api";
+import uploadResponse from "./portfolio-upload-response.fixture.json";
+import { File as NodeFile } from "node:buffer";
 import type { EducationMetadataResultByResource, EducationRelatedCreateInputByResource, EducationRelatedRecordByResource, EducationRootCreateInputByDomain, EducationRootRecordByDomain, EducationRootUpdateInputByDomain, GovernanceMeetingInput } from "./types";
 
 const requestAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => fetcher.mock.calls[index][0] as Request;
 const urlAt = (fetcher: ReturnType<typeof vi.fn>, index = 0) => requestAt(fetcher, index).url;
 
 describe("Education API", () => {
+  it("sends lifecycle history filters and paging through the generated route", async () => {
+    const page = { items: [], total: 0, page: 2, pageSize: 10 };
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(page)));
+    await expect(createEducationApi(fetcher).portfolioLifecycleOperations("portfolio-1", { page: 2, pageSize: 10, sort: "status", direction: "asc", "filter.status": "blocked", "filter.type": "cessation_retention", "filter.requested_at": "2026-09-12" })).resolves.toEqual(page);
+    const url = new URL(urlAt(fetcher));
+    expect(url.pathname).toBe("/api/education/portfolios/records/portfolio-1/lifecycle-operations");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ page: "2", pageSize: "10", sort: "status", direction: "asc", "filter.status": "blocked", "filter.type": "cessation_retention", "filter.requested_at": "2026-09-12" });
+  });
+
+  it("does not convert a lifecycle history denial into an empty page", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "forbidden" }), { status: 403 }));
+    await expect(createEducationApi(fetcher).portfolioLifecycleOperations("portfolio-1")).rejects.toMatchObject({ message: "education_request_403", cause: "forbidden" });
+  });
+
+  it("uses the scoped generated lifecycle status route", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "portfolio_lifecycle_operation_not_found" }), { status: 404 }));
+    await expect(createEducationApi(fetcher).portfolioLifecycleOperation("portfolio-1", "operation-1")).rejects.toMatchObject({ message: "education_request_404", cause: "portfolio_lifecycle_operation_not_found" });
+    expect(requestAt(fetcher).method).toBe("GET");
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/portfolio-1/lifecycle-operations/operation-1");
+  });
+
+  it("sends a reasoned lifecycle retry without treating a conflict as success", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "portfolio_lifecycle_retry_not_available" }), { status: 409 }));
+    await expect(createEducationApi(fetcher).retryPortfolioLifecycleOperation("portfolio-1", "operation-1", { reason: "Verificare finalizată" })).rejects.toMatchObject({ message: "education_request_409", cause: "portfolio_lifecycle_retry_not_available" });
+    expect(requestAt(fetcher).method).toBe("POST");
+    expect(new URL(urlAt(fetcher)).pathname).toBe("/api/education/portfolios/records/portfolio-1/lifecycle-operations/operation-1/retry");
+    expect(await requestAt(fetcher).json()).toEqual({ reason: "Verificare finalizată" });
+  });
+
+  it("downloads the own portfolio through a body-free generated ZIP contract", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("zip-bytes", { headers: { "Content-Type": "application/zip" } }));
+    const result = await createEducationApi(fetcher).exportOwnPortfolio("own-1");
+    expect(await result.text()).toBe("zip-bytes");
+    const request = requestAt(fetcher);
+    expect(request.method).toBe("POST");
+    expect(new URL(request.url).pathname).toBe("/api/education/portfolios/me/own-1/export");
+    expect(request.headers.get("Accept")).toBe("application/zip");
+    expect(await request.text()).toBe("");
+  });
+
+  it("preserves export integrity failures instead of downloading error JSON", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "education_portfolio_export_provenance_incomplete" }), { status: 422, headers: { "Content-Type": "application/json" } }));
+    await expect(createEducationApi(fetcher).exportOwnPortfolio("own-1")).rejects.toMatchObject({ message: "education_request_422", cause: "education_portfolio_export_provenance_incomplete" });
+  });
+
+  it("rejects successful responses that are not ZIP downloads", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response("{}", { headers: { "Content-Type": "application/json" } }));
+    await expect(createEducationApi(fetcher).exportOwnPortfolio("own-1")).rejects.toThrow("education_contract_response_invalid");
+  });
+  it("rejects scalar fallbacks in the applied procedure response", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ procedure: "not a procedure", rules: ["not a rule"] }), { status: 200 }));
+    await expect(createEducationApi(fetcher).ownPortfolioAppliedProcedure("own-1")).rejects.toThrow();
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it("requests only the procedure bound to the own portfolio and preserves the unbound reason", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "education_own_portfolio_procedure_not_applied" }), { status: 404 }));
+    await expect(createEducationApi(fetcher).ownPortfolioAppliedProcedure("own-1")).rejects.toMatchObject({
+      message: "education_request_404", cause: "education_own_portfolio_procedure_not_applied",
+    });
+    const request = requestAt(fetcher);
+    expect(request.method).toBe("GET");
+    expect(new URL(request.url).pathname).toBe("/api/education/portfolios/me/own-1/procedure");
+    expect(new URL(request.url).search).toBe("");
+  });
+
+  it("preserves the backend reason when a school procedure is missing", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "education_portfolio_published_procedure_required" }), { status: 422 }));
+    await expect(createEducationApi(fetcher).createOwnPortfolio({ school_year: "2026-2027", last_updated_on: "2026-09-01", notes: "" })).rejects.toMatchObject({
+      message: "education_request_422",
+      cause: "education_portfolio_published_procedure_required",
+    });
+  });
+
+  it("accepts real upload metadata with a numeric page count and preserves multipart retry identity", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(uploadResponse), { status: 201 }));
+    const api = createEducationApi(fetcher);
+    // Node's Request encoder requires a File from its own Web API realm.
+    const file = new NodeFile(["%PDF-1.4"], "portfolio.pdf", { type: "application/pdf" }) as unknown as File;
+    await expect(api.uploadOwnPortfolioArchiveDocument("portfolio-1", { file, title: "Planificare" }, "stable-key")).resolves.toEqual(uploadResponse);
+    const request = requestAt(fetcher);
+    expect(request.headers.get("Idempotency-Key")).toBe("stable-key");
+    expect(request.headers.get("Content-Type")).toMatch(/^multipart\/form-data; boundary=/);
+    const form = await request.formData();
+    expect(form.get("title")).toBe("Planificare");
+    expect(form.has("file")).toBe(true);
+  });
+
+  it("preserves the upload conflict reason through the generated API client", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "archive_idempotency_conflict" }), { status: 409, headers: { "Content-Type": "application/json" } }));
+    const file = new NodeFile(["%PDF-1.4"], "portfolio.pdf", { type: "application/pdf" }) as unknown as File;
+    await expect(createEducationApi(fetcher).uploadOwnPortfolioArchiveDocument("portfolio-1", { file, title: "Plan" }, "same-key"))
+      .rejects.toMatchObject({ message: "education_request_409", cause: "archive_idempotency_conflict" });
+  });
+
   it("rejects a successful data operation whose documented response body is absent", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     await expect(createEducationApi(fetcher).governanceDashboard()).rejects.toThrow("education_contract_response_missing_data");
@@ -91,6 +188,18 @@ describe("Education API", () => {
     })));
     const result = await createEducationApi(fetcher).taxonomyCatalog();
     expect(result).toMatchObject({ items: { governance: [{ id: "t1" }], portfolios: [{ id: "t2" }] } });
+  });
+
+  it("uses only the dedicated atomic portfolio review commands", async () => {
+    const fetcher = vi.fn().mockImplementation(() => new Response(JSON.stringify({ id: "portfolio-1", status: "returned" }), { headers: { "content-type": "application/json" } }));
+    const api = createEducationApi(fetcher);
+    await api.returnPortfolioForCorrections("portfolio-1", { reviewed_on: "2026-09-11", missing_documents: 2, compliance_score: 60, notes: "Lipsesc dovezi." });
+    await api.recordPortfolioManagerialDecision("portfolio-1", { reviewed_on: "2026-09-12", outcome: "respins", missing_documents: 0, compliance_score: 20, notes: "Neconform." });
+    expect(requestAt(fetcher, 0).method).toBe("POST");
+    expect(new URL(urlAt(fetcher, 0)).pathname).toBe("/api/education/portfolios/records/portfolio-1/return");
+    await expect(requestAt(fetcher, 0).clone().json()).resolves.toEqual({ reviewed_on: "2026-09-11", missing_documents: 2, compliance_score: 60, notes: "Lipsesc dovezi." });
+    expect(new URL(urlAt(fetcher, 1)).pathname).toBe("/api/education/portfolios/records/portfolio-1/managerial-decision");
+    await expect(requestAt(fetcher, 1).clone().json()).resolves.toEqual({ reviewed_on: "2026-09-12", outcome: "respins", missing_documents: 0, compliance_score: 20, notes: "Neconform." });
   });
 
   it("sends eligible-governance-user search and paging through the generated query contract", async () => {
@@ -447,6 +556,18 @@ describe("Education API", () => {
     expect(request.method).toBe("POST");
     expect(request.url).toContain("/api/education/portfolios/me/portfolio-1/declarations/authenticity/acknowledgements");
     await expect(request.clone().json()).resolves.toEqual({ confirmed: true });
+  });
+
+  it("updates own portfolio document metadata through the literal PATCH contract", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "document-1" }), { status: 200, headers: { "content-type": "application/json" } }));
+    const input = { section_code: "I", component_code: "I.1", document_title: "Planificare", description: "Planificare corectată", school_year: "2026-2027", subject_discipline: "Matematică", applicable_class: "IV A", competencies: ["C1"], evidence_type: "document", issued_on: "2026-09-01", added_on: "2026-09-01", chronological_index: 1, sensitive_data: false, file_reference: "archive://document-1", notes: "Corectat" };
+
+    await createEducationApi(fetcher).updateOwnPortfolioDocument("own-1", "document-1", input);
+
+    const request = requestAt(fetcher);
+    expect(request.method).toBe("PATCH");
+    expect(new URL(request.url).pathname).toBe("/api/education/portfolios/me/own-1/documents/document-1");
+    await expect(request.clone().json()).resolves.toEqual(input);
   });
 
   it("uses only the owner-scoped portfolio contract for teacher self-service", async () => {

@@ -1,4 +1,4 @@
-import type { components } from "../../api/generated";
+import type { components, operations } from "../../api/generated";
 
 export interface EducationModule {
   code: string;
@@ -255,7 +255,7 @@ export interface EducationMetadataResultByResource {
 }
 
 export type EducationCommand =
-  | "portfolio-opis-regenerate" | "portfolio-return" | "portfolio-verify";
+  | "portfolio-opis-regenerate";
 
 export interface EducationRecordInput {
   [key: string]: string | number | boolean | undefined;
@@ -282,7 +282,10 @@ export type CreatePortfolioDocumentInput = components["schemas"]["CreatePortfoli
 export type CreatePortfolioChecklistItemInput = components["schemas"]["CreatePortfolioChecklistItemRequest"];
 export type CreatePortfolioOpisEntryInput = components["schemas"]["CreatePortfolioOpisEntryRequest"];
 export type CreatePortfolioCustodyEventInput = components["schemas"]["CreatePortfolioCustodyEventRequest"];
-export type CreatePortfolioReviewEventInput = components["schemas"]["CreatePortfolioReviewEventRequest"];
+/** Dedicated, server-derived portfolio review commands. Reviewer, review
+ * stage and target lifecycle state are intentionally not client inputs. */
+export type PortfolioReturnForCorrectionsInput = components["schemas"]["PortfolioReturnForCorrectionsRequest"];
+export type PortfolioManagerialDecisionInput = components["schemas"]["PortfolioManagerialDecisionRequest"];
 export type CreatePortfolioValorificationEventInput = components["schemas"]["CreatePortfolioValorificationEventRequest"];
 
 export type PortfolioDocumentSort = "section_code" | "component_code" | "document_title" | "description" | "school_year" | "subject_discipline" | "applicable_class" | "source_scope" | "evidence_type" | "issued_on" | "chronological_index" | "sensitive_data" | "authenticity_status" | "archive_version_no";
@@ -306,10 +309,21 @@ export interface TaxonomyCatalogQuery { domains?: string; }
  */
 export type OwnPortfolioInput = components["schemas"]["OwnPortfolioRequest"];
 export type OwnPortfolio = components["schemas"]["PortfolioRecord"];
+export type OwnPortfolioAppliedProcedure = components["schemas"]["OwnPortfolioAppliedProcedureResponse"];
 
 export type PortfolioOpisRegeneration = components["schemas"]["EducationRegeneratePortfolioOpisResponse"];
 export type PortfolioCessationInput = components["schemas"]["PortfolioCessationRequest"];
 export type PortfolioLegalHoldInput = components["schemas"]["PortfolioLegalHoldRequest"];
+export type PortfolioLifecycleResult = components["schemas"]["PortfolioLifecycleOperationResponse"];
+export type PortfolioLifecyclePage = components["schemas"]["EducationPageOfPortfolioLifecycleOperation"];
+export type PortfolioLifecycleListQuery = NonNullable<operations["get_api_education_portfolios_records_recordid_lifecycle_operations"]["parameters"]["query"]>;
+export type PortfolioLifecycleRetryInput = components["schemas"]["PortfolioLifecycleRetryRequest"];
+export type PortfolioRetentionDisposition = components["schemas"]["PortfolioRetentionDisposition"];
+export type PortfolioRetentionDispositionPage = components["schemas"]["EducationPageOfPortfolioRetentionDisposition"];
+export type PortfolioRetentionDispositionQuery = NonNullable<operations["get_api_education_portfolios_records_recordid_retention_dispositions"]["parameters"]["query"]>;
+export type PortfolioRetentionDispositionInput = components["schemas"]["PortfolioRetentionDispositionRequest"];
+export type PortfolioRetentionDispositionDecisionInput = components["schemas"]["PortfolioRetentionDispositionDecisionRequest"];
+export type PortfolioRetentionDispositionCommand = components["schemas"]["PortfolioRetentionDispositionCommandResponse"];
 export type PortfolioDeclarationType = "gdpr_information" | "authenticity";
 export interface PortfolioDeclarationTemplate {
   declaration_type: PortfolioDeclarationType;
@@ -328,6 +342,7 @@ export type PortfolioProcedureUpdateInput = components["schemas"]["UpdatePortfol
 
 export type OwnPortfolioDocumentInput = components["schemas"]["OwnPortfolioDocumentRequest"];
 export type OwnPortfolioArchiveDocument = components["schemas"]["PortfolioArchiveAttachment"];
+export type OwnPortfolioArchiveUpload = components["schemas"]["post_api_education_portfolios_me_recordid_archive_documents_response"];
 export type PortfolioAttachmentGrant = components["schemas"]["PortfolioArchiveAttachmentGrant"];
 export type CreatePortfolioAttachmentGrant = components["schemas"]["CreatePortfolioArchiveAttachmentGrantRequest"];
 
@@ -404,9 +419,8 @@ export interface EducationApi {
   deletePortfolioCustodyEvent(recordID: string, itemID: string): Promise<void>;
   portfolioReviews(recordID: string, input?: PortfolioReviewListQuery): Promise<EducationPage<PortfolioReviewEvent>>;
   portfolioReview(recordID: string, itemID: string): Promise<PortfolioReviewEvent>;
-  createPortfolioReview(recordID: string, input: CreatePortfolioReviewEventInput): Promise<PortfolioReviewEvent>;
-  updatePortfolioReview(recordID: string, itemID: string, input: CreatePortfolioReviewEventInput): Promise<PortfolioReviewEvent>;
-  deletePortfolioReview(recordID: string, itemID: string): Promise<void>;
+  returnPortfolioForCorrections(recordID: string, input: PortfolioReturnForCorrectionsInput): Promise<OwnPortfolio>;
+  recordPortfolioManagerialDecision(recordID: string, input: PortfolioManagerialDecisionInput): Promise<OwnPortfolio>;
   portfolioTransferHistory(recordID: string, input?: PortfolioTransferHistoryQuery): Promise<EducationPage<PortfolioTransferEvent>>;
   portfolioValorifications(recordID: string, input?: PortfolioValorificationListQuery): Promise<EducationPage<PortfolioValorificationEvent>>;
   portfolioValorification(recordID: string, itemID: string): Promise<PortfolioValorificationEvent>;
@@ -424,6 +438,7 @@ export interface EducationApi {
   updateOwnPortfolio(id: string, input: OwnPortfolioInput): Promise<OwnPortfolio>;
   submitOwnPortfolio(id: string): Promise<OwnPortfolio>;
   ownPortfolioDeclarations(id: string): Promise<PortfolioDeclarationEvidence>;
+  ownPortfolioAppliedProcedure(id: string): Promise<OwnPortfolioAppliedProcedure>;
   acknowledgeOwnPortfolioDeclaration(id: string, declarationType: PortfolioDeclarationType): Promise<PortfolioDeclarationAcknowledgement>;
   portfolioProcedures(input?: EducationListQuery): Promise<EducationPage<PortfolioProcedure>>;
   portfolioProcedure(id: string): Promise<PortfolioProcedure>;
@@ -434,18 +449,27 @@ export interface EducationApi {
   transitionPortfolioProcedure(id: string, transition: "approve" | "publish" | "supersede" | "withdraw", input: { expected_updated_at: string; evidence: Record<string, unknown> }): Promise<PortfolioProcedure>;
   ownPortfolioRelated(id: string, resource: "documents" | "checklist" | "opis" | "reviews", input?: EducationListQuery): Promise<EducationPage<EducationRecord>>;
   regenerateOwnPortfolioOpis(id: string): Promise<PortfolioOpisRegeneration>;
-  recordPortfolioCessation(id: string, input: PortfolioCessationInput): Promise<OwnPortfolio>;
-  setPortfolioLegalHold(id: string, input: PortfolioLegalHoldInput): Promise<OwnPortfolio>;
+  recordPortfolioCessation(id: string, input: PortfolioCessationInput): Promise<PortfolioLifecycleResult>;
+  setPortfolioLegalHold(id: string, input: PortfolioLegalHoldInput): Promise<PortfolioLifecycleResult>;
+  portfolioLifecycleOperation(id: string, operationID: string): Promise<PortfolioLifecycleResult>;
+  portfolioLifecycleOperations(id: string, query?: PortfolioLifecycleListQuery): Promise<PortfolioLifecyclePage>;
+  retryPortfolioLifecycleOperation(id: string, operationID: string, input: PortfolioLifecycleRetryInput): Promise<PortfolioLifecycleResult>;
+  portfolioRetentionDispositions(id: string, query?: PortfolioRetentionDispositionQuery): Promise<PortfolioRetentionDispositionPage>;
+  submitPortfolioRetentionDisposition(id: string, operationID: string, transitionID: string, input: PortfolioRetentionDispositionInput): Promise<PortfolioRetentionDispositionCommand>;
+  decidePortfolioRetentionDisposition(id: string, requestID: string, input: PortfolioRetentionDispositionDecisionInput): Promise<PortfolioRetentionDispositionCommand>;
   createOwnPortfolioDocument(id: string, input: OwnPortfolioDocumentInput): Promise<PortfolioDocument>;
+  updateOwnPortfolioDocument(portfolioID: string, documentID: string, input: OwnPortfolioDocumentInput): Promise<PortfolioDocument>;
   ownPortfolioDocumentVersions(portfolioID: string, documentID: string, input?: PortfolioDocumentVersionListQuery): Promise<EducationPage<PortfolioDocumentVersion>>;
   deleteOwnPortfolioDocument(portfolioID: string, documentID: string): Promise<void>;
   ownPortfolioArchiveDocuments(input?: EducationListQuery): Promise<EducationPage<OwnPortfolioArchiveDocument>>;
+  uploadOwnPortfolioArchiveDocument(id: string, input: { file: File; title: string; document_date?: string }, idempotencyKey: string): Promise<OwnPortfolioArchiveUpload>;
   attachmentGrants(input?: EducationListQuery): Promise<EducationPage<PortfolioAttachmentGrant>>;
   eligibleAttachmentDocuments(input?: EducationListQuery): Promise<EducationPage<OwnPortfolioArchiveDocument>>;
   eligibleAttachmentUsers(input?: EducationListQuery): Promise<EducationPage<EligibleGovernanceUser>>;
   createAttachmentGrant(input: CreatePortfolioAttachmentGrant): Promise<PortfolioAttachmentGrant>;
   deleteAttachmentGrant(id: string): Promise<void>;
   createPortfolioExportManifest(id: string): Promise<PortfolioEvidenceManifestResponse>;
+  exportOwnPortfolio(id: string, signal?: AbortSignal): Promise<Blob>;
 }
 
 export interface EducationListQuery {

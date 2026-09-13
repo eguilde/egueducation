@@ -13,7 +13,6 @@ function apiMock(): EducationApi {
     createPortfolioChecklistItem: vi.fn(async () => ({ id: "check-1" })), updatePortfolioChecklistItem: vi.fn(async () => ({ id: "check-1" })), deletePortfolioChecklistItem: vi.fn(async () => undefined),
     createPortfolioOpisEntry: vi.fn(async () => ({ id: "opis-1" })), updatePortfolioOpisEntry: vi.fn(async () => ({ id: "opis-1" })), deletePortfolioOpisEntry: vi.fn(async () => undefined),
     createPortfolioCustodyEvent: vi.fn(async () => ({ id: "custody-1" })), updatePortfolioCustodyEvent: vi.fn(async () => ({ id: "custody-1" })), deletePortfolioCustodyEvent: vi.fn(async () => undefined),
-    createPortfolioReview: vi.fn(async () => ({ id: "review-1" })), updatePortfolioReview: vi.fn(async () => ({ id: "review-1" })), deletePortfolioReview: vi.fn(async () => undefined),
   } as unknown as EducationApi;
 }
 
@@ -45,7 +44,6 @@ describe("PortfolioRelationsPanel contractual managers", () => {
   it.each([
     ["Checklist", "cerință", "Cod cerință *", "R-1", "Cerință *", "Cerință legală", "Secțiune *", "I", "Domeniu sursă *", "portofoliu", "Stare *", "complete", "Ultima verificare *", "2026-09-03", "createPortfolioChecklistItem", { requirement_code: "R-1", requirement_label: "Cerință legală", section_code: "I", source_scope: "portofoliu", status: "complete", last_checked_on: "2026-09-03", checked_by: undefined, document_count: undefined, mandatory: undefined, notes: undefined }],
     ["Opis", "poziție opis", "Secțiune *", "I", "Componentă *", "I.1", "Titlu *", "Opis anual", "Referință document *", "archive://d-1", "Domeniu sursă *", "portofoliu", "Data verificării *", "2026-09-03", "createPortfolioOpisEntry", { section_code: "I", component_code: "I.1", entry_title: "Opis anual", document_reference: "archive://d-1", source_scope: "portofoliu", checked_on: "2026-09-03", checked_by: undefined, chronological_index: undefined, included_in_transfer: undefined, notes: undefined }],
-    ["Revizuiri", "revizuire", "Etapă *", "internal", "Rezultat *", "accepted", "Evaluator *", "Director", "Data revizuirii *", "2026-09-03", "Scor conformitate", "98", "Documente lipsă", "0", "createPortfolioReview", { review_stage: "internal", outcome: "accepted", reviewer_name: "Director", reviewed_on: "2026-09-03", compliance_score: 98, missing_documents: 0, notes: undefined }],
   ] as Array<unknown[]>)("builds the exact %s DTO", async (...args) => {
     const [_tab, addLabel, l1, v1, l2, v2, l3, v3, l4, v4, l5, v5, l6, v6, method, expected] = args as [string, string, string, string, string, string, string, string, string, string, string, string, string, string, keyof EducationApi, unknown];
     const api = apiMock(); renderPanel(api);
@@ -58,6 +56,14 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     await waitFor(() => expect(fn).toHaveBeenCalled());
     const call = fn.mock.calls[0] as unknown[];
     expect(call[0]).toBe("portfolio-1"); expect(call[1]).toEqual(expected);
+  });
+
+  it("keeps review history read-only even for an institutional manager", async () => {
+    const api = apiMock(); renderPanel(api);
+    fireEvent.click(screen.getByRole("button", { name: "Revizuiri" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Adaugă revizuire" })).not.toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Editează" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Șterge" })).not.toBeInTheDocument();
   });
 
   it("builds the exact custody DTO", async () => {
@@ -122,7 +128,6 @@ describe("PortfolioRelationsPanel contractual managers", () => {
     ["Checklist", "Cerință", "portfolioChecklist", "requirement_label"],
     ["Opis", "Titlu", "portfolioOpis", "entry_title"],
     ["Custodie", "Custode", "portfolioCustody", "holder_name"],
-    ["Revizuiri", "Evaluator", "portfolioReviews", "reviewer_name"],
   ] as const)("sends server sort for %s only through its typed %s operation", async (tab, header, method, sort) => {
     const api = apiMock(); renderPanel(api);
     if (tab !== "Documente") fireEvent.click(screen.getByRole("button", { name: tab }));

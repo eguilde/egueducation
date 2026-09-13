@@ -16,8 +16,12 @@ import { SignedArtifactEvidenceWorkspace, SchoolReportsWorkspace } from "../feat
 import { createProfileApi } from "../features/profile/api";
 import { createContractClient } from "../api/client";
 import { createInstitutionPolicyApi } from "../features/institution/api";
+import { createArchiveRetentionApi } from "../features/earchiva/archive-retention-api";
+import { createRegulatorySourcesApi } from "../features/regulatory-sources/api";
 import { InstitutionPolicyProvider } from "../features/institution/InstitutionPolicyProvider";
 import { createSchoolClassesApi } from "../features/education/school-classes-api";
+import { createSchoolOperationsApi } from "../features/school-operations/api";
+import { createAdmissionApi } from "../features/admission/api";
 import { createSchoolWizardApi } from "../features/education/school-wizard-api";
 import type { WizardKind } from "../features/education/wizards";
 import {
@@ -63,9 +67,22 @@ const TeacherPortfolioWorkspace = lazy(() =>
     default: module.TeacherPortfolioWorkspace,
   })),
 );
+const PortfolioReviewWorkspace = lazy(() =>
+  import("../features/education/PortfolioReviewWorkspace").then((module) => ({ default: module.PortfolioReviewWorkspace })),
+);
 const SchoolClassesWorkspace = lazy(() =>
   import("../features/education/SchoolClassesWorkspace").then((module) => ({
     default: module.SchoolClassesWorkspace,
+  })),
+);
+const SchoolOperationsWorkspace = lazy(() =>
+  import("../features/school-operations/SchoolOperationsWorkspace").then((module) => ({
+    default: module.SchoolOperationsWorkspace,
+  })),
+);
+const AdmissionWorkspace = lazy(() =>
+  import("../features/admission/AdmissionWorkspace").then((module) => ({
+    default: module.AdmissionWorkspace,
   })),
 );
 const ProfileWorkspace = lazy(() =>
@@ -234,10 +251,21 @@ function TeacherPortfolioRoute() {
         <TeacherPortfolioWorkspace
           api={api}
           canManageOwn={canEducation("education.portfolios.manage_own")}
+          canExportOwn={canEducation("education.portfolios.read_own") || canEducation("education.portfolios.export_own")}
         />,
       )}
     </SchoolAccess>
   );
+}
+
+function PortfolioReviewRoute() {
+  const { apiFetch, canEducation } = useAuth();
+  const api = useMemo(() => createEducationApi(apiFetch), [apiFetch]);
+  const canReturn = canEducation("education.portfolios.request_corrections") || canEducation("education.portfolios.school.manage") || canEducation("education.portfolios.manage");
+  const canManage = canEducation("education.portfolios.school.manage") || canEducation("education.portfolios.manage");
+  return <SchoolAccess permissions={["education.portfolios.school.read", "education.portfolios.read", "education.portfolios.verify", "education.portfolios.request_corrections", "education.portfolios.school.manage", "education.portfolios.manage"]}>
+    {deferred(<PortfolioReviewWorkspace api={api} canManage={canManage} canReturn={canReturn} canManageLifecycle={canEducation("education.portfolios.school.manage")} canDecideRetention={canEducation("education.portfolios.custody.manage") && canEducation("earchiva.manage")} />)}
+  </SchoolAccess>;
 }
 
 function SchoolClassesRoute() {
@@ -245,6 +273,33 @@ function SchoolClassesRoute() {
   const client = useMemo(() => createContractClient(apiFetch), [apiFetch]);
   const api = useMemo(() => createSchoolClassesApi(client), [client]);
   return <SchoolAccess permissions={["education.classes.read", "education.classes.manage", "education.classes.read_assigned"]}>{deferred(<SchoolClassesWorkspace api={api} capabilities={{ read: canEducation("education.classes.read") || canEducation("education.classes.manage"), assigned: canEducation("education.classes.read_assigned"), manage: canEducation("education.classes.manage") }} />)}</SchoolAccess>;
+}
+
+function SchoolOperationsRoute() {
+  const { apiFetch, canEducation } = useAuth();
+  const client = useMemo(() => createContractClient(apiFetch), [apiFetch]);
+  const api = useMemo(() => createSchoolOperationsApi(client), [client]);
+  const permissions = ["school_operations.contracts.read", "school_operations.contracts.manage", "school_operations.contracts.approve"] as const;
+  return <SchoolAccess permissions={permissions}>{deferred(<SchoolOperationsWorkspace api={api} capabilities={{ read: canEducation("school_operations.contracts.read") || canEducation("school_operations.contracts.manage") || canEducation("school_operations.contracts.approve"), manage: canEducation("school_operations.contracts.manage"), approve: canEducation("school_operations.contracts.approve") }} />)}</SchoolAccess>;
+}
+
+function AdmissionRoute() {
+  const { apiFetch, canEducation } = useAuth();
+  const client = useMemo(() => createContractClient(apiFetch), [apiFetch]);
+  const api = useMemo(() => createAdmissionApi(client), [client]);
+  const permissions = ["education.admissions.read", "education.admissions.manage", "education.admissions.decide", "education.admissions.appeals.manage", "education.admissions.retention.manage", "education.admissions.retention.approve", "registratura.read", "education.classes.read", "institution.offerings.read"] as const;
+  return <SchoolAccess permissions={permissions}>{deferred(<AdmissionWorkspace api={api} capabilities={{
+    read: canEducation("education.admissions.read"),
+    piiRead: canEducation("education.admissions.read") && canEducation("registratura.read"),
+    manage: canEducation("education.admissions.manage"),
+    contextManage: canEducation("education.admissions.manage") && canEducation("education.classes.read") && canEducation("institution.offerings.read"),
+    retentionManage: canEducation("education.admissions.retention.manage"),
+    retentionApprove: canEducation("education.admissions.retention.approve"),
+    signerAuthorizationManage: canEducation("education.admissions.signer.manage"),
+    signerAuthorizationApprove: canEducation("education.admissions.signer.approve"),
+    decide: canEducation("education.admissions.decide"),
+    appealsManage: canEducation("education.admissions.appeals.manage"),
+  }} />)}</SchoolAccess>;
 }
 
 const schoolReportReadPermissions = [
@@ -349,6 +404,7 @@ function ArchiveRoute() {
     <ArchiveWorkspace
       api={api}
       canManage={has("earchiva.manage")}
+      canRecoverPortfolioCustody={has("earchiva.manage") && (has("education.portfolios.school.manage") || has("education.portfolios.manage"))}
       canReadContent={has("earchiva.content.read")}
       canReview={has("earchiva.review")}
     />,
@@ -376,11 +432,16 @@ function AdministrationRoute() {
   const { apiFetch, has, session } = useAuth();
   const api = useMemo(() => createAdminApi(apiFetch), [apiFetch]);
   const institutionPolicyApi = useMemo(() => createInstitutionPolicyApi(createContractClient(apiFetch)), [apiFetch]);
+  const archiveRetentionApi = useMemo(() => createArchiveRetentionApi(createContractClient(apiFetch)), [apiFetch]);
+  const regulatorySourcesApi = useMemo(() => createRegulatorySourcesApi(createContractClient(apiFetch)), [apiFetch]);
   return secure(
     "admin.read",
     <AdministrationWorkspace
       api={api}
       institutionPolicyApi={institutionPolicyApi}
+      archiveRetentionApi={archiveRetentionApi}
+      regulatorySourcesApi={regulatorySourcesApi}
+      actorSubject={session?.user.sub}
       institutionName={session?.institution_name ?? "Instituția curentă"}
       permissions={{
         dashboard: has("admin.read"),
@@ -399,7 +460,7 @@ function AdministrationRoute() {
 function InstitutionProfileRoute() {
   const { apiFetch, has } = useAuth();
   const api = useMemo(() => createInstitutionPolicyApi(createContractClient(apiFetch)), [apiFetch]);
-  return secure("institution.regulatory_profile.read", <RegulatoryProfileWorkspace api={api} canManage={has("institution.regulatory_profile.manage")} />);
+  return secure("institution.regulatory_profile.read", <RegulatoryProfileWorkspace api={api} canManage={has("institution.regulatory_profile.manage")} canReadOfferings={has("institution.offerings.read")} canManageOfferings={has("institution.offerings.manage")} />);
 }
 
 export function App() {
@@ -443,6 +504,8 @@ export function App() {
               <Route path="scoala" element={<SchoolRoute />} />
               <Route path="scoala/resurse-delegate" element={deferred(<DelegatedEducationResourcesRoute />)} />
               <Route path="scoala/clase" element={deferred(<SchoolClassesRoute />)} />
+              <Route path="scoala/operatiuni" element={deferred(<SchoolOperationsRoute />)} />
+              <Route path="scoala/admitere" element={deferred(<AdmissionRoute />)} />
               <Route path="scoala/dashboard" element={<SchoolRoute />} />
               <Route
                 path="scoala/dashboard/director"
@@ -599,7 +662,7 @@ export function App() {
               <Route
                 path="scoala/portfolios"
                 element={
-                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
+                  <PortfolioReviewRoute />
                 }
               />
               <Route
@@ -615,7 +678,7 @@ export function App() {
               <Route
                 path="scoala/portfolio/workflow"
                 element={
-                  <SchoolRoute permissions={["education.portfolios.school.read", "education.portfolios.read"]} />
+                  <PortfolioReviewRoute />
                 }
               />
               <Route

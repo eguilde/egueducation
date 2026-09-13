@@ -1,5 +1,7 @@
 import type { Fetcher, Page } from '../workflow/api';
-import { createOpenApiTransport } from '../../api/client';
+import { createContractClient, createOpenApiTransport } from '../../api/client';
+import type { components, operations } from '../../api/generated';
+import { validateGetApiEarchivaAdminPortfolioCustodyIntentsIntentidRecoveryOperationsOperationidResponse, validateGetApiEarchivaAdminPortfolioCustodyIntentsResponse, validatePostApiEarchivaAdminPortfolioCustodyIntentsIntentidReconcileResponse } from '../../api/runtime-validators';
 
 export interface ArchiveDocument { id: string; title: string; original_file_name: string; mime_type: string; source_kind: string; source_system: string; external_reference: string; taxonomy_code?: string | null; taxonomy_label?: string | null; status: string; document_date?: string | null; metadata?: Record<string, unknown>; current_version_no: number; received_at: string; created_at: string; updated_at: string; score?: number; snippet?: string }
 export interface ArchiveDocumentDetail extends ArchiveDocument { latest_version?: ArchiveDocumentVersion }
@@ -18,18 +20,28 @@ export interface ArchiveClassificationSuggestion { category: ArchiveClassificati
 export interface ArchiveFinalClassification { category: string; fond: string; series: string; document_type: string; document_date?: string; document_number?: string }
 export interface ArchiveClassificationReview { id: string; document_id: string; version_id: string; state: ArchiveClassificationReviewState; revision: number; suggestion: ArchiveClassificationSuggestion; suggestion_confidence: number; suggestion_source: string; requires_human_review: boolean; generated_at: string; reviewed_at?: string; reviewed_by?: string; final_classification?: ArchiveFinalClassification; review_note?: string }
 export interface ArchiveClassificationReviewDecision { revision: number; note: string; classification?: ArchiveFinalClassification }
-export interface ArchiveApi { documents(query?: ArchiveSearch): Promise<Page<ArchiveDocument>>; document(id: string): Promise<ArchiveDocumentDetail>; versions(id: string): Promise<ArchiveDocumentVersion[]>; download(id: string): Promise<Blob>; taxonomy(query?: Record<string, string>): Promise<ArchiveTaxonomy[]>; upload(input: UploadArchiveDocumentInput): Promise<ArchiveDocumentDetail>; adminHealth(): Promise<ArchiveAdminHealth>; adminStats(): Promise<ArchiveAdminStats>; adminJobs(query?: Record<string, string>): Promise<Page<ArchiveJob>>; retryJob(jobId: string): Promise<ArchiveJob>; classificationReviews(query?: { state: ArchiveClassificationReviewFilterState; page?: string; pageSize?: string }): Promise<Page<ArchiveClassificationReview>>; approveClassificationReview(reviewId: string, input: Pick<ArchiveClassificationReviewDecision, 'revision' | 'note'>): Promise<ArchiveClassificationReview>; correctClassificationReview(reviewId: string, input: Required<ArchiveClassificationReviewDecision>): Promise<ArchiveClassificationReview> }
+type PortfolioCustodyRecoveryListItem = components['schemas']['get_api_earchiva_admin_portfolio_custody_intents_item'];
+type PortfolioCustodyRecoveryCommandResult = components['schemas']['post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile_response'];
+type PortfolioCustodyRecoveryGeneratedQuery = NonNullable<operations['get_api_earchiva_admin_portfolio_custody_intents']['parameters']['query']>;
+export type PortfolioCustodyRecoveryDisposition = NonNullable<PortfolioCustodyRecoveryListItem['disposition']>;
+export type PortfolioCustodyRecoveryStatus = PortfolioCustodyRecoveryListItem['status'];
+export type PortfolioCustodyRecoverySort = NonNullable<PortfolioCustodyRecoveryGeneratedQuery['sort']>;
+export type PortfolioCustodyRecoveryOperation = PortfolioCustodyRecoveryListItem | PortfolioCustodyRecoveryCommandResult;
+export type PortfolioCustodyRecoveryQuery = PortfolioCustodyRecoveryGeneratedQuery & { page: number; pageSize: number; sort: PortfolioCustodyRecoverySort; direction: 'asc' | 'desc' };
+export type ReconcilePortfolioCustodyInput = components['schemas']['ReconcilePortfolioCustodyRequest'];
+export interface ArchiveApi { documents(query?: ArchiveSearch): Promise<Page<ArchiveDocument>>; document(id: string): Promise<ArchiveDocumentDetail>; versions(id: string): Promise<ArchiveDocumentVersion[]>; download(id: string): Promise<Blob>; taxonomy(query?: Record<string, string>): Promise<ArchiveTaxonomy[]>; upload(input: UploadArchiveDocumentInput): Promise<ArchiveDocumentDetail>; adminHealth(): Promise<ArchiveAdminHealth>; adminStats(): Promise<ArchiveAdminStats>; adminJobs(query?: Record<string, string>): Promise<Page<ArchiveJob>>; retryJob(jobId: string): Promise<ArchiveJob>; portfolioCustodyRecoveries(query: PortfolioCustodyRecoveryQuery): Promise<Page<PortfolioCustodyRecoveryOperation>>; reconcilePortfolioCustody(intentId: string, input: ReconcilePortfolioCustodyInput): Promise<PortfolioCustodyRecoveryOperation>; portfolioCustodyRecovery(intentId: string, operationId: string): Promise<PortfolioCustodyRecoveryOperation>; classificationReviews(query?: { state: ArchiveClassificationReviewFilterState; page?: string; pageSize?: string }): Promise<Page<ArchiveClassificationReview>>; approveClassificationReview(reviewId: string, input: Pick<ArchiveClassificationReviewDecision, 'revision' | 'note'>): Promise<ArchiveClassificationReview>; correctClassificationReview(reviewId: string, input: Required<ArchiveClassificationReviewDecision>): Promise<ArchiveClassificationReview> }
 
 const page = <T,>(value: T[] | (Partial<Page<T>> & { page_size?: number })): Page<T> => Array.isArray(value) ? { items: value, total: value.length, page: 1, pageSize: value.length } : { items: value.items ?? [], total: Number(value.total ?? 0), page: Number(value.page ?? 1), pageSize: Number(value.pageSize ?? value.page_size ?? 25) };
 
 export function createArchiveApi(fetcher: Fetcher = fetch, apiBase = '/api'): ArchiveApi {
   const transport = createOpenApiTransport((request) => fetcher(request), apiBase);
+  const contract = createContractClient((request) => fetcher(request), apiBase);
   const request = async <T,>(path: string, init?: RequestInit) => {
     const result = await transport.request<T>((init?.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | undefined) ?? 'GET', `${apiBase}${path}`, { ...init, headers: { Accept: 'application/json', ...(init?.headers ?? {}) } });
     if (!result.response.ok) throw new Error(`earchiva_request_${result.response.status}`);
     return result.data as T;
   };
-  const query = (path: string, input: Record<string, string | undefined>) => { const params = new URLSearchParams(); Object.entries(input).forEach(([key, value]) => { if (value?.trim()) params.set(key, value); }); const encoded = params.toString(); return encoded ? `${path}?${encoded}` : path; };
+  const query = (path: string, input: object) => { const params = new URLSearchParams(); Object.entries(input).forEach(([key, value]) => { if (typeof value === 'string' && value.trim()) params.set(key, value); }); const encoded = params.toString(); return encoded ? `${path}?${encoded}` : path; };
   return {
     documents: async (input = {}) => page(await request<ArchiveDocument[] | Partial<Page<ArchiveDocument>>>(query('/earchiva/documents', { page: '1', pageSize: '25', ...input }))),
     document: (id) => request(`/earchiva/documents/${encodeURIComponent(id)}`), versions: (id) => request(`/earchiva/documents/${encodeURIComponent(id)}/versions`),
@@ -37,6 +49,21 @@ export function createArchiveApi(fetcher: Fetcher = fetch, apiBase = '/api'): Ar
     taxonomy: (input = {}) => request(query('/earchiva/taxonomy', input)),
     async upload(input) { const data = new FormData(); data.set('file', input.file); data.set('title', input.title); data.set('source_kind', input.source_kind); if (input.source_system) data.set('source_system', input.source_system); if (input.external_reference) data.set('external_reference', input.external_reference); if (input.taxonomy_code) data.set('taxonomy_code', input.taxonomy_code); if (input.taxonomy_label) data.set('taxonomy_label', input.taxonomy_label); if (input.taxonomy_parent) data.set('taxonomy_parent_code', input.taxonomy_parent); if (input.document_date) data.set('document_date', input.document_date); if (input.metadata) data.set('metadata', JSON.stringify(input.metadata)); return request('/earchiva/documents', { method: 'POST', body: data }); },
     adminHealth: () => request('/earchiva/admin/health'), adminStats: () => request('/earchiva/admin/stats'), adminJobs: async (input = {}) => page(await request<ArchiveJob[] | Partial<Page<ArchiveJob>>>(query('/earchiva/admin/jobs', input))), retryJob: (jobId) => request(`/earchiva/admin/jobs/${encodeURIComponent(jobId)}/retry`, { method: 'POST' }),
+    portfolioCustodyRecoveries: async (input) => {
+      const result = await contract.GET('/api/earchiva/admin/portfolio-custody-intents', { params: { query: input } });
+      if (!result.response.ok || result.error || !result.data || !validateGetApiEarchivaAdminPortfolioCustodyIntentsResponse(result.data)) throw new Error(`earchiva_request_${result.response.status}`);
+      return result.data;
+    },
+    reconcilePortfolioCustody: async (intentId, input) => {
+      const result = await contract.POST('/api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile', { params: { path: { intentID: intentId } }, body: input });
+      if (!result.response.ok || result.error || !result.data || !validatePostApiEarchivaAdminPortfolioCustodyIntentsIntentidReconcileResponse(result.data)) throw new Error(`earchiva_request_${result.response.status}`);
+      return result.data;
+    },
+    portfolioCustodyRecovery: async (intentId, operationId) => {
+      const result = await contract.GET('/api/earchiva/admin/portfolio-custody-intents/{intentID}/recovery-operations/{operationID}', { params: { path: { intentID: intentId, operationID: operationId } } });
+      if (!result.response.ok || result.error || !result.data || !validateGetApiEarchivaAdminPortfolioCustodyIntentsIntentidRecoveryOperationsOperationidResponse(result.data)) throw new Error(`earchiva_request_${result.response.status}`);
+      return result.data;
+    },
     classificationReviews: async (input) => page(await request<ArchiveClassificationReview[] | Partial<Page<ArchiveClassificationReview>>>(query('/earchiva/classification-reviews', { page: '1', pageSize: '25', ...input }))),
     approveClassificationReview: (reviewId, input) => request(`/earchiva/classification-reviews/${encodeURIComponent(reviewId)}/approve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
     correctClassificationReview: (reviewId, input) => request(`/earchiva/classification-reviews/${encodeURIComponent(reviewId)}/correct`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }),
