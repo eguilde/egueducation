@@ -156,25 +156,36 @@ type SchoolRowAction = {
 /** A compact, accessible action menu shared by School registry tables. */
 export function SchoolRowActionMenu({ actions }: { actions: SchoolRowAction[] }) {
   const [open, setOpen] = useState(false);
+  const selectionPending = useRef(false);
 
   const selectAction = (action: SchoolRowAction) => {
+    if (selectionPending.current) return;
+    selectionPending.current = true;
     // Close the portalled overlay before the selected action mounts a dialog
     // or refreshes the table. Keeping both mounted lets focus management race
     // the row re-render and can leave the action button detached mid-click.
-    setOpen(false);
-    // Let the originating pointer/focus event and Popover teardown complete
-    // before a selected action mounts another portalled overlay. Otherwise the
-    // Popover's outside-interaction cleanup also dismisses the new Dialog.
-    window.requestAnimationFrame(action.onSelect);
+    // Schedule teardown after the current browser task so the user's click can
+    // finish against the live Popover item. Closing synchronously can make a
+    // portalled item vanish while that interaction is still completing.
+    window.setTimeout(() => {
+      setOpen(false);
+      // Let the Popover teardown complete before the selected action mounts a
+      // Dialog. Its outside-interaction cleanup would otherwise dismiss the
+      // newly mounted portalled overlay.
+      window.setTimeout(() => {
+        selectionPending.current = false;
+        action.onSelect();
+      }, 0);
+    }, 0);
   };
 
   return (
     <Popover.Root
       open={open}
       trapped
-      onOpenChange={(event: { value?: boolean }) =>
-        setOpen(Boolean(event.value))
-      }
+      onOpenChange={(event: { value?: boolean }) => {
+        setOpen(Boolean(event.value));
+      }}
     >
       <Popover.Trigger
         as={Button}

@@ -89,31 +89,37 @@ async function login(page: Page, loginIdentifier = identifier, loginOtp = otp, l
   return token!;
 }
 
-async function loadSchoolPortfolios(page: Page, destination?: string): Promise<void> {
+async function loadPortfolioReviewWorkspace(page: Page, destination?: string): Promise<void> {
   const loaded = page.waitForResponse((response) => response.request().method() === 'GET' && new URL(response.url()).pathname === '/api/education/portfolios/records');
   if (destination) await page.goto(destination);
   else await page.reload();
   expect((await loaded).status()).toBe(200);
 }
 
-async function openSchoolPortfolioDetails(page: Page, portfolioCode: string): Promise<void> {
-  const portfolioFiltered = page.waitForResponse((response) => {
+async function openPortfolioReviewDetails(page: Page, ownerName: string, schoolYear: string): Promise<void> {
+  const ownerFiltered = page.waitForResponse((response) => {
     const url = new URL(response.url());
     return response.request().method() === 'GET'
       && url.pathname === '/api/education/portfolios/records'
-      && url.searchParams.get('filter.portfolio_code') === portfolioCode;
+      && url.searchParams.get('filter.owner_name') === ownerName;
   });
-  await page.getByLabel('Filtru Cod portofoliu', { exact: true }).fill(portfolioCode);
-  expect((await portfolioFiltered).status()).toBe(200);
+  await page.getByLabel('Filtrează Profesor', { exact: true }).fill(ownerName);
+  expect((await ownerFiltered).status()).toBe(200);
+  const schoolYearFiltered = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/education/portfolios/records'
+      && url.searchParams.get('filter.owner_name') === ownerName
+      && url.searchParams.get('filter.school_year') === schoolYear;
+  });
+  await page.getByLabel('Filtrează An școlar', { exact: true }).fill(schoolYear);
+  expect((await schoolYearFiltered).status()).toBe(200);
   const row = page.getByRole('row')
-    .filter({ hasText: portfolioCode })
-    .filter({ has: page.getByRole('button', { name: 'Acțiuni înregistrare', exact: true }) });
+    .filter({ hasText: ownerName })
+    .filter({ hasText: schoolYear });
   await expect(row).toHaveCount(1);
-  await row.getByRole('button', { name: 'Acțiuni înregistrare', exact: true }).click();
-  const menu = page.locator('[role="menu"]:visible').last();
-  await expect(menu).toBeVisible();
-  await menu.getByRole('button', { name: 'Detalii', exact: true }).click();
-  await expect(page.getByText('Portofoliu — operațiuni dosar', { exact: true })).toBeVisible();
+  await row.getByRole('button', { name: 'Detalii', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Returnează pentru completări', exact: true })).toBeVisible();
 }
 
 test('teacher portfolio upload, submission, director return, correction and validation through the real stack', async ({ page, browser }) => {
@@ -156,7 +162,6 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   expect((await created).status()).toBe(201);
   const createdPortfolio = await (await created).json();
   const portfolioID = createdPortfolio.id as string;
-  const portfolioCode = createdPortfolio.portfolio_code as string;
   expect(db(`select (activity_ceased_on is null and retention_until is null)::text from education_portfolios where id='${portfolioID}' and owner_user_id='${userID}'`), 'Active custody must not invent a cessation date or retention deadline').toBe('true');
   await expect(page.getByText(createdPortfolio.portfolio_code, { exact: true })).toBeVisible();
   const appliedProcedureLoaded = page.waitForResponse(r => r.request().method() === 'GET' && new URL(r.url()).pathname === `/api/education/portfolios/me/${portfolioID}/procedure`);
@@ -246,8 +251,8 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
     expect(response.status(), await response.text()).toBe(200);
   };
   await submit();
-  await loadSchoolPortfolios(adminPage, `${adminOrigin}/scoala/portfolios`);
-  await openSchoolPortfolioDetails(adminPage, portfolioCode);
+  await loadPortfolioReviewWorkspace(adminPage, `${adminOrigin}/scoala/portfolio/workflow`);
+  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
   await adminPage.getByRole('button', { name: 'Returnează pentru completări', exact: true }).click();
   const correction = adminPage.getByRole('dialog', { name: 'Returnează pentru completări' });
   const correctionText = `${marker} Completați observațiile privind planificarea.`;
@@ -291,8 +296,8 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   await edit.getByRole('button', { name: 'Salvează ciorna' }).click();
   expect((await saved).status()).toBe(200);
   await submit();
-  await loadSchoolPortfolios(adminPage);
-  await openSchoolPortfolioDetails(adminPage, portfolioCode);
+  await loadPortfolioReviewWorkspace(adminPage);
+  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
   await adminPage.getByRole('button', { name: 'Decizie managerială', exact: true }).click();
   const decision = adminPage.getByRole('dialog', { name: 'Decizie managerială' });
   await decision.getByLabel('Observații').fill(`${marker} Portofoliu verificat după completări.`);
@@ -380,8 +385,8 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
 
   // All WORM changes below affect only this disposable fixture's exact versions.
   const lifecycle = async (label: string, command: string, date?: string) => {
-    await loadSchoolPortfolios(adminPage);
-    await openSchoolPortfolioDetails(adminPage, portfolioCode);
+    await loadPortfolioReviewWorkspace(adminPage);
+    await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
     await adminPage.getByRole('button', { name: label, exact: true }).click();
     const dialog = adminPage.getByRole('dialog', { name: label, exact: true });
     if (date) await dialog.getByLabel('Data încetării *').fill(date);
@@ -416,8 +421,8 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
     expect(object.ObjectLockLegalHoldStatus, 'Pre-expiry disposition hold must remain fail-closed').toBe('ON');
   }
   // Rediscover persisted operations after losing all component-local state.
-  await loadSchoolPortfolios(adminPage);
-  await openSchoolPortfolioDetails(adminPage, portfolioCode);
+  await loadPortfolioReviewWorkspace(adminPage);
+  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, schoolYear);
   const lifecycleHistoryResponse = adminPage.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === `/api/education/portfolios/records/${portfolioID}/lifecycle-operations`);
   await adminPage.getByRole('button', { name: 'Istoric operații de protecție', exact: true }).click();
   const lifecycleHistory = adminPage.getByRole('dialog', { name: 'Istoric operații de protecție', exact: true });
@@ -486,8 +491,8 @@ const pr = await call(`/api/education/portfolios/procedures/${procedure.body.id}
   expect((await submittedDisposition).status()).toBe(202);
   const requestID = db(`select id::text from portfolio_retention_disposition_requests where transition_id='${retentionTransitionID}' and status='submitted'`);
 
-  await loadSchoolPortfolios(adminPage, `${adminOrigin}/scoala/portfolios`);
-  await openSchoolPortfolioDetails(adminPage, retentionPortfolioCode);
+  await loadPortfolioReviewWorkspace(adminPage, `${adminOrigin}/scoala/portfolio/workflow`);
+  await openPortfolioReviewDetails(adminPage, portfolioOwnerName, retentionSchoolYear);
   await adminPage.getByRole('button', { name: 'Istoric operații de protecție', exact: true }).click();
   const adminRetentionHistory = adminPage.getByRole('dialog', { name: 'Istoric operații de protecție', exact: true });
   await adminRetentionHistory.getByRole('button', { name: /^Stare operație / }).click();

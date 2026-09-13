@@ -253,6 +253,25 @@ func TestCurrentDSSRetentionPolicySelectsOnlyEffectiveActivePolicy(t *testing.T)
 	}
 }
 
+func TestDSSRetentionPolicySerializesWithSingleStatementExecutions(t *testing.T) {
+	raw, err := os.ReadFile("dss_retention_policy.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := strings.ReplaceAll(string(raw), "\r\n", "\n")
+	if strings.Contains(source, "pg_advisory_xact_lock(hashtextextended('school_admission_retention_policy:'||$1||':'||$2,0)); update") {
+		t.Fatal("DSS retention policy passes multiple commands to a parameterized execution")
+	}
+	for _, required := range []string{
+		"err = tx.Exec(r.Context(), `select pg_advisory_xact_lock(hashtextextended('school_admission_retention_policy:'||$1||':'||$2,0))`, sc.tenant, sc.institution)",
+		"err = tx.Exec(r.Context(), `update school_admission_dss_retention_policies set status='superseded'",
+	} {
+		if !strings.Contains(source, required) {
+			t.Fatalf("DSS retention policy serialization lacks %q", required)
+		}
+	}
+}
+
 func TestDocumentReviewAcceptsOnlyTerminalStatuses(t *testing.T) {
 	for status, want := range map[string]bool{
 		"accepted":  true,

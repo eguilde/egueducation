@@ -72,7 +72,8 @@ async function clickOpenPopoverAction(page: Page, name: string): Promise<void> {
   await expect(menu).toBeVisible();
   const action = menu.getByRole('button', { name, exact: true });
   await expect(action).toBeVisible();
-  await action.click({ force: true });
+  await action.click();
+  await expect(menu).toBeHidden();
 }
 
 async function fillVisibleWizardFields(page: Page, values: Record<string, string>): Promise<void> {

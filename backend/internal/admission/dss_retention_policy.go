@@ -199,7 +199,10 @@ func (s *Service) ConfigureDSSRetentionPolicy(w http.ResponseWriter, r *http.Req
 	id, replay, err := reserve(r.Context(), tx, sc, "admission.dss_retention_policy.configure", key, fingerprint(in), uuid.NewString())
 	var out AdmissionDSSRetentionPolicy
 	if err == nil && !replay {
-		_, err = tx.Exec(r.Context(), `select pg_advisory_xact_lock(hashtextextended('school_admission_retention_policy:'||$1||':'||$2,0)); update school_admission_dss_retention_policies set status='superseded',effective_to=least(coalesce(effective_to,$3::date),$3::date) where tenant_code=$1 and institution_id=$2 and status='active'`, sc.tenant, sc.institution, in.EffectiveFrom)
+		_, err = tx.Exec(r.Context(), `select pg_advisory_xact_lock(hashtextextended('school_admission_retention_policy:'||$1||':'||$2,0))`, sc.tenant, sc.institution)
+	}
+	if err == nil && !replay {
+		_, err = tx.Exec(r.Context(), `update school_admission_dss_retention_policies set status='superseded',effective_to=least(coalesce(effective_to,$3::date),$3::date) where tenant_code=$1 and institution_id=$2 and status='active'`, sc.tenant, sc.institution, in.EffectiveFrom)
 	}
 	if err == nil && !replay {
 		err = tx.QueryRow(r.Context(), `insert into school_admission_dss_retention_policies(id,tenant_code,institution_id,status,minimum_retention_days,effective_from,source_id,rule_version_id,created_by_subject) values($1::uuid,$2,$3,'active',1,$4::date,(select source_id from school_admission_retention_rule_versions where tenant_code=$2 and institution_id=$3 and id=$5::uuid),$5::uuid,$6) returning id::text,status,rule_version_id::text,minimum_retention_days,effective_from::text,source_id::text`, id, sc.tenant, sc.institution, in.EffectiveFrom, in.RuleVersionID, sc.actor).Scan(&out.ID, &out.Status, &out.RuleVersionID, &out.MinimumRetentionDays, &out.EffectiveFrom, &out.SourceID)
