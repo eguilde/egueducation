@@ -49,13 +49,20 @@ Profilul instituțional și policy packs sunt effective-dated. Evaluarea produce
 
 ```text
 common.ro
-  + legal-form.ro.public | legal-form.ro.private | legal-form.ro.confessional
-  + funding.public | funding.private | program.<code>
+  + legal-form.ro.public | legal-form.ro.private
+  + confessional.<recognized-cult> (dacă este aplicabil)
+  + offering.<level/program/location> + authorization.<status/version>
+  + funding.<instrument/year> | program.<code/year>
+  + procurement-applicability.<entity/contract>
   + approved institutional options
   = immutable policy evaluation snapshot
 ```
 
 Policy packs conțin reguli validate prin JSON Schema, sursa normativă, checksum, versiune și aprobator. Override-urile sunt permise numai pentru chei declarate configurabile și nu pot diminua o obligație imperativă.
+
+`school_institution_profiles` este antetul juridic versionat, nu întreaga sursă de adevăr. Ofertele educaționale și actele de autorizare/acreditare sunt modelate per nivel/program/specializare/locație; finanțările sunt instrumente per an și beneficiari; aplicabilitatea achizițiilor este o evaluare separată pe entitate și, unde legea o cere, pe contract/proiect. Booleenele de compatibilitate sunt proiecții read-only calculate din aceste agregate și nu autorizează direct operații.
+
+Resolverul primește un `OperationPolicyContext` tipat cu operația, oferta, data efectivă, sursa de finanțare/program și identificatorul resursei. Contextul de securitate rămâne exclusiv server-derived. Lipsa unei clasificări obligatorii, o ofertă suspendată/retrasă, o sursă expirată sau o evaluare ambiguă produce fail-closed și un cod de remediere, fără a afecta citirea istoricului.
 
 ## Model de date transversal
 

@@ -99,6 +99,31 @@ if ($securityFailures.Count -gt 0) { throw ("Authenticated operations missing se
 if ($educationFailures.Count -gt 0) { throw ("Education contract metadata failure: " + ($educationFailures -join ', ')) }
 if ($genericScopedOperations.Count -gt 0) { throw ("Scoped operations may not use generic Entity: " + ($genericScopedOperations -join ', ')) }
 
+foreach ($path in @($specData.paths.Keys | Where-Object { $_.StartsWith('/api/admissions/') })) {
+    $operation = $specData.paths[$path].post
+    if (-not $operation) { continue }
+    $idempotency = @($operation.parameters | Where-Object { $_.in -eq 'header' -and $_.name -eq 'Idempotency-Key' })
+    if ($idempotency.Count -ne 1 -or -not $idempotency[0].required -or $idempotency[0].schema.minLength -ne 1) {
+        throw "Admission command lacks its required Idempotency-Key contract: POST $path"
+    }
+}
+
+$campaignCreateSchema = $specData.components.schemas['CreateCampaignRequest']
+if (-not $campaignCreateSchema -or -not (@($campaignCreateSchema.required) -contains 'source_id')) {
+    throw 'Admission campaign contract must require the durable regulatory source_id.'
+}
+
+foreach ($piiReadPath in @('/api/admissions/applications','/api/admissions/applications/{applicationID}','/api/admissions/decisions','/api/admissions/appeals')) {
+    $permission = [string]$specData.paths[$piiReadPath].get.'x-required-permission'
+    if ($permission -ne 'education.admissions.read AND registratura.read') {
+        throw "Admission PII read contract must expose its combined RBAC requirement: GET $piiReadPath"
+    }
+}
+$appealCreatePermission = [string]$specData.paths['/api/admissions/applications/{applicationID}/appeals'].post.'x-required-permission'
+if ($appealCreatePermission -ne 'education.admissions.appeals.manage') {
+    throw 'Admission appeal creation contract must expose the live appeals.manage permission.'
+}
+
 $profileGet = $specData.paths['/api/institution/regulatory-profile'].get
 $profilePut = $specData.paths['/api/institution/regulatory-profile'].put
 $capabilitiesGet = $specData.paths['/api/institution/capabilities'].get
@@ -106,10 +131,22 @@ if (-not $profileGet -or -not $profilePut -or -not $capabilitiesGet) { throw 'In
 if ($profilePut.'x-required-permission' -ne 'institution.regulatory_profile.manage') { throw 'Regulatory profile mutation lacks exact RBAC metadata.' }
 $profileRequestRef = [string]$profilePut.requestBody.content.'application/json'.schema.'$ref'
 $profileRequest = $specData.components.schemas[$profileRequestRef.Split('/')[-1]]
-foreach ($forbiddenScopeField in @('tenant_code','institution_id','policy_evaluation_id')) {
+foreach ($forbiddenScopeField in @('tenant_code','institution_id','policy_evaluation_id','public_funding','is_contracting_authority','treasury_required')) {
     if ($profileRequest.properties.Contains($forbiddenScopeField)) { throw "Regulatory profile request exposes server-derived field '$forbiddenScopeField'." }
 }
-if ($profileRequest.additionalProperties -ne $false -or $profileRequest.properties.school_legal_form.enum -join ',' -ne 'public,private,confessional') { throw 'Regulatory profile request is not closed or has an invalid legal-form enum.' }
+if ($profileRequest.additionalProperties -ne $false -or $profileRequest.properties.school_legal_form.enum -join ',' -ne 'public,private') { throw 'Regulatory profile request is not closed or has an invalid legal-form enum.' }
+$profileRequired = @($profileRequest.required)
+foreach ($requiredField in $profileRequired) {
+    if (-not $profileRequest.properties.Contains($requiredField)) { throw "Regulatory profile requires undeclared field '$requiredField'." }
+}
+$overlayRef = [string]$profileRequest.properties.confessional_overlay.'$ref'
+if ($overlayRef -ne '#/components/schemas/ConfessionalOverlayRequest') { throw 'Confessional profile semantics must use the typed private overlay contract.' }
+$overlayRequest = $specData.components.schemas.ConfessionalOverlayRequest
+if ($overlayRequest.additionalProperties -ne $false -or $overlayRequest.properties.cult_party_id.format -ne 'uuid' -or @($overlayRequest.required).Count -ne 3) { throw 'Confessional overlay request is not closed and fully typed.' }
+$sourceRef = [string]$profileRequest.properties.source.'$ref'
+if ($sourceRef -ne '#/components/schemas/RegulatorySourceRequest') { throw 'Regulatory profile must use a structured legal-source contract.' }
+$sourceRequest = $specData.components.schemas.RegulatorySourceRequest
+if ($sourceRequest.additionalProperties -ne $false -or $sourceRequest.properties.checksum_sha256.pattern -ne '^[a-f0-9]{64}$' -or $sourceRequest.properties.source_url.format -ne 'uri') { throw 'Regulatory legal-source contract lacks closed provenance fields.' }
 $capabilitiesResponse = $capabilitiesGet.responses.GetEnumerator() | Where-Object { $_.Key -match '^2' } | Select-Object -First 1
 $capabilitiesRef = [string](($capabilitiesResponse.Value.content.GetEnumerator() | Select-Object -First 1).Value.schema.'$ref')
 $capabilitiesSchema = $specData.components.schemas[$capabilitiesRef.Split('/')[-1]]
@@ -266,9 +303,60 @@ $educationOperations = @($educationCoverageFragments | ForEach-Object { @($_.ope
 $declaredEducationCount = ($educationCoverageFragments | ForEach-Object { [int]$_.scope.operationCount } | Measure-Object -Sum).Sum
 $unresolvedEducationRequests = @($educationOperations | Where-Object { $_.requestBody -and -not $specData.components.schemas.Contains($_.requestBody.schema) })
 $invalidEducationFragments = @($educationCoverageFragments | Where-Object { $_.Contains('validation') -and (@($_.validation.missingHandlerSources).Count -ne 0 -or @($_.validation.unknownResponseSchemas).Count -ne 0) })
-if ($declaredEducationCount -ne 399 -or $educationOperations.Count -ne 399 -or $invalidEducationFragments.Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0) {
-	throw 'Education domain coverage drift: expected 399 handler-backed operations across all School coverage fragments with every request and response schema resolved.'
+if ($declaredEducationCount -ne 406 -or $educationOperations.Count -ne 406 -or $invalidEducationFragments.Count -ne 0 -or $unresolvedEducationRequests.Count -ne 0) {
+	throw 'Education domain coverage drift: expected 406 handler-backed operations across all School coverage fragments with every request and response schema resolved.'
 }
+$portfolioZip = $specData.paths['/api/education/portfolios/me/{recordID}/export'].post
+foreach ($command in @('activity-cessation','legal-hold')) {
+    $lifecycleCommand = $specData.paths["/api/education/portfolios/records/{recordID}/$command"].post
+    if (-not $lifecycleCommand.responses['202'] -or $lifecycleCommand.responses['200']) { throw "Lifecycle $command must report accepted work, not premature completion." }
+    if ($lifecycleCommand.responses['202'].content.'application/json'.schema.'$ref' -ne '#/components/schemas/PortfolioLifecycleOperationResponse') { throw "Lifecycle $command loses its durable operation contract." }
+}
+$lifecycleStatus = $specData.paths['/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}'].get
+$retentionDispositionList = $specData.paths['/api/education/portfolios/records/{recordID}/retention-dispositions'].get
+if (-not $retentionDispositionList -or $retentionDispositionList.responses['200'].content.'application/json'.schema.'$ref' -ne '#/components/schemas/EducationPageOfPortfolioRetentionDisposition') { throw 'Retention disposition list must expose its closed, paged contract.' }
+$retentionDispositionSubmit = $specData.paths['/api/education/portfolios/me/{recordID}/lifecycle-operations/{operationID}/storage-transitions/{transitionID}/retention-dispositions'].post
+if (-not $retentionDispositionSubmit.responses['202'] -or $retentionDispositionSubmit.requestBody.content.'application/json'.schema.'$ref' -ne '#/components/schemas/PortfolioRetentionDispositionRequest') { throw 'Retention disposition owner submission contract is incomplete.' }
+$retentionDispositionDecision = $specData.paths['/api/education/portfolios/records/{recordID}/retention-dispositions/{requestID}/decision'].post
+if (-not $retentionDispositionDecision.responses['200'] -or $retentionDispositionDecision.requestBody.content.'application/json'.schema.'$ref' -ne '#/components/schemas/PortfolioRetentionDispositionDecisionRequest') { throw 'Retention disposition independent decision contract is incomplete.' }
+$lifecycleHistory = $specData.paths['/api/education/portfolios/records/{recordID}/lifecycle-operations'].get
+if ($lifecycleHistory.responses['200'].content.'application/json'.schema.'$ref' -ne '#/components/schemas/EducationPageOfPortfolioLifecycleOperation') { throw 'Lifecycle history must expose the generated page contract.' }
+$lifecyclePage = $specData.components.schemas.EducationPageOfPortfolioLifecycleOperation
+foreach ($field in @('items', 'total', 'page', 'pageSize')) {
+    if ($field -notin $lifecyclePage.required) { throw "Lifecycle history page missing $field" }
+}
+if ($lifecyclePage.properties.items.items.'$ref' -ne '#/components/schemas/PortfolioLifecycleOperation') { throw 'Lifecycle history items must use the canonical operation schema.' }
+$lifecycleHistoryParameters = @($lifecycleHistory.parameters | ForEach-Object {
+    if ($_.'$ref') { $specData.components.parameters[($_.'$ref' -split '/')[-1]] } else { $_ }
+})
+foreach ($field in @('page', 'pageSize', 'sort', 'direction', 'filter.status', 'filter.type', 'filter.requested_at')) {
+    if (-not ($lifecycleHistoryParameters | Where-Object { $_.in -eq 'query' -and $_.name -eq $field })) { throw "Lifecycle history missing server query $field" }
+}
+$lifecycleDateFilter = $lifecycleHistory.parameters | Where-Object { $_.name -eq 'filter.requested_at' }
+if ($lifecycleDateFilter.schema.format -ne 'date') { throw 'Lifecycle history date filter must be a typed date.' }
+if ($lifecycleStatus.responses['200'].content.'application/json'.schema.'$ref' -ne '#/components/schemas/PortfolioLifecycleOperationResponse') { throw 'Lifecycle status read must expose the operation result contract.' }
+foreach ($field in @('id','portfolio_id','type','status','requested_at','total_versions','completed_versions','blocked_versions')) {
+    if ($field -notin $specData.components.schemas.PortfolioLifecycleOperation.required) { throw "Lifecycle operation missing $field" }
+}
+if ($portfolioZip.requestBody -or $portfolioZip.responses['200'].content.'application/zip'.schema.'$ref' -ne '#/components/schemas/BinaryZip') { throw 'Own portfolio export must be a body-free binary ZIP contract.' }
+foreach ($status in @('400','401','403','404','413','422','500','503')) {
+    if (-not $portfolioZip.responses[$status]) { throw "Own portfolio export missing error contract: $status" }
+}
+$manifestDocument = $specData.components.schemas.PortfolioExportManifestDocument
+foreach ($field in @('source_object_version_id','source_size_bytes','mime_type','zip_path')) {
+    if (-not $manifestDocument.properties.Contains($field) -or $field -notin $manifestDocument.required) {
+        throw "Portfolio manifest contract omits required immutable provenance: $field"
+    }
+}
+if ($manifestDocument.properties.source_size_bytes.type -ne 'integer') { throw 'Portfolio source size must remain an integer contract.' }
+$generatedFiles = $specData.components.schemas.PortfolioExportManifest.properties.generated_files
+if ($generatedFiles.type -ne 'array' -or $generatedFiles.items.'$ref' -ne '#/components/schemas/PortfolioExportManifestGeneratedFile') { throw 'Manifest must describe exact generated ZIP payload integrity.' }
+if ('generated_files' -in $specData.components.schemas.PortfolioExportManifest.required) { throw 'Legacy manifest-only records must remain readable without generated files.' }
+$generatedFile = $specData.components.schemas.PortfolioExportManifestGeneratedFile
+foreach ($field in @('zip_path','sha256','size_bytes')) {
+    if ($field -notin $generatedFile.required) { throw "Generated ZIP integrity descriptor missing $field" }
+}
+if ($generatedFile.properties.size_bytes.type -ne 'integer' -or $generatedFile.properties.sha256.pattern -ne '^[0-9a-f]{64}$') { throw 'Generated ZIP size/hash contract drift.' }
 $coveredEducation = @{}
 foreach ($operation in $educationOperations) {
     if ($coveredEducation.ContainsKey([string]$operation.operationKey)) { throw "Duplicate Education coverage operation: $($operation.operationKey)" }
@@ -346,7 +434,6 @@ $educationRequestRequiredFields = @{
     'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
     'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
     'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
-    'CreatePortfolioReviewEventRequest' = @('review_stage','outcome','reviewer_name','reviewed_on')
 }
 foreach ($schemaName in $educationRequestRequiredFields.Keys) {
     $schema = $specData.components.schemas[$schemaName]
@@ -659,9 +746,24 @@ foreach ($operation in @(
     @{path='/api/education/portfolios/me/{recordID}/submit'; method='post'},
     @{path='/api/education/portfolios/records/{recordID}/verify'; method='post'},
     @{path='/api/education/portfolios/records/{recordID}/return'; method='post'},
-    @{path='/api/education/portfolios/records/{recordID}/activity-cessation'; method='post'},
-    @{path='/api/education/portfolios/records/{recordID}/legal-hold'; method='post'}
+    @{path='/api/education/portfolios/records/{recordID}/managerial-decision'; method='post'}
 )) { Assert-ResponseSchemaReference $operation.path $operation.method 'PortfolioRecord' }
+
+Assert-ResponseSchemaReference '/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry' 'post' 'PortfolioLifecycleOperationResponse'
+$lifecycleRetry = $specData.paths['/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry'].post
+if (-not $lifecycleRetry.responses.Contains('202') -or $lifecycleRetry.requestBody.content.'application/json'.schema.'$ref' -ne '#/components/schemas/PortfolioLifecycleRetryRequest') { throw 'Lifecycle retry must preserve the accepted-operation and reason request contracts.' }
+
+foreach ($operation in @(
+    @{path='/api/education/portfolios/records/{recordID}/return'; request='PortfolioReturnForCorrectionsRequest'},
+    @{path='/api/education/portfolios/records/{recordID}/managerial-decision'; request='PortfolioManagerialDecisionRequest'}
+)) {
+    $requestReference = [string]$specData.paths[$operation.path].post.requestBody.content.'application/json'.schema.'$ref'
+    if ($requestReference -ne "#/components/schemas/$($operation.request)") { throw "Portfolio decision request contract drift: POST $($operation.path)" }
+    $requestSchema = $specData.components.schemas[$operation.request]
+    if (-not $requestSchema -or $requestSchema.additionalProperties -ne $false -or $requestSchema.properties.Contains('reviewer_name') -or $requestSchema.properties.Contains('review_stage')) {
+        throw "Portfolio decision request exposes reviewer-controlled fields: $($operation.request)"
+    }
+}
 
 foreach ($operation in @(
     @{path='/api/education/portfolios/me/{recordID}/documents'; schema='EducationPageOfPortfolioDocument'},
@@ -677,6 +779,14 @@ foreach ($operation in @(
 )) { Assert-ResponseSchemaReference $operation.path 'get' $operation.schema }
 
 Assert-ResponseSchemaReference '/api/education/portfolios/records/{recordID}/export-manifests' 'post' 'PortfolioExportManifestResponse'
+Assert-ResponseSchemaReference '/api/education/portfolios/me/{recordID}/procedure' 'get' 'OwnPortfolioAppliedProcedureResponse'
+$ownAppliedProcedure = $specData.components.schemas.OwnPortfolioAppliedProcedureResponse
+if ($ownAppliedProcedure.additionalProperties -ne $false -or $ownAppliedProcedure.required -notcontains 'procedure' -or $ownAppliedProcedure.required -notcontains 'rules' -or $ownAppliedProcedure.properties.rules.type -ne 'array') {
+    throw 'Own applied procedure must expose a closed procedure/rules response contract.'
+}
+if ($ownAppliedProcedure.properties.procedure.'$ref' -ne '#/components/schemas/PortfolioProcedure' -or $ownAppliedProcedure.properties.rules.items.'$ref' -ne '#/components/schemas/PortfolioProcedureSectionRule') {
+    throw 'Own applied procedure must reuse typed procedure and section-rule schemas, not unresolved scalar fallbacks.'
+}
 foreach ($operation in @(
     @{path='/api/education/portfolios/procedures'; method='post'; request='CreatePortfolioProcedureRequest'; response='PortfolioProcedure'},
     @{path='/api/education/portfolios/procedures/{procedureID}'; method='patch'; request='UpdatePortfolioProcedureRequest'; response='PortfolioProcedure'},
@@ -688,5 +798,130 @@ foreach ($operation in @(
 }
 
 $actualCount = $expected.Count
-if ($actualCount -ne 565) { throw "Router extraction drift: expected 565 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
-Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; 396 Education operations schema-complete."
+# Legal preparations must be real server routes with typed signing bytes, not
+# only helper-router declarations or manually maintained frontend interfaces.
+foreach ($legalPath in @(
+    '/api/admissions/applications/{applicationID}/decision-preparations',
+    '/api/admissions/appeals/{appealID}/resolution-preparations'
+)) {
+    $operation = $specData.paths[$legalPath].post
+    if (-not $operation) { throw "Missing legal preparation route: $legalPath" }
+    $responseName = ([string]$operation.responses.'201'.content.'application/json'.schema.'$ref').Split('/')[-1]
+    $responseSchema = $specData.components.schemas[$responseName]
+    foreach ($field in @('id','canonical_payload_base64','canonical_payload_sha256','prepared_by_subject','expires_at')) {
+        if ($responseSchema.required -notcontains $field -or $responseSchema.properties[$field].type -ne 'string') {
+            throw "Exact signing payload contract missing $field on $legalPath"
+        }
+    }
+    foreach ($field in @('resulting_decision_payload_base64','resulting_decision_payload_sha256')) {
+        if (-not $responseSchema.properties.Contains($field)) { throw "Replacement decision contract missing $field" }
+    }
+    foreach ($field in @('retention_policy_id','retention_rule_version_id','retention_source_id','retention_anchor_at','required_retention_until','minimum_retention_days')) {
+        if ($responseSchema.required -notcontains $field) { throw "Missing required retention snapshot: $field" }
+    }
+    foreach ($field in @('retention_policy_id','retention_rule_version_id','retention_source_id')) {
+        if ($responseSchema.properties[$field].format -ne 'uuid') { throw "Retention authority ID must be UUID: $field" }
+    }
+    foreach ($field in @('retention_anchor_at','required_retention_until')) {
+        if ($responseSchema.properties[$field].format -ne 'date-time') { throw "Retention deadline format missing: $field" }
+    }
+    if ($responseSchema.properties.minimum_retention_days.type -ne 'integer' -or $responseSchema.properties.minimum_retention_days.minimum -ne 1 -or $responseSchema.properties.minimum_retention_days.maximum -ne 36500) { throw 'Retention duration must preserve database bounds.' }
+}
+$finalize = $specData.paths['/api/admissions/legal-preparations/finalize'].post
+$finalizeName = ([string]$finalize.requestBody.content.'application/json'.schema.'$ref').Split('/')[-1]
+$finalizeSchema = $specData.components.schemas[$finalizeName]
+if ($finalizeSchema.required -notcontains 'archive' -or $finalizeSchema.required -notcontains 'preparation_id' -or -not $finalizeSchema.properties.Contains('resulting_decision_archive')) {
+    throw 'Finalization must accept primary and conditional replacement WORM archive references.'
+}
+$cancel = $specData.paths['/api/admissions/legal-preparations/{preparationID}/cancel'].post
+if (-not $cancel -or $cancel.requestBody) { throw 'Cancellation must be a registered bodyless command.' }
+foreach ($operation in @($finalize,$cancel)) {
+    if (-not @($operation.parameters | Where-Object { $_.name -eq 'Idempotency-Key' -and $_.required }).Count) {
+        throw 'Legal finalize/cancel requires an idempotency key.'
+    }
+}
+foreach ($operation in @(
+    @{path='/api/admissions/dss-retention-policies'; method='post'; request='ConfigureDSSRetentionPolicyRequest'; response='AdmissionDSSRetentionPolicy'},
+    @{path='/api/admissions/dss-retention-policies/current'; method='get'; response='AdmissionDSSRetentionPolicy'}
+)) {
+    if (-not $specData.paths.Contains($operation.path) -or -not $specData.paths[$operation.path].Contains($operation.method)) { throw "DSS retention API missing: $($operation.method.ToUpperInvariant()) $($operation.path)" }
+    if ($operation.request) { $ref=[string]$specData.paths[$operation.path][$operation.method].requestBody.content.'application/json'.schema.'$ref'; if ($ref -ne "#/components/schemas/$($operation.request)") { throw "DSS retention request schema drift" } }
+    Assert-ResponseSchemaReference $operation.path $operation.method $operation.response
+}
+$artifactPath = '/api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}'
+foreach ($method in @('get','post')) {
+    $operation = $specData.paths[$artifactPath][$method]
+    if (-not $operation) { throw "Preparation artifact route missing: $method" }
+    $slot = @($operation.parameters | Where-Object { $_.name -eq 'artifactSlot' })[0]
+    if (($slot.schema.enum -join ',') -ne 'primary,resulting_decision') { throw 'Artifact slots must be closed and preparation-bound.' }
+    foreach ($status in $(if ($method -eq 'post') { @('200','201') } else { @('200') })) {
+        $ref = [string]$operation.responses[$status].content.'application/json'.schema.'$ref'
+        $schema = $specData.components.schemas[$ref.Split('/')[-1]]
+        foreach ($field in @('intent_id','preparation_id','artifact_slot','document','version','retention_until','replayed')) {
+            if ($schema.required -notcontains $field) { throw "Missing artifact response field: $field" }
+        }
+        if ($schema.properties.document.type -ne 'object' -or $schema.properties.version.type -ne 'object') { throw 'Artifact document/version must preserve nested Go DTO contracts, never scalar fallbacks.' }
+        if ($schema.properties.retention_until.format -ne 'date-time' -or $schema.properties.version.properties.created_at.format -ne 'date-time') { throw 'Artifact timestamps must be RFC3339.' }
+    }
+}
+$artifactPost = $specData.paths[$artifactPath].post
+$artifactRequestRef = [string]$artifactPost.requestBody.content.'multipart/form-data'.schema.'$ref'
+$artifactRequest = $specData.components.schemas[$artifactRequestRef.Split('/')[-1]]
+if ($artifactRequest.additionalProperties -ne $false -or ($artifactRequest.properties.Keys -join ',') -ne 'file' -or $artifactRequest.properties.file.format -ne 'binary') { throw 'Legal upload must accept only a binary file, not tenant, retention or storage metadata.' }
+if (-not @($artifactPost.parameters | Where-Object { $_.name -eq 'Idempotency-Key' -and $_.required }).Count) { throw 'Legal upload requires stable idempotency.' }
+foreach ($status in @('429','502','503')) { if (-not $artifactPost.responses.Contains($status)) { throw "Missing actionable upload error status: $status" } }
+$retentionPath='/api/earchiva/retention-rules'
+foreach ($entry in @(@($retentionPath,'get','earchiva.retention.read'),@($retentionPath,'post','earchiva.retention.manage'),@("$retentionPath/{ruleID}/approve",'post','earchiva.retention.approve'),@("$retentionPath/{ruleID}/retire",'post','earchiva.retention.manage'))) {
+    $operation=$specData.paths[$entry[0]][$entry[1]]
+    if (-not $operation) { throw "Missing archive retention route: $($entry[0])" }
+    if ($operation.'x-required-permission' -ne $entry[2] -or $operation.'x-tenant-scope' -ne $true) { throw 'Retention scope/permission contract drift.' }
+    if ($entry[1] -eq 'post' -and -not @($operation.parameters | Where-Object { $_.name -eq 'Idempotency-Key' -and $_.required }).Count) { throw 'Retention mutation missing required idempotency contract.' }
+    $status=if ($entry[0] -eq $retentionPath -and $entry[1] -eq 'post') { '201' } else { '200' }
+    $responseRef=[string]$operation.responses[$status].content.'application/json'.schema.'$ref'
+    $schema=$specData.components.schemas[$responseRef.Split('/')[-1]]
+    if ($entry[1] -eq 'get') { $schema=$specData.components.schemas['get_api_earchiva_retention_rules_item'] }
+    foreach ($field in @('id','taxonomy_node_id','source_id','source_checksum_sha256','anchor_kind','duration_model','status','expected_version','proposed_by_subject','proposed_at')) {
+        if ($schema.required -notcontains $field) { throw "Archive retention response missing required $field" }
+    }
+    if ($schema.properties.expected_version.minimum -ne 1) { throw 'Retention optimistic concurrency bound missing.' }
+}
+if (-not $specData.paths[$retentionPath].post.responses.Contains('200')) { throw 'Retention proposal replay response missing.' }
+$retentionInput=$specData.components.schemas['Request_post_api_earchiva_retention_rules']
+if (($retentionInput.properties.anchor_kind.enum -join ',') -ne 'intake_received_at' -or ($retentionInput.properties.duration_model.enum -join ',') -ne 'minimum_days') { throw 'Retention API must not advertise unimplemented anchor models.' }
+if ($retentionInput.properties.minimum_retention_days.type -ne 'integer' -or $retentionInput.required -notcontains 'minimum_retention_days') { throw 'Intake retention duration must be a required non-null integer.' }
+if ($retentionInput.additionalProperties -ne $false -or $retentionInput.properties.Contains('tenant_code') -or $retentionInput.properties.Contains('source_checksum_sha256')) { throw 'Retention requests must exclude server-owned provenance.' }
+$sourcePath='/api/regulatory-sources'
+foreach ($entry in @(@($sourcePath,'get','read'),@($sourcePath,'post','manage'),@("$sourcePath/{sourceID}/verify",'post','manage'),@("$sourcePath/{sourceID}/activate",'post','approve'),@("$sourcePath/{sourceID}/evidence/{evidenceID}",'get','read'))) {
+    $operation=$specData.paths[$entry[0]][$entry[1]]
+    if (-not $operation) { throw "Missing source lifecycle route: $($entry[0])" }
+    if ($operation.'x-required-permission' -ne "school.regulatory_sources.$($entry[2])" -or $operation.'x-tenant-scope' -ne $true) { throw 'Regulatory source scope/RBAC drift.' }
+    if ($entry[1] -eq 'post') {
+        if (-not @($operation.parameters | Where-Object { $_.name -eq 'Idempotency-Key' -and $_.required }).Count) { throw 'Source command must declare idempotency header.' }
+        $ref=[string]$operation.requestBody.content.'application/json'.schema.'$ref'
+        $request=$specData.components.schemas[$ref.Split('/')[-1]]
+        if ($request.additionalProperties -ne $false) { throw 'Source command must use closed DTO.' }
+        foreach ($field in @('tenant_code','institution_id','checksum_sha256','verified_at','verified_by_subject','idempotency_key')) {
+            if ($request.properties.Contains($field)) { throw "Source command cannot write $field" }
+        }
+    }
+}
+$sourceItem=$specData.components.schemas['get_api_regulatory_sources_item']
+foreach ($field in @('id','citation','publisher_url','status','expected_version','latest_evidence_id','activation_evidence_id')) {
+    if ($sourceItem.required -notcontains $field) { throw "Source response missing $field" }
+}
+if ($sourceItem.properties.Contains('content') -or $sourceItem.properties.Contains('bytes')) { throw 'Source list must not embed evidence bytes.' }
+if (-not $specData.paths[$sourcePath].post.responses.Contains('200')) { throw 'Source registration replay missing.' }
+$evidence=$specData.paths["$sourcePath/{sourceID}/evidence/{evidenceID}"].get
+if (-not $evidence.responses['200'].content.Contains('application/octet-stream')) { throw 'Source evidence must be a binary download.' }
+if ($actualCount -ne 640) { throw "Router extraction drift: expected 640 concrete operations, found $actualCount. Update this guard intentionally after auditing the router." }
+$admissionCatalog = Get-Content -Raw 'openapi/domains/admissions.coverage.json' | ConvertFrom-Json -AsHashtable
+$admissionKeys = @($admissionCatalog.operations | ForEach-Object { $_.operationKey } | Sort-Object)
+$actualAdmissionKeys = @(foreach ($apiPath in $specData.paths.Keys) {
+    if ($apiPath.StartsWith('/api/admissions/')) {
+        foreach ($method in @('get','post','put','patch','delete')) {
+            if ($specData.paths[$apiPath].Contains($method)) { "$($method.ToUpperInvariant()) $apiPath" }
+        }
+    }
+}) | Sort-Object
+if ($admissionCatalog.scope.operationCount -ne $admissionKeys.Count -or @(Compare-Object $admissionKeys $actualAdmissionKeys).Count -ne 0) { throw 'Admission coverage catalog does not match the actual registered routes.' }
+Write-Host "OpenAPI validation passed: $actualCount concrete router operations covered; $($operationIds.Count) unique operation IDs; detailed handler-backed contracts only; no generic Entity in scoped operations; security/tenant/RBAC metadata complete; $declaredEducationCount School catalog operations and $($admissionKeys.Count) Admission catalog operations checked."

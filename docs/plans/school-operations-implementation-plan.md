@@ -34,6 +34,83 @@ Teste: public, privat, confesional, privat cu fond public; policy expirat/ambigu
 
 Limită asumată: Etapa 1 livrează modelul multi-tenant cu o instituție principală per tenant, conform schemei curente. Un tenant cu mai multe instituții este o migrare structurală separată (`app_institutions` + selecție instituție autorizată în sesiunea OIDC), nu o extensie implicită a profilului.
 
+### Etapa 1B — normalizarea aplicabilității juridice
+
+Această etapă este obligatorie înainte ca suportul public/privat să poată fi declarat complet:
+
+- separarea `private` de overlay-ul `confessional` și modelarea cultului/fondatorului prin `app_parties`;
+- oferte educaționale și autorizări/acreditări effective-dated pe nivel/program/specializare/locație și capacitate;
+- instrumente de finanțare pe an, ofertă și beneficiari, inclusiv condiția cu/fără taxă și dovada validării;
+- evaluări distincte ale aplicabilității achizițiilor la nivel de entitate și contract/proiect; eliminarea autorizării bazate pe boolean introdus de browser;
+- contract educațional și, pentru privat, catalog de taxe/scadențe/reduceri/burse/refunduri versionat;
+- registru CEAC/RAEI/evaluări externe și apartenență anuală la rețeaua școlară;
+- surse policy structurate pe act/articol/formă consolidată/URL/interval și job de revalidare cu impact analysis;
+- conectarea policy resolverului la înscrieri, guvernanță, personal, evaluări, portofolii și toate verticalele OPS, nu numai la publicații.
+
+Teste gate: public; privat acreditat; privat autorizat fără taxă; privat autorizat cu taxă; confesional; statut suspendat/retras; program autorizat într-o locație și refuzat în alta; privat finanțat public care nu este autoritate contractantă; entitate/contract care îndeplinește separat criteriile Legii nr. 98/2016.
+
+Livrarea se face expand–migrate–contract, fără rescrierea evaluărilor istorice din `0135` și fără modificarea distructivă a verticalei `0136`. Inventarul real al fundației deja implementate este:
+
+1. `0137_school_regulatory_profile_v2.sql`: surse reglementare structurate, profil v2 și roluri instituționale;
+2. `0138_school_offerings_authorizations.sql`: locații, oferte și decizii de autorizare/acreditare;
+3. `0139_school_funding_procurement.sql`: instrumente/evaluări de finanțare și aplicabilitate Procurement;
+4. `0140_school_contracts_quality_network.sql`: overlay confesional, contracte educaționale, taxe, calitate și rețea școlară;
+5. `0141_school_operation_policy_context.sql`: input și evaluare policy v2;
+6. `0142_school_stage1b_rls_contract.sql` și `0143_school_stage1b_policy_enrichment.sql`: RLS, lineage temporal și întărirea contractelor;
+7. `0144_education_portfolio_review_evidence.sql`: dovezi și decizii imuabile pentru review-ul portofoliului.
+
+Aceste migrații sunt fundație, nu dovadă că verticalele sunt complete. Următorul set de migrații este rezervat cutover-ului controlat:
+
+1. `0145` — **expand**: identitate API stabilă pentru profilul v2, proiecție de compatibilitate, bindings/overrides v2, legătura exactă input–policy pack, maparea evaluărilor v1↔v2 și coloane FK v2 nullable la consumatori;
+2. `0146` — **migrate**: backfill determinist per tenant/instituție, registru de probleme pentru date ambigue și shadow comparison; sursele legacy neverificabile rămân draft și blochează fail-closed;
+3. `0147` — **contract**: validarea FK-urilor, activarea citirilor/evaluărilor v2 per scope și oprirea scrierilor legacy numai după reconciliere și rollback rehearsal.
+
+Stare executabilă la 2026-09-11: prima felie a verticalei APP-003 este
+implementată DB → Go → OpenAPI → client React → UI PrimeReact pentru locații,
+oferte și decizii de autorizare. Scope-ul provine numai din sesiunea autentificată,
+scrierile sunt idempotente și auditate, actualizările folosesc optimistic concurrency,
+iar guard-urile DB și handler refuză dezactivarea/scurtarea care ar invalida o
+autorizare dependentă. Selectorii de autorizare consumă toate paginile serverului.
+`PutRegulatoryProfile` dual-scrie atomic profilul v1/v2, identity map, proiecția API
+și bindingurile v2 pentru scrierile noi, astfel încât acestea nu mai măresc golurile
+de cutover. Această felie nu închide Etapa 1B: mai lipsesc guard-ul tranzacțional al
+admiterii/capacității, activarea controlată a resolverului v2 după 0146 și E2E
+HTTP → PostgreSQL pentru matricea public/privat/confesional. Invarianturile DB noi
+trebuie încă executate pe un PostgreSQL disposable real, nu pe baza tenantului live.
+
+Contractul executabil, regulile de asociere deterministă și interogările de
+acceptare pentru `0146` sunt definite în
+[specificația cutover policy v2](../design/school-policy-v2-cutover-0146.md).
+Migrarea nu poate fi redusă la INSERT-uri one-shot și nu schimbă singură faza
+niciunui tenant.
+
+În perioada `dual`, identitatea și versiunea expuse prin OpenAPI rămân stabile chiar dacă ID-urile/versiunile interne v1 și v2 diferă. Evaluarea policy și mutația de business se execută în aceeași tranzacție, iar tabelele v1 rămân read-only ca dovadă istorică.
+
+Tenanturile legacy nu primesc date juridice inventate. Valorile nereconciliate produc finding administrativ, iar operațiile reglementate noi rămân fail-closed până la aprobarea dovezilor.
+
+### Reguli obligatorii de paritate public/privat
+
+Implementarea verticalelor folosește același cod și aceleași contracte pentru
+ambele tipuri de școală. Diferențele sunt evaluate prin profil, ofertă, program,
+an, beneficiar și sursa finanțării; nu prin `if public` în React și nu prin
+booleene autorizante. Pentru fiecare etapă se pregătesc fixture-uri pentru:
+
+- școală publică acreditată;
+- școală privată acreditată, cu și fără taxă;
+- școală privată autorizată cu ofertă fără taxă;
+- școală confesională ca overlay privat;
+- privat cu finanțare publică, dar fără calitatea de autoritate contractantă;
+- operație/contract care îndeplinește separat criteriile de achiziții publice.
+
+Ordinea funcțională pentru golurile confirmate este: (1) admitere, ofertă și
+contract educațional; (2) catalog taxe, scadențe, reduceri, burse și refunduri
+pentru privat; (3) finanțare pe ofertă/an/beneficiar; (4) evaluarea achizițiilor
+la nivel de entitate și contract; (5) integrarea cu guvernanță, raportare,
+eArhivă și RBAC. Fiecare verticală intră în producție numai după E2E real
+DB→API→React pentru public, privat și overlay confesional, plus teste de refuz
+pentru ofertă expirată, finanțare nedovedită, `indeterminate` și acces
+cross-tenant.
+
 ## Etapa 2 — contracte, utilități și conformitate
 
 Implementare:

@@ -11,6 +11,7 @@ function Get-Tag([string]$path) {
     if ($path -like '/api/workflow/*') { return 'Workflow' }
     if ($path -like '/api/earchiva/*') { return 'eArhiva' }
     if ($path -like '/api/education/*') { return 'Scoala' }
+    if ($path -like '/api/admissions/*') { return 'Scoala' }
     if ($path -like '/api/institution/*') { return 'Institutie' }
     if ($path -like '/api/admin/*') { return 'Administrare' }
     if ($path -like '/api/gdpr/*') { return 'GDPR' }
@@ -41,16 +42,50 @@ function New-ClosedRequestSchema([string]$operationKey) {
 	# from the handler DTO, preventing a field valid for one admin/GDPR/resource
 	# command from leaking into another endpoint's SDK type.
 	$dtoMap = @{
+		'POST /api/regulatory-sources'='backend/internal/regulatorysource/models.go|RegisterRegulatorySourceRequest'
+		'POST /api/regulatory-sources/{sourceID}/verify'='backend/internal/regulatorysource/models.go|VerifyRegulatorySourceRequest'
+		'POST /api/regulatory-sources/{sourceID}/activate'='backend/internal/regulatorysource/models.go|ActivateRegulatorySourceRequest'
+		'POST /api/earchiva/retention-rules'='backend/internal/earchiva/archive_series_retention.go|ProposeArchiveSeriesRetentionRuleRequest'
+		'POST /api/earchiva/retention-rules/{ruleID}/approve'='backend/internal/earchiva/archive_series_retention.go|ApproveArchiveSeriesRetentionRuleRequest'
+		'POST /api/earchiva/retention-rules/{ruleID}/retire'='backend/internal/earchiva/archive_series_retention.go|RetireArchiveSeriesRetentionRuleRequest'
+		'POST /api/admissions/applications/{applicationID}/decision-preparations'='backend/internal/admission/models.go|PrepareDecisionRequest'
+		'POST /api/admissions/appeals/{appealID}/resolution-preparations'='backend/internal/admission/models.go|PrepareAppealResolutionRequest'
+		'POST /api/admissions/legal-preparations/finalize'='backend/internal/admission/models.go|FinalizeAdmissionLegalPreparationRequest'
+		'POST /api/admissions/signer-authorizations'='backend/internal/admission/models.go|ProposeAdmissionSignerAuthorizationRequest'
+		'POST /api/admissions/signer-authorizations/approve'='backend/internal/admission/models.go|ApproveAdmissionSignerAuthorizationRequest'
+		'POST /api/admissions/signer-authorizations/{authorizationID}/revoke'='backend/internal/admission/models.go|RevokeAdmissionSignerAuthorizationRequest'
 		'POST /api/passkeys/login-finish'='backend/internal/auth/models.go|FinishPasskeyAuthenticationRequest'; 'POST /api/passkeys/register-finish'='backend/internal/auth/models.go|FinishPasskeyRegistrationRequest'; 'PUT /api/profile'='backend/internal/auth/models.go|UpdateProfileRequest'
 		'POST /api/admin/users'='backend/internal/admin/models.go|UpsertUserRequest'; 'POST /api/admin/roles'='backend/internal/admin/models.go|UpsertRoleRequest'; 'POST /api/admin/role-assignments'='backend/internal/admin/models.go|UpsertUserRoleAssignmentRequest'; 'POST /api/admin/role-permissions'='backend/internal/admin/models.go|UpsertRolePermissionAssignmentRequest'; 'POST /api/admin/position-roles'='backend/internal/admin/models.go|UpsertPositionRoleAssignmentRequest'; 'POST /api/admin/org-units'='backend/internal/admin/models.go|UpsertOrgUnitRequest'; 'POST /api/admin/memberships'='backend/internal/admin/models.go|UpsertMembershipRequest'; 'POST /api/admin/positions'='backend/internal/admin/models.go|UpsertPositionRequest'; 'POST /api/admin/permissions/assignments'='backend/internal/admin/models.go|UpsertPermissionAssignmentRequest'; 'POST /api/admin/auth-methods'='backend/internal/admin/models.go|UpdateAuthMethodSettingRequest'; 'POST /api/admin/modules'='backend/internal/admin/models.go|UpdateModuleSettingRequest'; 'POST /api/admin/oidc/clients'='backend/internal/admin/models.go|UpsertOIDCClientRequest'; 'POST /api/admin/gdpr-settings'='backend/internal/admin/models.go|UpdateGdprSettingRequest'; 'POST /api/admin/dossier-requirements'='backend/internal/admin/models.go|CreateDossierRequirementRequest'; 'POST /api/admin/workflow-definitions'='backend/internal/admin/models.go|CreateWorkflowDefinitionRequest'; 'POST /api/admin/nomenclatures'='backend/internal/admin/models.go|CreateNomenclatureRequest'; 'POST /api/admin/education-taxonomies'='backend/internal/admin/models.go|CreateEducationTaxonomyRequest'
 		'POST /api/registratura/documents'='backend/internal/registratura/models.go|CreateDocumentRequest'; 'PATCH /api/registratura/documents/{documentID}'='backend/internal/registratura/models.go|UpdateDocumentRequest'; 'POST /api/registratura/documents/batch'='backend/internal/registratura/models.go|BatchCreateDocumentsRequest'; 'POST /api/registratura/documents/export-pdf'='backend/internal/registratura/models.go|ExportDocumentsRequest'; 'POST /api/registratura/documents/{documentID}/versions'='backend/internal/registratura/models.go|CreateDocumentVersionRequest'; 'POST /api/registratura/documents/{documentID}/attachments'='backend/internal/registratura/models.go|CreateDocumentAttachmentRequest'; 'POST /api/registratura/registre'='backend/internal/registratura/models.go|CreateRegistruRequest'; 'PATCH /api/registratura/registre/{id}'='backend/internal/registratura/models.go|UpdateRegistruRequest'; 'POST /api/registratura/parties'='backend/internal/registratura/models.go|CreatePartyRequest'; 'PATCH /api/registratura/parties/{id}'='backend/internal/registratura/models.go|UpdatePartyRequest'; 'POST /api/registratura/admin/departments'='backend/internal/registratura/structure.go|departmentRequest'; 'PATCH /api/registratura/admin/departments/{id}'='backend/internal/registratura/structure.go|departmentRequest'; 'POST /api/registratura/admin/organizations'='backend/internal/registratura/structure.go|organizationRequest'; 'PATCH /api/registratura/admin/organizations/{id}'='backend/internal/registratura/structure.go|organizationRequest'; 'PUT /api/registratura/admin/users/{id}/assignments'='backend/internal/registratura/structure.go|assignmentRequest'; 'POST /api/registratura/admin/registries'='backend/internal/registratura/structure.go|adminRegistryRequest'; 'PATCH /api/registratura/admin/registries/{id}'='backend/internal/registratura/structure.go|adminRegistryRequest'; 'POST /api/registratura/document-links'='backend/internal/registratura/models.go|CreateDocumentLinkRequest'
 		'POST /api/gdpr/retention-policies'='backend/internal/gdpr/models.go|CreateRetentionPolicyRequest'; 'POST /api/gdpr/subject-requests'='backend/internal/gdpr/models.go|CreateSubjectRequestRequest'; 'POST /api/gdpr/exports'='backend/internal/gdpr/models.go|CreateSubjectExportRequest'; 'POST /api/gdpr/publication-reviews'='backend/internal/gdpr/models.go|CreatePublicationReviewRequest'
 		'POST /api/earchiva/classification-reviews/{reviewID}/approve'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationApprovalRequest'; 'POST /api/earchiva/classification-reviews/{reviewID}/correct'='backend/internal/earchiva/archive_classification.go|ArchiveClassificationCorrectionRequest'
+		'POST /api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile'='backend/internal/earchiva/portfolio_custody_recovery.go|ReconcilePortfolioCustodyRequest'
 		'POST /api/education/portfolios/me'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'PATCH /api/education/portfolios/me/{recordID}'='backend/internal/education/portfolio_models.go|OwnPortfolioRequest'; 'POST /api/education/portfolios/me/{recordID}/documents'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}'='backend/internal/education/portfolio_models.go|OwnPortfolioDocumentRequest'; 'POST /api/education/portfolios/me/{recordID}/declarations/{declarationType}/acknowledgements'='backend/internal/education/portfolio_declarations.go|PortfolioDeclarationAcknowledgementRequest'; 'POST /api/education/portfolios/records/{recordID}/activity-cessation'='backend/internal/education/portfolio_models.go|PortfolioCessationRequest'; 'POST /api/education/portfolios/records/{recordID}/legal-hold'='backend/internal/education/portfolio_models.go|PortfolioLegalHoldRequest'
-		'PUT /api/institution/regulatory-profile'='backend/internal/institution/models.go|PutRegulatoryProfileRequest'
+		'POST /api/education/portfolios/records/{recordID}/return'='backend/internal/education/governance_portfolio_flows.go|PortfolioReturnForCorrectionsRequest'; 'POST /api/education/portfolios/records/{recordID}/managerial-decision'='backend/internal/education/governance_portfolio_flows.go|PortfolioManagerialDecisionRequest'
+		'PUT /api/institution/regulatory-profile'='backend/internal/institution/models.go|PutRegulatoryProfileRequest'; 'POST /api/institution/locations'='backend/internal/institution/models.go|CreateSchoolLocationRequest'; 'PATCH /api/institution/locations/{locationID}'='backend/internal/institution/models.go|UpdateSchoolLocationRequest'; 'POST /api/institution/education-offerings'='backend/internal/institution/models.go|CreateEducationOfferingRequest'; 'PATCH /api/institution/education-offerings/{offeringID}'='backend/internal/institution/models.go|UpdateEducationOfferingRequest'; 'POST /api/institution/offering-authorizations'='backend/internal/institution/models.go|CreateOfferingAuthorizationRequest'
+		'POST /api/school-operations/contracts'='backend/internal/schooloperations/models.go|CreateContractRequest'; 'PATCH /api/school-operations/contracts/{contractID}'='backend/internal/schooloperations/models.go|AmendContractRequest'; 'POST /api/school-operations/contracts/{contractID}/obligations'='backend/internal/schooloperations/models.go|CreateContractObligationRequest'; 'POST /api/school-operations/contracts/{contractID}/transition'='backend/internal/schooloperations/models.go|TransitionContractRequest'
+		'POST /api/admissions/campaigns'='backend/internal/admission/models.go|CreateCampaignRequest'; 'POST /api/admissions/campaigns/{campaignID}/transitions'='backend/internal/admission/models.go|TransitionRequest'; 'POST /api/admissions/campaigns/{campaignID}/criteria'='backend/internal/admission/models.go|CriterionInput'; 'POST /api/admissions/campaigns/{campaignID}/document-requirements'='backend/internal/admission/models.go|DocumentRequirementInput'
+		'POST /api/admissions/class-offering-contexts'='backend/internal/admission/models.go|CreateClassOfferingContextRequest'
+		'POST /api/admissions/applications'='backend/internal/admission/models.go|CreateApplicationRequest'; 'POST /api/admissions/applications/{applicationID}/transitions'='backend/internal/admission/models.go|TransitionRequest'; 'POST /api/admissions/applications/{applicationID}/assessments'='backend/internal/admission/models.go|AssessCriterionRequest'; 'POST /api/admissions/applications/{applicationID}/documents/{documentID}'='backend/internal/admission/models.go|ReviewApplicationDocumentRequest'; 'POST /api/admissions/applications/{applicationID}/decisions'='backend/internal/admission/models.go|IssueDecisionRequest'; 'POST /api/admissions/applications/{applicationID}/appeals'='backend/internal/admission/models.go|CreateAppealRequest'; 'POST /api/admissions/applications/{applicationID}/enrolment'='backend/internal/admission/models.go|EnrolApplicationRequest'; 'POST /api/admissions/appeals/{appealID}/resolution'='backend/internal/admission/models.go|ResolveAppealRequest'; 'POST /api/admissions/retention-rule-versions'='backend/internal/admission/dss_retention_policy.go|ProposeAdmissionRetentionRuleRequest'; 'POST /api/admissions/retention-rule-versions/approve'='backend/internal/admission/dss_retention_policy.go|ApproveAdmissionRetentionRuleRequest'; 'POST /api/admissions/dss-retention-policies'='backend/internal/admission/dss_retention_policy.go|ConfigureDSSRetentionPolicyRequest'
 	}
 	if ($dtoMap.ContainsKey($operationKey)) {
 		return Get-GoDTOObjectSchema ([string]$dtoMap[$operationKey])
+	}
+	if ($operationKey -eq 'POST /api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}') {
+		return [ordered]@{
+			type = 'object'; additionalProperties = $false; required = @('file')
+			properties = [ordered]@{ file = [ordered]@{ type = 'string'; format = 'binary' } }
+		}
+	}
+	if ($operationKey -eq 'POST /api/education/portfolios/me/{recordID}/archive-documents') {
+		return [ordered]@{
+			type='object'; additionalProperties=$false; required=@('file','title')
+			properties=[ordered]@{
+				file=[ordered]@{type='string';format='binary'}
+				title=[ordered]@{type='string';minLength=1;maxLength=300}
+				document_date=[ordered]@{type='string';format='date'}
+			}
+		}
 	}
 	if ($operationKey -eq 'POST /api/earchiva/documents') {
 		# The archive upload handler consumes a multipart PDF plus scalar metadata.
@@ -119,10 +154,34 @@ function Get-ResponseDTO([string]$path) {
 # source of truth and every success response is closed and useful to an SDK.
 function Get-ExactResponseSpec([string]$operationKey) {
 	$map = @{
+		'GET /api/earchiva/retention-rules'='page|backend/internal/earchiva/archive_series_retention.go|ArchiveSeriesRetentionRule'
+		'GET /api/regulatory-sources'='page|backend/internal/regulatorysource/models.go|RegulatorySource'
+		'POST /api/education/portfolios/me/{recordID}/archive-documents'='dto|backend/internal/earchiva/archive_documents.go|ArchiveDocumentDetail'
+		'POST /api/regulatory-sources'='dto|backend/internal/regulatorysource/models.go|RegulatorySource'
+		'POST /api/regulatory-sources/{sourceID}/verify'='dto|backend/internal/regulatorysource/models.go|RegulatorySource'
+		'POST /api/regulatory-sources/{sourceID}/activate'='dto|backend/internal/regulatorysource/models.go|RegulatorySource'
+		'POST /api/earchiva/retention-rules'='dto|backend/internal/earchiva/archive_series_retention.go|ArchiveSeriesRetentionRule'
+		'POST /api/earchiva/retention-rules/{ruleID}/approve'='dto|backend/internal/earchiva/archive_series_retention.go|ArchiveSeriesRetentionRule'
+		'POST /api/earchiva/retention-rules/{ruleID}/retire'='dto|backend/internal/earchiva/archive_series_retention.go|ArchiveSeriesRetentionRule'
+		'POST /api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}'='dto|backend/internal/earchiva/admission_legal_upload.go|AdmissionLegalPreparationArtifactResponse'
+		'GET /api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}'='dto|backend/internal/earchiva/admission_legal_upload.go|AdmissionLegalPreparationArtifactResponse'
+		'POST /api/admissions/applications/{applicationID}/decision-preparations'='dto|backend/internal/admission/models.go|AdmissionLegalPreparation'
+		'POST /api/admissions/appeals/{appealID}/resolution-preparations'='dto|backend/internal/admission/models.go|AdmissionLegalPreparation'
+		'POST /api/admissions/legal-preparations/finalize'='dto|backend/internal/admission/models.go|CommandResult'
+		'POST /api/admissions/signer-authorizations'='dto|backend/internal/admission/models.go|AdmissionSignerAuthorization'
+		'POST /api/admissions/signer-authorizations/approve'='dto|backend/internal/admission/models.go|AdmissionSignerAuthorization'
+		'POST /api/admissions/signer-authorizations/{authorizationID}/revoke'='dto|backend/internal/admission/models.go|CommandResult'
+		'POST /api/admissions/legal-preparations/{preparationID}/cancel'='dto|backend/internal/admission/models.go|CommandResult'
+		'GET /api/admissions/signer-authorizations'='page|backend/internal/admission/models.go|AdmissionSignerAuthorization'
         'GET /api/auth/methods'='object|auth_methods'; 'GET /api/auth/ui-config'='object|auth_ui_config'; 'GET /api/auth/role-catalog'='dto|backend/internal/auth/models.go|RoleCatalogResponse'; 'GET /api/auth/role-positions'='dto|backend/internal/auth/models.go|RolePositionResponse'
         'POST /api/passkeys/login-options'='object|passkey_login_options'; 'POST /api/passkeys/login-finish'='object|passkey_login_finish'; 'POST /api/passkeys/register-options'='object|passkey_register_options'; 'POST /api/passkeys/register-finish'='dto|backend/internal/auth/models.go|PasskeyCredentialSummary'; 'POST /api/eudi-wallet/activate'='object|eudi_activation'
         'GET /api/passkeys'='array|backend/internal/auth/models.go|PasskeyCredentialSummary'
-		'GET /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'PUT /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'GET /api/institution/capabilities'='dto|backend/internal/institution/models.go|InstitutionCapabilitiesResponse'
+		'GET /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'PUT /api/institution/regulatory-profile'='dto|backend/internal/institution/models.go|RegulatoryProfile'; 'GET /api/institution/capabilities'='dto|backend/internal/institution/models.go|InstitutionCapabilitiesResponse'; 'GET /api/institution/policy-cutover-preflight'='dto|backend/internal/institution/models.go|PolicyCutoverPreflightResponse'; 'GET /api/institution/locations'='page|backend/internal/institution/models.go|SchoolLocation'; 'POST /api/institution/locations'='dto|backend/internal/institution/models.go|SchoolLocation'; 'PATCH /api/institution/locations/{locationID}'='dto|backend/internal/institution/models.go|SchoolLocation'; 'GET /api/institution/education-offerings'='page|backend/internal/institution/models.go|EducationOffering'; 'POST /api/institution/education-offerings'='dto|backend/internal/institution/models.go|EducationOffering'; 'PATCH /api/institution/education-offerings/{offeringID}'='dto|backend/internal/institution/models.go|EducationOffering'; 'GET /api/institution/offering-authorizations'='page|backend/internal/institution/models.go|OfferingAuthorization'; 'POST /api/institution/offering-authorizations'='dto|backend/internal/institution/models.go|OfferingAuthorization'
+		'GET /api/school-operations/suppliers'='page|backend/internal/schooloperations/models.go|SupplierOption'
+		'GET /api/school-operations/contracts'='page|backend/internal/schooloperations/models.go|Contract'; 'POST /api/school-operations/contracts'='object|school_operations_contract_create'; 'GET /api/school-operations/contracts/{contractID}'='dto|backend/internal/schooloperations/models.go|Contract'; 'PATCH /api/school-operations/contracts/{contractID}'='object|school_operations_contract_amend'; 'GET /api/school-operations/contracts/{contractID}/obligations'='page|backend/internal/schooloperations/models.go|ContractObligation'; 'POST /api/school-operations/contracts/{contractID}/obligations'='object|school_operations_contract_obligation_create'; 'POST /api/school-operations/contracts/{contractID}/transition'='object|school_operations_contract_transition'
+		'GET /api/admissions/campaigns'='page|backend/internal/admission/models.go|Campaign'; 'POST /api/admissions/campaigns'='dto|backend/internal/admission/models.go|CommandResult'; 'POST /api/admissions/campaigns/{campaignID}/transitions'='dto|backend/internal/admission/models.go|CommandResult'; 'GET /api/admissions/campaigns/{campaignID}/criteria'='page|backend/internal/admission/models.go|Criterion'; 'POST /api/admissions/campaigns/{campaignID}/criteria'='dto|backend/internal/admission/models.go|CommandResult'; 'GET /api/admissions/campaigns/{campaignID}/document-requirements'='page|backend/internal/admission/models.go|DocumentRequirement'; 'POST /api/admissions/campaigns/{campaignID}/document-requirements'='dto|backend/internal/admission/models.go|CommandResult'
+		'GET /api/admissions/class-offering-contexts'='page|backend/internal/admission/models.go|ClassOfferingContext'; 'POST /api/admissions/class-offering-contexts'='dto|backend/internal/admission/models.go|CommandResult'; 'GET /api/admissions/regulatory-sources'='page|backend/internal/admission/models.go|RegulatorySourceOption'; 'GET /api/admissions/candidate-parties'='page|backend/internal/admission/models.go|CandidatePartyOption'; 'GET /api/admissions/students'='page|backend/internal/admission/models.go|StudentOption'; 'GET /api/admissions/eligible-archive-versions'='page|backend/internal/admission/models.go|ArchiveVersionOption'
+		'GET /api/admissions/applications'='page|backend/internal/admission/models.go|Application'; 'POST /api/admissions/applications'='dto|backend/internal/admission/models.go|CommandResult'; 'GET /api/admissions/applications/{applicationID}'='dto|backend/internal/admission/models.go|ApplicationDetail'; 'POST /api/admissions/applications/{applicationID}/transitions'='dto|backend/internal/admission/models.go|CommandResult'; 'POST /api/admissions/applications/{applicationID}/assessments'='dto|backend/internal/admission/models.go|CommandResult'; 'POST /api/admissions/applications/{applicationID}/documents/{documentID}'='dto|backend/internal/admission/models.go|CommandResult'; 'POST /api/admissions/applications/{applicationID}/decisions'='dto|backend/internal/admission/models.go|Decision'; 'POST /api/admissions/applications/{applicationID}/appeals'='dto|backend/internal/admission/models.go|CommandResult'; 'POST /api/admissions/applications/{applicationID}/enrolment'='dto|backend/internal/admission/models.go|CommandResult'; 'GET /api/admissions/decisions'='page|backend/internal/admission/models.go|Decision'; 'GET /api/admissions/appeals'='page|backend/internal/admission/models.go|Appeal'; 'POST /api/admissions/appeals/{appealID}/resolution'='dto|backend/internal/admission/models.go|CommandResult'
 		'GET /api/registratura/documents/filters'='dto|backend/internal/registratura/models.go|DocumentFiltersResponse'; 'GET /api/registratura/nomenclatures'='dto|backend/internal/registratura/models.go|DocumentFiltersResponse'; 'POST /api/registratura/documents'='dto|backend/internal/registratura/models.go|Document'; 'PATCH /api/registratura/documents/{documentID}'='dto|backend/internal/registratura/models.go|Document'; 'GET /api/registratura/documents/{documentID}'='dto|backend/internal/registratura/models.go|Document'; 'POST /api/registratura/documents/{documentID}/cancel'='dto|backend/internal/registratura/models.go|Document'; 'GET /api/registratura/documents/lookup'='array|backend/internal/registratura/models.go|DocumentLookupItem'; 'GET /api/registratura/documents/{documentID}/versions'='array|backend/internal/registratura/models.go|DocumentVersion'; 'POST /api/registratura/documents/{documentID}/versions'='dto|backend/internal/registratura/models.go|DocumentVersion'; 'GET /api/registratura/documents/{documentID}/workflow-history'='array|backend/internal/registratura/models.go|DocumentWorkflowEvent'; 'GET /api/registratura/workflow-assignees'='object|workflow_assignees'; 'GET /api/registratura/documents/{documentID}/attachments'='array|backend/internal/registratura/models.go|DocumentAttachment'; 'POST /api/registratura/documents/{documentID}/attachments'='dto|backend/internal/registratura/models.go|DocumentAttachment'; 'GET /api/registratura/flux/queue'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/mapa'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/pipeline'='page|backend/internal/registratura/models.go|FluxDocument'; 'GET /api/registratura/flux/pipeline/stats'='array|backend/internal/registratura/models.go|FluxPipelineStat'
         'POST /api/registratura/registre'='dto|backend/internal/registratura/models.go|Registru'; 'GET /api/registratura/registre/{id}'='dto|backend/internal/registratura/models.go|Registru'; 'PATCH /api/registratura/registre/{id}'='dto|backend/internal/registratura/models.go|Registru'; 'DELETE /api/registratura/registre/{id}'='empty|'; 'PATCH /api/registratura/registre/{id}/set-default'='dto|backend/internal/registratura/models.go|Registru'
         'GET /api/registratura/parties'='page|backend/internal/registratura/models.go|Party'; 'POST /api/registratura/parties'='dto|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/lookup'='array|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/default-organization'='dto|backend/internal/registratura/models.go|Party'; 'GET /api/registratura/parties/{id}'='dto|backend/internal/registratura/models.go|Party'; 'PATCH /api/registratura/parties/{id}'='dto|backend/internal/registratura/models.go|Party'; 'DELETE /api/registratura/parties/{id}'='empty|'
@@ -130,6 +189,7 @@ function Get-ExactResponseSpec([string]$operationKey) {
         'GET /api/workflow/dashboard'='object|workflow_dashboard'; 'GET /api/workflow/definitions'='array|backend/internal/workflow/models.go|Definition'; 'POST /api/workflow/tasks'='dto|backend/internal/workflow/models.go|Task'; 'GET /api/workflow/tasks/filters'='dto|backend/internal/workflow/models.go|FiltersResponse'
 		'GET /api/earchiva/dashboard'='object|archive_dashboard'; 'GET /api/earchiva/records/filters'='dto|backend/internal/earchiva/models.go|FiltersResponse'; 'GET /api/earchiva/nomenclatures'='dto|backend/internal/earchiva/models.go|FiltersResponse'; 'GET /api/earchiva/documents/{documentID}'='dto|backend/internal/earchiva/archive_documents.go|ArchiveDocumentDetail'; 'GET /api/earchiva/documents/{documentID}/versions'='array|backend/internal/earchiva/archive_documents.go|ArchiveDocumentVersionSummary'; 'GET /api/earchiva/taxonomy'='array|backend/internal/earchiva/archive_documents.go|ArchiveTaxonomyNode'; 'GET /api/earchiva/admin/health'='dto|backend/internal/earchiva/archive_admin.go|ArchiveAdminHealth'; 'GET /api/earchiva/admin/stats'='dto|backend/internal/earchiva/archive_admin.go|ArchiveAdminStats'; 'GET /api/earchiva/admin/jobs'='dto|backend/internal/earchiva/archive_admin.go|ArchiveAdminJobPage'; 'POST /api/earchiva/admin/jobs/{jobID}/retry'='dto|backend/internal/earchiva/archive_admin.go|ArchiveAdminJob'
 		'GET /api/earchiva/classification-reviews'='dto|backend/internal/earchiva/archive_classification.go|ArchiveClassificationReviewPage'; 'POST /api/earchiva/classification-reviews/{reviewID}/approve'='dto|backend/internal/earchiva/archive_classification.go|ArchiveClassificationReview'; 'POST /api/earchiva/classification-reviews/{reviewID}/correct'='dto|backend/internal/earchiva/archive_classification.go|ArchiveClassificationReview'
+		'GET /api/earchiva/admin/portfolio-custody-intents'='page|backend/internal/earchiva/portfolio_custody_recovery.go|PortfolioCustodyRecoveryListItem'; 'POST /api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile'='dto|backend/internal/earchiva/portfolio_custody_recovery.go|PortfolioCustodyRecoveryOperation'; 'GET /api/earchiva/admin/portfolio-custody-intents/{intentID}/recovery-operations/{operationID}'='dto|backend/internal/earchiva/portfolio_custody_recovery.go|PortfolioCustodyRecoveryOperation'
         'GET /api/registratura/documents'='page|backend/internal/registratura/models.go|Document'; 'GET /api/registratura/registre'='page|backend/internal/registratura/models.go|Registru'; 'GET /api/workflow/tasks'='page|backend/internal/workflow/models.go|Task'; 'GET /api/earchiva/records'='page|backend/internal/earchiva/models.go|Record'; 'GET /api/earchiva/documents'='page|backend/internal/earchiva/archive_documents.go|ArchiveDocumentSearchResult'
         'GET /api/education/governance/eligible-users'='object|education_eligible_users'
         'GET /api/admin/dashboard'='object|admin_dashboard'; 'GET /api/admin/users/filters'='object|admin_user_filters'; 'GET /api/admin/role-permissions/filters'='object|admin_role_permission_filters'; 'GET /api/admin/position-roles/filters'='object|admin_position_role_filters'; 'GET /api/admin/permissions/assignments/filters'='object|admin_permission_assignment_filters'; 'GET /api/admin/audit'='page|backend/internal/admin/models.go|AuditEvent'; 'GET /api/admin/audit/filters'='object|admin_audit_filters'; 'GET /api/admin/dossier-requirements/filters'='object|admin_dossier_filters'; 'GET /api/admin/workflow-definitions/filters'='object|admin_workflow_filters'; 'GET /api/admin/nomenclatures/filters'='object|admin_nomenclature_filters'; 'GET /api/admin/education-taxonomies/filters'='object|admin_education_taxonomy_filters'
@@ -143,6 +203,10 @@ function New-ExactInlineResponseSchema([string]$name) {
     $string=@{type='string'}; $boolean=@{type='boolean'}; $integer=@{type='integer'}; $strings=@{type='array';items=@{type='string'}}
     switch ($name) {
         'education_eligible_users' { return @{type='object';additionalProperties=$false;required=@('items');properties=@{items=@{type='array';items=@{type='object';additionalProperties=$false;required=@('id','name');properties=@{id=$string;name=$string}}}}} }
+		'school_operations_contract_create' { return @{type='object';additionalProperties=$false;required=@('id','expected_version','archive_status');properties=@{id=@{type='string';format='uuid'};expected_version=$integer;archive_status=$string;idempotent=$boolean}} }
+		'school_operations_contract_amend' { return @{type='object';additionalProperties=$false;required=@('id','expected_version');properties=@{id=@{type='string';format='uuid'};expected_version=$integer}} }
+		'school_operations_contract_obligation_create' { return @{type='object';additionalProperties=$false;required=@('id','expected_version');properties=@{id=@{type='string';format='uuid'};expected_version=$integer}} }
+		'school_operations_contract_transition' { return @{type='object';additionalProperties=$false;required=@('id','lifecycle_status','expected_version');properties=@{id=@{type='string';format='uuid'};lifecycle_status=$string;expected_version=$integer}} }
         'auth_methods' { return @{type='object';additionalProperties=$false;required=@('methods');properties=@{methods=@{type='array';items=@{type='object';additionalProperties=$false;properties=@{code=$string;label=$string;enabled=$boolean;primary=$boolean}}}}} }
         'auth_ui_config' { return @{type='object';additionalProperties=$false;properties=@{auth_flow=$string;default_locale=$string;available_locales=$strings;theme_family=$string;theme_brand=$string;oidc_issuer=@{type='string';format='uri'};oidc_client_id=$string;desktop_client_id=$string;sms_otp_enabled=$boolean;passkey_enabled=$boolean;eudi_wallet_enabled=$boolean;gdpr_features_enabled=$boolean}} }
         'passkey_login_options' { return @{type='object';additionalProperties=$false;required=@('status','options');properties=@{status=$string;options=@{type='object';additionalProperties=$false;properties=@{challenge=$string;rpId=$string;timeout=$integer;userVerification=$string;allowCredentials=@{type='array';items=@{type='object';additionalProperties=$false;properties=@{type=$string;id=$string}}}}}}} }
@@ -203,6 +267,50 @@ function Get-EducationHandlerCreatedStatus([hashtable]$coverageOperation) {
 }
 
 function New-QueryParameter([string]$operationKey, [string]$parameterName) {
+    if ($operationKey -eq 'GET /api/education/portfolios/records/{recordID}/lifecycle-operations') {
+        if ($parameterName -eq 'page') { return [ordered]@{ name = 'page'; in = 'query'; required = $false; schema = @{ type = 'integer'; minimum = 1; maximum = 1000000; default = 1 } } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = [ordered]@{ type='string' }
+        if ($parameterName -eq 'sort') { $schema.enum=@('requested_at','status','type'); $schema.default='requested_at' }
+        if ($parameterName -eq 'direction') { $schema.enum=@('asc','desc'); $schema.default='desc' }
+        if ($parameterName -eq 'filter.status') { $schema.enum=@('pending','processing','completed','blocked','dead_letter') }
+        if ($parameterName -eq 'filter.type') { $schema.enum=@('cessation_retention','legal_hold_reconcile') }
+        if ($parameterName -eq 'filter.requested_at') { $schema.format='date' }
+        return [ordered]@{ name=$parameterName; in='query'; required=$false; schema=$schema }
+    }
+    if ($operationKey -eq 'GET /api/regulatory-sources') {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = [ordered]@{ type='string' }
+        if ($parameterName -eq 'status') { $schema.enum=@('draft','verified','active','superseded','withdrawn') }
+        if ($parameterName -eq 'source_kind') { $schema.enum=@('law','government_decision','ministerial_order','authorization','accreditation','founder_decision','contract','other') }
+        if ($parameterName -eq 'direction') { $schema.enum=@('asc','desc') }
+        if ($parameterName -eq 'sort') { $schema.enum=@('citation','source_kind','status','created_at','updated_at') }
+        return [ordered]@{ name=$parameterName; in='query'; required=$false; schema=$schema }
+    }
+    if ($operationKey -eq 'GET /api/earchiva/retention-rules') {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = [ordered]@{ type='string' }
+        if ($parameterName -in @('taxonomy_node_id','source_id')) { $schema.format='uuid' }
+        if ($parameterName -eq 'status') { $schema.enum=@('proposed','active','retired','revoked') }
+        if ($parameterName -eq 'anchor_kind') { $schema.enum=@('intake_received_at','event','permanent') }
+        if ($parameterName -eq 'direction') { $schema.enum=@('asc','desc') }
+        if ($parameterName -eq 'sort') { $schema.enum=@('effective_from','effective_to','status','minimum_retention_days','created_at','updated_at') }
+        return [ordered]@{ name=$parameterName; in='query'; required=$false; schema=$schema }
+    }
+    if ($operationKey -eq 'GET /api/earchiva/admin/portfolio-custody-intents') {
+        if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+        if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+        $schema = [ordered]@{ type='string' }
+        if ($parameterName -in @('intent_id','portfolio_id')) { $schema.format='uuid' }
+        if ($parameterName -eq 'status') { $schema.enum=@('stored','queued','leased','committed','blocked','deadletter') }
+        if ($parameterName -eq 'disposition') { $schema.enum=@('teacher_access','institution_archive_only') }
+        if ($parameterName -in @('created_from','created_to')) { $schema.format='date-time' }
+        if ($parameterName -eq 'direction') { $schema.enum=@('asc','desc'); $schema.default='desc' }
+        if ($parameterName -eq 'sort') { $schema.enum=@('created_at','intent_id','portfolio_id','status','disposition','title','original_file_name'); $schema.default='created_at' }
+        return [ordered]@{ name=$parameterName; in='query'; required=$false; schema=$schema }
+    }
     # Keep the generated client honest: these are the exact sort allowlists
     # passed to httpx.ParsePageQuery by the governance/managerial handlers.
     $educationListSorts = @{
@@ -309,6 +417,26 @@ function New-QueryParameter([string]$operationKey, [string]$parameterName) {
         return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
     }
 
+	$schoolOperationsSorts = @{
+		'GET /api/school-operations/suppliers' = @('display_name','code','tax_id')
+		'GET /api/school-operations/contracts' = @('contract_number','supplier_name','title','category','lifecycle_status','starts_on','ends_on','total_value','archive_status')
+		'GET /api/school-operations/contracts/{contractID}/obligations' = @('title','status','due_on')
+	}
+	if ($schoolOperationsSorts.ContainsKey($operationKey)) {
+		if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
+		if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
+		$schema = if ($parameterName -eq 'sort') {
+			[ordered]@{ type = 'string'; enum = $schoolOperationsSorts[$operationKey] }
+		} elseif ($parameterName -eq 'direction') {
+			[ordered]@{ type = 'string'; enum = @('asc','desc') }
+		} elseif ($parameterName -in @('filter.starts_on','filter.ends_on','filter.due_on')) {
+			[ordered]@{ type = 'string'; format = 'date' }
+		} else {
+			[ordered]@{ type = 'string' }
+		}
+		return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = $schema }
+	}
+
     if ($parameterName -eq 'page') { return [ordered]@{ '$ref' = '#/components/parameters/Page' } }
     if ($parameterName -eq 'pageSize') { return [ordered]@{ '$ref' = '#/components/parameters/PageSize' } }
     return [ordered]@{ name = $parameterName; in = 'query'; required = $false; schema = [ordered]@{ type = 'string' } }
@@ -316,8 +444,58 @@ function New-QueryParameter([string]$operationKey, [string]$parameterName) {
 
 $routerSource = Get-Content -Raw $Router
 $common = Get-Content -Raw 'openapi/components/common.json' | ConvertFrom-Json -AsHashtable
+$common.components.schemas['OwnPortfolioAppliedProcedureResponse'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_own_procedure.go|OwnPortfolioAppliedProcedureResponse'
+# These DTOs are declared in another Go source file. Reuse their canonical
+# schemas instead of accepting the source-local helper's unresolved string fallback.
+$common.components.schemas.OwnPortfolioAppliedProcedureResponse.properties.procedure = [ordered]@{ '$ref' = '#/components/schemas/PortfolioProcedure' }
+$common.components.schemas.OwnPortfolioAppliedProcedureResponse.properties.rules.items = [ordered]@{ '$ref' = '#/components/schemas/PortfolioProcedureSectionRule' }
+$common.components.schemas['AdmissionDSSRetentionPolicy'] = Get-GoDTOObjectSchema 'backend/internal/admission/models.go|AdmissionDSSRetentionPolicy'
+$common.components.schemas['AdmissionRetentionRuleVersion'] = Get-GoDTOObjectSchema 'backend/internal/admission/models.go|AdmissionRetentionRuleVersion'
+$common.components.schemas['ConfigureDSSRetentionPolicyRequest'] = Get-GoDTOObjectSchema 'backend/internal/admission/dss_retention_policy.go|ConfigureDSSRetentionPolicyRequest'
 $overrides = Get-Content -Raw 'openapi/overrides.json' | ConvertFrom-Json -AsHashtable
 $domainRules = @()
+$common.components.schemas['PortfolioLifecycleOperation'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioLifecycleOperation'
+$common.components.schemas['PortfolioLifecycleRetryRequest'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioLifecycleRetryRequest'
+$common.components.schemas.PortfolioLifecycleRetryRequest.properties.reason.minLength = 1
+$common.components.schemas.PortfolioLifecycleOperation.properties.status.enum = @('pending','processing','completed','blocked','dead_letter')
+$common.components.schemas.PortfolioLifecycleOperation.properties.type.enum = @('cessation_retention','legal_hold_reconcile')
+foreach ($countField in @('total_versions','completed_versions','blocked_versions')) { $common.components.schemas.PortfolioLifecycleOperation.properties[$countField].minimum = 0 }
+$common.components.schemas['PortfolioLifecycleOperationResponse'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioLifecycleOperationResponse'
+$common.components.schemas.PortfolioLifecycleOperationResponse.properties.operation = @{ '$ref' = '#/components/schemas/PortfolioLifecycleOperation' }
+$common.components.schemas.PortfolioLifecycleOperationResponse.properties.portfolio = @{ '$ref' = '#/components/schemas/PortfolioRecord' }
+$common.components.schemas['PortfolioStorageTransition'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioStorageTransition'
+$common.components.schemas.PortfolioStorageTransition.properties.status.enum = @('pending','processing','completed','blocked','dead_letter')
+$common.components.schemas.PortfolioLifecycleOperationResponse.properties.transitions = @{ type='array'; items=@{ '$ref' = '#/components/schemas/PortfolioStorageTransition' } }
+$common.components.schemas['PortfolioRetentionDisposition'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioRetentionDisposition'
+$common.components.schemas['PortfolioRetentionDispositionEvidence'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioRetentionDispositionEvidence'
+$common.components.schemas['PortfolioRetentionDispositionRequest'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioRetentionDispositionRequest'
+$common.components.schemas['PortfolioRetentionDispositionDecisionRequest'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioRetentionDispositionDecisionRequest'
+$common.components.schemas['PortfolioRetentionDispositionCommandResponse'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_models.go|PortfolioRetentionDispositionCommandResponse'
+$common.components.schemas.PortfolioRetentionDisposition.properties.status.enum = @('submitted','approved','rejected','blocked','closed')
+$common.components.schemas.PortfolioRetentionDisposition.properties.decision.enum = @('approved','rejected')
+$common.components.schemas.PortfolioRetentionDisposition.properties.outcome.enum = @('released','retained','blocked')
+$common.components.schemas.PortfolioRetentionDisposition.properties.operation_status.enum = @('queued','leased','released','blocked','deadletter')
+$common.components.schemas.PortfolioRetentionDisposition.properties.operation_attempts.minimum = 0
+$common.components.schemas.PortfolioRetentionDisposition.properties.evidence = @{ '$ref' = '#/components/schemas/PortfolioRetentionDispositionEvidence' }
+$common.components.schemas.PortfolioRetentionDispositionRequest.properties.evidence = @{ '$ref' = '#/components/schemas/PortfolioRetentionDispositionEvidence' }
+$common.components.schemas.PortfolioRetentionDispositionEvidence.properties.statement.minLength = 1
+$common.components.schemas.PortfolioRetentionDispositionEvidence.properties.statement.maxLength = 4000
+$common.components.schemas.PortfolioRetentionDispositionEvidence.properties.reference.maxLength = 500
+$common.components.schemas.PortfolioRetentionDispositionDecisionRequest.properties.reason.minLength = 1
+$common.components.schemas.PortfolioRetentionDispositionDecisionRequest.properties.reason.maxLength = 2000
+$common.components.schemas['EducationPageOfPortfolioLifecycleOperation'] = @{
+    type='object'; additionalProperties=$false; required=@('items','page','pageSize','total')
+    properties=@{
+        items=@{type='array';items=@{'$ref'='#/components/schemas/PortfolioLifecycleOperation'}}
+        page=@{type='integer';minimum=1}; pageSize=@{type='integer';minimum=1}; total=@{type='integer';minimum=0}
+    }
+}
+$common.components.schemas['EducationPageOfPortfolioRetentionDisposition'] = @{
+    type='object';additionalProperties=$false;required=@('items','page','pageSize','total');properties=@{
+        items=@{type='array';items=@{'$ref'='#/components/schemas/PortfolioRetentionDisposition'}}
+        page=@{type='integer';minimum=1};pageSize=@{type='integer';minimum=1};total=@{type='integer';minimum=0}
+    }
+}
 $domainCoverage = @{}
 $educationRequestSchemas = @{}
 
@@ -402,8 +580,28 @@ $educationRequestRequiredFields = @{
     'OwnPortfolioDocumentRequest' = @('section_code','component_code','document_title','description','school_year','subject_discipline','applicable_class','competencies','evidence_type','issued_on','added_on','file_reference')
     'CreatePortfolioChecklistItemRequest' = @('requirement_code','requirement_label','section_code','source_scope','status','last_checked_on')
     'CreatePortfolioOpisEntryRequest' = @('section_code','component_code','entry_title','source_scope','document_reference','checked_on')
-    'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
-    'CreatePortfolioReviewEventRequest' = @('review_stage','outcome','reviewer_name','reviewed_on')
+	'CreatePortfolioCustodyEventRequest' = @('event_type','holder_name','holder_role','location_label','access_reason','started_on','access_mode')
+	'PortfolioRetentionDispositionRequest' = @('evidence')
+	'PortfolioRetentionDispositionDecisionRequest' = @('approve','reason')
+    'CreatePortfolioReviewEventRequest' = @('review_stage','outcome','reviewed_on')
+    'CreateClassOfferingContextRequest' = @('class_id','offering_id','location_id','authorization_id','school_year','shift','effective_from')
+    'CreateCampaignRequest' = @('source_id','code','title','school_year','offering_id','location_id','authorization_id','class_offering_context_id','capacity_limit','capacity_unit','student_place_limit','capacity_basis','shift','opens_on','closes_on','criteria','document_requirements')
+    'TransitionRequest' = @('status','expected_version')
+    'CriterionInput' = @('code','title','kind','required','weight','ordinal','rule_snapshot')
+    'DocumentRequirementInput' = @('code','title','required','allowed_mime_types','ordinal')
+    'CreateApplicationRequest' = @('campaign_id','application_no','candidate_party_id','consent_snapshot')
+    'AssessCriterionRequest' = @('criterion_id','outcome','rationale','evidence_snapshot','expected_version')
+    'ReviewApplicationDocumentRequest' = @('status','review_note','expected_version')
+    'IssueDecisionRequest' = @('decision_no','outcome','rationale','expected_version','archive')
+    'PrepareDecisionRequest' = @('decision_no','outcome','rationale','expected_version')
+    'PrepareAppealResolutionRequest' = @('outcome','rationale','expected_version','application_expected_version')
+    'FinalizeAdmissionLegalPreparationRequest' = @('preparation_id','archive')
+    'ProposeAdmissionSignerAuthorizationRequest' = @('certificate_sha256','user_id','permission_code','valid_until')
+    'ApproveAdmissionSignerAuthorizationRequest' = @('proposal_id')
+    'RevokeAdmissionSignerAuthorizationRequest' = @('expected_version','reason')
+    'CreateAppealRequest' = @('decision_id','appeal_no','submitted_by_party_id','statement')
+    'EnrolApplicationRequest' = @('student_code','enrolled_from','expected_version')
+    'ResolveAppealRequest' = @('outcome','rationale','expected_version','application_expected_version','resulting_decision_no','resulting_outcome','archive')
 }
 $educationSources = @(Get-ChildItem 'backend/internal/education/*.go' | Where-Object { $_.Name -notlike '*_test.go' })
 foreach ($schemaName in @($common.components.schemas.Keys)) {
@@ -655,7 +853,14 @@ foreach ($match in $routePattern.Matches($routerSource)) {
             # streamed exports.  The composed document uses named schemas so
             # every reference remains resolvable and its media type is explicit.
             if ($coverageResponseSchema -eq 'binary') {
-                $coverageResponseSchema = if ([string]$coverage.success.contentType -eq 'text/csv') { 'BinaryCsv' } else { 'BinaryPdf' }
+                $coverageResponseSchema = switch ([string]$coverage.success.contentType) {
+                    'text/csv' { 'BinaryCsv' }
+                    'application/zip' { 'BinaryZip' }
+                    default { 'BinaryPdf' }
+                }
+                if ($coverageResponseSchema -eq 'BinaryZip') {
+                    $common.components.schemas['BinaryZip'] = @{ type = 'string'; format = 'binary' }
+                }
             }
             $override.responseSchema = $coverageResponseSchema
         }
@@ -706,6 +911,12 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     $errorStatuses = if ($override -and $override.errors) { @($override.errors | ForEach-Object { [string]$_ }) } else { @('400','401','403','404','422','500') }
     foreach ($errorStatus in $errorStatuses) {
         if ($errorResponseMap.ContainsKey($errorStatus)) { $operation.responses[$errorStatus] = [ordered]@{ '$ref' = $errorResponseMap[$errorStatus] } }
+        elseif ($errorStatus -in @('413', '503')) {
+            $operation.responses[$errorStatus] = [ordered]@{
+                description = $(if ($errorStatus -eq '413') { 'Export or request exceeds server limits' } else { 'Required service temporarily unavailable' })
+                content = @{ 'application/json' = @{ schema = @{ '$ref' = '#/components/schemas/Problem' } } }
+            }
+        }
     }
 
     $requiresSecurity = -not $isPublic
@@ -730,11 +941,27 @@ foreach ($match in $routePattern.Matches($routerSource)) {
     foreach ($parameterName in $pathParameterNames) {
         $parameters += [ordered]@{ name = [string]$parameterName; in = 'path'; required = $true; schema = [ordered]@{ type = 'string' } }
     }
+    if ($path -eq '/api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}') {
+        foreach ($parameter in $parameters) {
+            if ($parameter.name -eq 'preparationID') { $parameter.schema.format = 'uuid' }
+            if ($parameter.name -eq 'artifactSlot') { $parameter.schema.enum = @('primary','resulting_decision') }
+        }
+        if ($method -eq 'post') { $operation.responses['200'] = [ordered]@{ description = 'Idempotent replay of the committed artifact'; content = [ordered]@{ 'application/json' = [ordered]@{ schema = [ordered]@{ '$ref' = "#/components/schemas/$responseSchema" } } } } }
+    }
     if ($override -and $override.institutionContext) { $parameters += [ordered]@{ '$ref' = '#/components/parameters/Institution' } }
 
     $queryParameterNames = if ($override -and $override.queryParameters) { @($override.queryParameters) } else { @() }
     foreach ($parameterName in $queryParameterNames) {
         $parameters += New-QueryParameter $key ([string]$parameterName)
+    }
+    if ($method -eq 'post' -and ($path.StartsWith('/api/admissions/') -or $path -eq '/api/earchiva/retention-rules' -or $path.StartsWith('/api/earchiva/retention-rules/') -or $path -eq '/api/regulatory-sources' -or $path.StartsWith('/api/regulatory-sources/'))) {
+        $parameters += [ordered]@{
+            name = 'Idempotency-Key'
+            in = 'header'
+            required = $true
+            schema = [ordered]@{ type = 'string'; minLength = 1; maxLength = 200 }
+            description = 'Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope.'
+        }
     }
     if ($parameters.Count -gt 0) { $operation.parameters = $parameters }
     $hasRequestBody = -not ($override -and $override.Contains('requestBody') -and -not [bool]$override.requestBody)
@@ -749,6 +976,48 @@ foreach ($match in $routePattern.Matches($routerSource)) {
 			if (-not $common.components.schemas.Contains($requestSchema)) { $common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key }
 		}
 		if ($key -in @('POST /api/education/portfolios/me', 'PATCH /api/education/portfolios/me/{recordID}', 'POST /api/education/portfolios/me/{recordID}/documents', 'PATCH /api/education/portfolios/me/{recordID}/documents/{documentID}') -and -not $common.components.schemas.Contains($requestSchema)) {
+			$common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key
+		}
+		# Newly introduced command DTOs live outside the composed domain schema
+		# fragments. Materialize their closed Go-derived schemas here so operation
+		# overrides cannot leave dangling component references.
+		if ($key -in @(
+			'POST /api/education/portfolios/me/{recordID}/archive-documents',
+			'POST /api/education/portfolios/records/{recordID}/return',
+			'POST /api/education/portfolios/records/{recordID}/managerial-decision',
+			'POST /api/institution/locations',
+			'PATCH /api/institution/locations/{locationID}',
+			'POST /api/institution/education-offerings',
+			'PATCH /api/institution/education-offerings/{offeringID}',
+			'POST /api/institution/offering-authorizations',
+			'POST /api/school-operations/contracts',
+			'PATCH /api/school-operations/contracts/{contractID}',
+			'POST /api/school-operations/contracts/{contractID}/obligations',
+			'POST /api/school-operations/contracts/{contractID}/transition',
+			'POST /api/admissions/campaigns',
+			'POST /api/admissions/class-offering-contexts',
+			'POST /api/admissions/campaigns/{campaignID}/transitions',
+			'POST /api/admissions/campaigns/{campaignID}/criteria',
+			'POST /api/admissions/campaigns/{campaignID}/document-requirements',
+			'POST /api/admissions/applications',
+			'POST /api/admissions/applications/{applicationID}/transitions',
+			'POST /api/admissions/applications/{applicationID}/assessments',
+			'POST /api/admissions/applications/{applicationID}/documents/{documentID}',
+			'POST /api/admissions/retention-rule-versions',
+			'POST /api/admissions/retention-rule-versions/approve',
+			'POST /api/admissions/dss-retention-policies',
+			'POST /api/admissions/applications/{applicationID}/decision-preparations',
+			'POST /api/admissions/appeals/{appealID}/resolution-preparations',
+			'POST /api/admissions/legal-preparations/finalize',
+			'POST /api/admissions/signer-authorizations',
+			'POST /api/admissions/signer-authorizations/approve',
+			'POST /api/admissions/signer-authorizations/{authorizationID}/revoke',
+			'POST /api/admissions/applications/{applicationID}/decisions',
+			'POST /api/admissions/applications/{applicationID}/appeals',
+			'POST /api/admissions/applications/{applicationID}/enrolment',
+			'POST /api/admissions/appeals/{appealID}/resolution',
+			'POST /api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile'
+		) -and -not $common.components.schemas.Contains($requestSchema)) {
 			$common.components.schemas[$requestSchema] = New-ClosedRequestSchema $key
 		}
 		if ($common.components.schemas.Contains($requestSchema) -and $educationRequestRequiredFields.ContainsKey($requestSchema)) {
@@ -772,14 +1041,114 @@ foreach ($match in $routePattern.Matches($routerSource)) {
 
 $regulatoryProfileRequest = $common.components.schemas['PutRegulatoryProfileRequest']
 if ($regulatoryProfileRequest) {
+	$regulatorySourceRequest = Get-GoDTOObjectSchema 'backend/internal/institution/models.go|RegulatorySourceRequest'
+	$regulatorySourceRequest.additionalProperties = $false
+	$regulatorySourceRequest.properties.source_kind.enum = @('law','government_decision','ministerial_order','authorization','accreditation','founder_decision','contract','other')
+	$regulatorySourceRequest.properties.source_url.format = 'uri'
+	$regulatorySourceRequest.properties.published_on.format = 'date'
+	$regulatorySourceRequest.properties.consolidated_on.format = 'date'
+	$regulatorySourceRequest.properties.checksum_sha256.pattern = '^[a-f0-9]{64}$'
+	$regulatorySourceRequest.required = @('source_kind','citation','article_reference','issuer','source_url','checksum_sha256')
+	$common.components.schemas['RegulatorySourceRequest'] = $regulatorySourceRequest
+	$regulatoryProfileRequest.properties.source = [ordered]@{ '$ref' = '#/components/schemas/RegulatorySourceRequest' }
+	$confessionalOverlayRequest = Get-GoDTOObjectSchema 'backend/internal/institution/models.go|ConfessionalOverlayRequest'
+	$confessionalOverlayRequest.additionalProperties = $false
+	$confessionalOverlayRequest.properties.cult_party_id.format = 'uuid'
+	$confessionalOverlayRequest.required = @('cult_party_id','cult_code','protocol_reference')
+	$common.components.schemas['ConfessionalOverlayRequest'] = $confessionalOverlayRequest
+	$regulatoryProfileRequest.properties.confessional_overlay = [ordered]@{ '$ref' = '#/components/schemas/ConfessionalOverlayRequest' }
 	$regulatoryProfileRequest.additionalProperties = $false
 	$regulatoryProfileRequest.properties.expected_version.minimum = 1
 	$regulatoryProfileRequest.properties.status.enum = @('draft','approved','active')
-	$regulatoryProfileRequest.properties.school_legal_form.enum = @('public','private','confessional')
+	$regulatoryProfileRequest.properties.school_legal_form.enum = @('public','private')
 	$regulatoryProfileRequest.properties.authorization_status.enum = @('unknown','provisional','authorized','accredited','suspended','withdrawn')
 	$regulatoryProfileRequest.properties.effective_from.format = 'date'
 	$regulatoryProfileRequest.properties.effective_to.format = 'date'
-	$regulatoryProfileRequest.required = @('expected_version','status','school_legal_form','regulatory_profile','authorization_status','authorized_levels','has_legal_personality','is_contracting_authority','treasury_required','public_funding','program_codes','effective_from','source_reference')
+	$regulatoryProfileRequest.required = @('expected_version','status','school_legal_form','regulatory_profile','authorization_status','authorized_levels','has_legal_personality','program_codes','effective_from','source')
+}
+
+$locationRequest = $common.components.schemas['CreateSchoolLocationRequest']
+if ($locationRequest) {
+	$locationRequest.additionalProperties = $false
+	$locationRequest.properties.effective_from.format = 'date'
+	$locationRequest.properties.effective_to.format = 'date'
+	$locationRequest.properties.idempotency_key.minLength = 1
+	$locationRequest.properties.code.pattern = '^[a-z0-9][a-z0-9._-]{0,63}$'
+	$locationRequest.required = @('code','name','active','effective_from','idempotency_key')
+}
+$locationUpdateRequest = $common.components.schemas['UpdateSchoolLocationRequest']
+if ($locationUpdateRequest) {
+	$locationUpdateRequest.additionalProperties = $false
+	$locationUpdateRequest.properties.expected_version.minimum = 1
+	$locationUpdateRequest.properties.effective_to.format = 'date'
+	$locationUpdateRequest.required = @('expected_version','name','address','active')
+}
+$offeringRequest = $common.components.schemas['CreateEducationOfferingRequest']
+if ($offeringRequest) {
+	$offeringRequest.additionalProperties = $false
+	foreach ($field in @('code','education_level','language_code')) { $offeringRequest.properties[$field].pattern = '^[a-z0-9][a-z0-9._-]{0,63}$' }
+	$offeringRequest.properties.specialization_code.pattern = '^$|^[a-z0-9][a-z0-9._-]{0,63}$'
+	$offeringRequest.properties.effective_from.format = 'date'
+	$offeringRequest.properties.effective_to.format = 'date'
+	$offeringRequest.properties.idempotency_key.minLength = 1
+	$offeringRequest.required = @('code','education_level','language_code','title','active','effective_from','idempotency_key')
+}
+$offeringUpdateRequest = $common.components.schemas['UpdateEducationOfferingRequest']
+if ($offeringUpdateRequest) {
+	$offeringUpdateRequest.additionalProperties = $false
+	$offeringUpdateRequest.properties.expected_version.minimum = 1
+	$offeringUpdateRequest.properties.effective_to.format = 'date'
+	$offeringUpdateRequest.required = @('expected_version','title','active')
+}
+$authorizationRequest = $common.components.schemas['CreateOfferingAuthorizationRequest']
+if ($authorizationRequest) {
+	$authorizationRequest.additionalProperties = $false
+	$authorizationRequest.properties.offering_id.format = 'uuid'
+	$authorizationRequest.properties.location_id.format = 'uuid'
+	$authorizationRequest.properties.replaces_authorization_id.format = 'uuid'
+	$authorizationRequest.properties.expected_version.minimum = 1
+	$authorizationRequest.properties.capacity.minimum = 0
+	$authorizationRequest.properties.status.enum = @('provisional','accredited','suspended','withdrawn','expired')
+	$authorizationRequest.properties.capacity_unit.enum = @('students','study_groups')
+	$authorizationRequest.properties.shift.enum = @('day','afternoon','evening')
+	$authorizationRequest.properties.effective_from.format = 'date'
+	$authorizationRequest.properties.effective_to.format = 'date'
+	$authorizationRequest.properties.idempotency_key.minLength = 1
+	$authorizationRequest.properties.source = [ordered]@{ '$ref' = '#/components/schemas/RegulatorySourceRequest' }
+	$authorizationRequest.required = @('offering_id','location_id','status','authority_name','decision_reference','capacity_unit','shift','effective_from','source','idempotency_key')
+}
+foreach ($schemaName in @('get_api_institution_locations_item','post_api_institution_locations_response','patch_api_institution_locations_locationid_response','get_api_institution_education_offerings_item','post_api_institution_education_offerings_response','patch_api_institution_education_offerings_offeringid_response','get_api_institution_offering_authorizations_item','post_api_institution_offering_authorizations_response')) {
+	$schema = $common.components.schemas[$schemaName]
+	if (-not $schema) { continue }
+	if ($schema.properties.id) { $schema.properties.id.format = 'uuid' }
+	foreach ($field in @('offering_id','location_id','replaces_authorization_id')) { if ($schema.properties[$field]) { $schema.properties[$field].format = 'uuid' } }
+	foreach ($field in @('effective_from','effective_to')) { if ($schema.properties[$field]) { $schema.properties[$field].format = 'date' } }
+	if ($schema.properties.expected_version) { $schema.properties.expected_version.minimum = 1 }
+	if ($schema.properties.capacity) { $schema.properties.capacity.minimum = 0 }
+	if ($schema.properties.capacity_unit) { $schema.properties.capacity_unit.enum = @('students','study_groups') }
+	if ($schema.properties.shift) { $schema.properties.shift.enum = @('day','afternoon','evening') }
+	if ($schema.properties.status -and $schemaName -like '*authorizations*') { $schema.properties.status.enum = @('provisional','authorized','accredited','suspended','withdrawn','expired') }
+}
+
+# Reviewing an admission document is a terminal assessment command. "submitted"
+# describes evidence before review and must not be exposed as an accepted command
+# value, otherwise the immutable evidence row cannot be reviewed a second time.
+$reviewAdmissionDocumentRequest = $common.components.schemas['ReviewApplicationDocumentRequest']
+if ($reviewAdmissionDocumentRequest) {
+	$reviewAdmissionDocumentRequest.properties.status.enum = @('accepted','rejected','waived')
+	$reviewAdmissionDocumentRequest.properties.expected_version.minimum = 1
+}
+
+foreach ($portfolioDecisionRequestName in @('PortfolioReturnForCorrectionsRequest','PortfolioManagerialDecisionRequest')) {
+	$portfolioDecisionRequest = $common.components.schemas[$portfolioDecisionRequestName]
+	if (-not $portfolioDecisionRequest) { continue }
+	$portfolioDecisionRequest.properties.reviewed_on.format = 'date'
+	$portfolioDecisionRequest.properties.missing_documents.minimum = 0
+	$portfolioDecisionRequest.properties.compliance_score.minimum = 0
+	$portfolioDecisionRequest.properties.compliance_score.maximum = 100
+	if ($portfolioDecisionRequestName -eq 'PortfolioManagerialDecisionRequest') {
+		$portfolioDecisionRequest.properties.outcome.enum = @('acceptat','respins')
+	}
 }
 
 # OIDC is mounted through chi.Handle, so its individual standard endpoints are declared here.
@@ -820,6 +1189,186 @@ $paths['/api/oidc/jwks'] = [ordered]@{ get = [ordered]@{
     operationId='get_oidc_jwks'; summary='OIDC JSON Web Key Set'; tags=@('OIDC Provider'); security=@(); 'x-contract-status'='detailed'; responses=[ordered]@{'200'=(New-JsonResponse 'JsonWebKeySet')}
 } }
 
+$retentionPath = '/api/earchiva/retention-rules'
+$sourcePath = '/api/regulatory-sources'
+$custodyRecoveryPath = '/api/earchiva/admin/portfolio-custody-intents'
+$custodyRecoveryRequest = $common.components.schemas['ReconcilePortfolioCustodyRequest']
+if ($custodyRecoveryRequest) {
+    $custodyRecoveryRequest.properties.disposition.enum = @('teacher_access','institution_archive_only')
+    $custodyRecoveryRequest.properties.reason.minLength = 1
+    $custodyRecoveryRequest.properties.title.minLength = 1
+    $custodyRecoveryRequest.properties.original_file_name.minLength = 1
+    $custodyRecoveryRequest.properties.document_date.format = 'date'
+}
+foreach ($schemaName in @(
+    'get_api_earchiva_admin_portfolio_custody_intents_item',
+    'post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile_response',
+    'get_api_earchiva_admin_portfolio_custody_intents_intentid_recovery_operations_operationid_response'
+)) {
+    $schema = $common.components.schemas[$schemaName]
+    if (-not $schema) { continue }
+    foreach ($field in @('intent_id','operation_id','portfolio_id')) { if ($schema.properties[$field]) { $schema.properties[$field].format = 'uuid' } }
+    foreach ($field in @('created_at','updated_at')) { $schema.properties[$field].format = 'date-time' }
+    if ($schema.properties.document_date) { $schema.properties.document_date.format = 'date' }
+    $schema.properties.status.enum = @('stored','queued','leased','committed','blocked','deadletter')
+    if ($schema.properties.disposition) { $schema.properties.disposition.enum = @('teacher_access','institution_archive_only') }
+}
+foreach ($path in @("$custodyRecoveryPath/{intentID}/reconcile", "$custodyRecoveryPath/{intentID}/recovery-operations/{operationID}")) {
+    foreach ($method in @('get','post')) {
+        if (-not $paths[$path] -or -not $paths[$path].Contains($method)) { continue }
+        foreach ($parameter in $paths[$path][$method].parameters) { if ($parameter.in -eq 'path') { $parameter.schema.format = 'uuid' } }
+    }
+}
+foreach ($schemaName in @('get_api_regulatory_sources_item','post_api_regulatory_sources_response','post_api_regulatory_sources_sourceid_verify_response','post_api_regulatory_sources_sourceid_activate_response')) {
+    $schema=$common.components.schemas[$schemaName]
+    foreach ($field in @('id','latest_evidence_id','activation_evidence_id')) { $schema.properties[$field].format='uuid' }
+    foreach ($field in @('applicable_from','applicable_until')) { $schema.properties[$field].format='date' }
+    foreach ($field in @('created_at','updated_at','latest_evidence_retrieved_at','activated_at')) { $schema.properties[$field].format='date-time' }
+    $schema.properties.expected_version.minimum=1
+    $schema.properties.latest_evidence_sha256.pattern='^[a-f0-9]{64}$'
+    $schema.properties.status.enum=@('draft','verified','active','superseded','withdrawn')
+    $schema.properties.source_kind.enum=@('law','government_decision','ministerial_order','authorization','accreditation','founder_decision','contract','other')
+}
+$sourceRequest=$common.components.schemas['Request_post_api_regulatory_sources']
+$sourceRequest.properties.source_kind.enum=@('law','government_decision','ministerial_order','authorization','accreditation','founder_decision','contract','other')
+foreach ($field in @('applicable_from','applicable_until')) { $sourceRequest.properties[$field].format='date' }
+$sourceRequest.properties.publisher_url.format='uri'
+$sourceRequest.properties.publisher_url.description='HTTPS publisher URL without credentials, query or fragment. Host must be approved by server configuration; redirects are checked independently. A fetch does not approve legal applicability.'
+foreach ($action in @('verify','activate')) {
+    $schema=$common.components.schemas["Request_post_api_regulatory_sources_sourceid_${action}"]
+    $schema.properties.expected_version.minimum=1
+}
+$activation=$common.components.schemas['Request_post_api_regulatory_sources_sourceid_activate']
+$activation.properties.evidence_id.format='uuid'
+$activation.properties.assessment.minLength=1
+$paths[$sourcePath].post.responses['200']=$paths[$sourcePath].post.responses['201']
+$paths["$sourcePath/{sourceID}/verify"].post.responses['503']=[ordered]@{
+    description='Publisher retrieval is not configured. No source is marked verified.'
+    content=[ordered]@{'application/json'=[ordered]@{schema=[ordered]@{type='object';required=@('code');additionalProperties=$false;properties=[ordered]@{code=[ordered]@{type='string'}}}}}
+}
+foreach ($path in @($sourcePath,"$sourcePath/{sourceID}/verify","$sourcePath/{sourceID}/activate","$sourcePath/{sourceID}/evidence/{evidenceID}")) {
+    foreach ($method in @('get','post')) {
+        if (-not $paths[$path].Contains($method)) { continue }
+        foreach ($parameter in $paths[$path][$method].parameters) {
+            if ($parameter.in -eq 'path') { $parameter.schema.format='uuid' }
+        }
+    }
+}
+foreach ($schemaName in @('get_api_earchiva_retention_rules_response','post_api_earchiva_retention_rules_response','post_api_earchiva_retention_rules_ruleid_approve_response','post_api_earchiva_retention_rules_ruleid_retire_response')) {
+    $schema = $common.components.schemas[$schemaName]
+    if ($schemaName.StartsWith('get_')) { $schema = $common.components.schemas['get_api_earchiva_retention_rules_item'] }
+    foreach ($field in @('id','taxonomy_node_id','source_id')) { $schema.properties[$field].format='uuid' }
+    foreach ($field in @('effective_from','effective_to')) { $schema.properties[$field].format='date' }
+    foreach ($field in @('created_at','updated_at','proposed_at','approved_at','retired_at')) { $schema.properties[$field].format='date-time' }
+    $schema.properties.source_checksum_sha256.pattern='^[a-f0-9]{64}$'
+    $schema.properties.expected_version.minimum=1
+    $schema.properties.status.enum=@('proposed','active','retired','revoked')
+}
+$retentionRequest=$common.components.schemas['Request_post_api_earchiva_retention_rules']
+$retentionRequest.properties.anchor_kind.enum=@('intake_received_at')
+$retentionRequest.properties.duration_model.enum=@('minimum_days')
+$retentionRequest.properties.minimum_retention_days.type='integer'
+$retentionRequest.properties.minimum_retention_days.minimum=1
+$retentionRequest.properties.minimum_retention_days.maximum=36500
+$retentionRequest.required=@($retentionRequest.required + 'minimum_retention_days' | Select-Object -Unique)
+foreach ($field in @('taxonomy_node_id','source_id')) { $retentionRequest.properties[$field].format='uuid' }
+foreach ($field in @('effective_from','effective_to')) { $retentionRequest.properties[$field].format='date' }
+foreach ($action in @('approve','retire')) {
+    $schema=$common.components.schemas["Request_post_api_earchiva_retention_rules_ruleid_${action}"]
+    $schema.properties.expected_version.minimum=1
+    if ($action -eq 'retire') { $schema.properties.reason.minLength=1 }
+}
+$paths[$retentionPath].post.responses['200']=$paths[$retentionPath].post.responses['201']
+
+$artifactPath = '/api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}'
+$portfolioUploadPath = '/api/education/portfolios/me/{recordID}/archive-documents'
+if ($paths.Contains($portfolioUploadPath)) {
+    $uploadOperation = $paths[$portfolioUploadPath].post
+    $uploadOperation.parameters = @($uploadOperation.parameters) + @([ordered]@{
+        name='Idempotency-Key'; in='header'; required=$true
+        schema=[ordered]@{type='string';minLength=1;maxLength=200}
+    })
+    $uploadOperation.responses['200']=$uploadOperation.responses['201']
+    foreach ($entry in @(@('429','Upload capacity exhausted'),@('502','Object storage unavailable'),@('503','Archive storage unconfigured'))) {
+        $uploadOperation.responses[$entry[0]]=[ordered]@{description=$entry[1];content=[ordered]@{'application/json'=[ordered]@{schema=[ordered]@{type='object';required=@('code');properties=[ordered]@{code=[ordered]@{type='string'}}}}}}
+    }
+}
+foreach ($method in @('get','post')) {
+    $artifactSchema = $common.components.schemas["${method}_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response"]
+    $artifactSchema.properties.document = Get-GoDTOObjectSchema 'backend/internal/earchiva/archive_documents.go|ArchiveDocument'
+    $artifactSchema.properties.version = Get-GoDTOObjectSchema 'backend/internal/earchiva/archive_documents.go|ArchiveDocumentVersion'
+    foreach ($field in @('intent_id','preparation_id')) { $artifactSchema.properties[$field].format = 'uuid' }
+    $artifactSchema.properties.artifact_slot.enum = @('primary','resulting_decision')
+    $artifactSchema.properties.retention_until.format = 'date-time'
+    foreach ($field in @('received_at','created_at','updated_at')) { $artifactSchema.properties.document.properties[$field].format = 'date-time' }
+    $artifactSchema.properties.version.properties.created_at.format = 'date-time'
+    $artifactSchema.properties.version.properties.source_sha256.pattern = '^[a-f0-9]{64}$'
+    $artifactSchema.properties.version.properties.source_size_bytes.minimum = 1
+    $artifactSchema.properties.version.properties.source_size_bytes.maximum = 104857600
+    if ($method -eq 'post') {
+        foreach ($entry in @(@('429','Concurrent upload capacity exhausted'),@('502','Object persistence is uncertain; retry with the same file and idempotency key'),@('503','Archive storage unavailable'))) {
+            $paths[$artifactPath].post.responses[$entry[0]] = [ordered]@{ description = $entry[1]; content = [ordered]@{ 'application/json' = [ordered]@{ schema = [ordered]@{ type='object'; required=@('code'); additionalProperties=$false; properties=[ordered]@{code=[ordered]@{type='string'};message=[ordered]@{type='string'}} } } } }
+        }
+    }
+}
+
+# Reviewed legal command constraints mirror the admission handlers. In
+# particular, favorable resolutions cannot be prepared without replacement facts.
+$decisionOutcomes = @('admitted','waitlisted','rejected','withdrawn','cancelled')
+foreach ($preparationSchemaName in @('post_api_admissions_applications_applicationid_decision_preparations_response','post_api_admissions_appeals_appealid_resolution_preparations_response')) {
+$legalPreparation = $common.components.schemas[$preparationSchemaName]
+foreach ($field in @('retention_policy_id','retention_rule_version_id','retention_source_id')) {
+    $legalPreparation.properties[$field].format = 'uuid'
+}
+foreach ($field in @('retention_anchor_at','required_retention_until')) {
+    $legalPreparation.properties[$field].format = 'date-time'
+}
+$legalPreparation.properties.minimum_retention_days.minimum = 1
+$legalPreparation.properties.minimum_retention_days.maximum = 36500
+$legalPreparation.properties.required_retention_until.description = 'Immutable server-derived minimum storage deadline based on the approved retention policy and the preparation expiry. The browser cannot choose or shorten this deadline.'
+}
+$decisionPreparation = $common.components.schemas['PrepareDecisionRequest']
+$decisionPreparation.properties.outcome.enum = $decisionOutcomes
+$decisionPreparation.properties.decision_no.pattern = '^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$'
+$decisionPreparation.properties.expected_version.minimum = 1
+$decisionPreparation.properties.rationale.minLength = 1
+$decisionPreparation.properties.appeal_deadline.format = 'date'
+$appealPreparation = $common.components.schemas['PrepareAppealResolutionRequest']
+$appealPreparation.properties.outcome.enum = @('upheld','partially_upheld','dismissed','withdrawn')
+$appealPreparation.properties.resulting_outcome.enum = $decisionOutcomes
+$appealPreparation.properties.expected_version.minimum = 1
+$appealPreparation.properties.application_expected_version.minimum = 1
+$appealPreparation.properties.rationale.minLength = 1
+$appealPreparation.allOf = @([ordered]@{
+    'if' = [ordered]@{ properties = [ordered]@{ outcome = [ordered]@{ enum = @('upheld','partially_upheld') } }; required = @('outcome') }
+    then = [ordered]@{ required = @('resulting_decision_no','resulting_outcome'); properties = [ordered]@{ resulting_decision_no = [ordered]@{ type = 'string'; pattern = '^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$' } } }
+})
+$signerProposal = $common.components.schemas['ProposeAdmissionSignerAuthorizationRequest']
+$signerProposal.properties.certificate_sha256.pattern = '^[0-9A-Fa-f]{64}$'
+$signerProposal.properties.user_id.format = 'uuid'
+$signerProposal.properties.permission_code.enum = @('education.admissions.decide','education.admissions.appeals.manage')
+$signerProposal.properties.valid_until.format = 'date-time'
+$signerProposal.properties.valid_until.description = 'Must be in the future and less than ten years from the server clock; approval rechecks expiry.'
+$common.components.schemas['ApproveAdmissionSignerAuthorizationRequest'].properties.proposal_id.format = 'uuid'
+$common.components.schemas['RevokeAdmissionSignerAuthorizationRequest'].properties.expected_version.minimum = 1
+$common.components.schemas['RevokeAdmissionSignerAuthorizationRequest'].properties.reason.minLength = 1
+$finalization = $common.components.schemas['FinalizeAdmissionLegalPreparationRequest']
+$finalization.properties.preparation_id.format = 'uuid'
+$finalization.properties.resulting_decision_archive.description = 'Required exactly when the server preparation includes a replacement decision. Must reference a distinct signed WORM artifact; each document is independently validated against its own canonical payload.'
+
+$manifestDocumentDTO = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_export_manifest.go|PortfolioExportManifestDocument'
+foreach ($field in @('source_object_version_id', 'source_size_bytes', 'mime_type', 'zip_path')) {
+    $common.components.schemas.PortfolioExportManifestDocument.properties[$field] = $manifestDocumentDTO.properties[$field]
+    $common.components.schemas.PortfolioExportManifestDocument.required = @($common.components.schemas.PortfolioExportManifestDocument.required) + @($field)
+}
+$common.components.schemas['PortfolioExportManifestGeneratedFile'] = Get-GoDTOObjectSchema 'backend/internal/education/portfolio_export_manifest.go|PortfolioExportManifestGeneratedFile'
+$common.components.schemas.PortfolioExportManifestGeneratedFile.properties.sha256.pattern = '^[0-9a-f]{64}$'
+$common.components.schemas.PortfolioExportManifestGeneratedFile.properties.size_bytes.minimum = 1
+$common.components.schemas.PortfolioExportManifest.properties['generated_files'] = [ordered]@{
+    type = 'array'
+    items = [ordered]@{ '$ref' = '#/components/schemas/PortfolioExportManifestGeneratedFile' }
+    description = 'Exact generated ZIP payload hashes and byte lengths. Downloadable bundles include portfolio.json, opis.json and opis.txt; legacy manifest-only records may omit this field. Manifest and checksum sidecars are excluded to avoid circular hashes.'
+}
 $document = [ordered]@{
     openapi = '3.1.1'
     info = [ordered]@{ title = 'EguEducation API'; version = '1.0.0'; description = 'Tenant-aware EguEducation backend contract. Generated from the server router and handler-backed domain catalogs. The backend, not a browser-controlled header, derives the active tenant from authenticated membership, token/session and host context.'; license = [ordered]@{ name = 'Proprietary — EguEducation'; identifier = 'LicenseRef-EguEducation-Proprietary' } }

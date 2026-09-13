@@ -3378,40 +3378,27 @@
     "institutionContext": false,
     "responseSchema": "NoContent"
   },
-  "POST /api/education/portfolios/records/{recordID}/reviews": {
-    "summary": "Create or execute Create Portfolio Review",
-    "description": "Tenant- and institution-scoped Education operation. Handler: CreatePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.",
-    "tags": [
-      "Scoala",
-      "Portfolios"
-    ],
+  "POST /api/education/portfolios/records/{recordID}/return": {
+    "summary": "Return a submitted portfolio for corrections",
+    "description": "Atomically records an immutable correction review with the authenticated reviewer and transitions the institution-scoped portfolio from submitted to returned.",
+    "tags": ["Scoala", "Portfolios"],
     "status": "detailed",
     "institutionContext": false,
-    "requestSchema": "CreatePortfolioReviewEventRequest",
-    "responseSchema": "PortfolioReviewEvent"
+    "requiredPermission": "education.portfolios.return_for_corrections",
+    "requestSchema": "PortfolioReturnForCorrectionsRequest",
+    "responseSchema": "PortfolioRecord",
+    "errors": [400, 401, 403, 409, 422, 500]
   },
-  "PATCH /api/education/portfolios/records/{recordID}/reviews/{itemID}": {
-    "summary": "Update Update Portfolio Review",
-    "description": "Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.",
-    "tags": [
-      "Scoala",
-      "Portfolios"
-    ],
+  "POST /api/education/portfolios/records/{recordID}/managerial-decision": {
+    "summary": "Record the managerial portfolio decision",
+    "description": "Atomically appends an immutable managerial review derived from the authenticated reviewer and transitions submitted to validated or rejected.",
+    "tags": ["Scoala", "Portfolios"],
     "status": "detailed",
     "institutionContext": false,
-    "requestSchema": "CreatePortfolioReviewEventRequest",
-    "responseSchema": "PortfolioReviewEvent"
-  },
-  "DELETE /api/education/portfolios/records/{recordID}/reviews/{itemID}": {
-    "summary": "Delete Delete Portfolio Review",
-    "description": "Tenant- and institution-scoped Education operation. Handler: DeletePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage. Successful deletion returns HTTP 204 with no response body.",
-    "tags": [
-      "Scoala",
-      "Portfolios"
-    ],
-    "status": "detailed",
-    "institutionContext": false,
-    "responseSchema": "NoContent"
+    "requiredPermission": "education.portfolios.school.manage",
+    "requestSchema": "PortfolioManagerialDecisionRequest",
+    "responseSchema": "PortfolioRecord",
+    "errors": [400, 401, 403, 409, 422, 500]
   },
   "POST /api/education/portfolios/records/{recordID}/valorifications": {
     "summary": "Create or execute Create Portfolio Valorification",
@@ -3459,5 +3446,18 @@
     "institutionContext": false,
     "requestBody": false,
     "responseSchema": "EducationRegeneratePortfolioOpisResponse"
+  },
+  "GET /api/education/portfolios/me/{recordID}/procedure": {
+    "summary": "Read the authenticated teacher's applied portfolio procedure",
+    "description": "Returns only the immutable published or superseded procedure version explicitly bound to the authenticated teacher's own portfolio, together with its frozen section rules. It never resolves the current institution procedure and cannot enumerate other procedure versions or owners.",
+    "tags": [
+      "Scoala",
+      "Portfolios"
+    ],
+    "status": "detailed",
+    "institutionContext": false,
+    "requiredPermission": "education.portfolios.read_own",
+    "responseSchema": "OwnPortfolioAppliedProcedureResponse",
+    "errors": [400, 401, 403, 404, 422, 500]
   }
 }

@@ -1,0 +1,20 @@
+{
+  "catalogVersion": 1,
+  "scope": { "router": "backend/cmd/server/main.go", "routePrefix": "/api/education", "operationCount": 1 },
+  "operations": [{
+    "operationKey": "POST /api/education/portfolios/me/{recordID}/archive-documents",
+    "operationId": "post_api_education_portfolios_me_recordid_archive_documents",
+    "handler": "PortfolioOwnArchiveUpload",
+    "source": "backend/internal/education/portfolio_upload.go:20",
+    "contractStatus": "detailed",
+    "security": ["oidcAuthorizationCode"],
+    "tenantScope": "Authenticated host/session institution plus immutable portfolio owner and eligible membership; rechecked during archive persistence.",
+    "requiredPermission": "education.portfolios.manage_own",
+    "pathParameters": ["recordID"],
+    "queryParameters": [],
+    "requestBody": { "contentType": "multipart/form-data", "schema": "Request_post_api_education_portfolios_me_recordid_archive_documents" },
+    "success": { "status": 201, "contentType": "application/json", "schema": "post_api_education_portfolios_me_recordid_archive_documents_response" },
+    "errors": [400,401,403,404,409,429,500,502,503],
+    "modelEvidence": "ArchiveDocumentDetail; closed portfolio multipart parser and owner-scoped transaction callbacks."
+  }]
+}

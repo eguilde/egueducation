@@ -25,9 +25,11 @@ Statusurile din acest catalog sunt:
 | Domeniu | Surse principale |
 | --- | --- |
 | Învățământ public/privat | [Legea învățământului preuniversitar nr. 198/2023, forma actualizată](https://legislatie.just.ro/Public/DetaliiDocument/309185) |
-| Finanțare particular/confesional | [HG nr. 69/2024](https://legislatie.just.ro/Public/DetaliiDocument/295485), modificată inclusiv prin [HG nr. 381/2026](https://legislatie.just.ro/Public/DetaliiDocument/310287) |
+| Organizare și funcționare | [ROFUIP aprobat prin Ordinul nr. 5.726/2024](https://legislatie.just.ro/Public/DetaliiDocument/289484), modificat prin [Ordinul nr. 6.226/2025](https://legislatie.just.ro/Public/DetaliiDocument/302026) și [Ordinul nr. 4.261/2026](https://legislatie.just.ro/Public/DetaliiDocumentAfis/312069) |
+| Autorizare, acreditare și calitate | [HG nr. 993/2020](https://legislatie.just.ro/Public/DetaliiDocument/234510), [HG nr. 994/2020](https://legislatie.just.ro/Public/DetaliiDocumentAfis/255166) și [ARACIP](https://aracip.eu/) |
+| Finanțare particular/confesional | [HG nr. 69/2024](https://legislatie.just.ro/Public/DetaliiDocument/295485), cu modificările ulterioare, inclusiv [HG nr. 381/2026](https://legislatie.just.ro/Public/DetaliiDocument/310287) și [OUG nr. 28/2026](https://legislatie.just.ro/Public/DetaliiDocument/311756) |
 | Finanțe publice | [Legea nr. 500/2002](https://legislatie.just.ro/Public/DetaliiDocument/37954), [Legea nr. 273/2006](https://legislatie.just.ro/Public/DetaliiDocument/293380) |
-| Achiziții publice | [Legea nr. 98/2016, forma actualizată](https://legislatie.just.ro/Public/DetaliiDocumentAfis/183887), [HG nr. 395/2016](https://legislatie.just.ro/Public/DetaliiDocument/179009), [OG nr. 119/1999](https://legislatie.just.ro/Public/DetaliiDocument/286006) |
+| Achiziții publice | [Legea nr. 98/2016, forma actualizată](https://legislatie.just.ro/Public/DetaliiDocument/257213), în special art. 4 și 6, [HG nr. 395/2016](https://legislatie.just.ro/Public/DetaliiDocument/179009), [OG nr. 119/1999](https://legislatie.just.ro/Public/DetaliiDocument/286006) |
 | Contabilitate | [Legea contabilității nr. 82/1991](https://legislatie.just.ro/Public/DetaliiDocument/55046), [OMFP nr. 1.917/2005](https://legislatie.just.ro/Public/DetaliiDocument/211573), [OMFP nr. 1.802/2014](https://legislatie.just.ro/Public/DetaliiDocumentAfis/250771) |
 | HR și salarizare | [Codul muncii — Legea nr. 53/2003](https://legislatie.just.ro/Public/DetaliiDocument/128647), [Legea-cadru nr. 153/2017](https://legislatie.just.ro/Public/DetaliiDocument/190446) |
 | Programe alimentare | [HG nr. 652/2023](https://legislatie.just.ro/Public/DetaliiDocumentAfis/273596), [Ordinul nr. 346/2023](https://legislatie.just.ro/Public/DetaliiDocumentAfis/274249), [Ordinul nr. 1.718/2023](https://legislatie.just.ro/Public/DetaliiDocument/303074), [HG nr. 24/2024](https://legislatie.just.ro/Public/FormaPrintabila/00000G0K2BJJ4RB6AK621QJ6ZTQ5PTS6) |
@@ -47,9 +49,9 @@ Auditul a fost realizat asupra codului Go/PostgreSQL/React și a contractului Op
 | Registratură, Flux documente, eArhivă și audit | suport comun pentru documente, aprobări, păstrare și dovezi | existent ca fundație |
 | Modul Education: guvernanță, personal, dosar, evaluări, portofolii | identitatea `education_personnel` se păstrează; se completează HR operațional | parțial |
 | OpenAPI 3.1.1 și client React generat | contract unic DB–API–UI pentru noile verticale | existent ca fundație |
-| Profil juridic și de reglementare al instituției | câmpurile canonice, versionarea, intervalele efective și administrarea PrimeReact sunt implementate; extinderea operațională consumă profilul prin policy capabilities | implementat ca fundație |
+| Profil juridic și de reglementare al instituției | scrierea v2, sursele structurate și administrarea PrimeReact există; citirea și evaluarea live folosesc încă proiecția v1 | parțial; necesită cutover expand–migrate–contract |
 | Policy packs versionate și endpoint de capabilități | fundația profil/packs/assignments/evaluations și resolverul comun există; extinderea catalogului de capabilități rămâne incrementală | implementat parțial |
-| Contracte, utilități, achiziții, catering, patrimoniu, logistică, SSM/PSI | nu există bounded contexts operaționale complete | lipsă |
+| Contracte, utilități, achiziții, catering, patrimoniu, logistică, SSM/PSI | furnizorii, contractele operaționale, obligațiile și lifecycle-ul au DB/Go/OpenAPI/React; restul verticalelor nu sunt complete | parțial pentru contracte; lipsă pentru restul |
 | HR complet, economic și contabil | dosarul personal existent nu acoperă aceste domenii | lipsă |
 
 Concluzie: arhitectura de bază se păstrează, însă eGuEducation nu poate fi prezentat astăzi ca suită completă de management public/privat. Extinderea trebuie realizată vertical, contract-first, fără tabele sau formulare generice care simulează procese inexistente.
@@ -67,13 +69,14 @@ Adaptarea public/privat nu necesită două produse și nu schimbă această izol
 `school_institution_profiles` trebuie să conțină cel puțin:
 
 - `tenant_code`, `institution_id` și interval de valabilitate;
-- `school_legal_form`: `public`, `private`, `confessional`;
+- `school_legal_form`: `public` sau `private`; caracterul confesional este un overlay separat, deoarece nu înlocuiește forma juridică privată;
 - `regulatory_profile`: de exemplu `ro.public.preuniversity`, `ro.private.preuniversity`, `ro.private.confessional`;
-- statutul de autorizare/acreditare și nivelurile autorizate;
-- personalitate juridică, CUI, fondator și entitate finanțatoare/ordonator;
-- calitatea de autoritate contractantă, fără a o deduce automat din `school_legal_form`;
+- rezumatul instituțional al autorizării/acreditării; adevărul operațional se păstrează separat pe nivel/program/specializare/locație;
+- personalitate juridică, CUI, fondator, cult recunoscut unde este cazul și entitate finanțatoare/ordonator, legate de `app_parties`, nu doar denumiri libere;
+- rezultatul determinării calității de autoritate contractantă, cu temei, dovezi, aprobator și valabilitate, fără a o deduce automat din `school_legal_form` sau din existența unei finanțări publice;
 - `accounting_profile`, `procurement_profile`, `payroll_profile`, profil TVA și obligația Trezorerie;
-- stare `unclassified`, `draft`, `approved`, `active`, `superseded`.
+- stare `unclassified`, `draft`, `approved`, `active`, `superseded`;
+- numai proiecții/sumarizări derivate pentru finanțare, taxe și autorizare; acestea nu pot înlocui agregatele effective-dated de la secțiunea 4.4.
 
 La migrare, instituțiile existente devin `unclassified`; nu se face backfill implicit `public`. Citirile rămân disponibile cu avertisment, iar scrierile reglementate sunt fail-closed până la aprobarea profilului.
 
@@ -93,7 +96,26 @@ Frontendul redă capabilitățile publicate de server. Nu are ramuri `if schoolI
 
 Verticala inițială folosește `school_institution_profiles`, `school_policy_pack_versions`, `school_policy_assignments`, `school_policy_overrides` și `school_policy_evaluations`, cu scope compozit tenant–instituție, RLS forțat, versionare și evaluări imuabile. Fiecare assignment este legat prin FK de versiunea exactă a profilului, astfel încât un draft sau profil viitor nu dezactivează profilul efectiv și nu rescrie istoricul. Endpointurile canonice sunt `GET/PUT /api/institution/regulatory-profile` și `GET /api/institution/capabilities`; clasificarea este administrativă, iar capabilitățile sunt accesibile utilizatorului autentificat numai pentru propriul context. Policy packs de bază sunt instalate prin migrare controlată, nu editate arbitrar de administratorul tenantului.
 
-Prima integrare verticală este `education.publication.manage`: POST/PATCH/DELETE pentru publicațiile de conformitate sunt evaluate server-side, create păstrează `policy_evaluation_id`, iar UI ascunde mutațiile când intersecția modul–RBAC–policy nu le permite. OpenAPI publică `x-required-policy-capability`. Această dovadă nu face singură modulele OPS-CON…OPS-FIN complete; fiecare operațiune reglementată următoare trebuie conectată prin același model, iar simpla afișare a unui guard în React nu este control de securitate.
+Prima integrare verticală este `education.publication.manage`: POST/PATCH/DELETE pentru publicațiile de conformitate sunt evaluate server-side, create păstrează `policy_evaluation_id`, iar UI ascunde mutațiile când intersecția modul–RBAC–policy nu le permite. Contractele operaționale Stage2 folosesc apoi aceeași fundație pentru furnizori, contracte, obligații și lifecycle. OpenAPI publică `x-required-policy-capability`. Aceste dovezi nu fac singure modulele OPS-CON…OPS-FIN complete; fiecare operațiune reglementată următoare trebuie conectată prin același model, iar simpla afișare a unui guard în React nu este control de securitate.
+
+### 4.4 Dimensiuni juridice și agregate obligatorii
+
+Aplicabilitatea nu este o alegere binară public/privat. Resolverul trebuie să evalueze, effective-dated, cel puțin:
+
+`formă juridică × caracter confesional × autorizare/acreditare × nivel/program/specializare/locație × finanțare/an × regim cu/fără taxă × statut achiziții × program public`
+
+Modelul țintă adaugă următoarele agregate, toate tenant/institution-scoped, versionate, cu `FORCE RLS` și dovezi eArhivă:
+
+- `school_education_offerings`: nivel, filieră/profil/specializare/calificare, limbă, locație, capacitate aprobată și stare;
+- `school_authorization_accreditation_records`: tip decizie, emitent, act/număr, ofertă educațională afectată, interval, suspendare/retragere și termen de reevaluare;
+- `school_funding_instruments`: sursă, temei, an fiscal/școlar, ofertă și beneficiari eligibili, cost standard, regim fără taxă, sumă/plafon și autoritate de validare;
+- `school_procurement_applicability_assessments`: încadrarea entității și, separat, încadrarea contractului/proiectului, criterii Legea nr. 98/2016 art. 4, dovezi, aprobator și termen de reevaluare;
+- `school_confessional_profiles`: cult recunoscut, persoană juridică fondatoare, protocoale și aprobări specifice, numai dacă sunt aplicabile;
+- `school_education_contract_templates`, `school_education_contracts` și `school_tuition_schedules`: șablon legal/instituțional versionat, contract pe beneficiar, taxe/rate/reduceri/burse/refunduri și acte adiționale;
+- `school_quality_evaluations`: autoevaluare/RAEI, evaluare externă, constatări, planuri de îmbunătățire, dovezi și publicare;
+- `school_network_memberships`: includerea anuală în rețeaua școlară, unități arondate/structuri, act, capacitate și valabilitate.
+
+Valorile `public_funding` și `is_contracting_authority` existente devin numai proiecții de compatibilitate, calculate din înregistrări aprobate. Nu pot fi folosite singure pentru autorizarea unei operații și nu mai pot fi declarate liber de frontend.
 
 ## 5. Matrice funcțională public/privat
 
@@ -106,6 +128,33 @@ Prima integrare verticală este `education.publication.manage`: POST/PATCH/DELET
 | HR/salarizare | posturi, raport de muncă, pontaj, concedii, calificări | normare și grile/reguli pentru fonduri publice | politici contractuale, beneficii și salarizare privată |
 | Catering | programe, eligibilitate, comenzi, recepții, incidente, reconciliere | programe naționale/locale activate prin eligibilitate și finanțare | contract/abonament/cantină; program public numai dacă este eligibil |
 | Patrimoniu | active, custodie, inventar, mentenanță | bunuri publice/private UAT și fluxuri de transfer/casare | active proprii/închiriate și politica entității |
+| Autorizare și calitate | standarde naționale, CEAC, autoevaluare/RAEI, evaluare externă, îmbunătățire | autorizare/acreditare și rețea școlară pe oferta efectivă | aceleași standarde naționale; personalitatea juridică și dreptul de operare derivă din actele aplicabile |
+| Ofertă educațională și acte de studii | niveluri/programe autorizate, capacitate, înscriere, evidențe și contract educațional | regim public și efectele actelor conform legii | diplomele unității private acreditate au aceleași efecte juridice; programul neacreditat nu moștenește statutul altui program |
+| Taxe și contract educațional | contractul educațional-tip și clauze instituționale compatibile cu interesul superior al elevului | fără taxă de școlarizare în regimul public obișnuit | taxe stabilite de CA, scadențe, reduceri/burse/refunduri și acte adiționale; starea fără taxă influențează eligibilitatea anumitor finanțări |
+| Conducere | mandate, incompatibilități, ședințe, hotărâri și transparență | structura și desemnarea prevăzute pentru unitățile de stat | fondatorul stabilește structura permisă și desemnează conducerea CA/directorul în limitele legii; overlay de cult unde este cazul |
+
+### 5.1 Catalog de cerințe pentru aplicabilitate public/privat
+
+| ID | Cerință verificabilă | Starea codului la 2026-09-11 | Adaptare obligatorie |
+| --- | --- | --- | --- |
+| APP-001 | Același build și aceleași contracte deservește public, privat și confesional; UI nu decide regimul juridic. | fundație existentă | păstrarea modelului policy-driven și interzicerea ramurilor hardcodate în React |
+| APP-002 | Tenantul și instituția sunt derivate din host/sesiune, iar toate datele sunt izolate prin scope compozit și RLS. | existent ca fundație | toate agregatele noi primesc FK compozite, `FORCE RLS` și teste de falsificare/cross-tenant |
+| APP-003 | Autorizarea/acreditarea se gestionează per ofertă educațională și locație, nu printr-un singur statut instituțional. | parțial avansat: schema 0138, permisiuni dedicate, listare/creare idempotentă și actualizare/dezactivare cu optimistic concurrency, contract OpenAPI, client generat și UI PrimeReact există; intervalele părinte–autorizare sunt protejate în DB și handler, scrierile concurente sunt serializate, selectorii încarcă toate paginile, iar deciziile se înlocuiesc prospectiv cu lineage | integrare tranzacțională cu admiterea și capacitatea și E2E HTTP→PostgreSQL pentru public/privat/status expirat; invariantul DB nou necesită încă rularea pe PostgreSQL disposable real |
+| APP-004 | Standardele de calitate și evaluarea periodică se aplică identic tuturor formelor de școală. | parțial în guvernanță/publicații | registru CEAC/RAEI/evaluări/planuri și pachet comun obligatoriu public/privat/confesional |
+| APP-005 | Dreptul la finanțare publică pentru privat/confesional se determină pe ofertă, beneficiar și perioadă, inclusiv condiția fără taxă unde legea o cere. | parțial: schema 0139/0143 și evaluatorul tri-state există; nu există API/UI, calcul sau reconciliere | comenzi contract-first, cost standard/plafon, snapshot de beneficiari și reconciliere anuală |
+| APP-006 | Primirea unei finanțări publice nu transformă automat școala privată în autoritate contractantă. | parțial: assessment entity/contract/project există în DB și evaluator; nu există flux API/UI executabil | evaluare juridică tipată cu dovezi, aprobare, expirare și aplicare în aceeași tranzacție cu achiziția |
+| APP-007 | Guvernanța folosește nucleul comun, cu reguli de componență/desemnare publice sau ale fondatorului și, unde este cazul, ale cultului. | parțial; motor de guvernanță existent, policy aplicat doar publicațiilor | capabilități și validări la constituire, mandat, director, cvorum, aprobare și publicare |
+| APP-008 | Contractul educațional există pentru fiecare beneficiar; privatul gestionează suplimentar taxele și actele adiționale. | parțial: tabela 0140 există; nu are API/React, versiuni semnate, eArhivă ori ledger de taxe | șabloane versionate, semnare, eArhivă, taxe/scadențe/reduceri/refunduri și separare față de finanțarea publică |
+| APP-009 | Regimul contabil, salarial, TVA și Trezorerie este determinat separat de forma juridică. | doar câmpuri declarative | clasificări cu temei și verticale HR/FIN; nicio regulă financiară derivată numai din `school_legal_form` |
+| APP-010 | Caracterul confesional este overlay peste regimul privat, nu o formă juridică ce elimină regulile private comune. | parțial: v2/0143 îl modelează ca overlay private-only și API-ul respinge forma directă; schema legacy 0135 păstrează încă enum-ul exclusiv | cutover v1→v2, comandă atomică de validare/persistență și compunere `private + confessional` cu cult/protocoale/dovezi |
+| APP-011 | Înscrierea, școlarizarea, documentele și diplomele sunt permise numai în oferta autorizată/acreditată și în capacitatea aprobată. | clase/elevi/înscrieri există, dar fără această intersecție policy | guard tranzacțional și snapshot policy pe creare/mutare/finalizare; teste pe statut suspendat/retras |
+| APP-012 | Fiecare decizie policy păstrează surse structurate: act, articol, formă consolidată, URL oficial și interval. | parțial: profilul v2 cere sursă tipată, HTTPS și SHA-256; citirea/evaluarea live și pack-urile legacy folosesc încă proiecții libere | cutover la surse v2, job de revalidare și impact report fără rescrierea istoricului |
+| APP-013 | Contractul educațional are retenție calculată pe durata școlarizării și încă 2 ani după plecarea elevului; actele adiționale sunt aprobate și append-only. | schemă incipientă, fără lifecycle/retention executabil | stări, semnături, versiuni, două exemplare, eveniment de plecare și politică eArhivă verificată automat |
+| APP-014 | Bursele/facilitățile sunt separate de taxele comerciale și folosesc reguli pe an, sursă și statut cu/fără taxă. | lipsă | catalog versionat, eligibilitate tri-state, dovezi, aprobare, plăți/reversări și reguli nehardcodate |
+| APP-015 | Desemnarea responsabilului REGES-ONLINE/EDUSAL și închiderea anuală a catalogului electronic produc dovezi auditate și arhivate. | lipsă ca flux integrat | decizie/mandat, jurnal transmiteri, export probator, hash, semnare și legătură eArhivă |
+| APP-016 | Reîncadrarea juridică, acreditarea, finanțarea și regulile anuale au efect prospectiv și produc impact report. | parțial la nivel de intervale/snapshot policy | comandă administrativă versionată, revalidare automată și dovadă că istoricul nu este rescris |
+
+Verdict: arhitectura comună este adecvată, dar suportul public/privat nu este complet. Fundația de profil și policy trebuie normalizată conform APP-003/005/006/010/012, iar motorul trebuie conectat la operațiile educaționale și operaționale, nu doar la publicații.
 
 ## 6. Catalogul bounded contexts
 
@@ -234,3 +283,8 @@ O verticală nu este completă până când testele automate demonstrează cumul
 8. OpenAPI/clientul React nu au drift, iar UI are loading/empty/error/conflict/retry;
 9. E2E real trece prin React → OIDC → API → PostgreSQL/storage;
 10. UI PrimeReact este funcțional la 320 px, tabletă și desktop.
+11. aceeași ofertă educațională nu poate fi folosită în afara nivelului, locației, capacității și intervalului autorizat/acreditat;
+12. un privat acreditat, un privat autorizat fără taxă, un privat autorizat cu taxă și un confesional primesc rezultate de policy distincte și corecte;
+13. o școală privată cu fonduri publice, dar fără încadrare conform Legii nr. 98/2016, nu este tratată automat drept autoritate contractantă;
+14. suspendarea/retragerea unei autorizări blochează operațiile viitoare fără a modifica tranzacțiile și actele istorice;
+15. revalidarea anuală a finanțării, rețelei școlare și policy pack-urilor produce avertizări și raport de impact înainte de expirare.

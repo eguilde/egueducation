@@ -4,7 +4,7 @@
   "scope": {
     "router": "backend/cmd/server/main.go",
     "routePrefix": "/api/education",
-    "operationCount": 364
+    "operationCount": 363
   },
   "sharedContract": {
     "securityScheme": "oidcAuthorizationCode",
@@ -10184,108 +10184,6 @@
       "modelEvidence": "inferred from concrete handler variable/page type"
     },
     {
-      "operationKey": "POST /api/education/portfolios/records/{recordID}/reviews",
-      "operationId": "post_api_education_portfolios_records_recordid_reviews",
-      "handler": "CreatePortfolioReview",
-      "source": "backend/internal/education/governance_portfolio_flows.go:812",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID"
-      ],
-      "queryParameters": [],
-      "requestBody": {
-        "required": true,
-        "contentType": "application/json",
-        "schema": "CreatePortfolioReviewEventRequest"
-      },
-      "success": {
-        "status": 200,
-        "contentType": "application/json",
-        "schema": "PortfolioReviewEvent"
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
-      "operationKey": "PATCH /api/education/portfolios/records/{recordID}/reviews/{itemID}",
-      "operationId": "patch_api_education_portfolios_records_recordid_reviews_itemid",
-      "handler": "UpdatePortfolioReview",
-      "source": "backend/internal/education/governance_portfolio_flows.go:864",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID",
-        "itemID"
-      ],
-      "queryParameters": [],
-      "requestBody": {
-        "required": true,
-        "contentType": "application/json",
-        "schema": "CreatePortfolioReviewEventRequest"
-      },
-      "success": {
-        "status": 200,
-        "contentType": "application/json",
-        "schema": "PortfolioReviewEvent"
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
-      "operationKey": "DELETE /api/education/portfolios/records/{recordID}/reviews/{itemID}",
-      "operationId": "delete_api_education_portfolios_records_recordid_reviews_itemid",
-      "handler": "DeletePortfolioReview",
-      "source": "backend/internal/education/governance_portfolio_flows.go:913",
-      "contractStatus": "detailed",
-      "security": [
-        "oidcAuthorizationCode"
-      ],
-      "tenantScope": "institution derived from authenticated session/token claims and host/tenant membership; enforced by RequireInstitutionContext; no X-Institution-ID request header is consumed",
-      "requiredPermission": "education.portfolios.manage",
-      "pathParameters": [
-        "recordID",
-        "itemID"
-      ],
-      "queryParameters": [],
-      "requestBody": null,
-      "success": {
-        "status": 204,
-        "content": null
-      },
-      "errors": [
-        400,
-        401,
-        403,
-        404,
-        422,
-        500
-      ],
-      "modelEvidence": "inferred from concrete handler variable/page type"
-    },
-    {
       "operationKey": "GET /api/education/portfolios/me",
       "operationId": "get_api_education_portfolios_me",
       "handler": "PortfolioOwnRecords",
@@ -10351,6 +10249,37 @@
         500
       ],
       "modelEvidence": "owner UUID resolved from authenticated subject and constrained in SQL"
+    },
+    {
+      "operationKey": "GET /api/education/portfolios/me/{recordID}/procedure",
+      "operationId": "get_api_education_portfolios_me_recordid_procedure",
+      "handler": "PortfolioOwnAppliedProcedure",
+      "source": "backend/internal/education/portfolio_own_procedure.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution and owner are derived from authenticated session/token claims; only the exact procedure bound to the caller-owned portfolio is readable",
+      "requiredPermission": "education.portfolios.read_own",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": null,
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "OwnPortfolioAppliedProcedureResponse"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        422,
+        500
+      ],
+      "modelEvidence": "exact immutable applied_procedure_id binding; published or superseded version with its procedure-bound section rules only"
     },
     {
       "operationKey": "POST /api/education/portfolios/me",
@@ -10489,8 +10418,8 @@
     {
       "operationKey": "POST /api/education/portfolios/records/{recordID}/return",
       "operationId": "post_api_education_portfolios_records_recordid_return",
-      "handler": "PortfolioAdminReturn",
-      "source": "backend/internal/education/portfolio_access.go",
+      "handler": "PortfolioReturnForCorrections",
+      "source": "backend/internal/education/governance_portfolio_flows.go",
       "contractStatus": "detailed",
       "security": [
         "oidcAuthorizationCode"
@@ -10501,7 +10430,11 @@
         "recordID"
       ],
       "queryParameters": [],
-      "requestBody": null,
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "PortfolioReturnForCorrectionsRequest"
+      },
       "success": {
         "status": 200,
         "contentType": "application/json",
@@ -10516,7 +10449,43 @@
         422,
         500
       ],
-      "modelEvidence": "explicit administrator return transition"
+      "modelEvidence": "atomic correction review and workflow transition; reviewer derived from OIDC"
+    },
+    {
+      "operationKey": "POST /api/education/portfolios/records/{recordID}/managerial-decision",
+      "operationId": "post_api_education_portfolios_records_recordid_managerial_decision",
+      "handler": "PortfolioManagerialDecision",
+      "source": "backend/internal/education/governance_portfolio_flows.go",
+      "contractStatus": "detailed",
+      "security": [
+        "oidcAuthorizationCode"
+      ],
+      "tenantScope": "institution is derived from authenticated session/token claims; only submitted records transition",
+      "requiredPermission": "education.portfolios.school.manage",
+      "pathParameters": [
+        "recordID"
+      ],
+      "queryParameters": [],
+      "requestBody": {
+        "required": true,
+        "contentType": "application/json",
+        "schema": "PortfolioManagerialDecisionRequest"
+      },
+      "success": {
+        "status": 200,
+        "contentType": "application/json",
+        "schema": "PortfolioRecord"
+      },
+      "errors": [
+        400,
+        401,
+        403,
+        404,
+        409,
+        422,
+        500
+      ],
+      "modelEvidence": "atomic managerial review and submitted-to-validated-or-rejected transition; reviewer derived from OIDC"
     },
     {
       "operationKey": "GET /api/education/portfolios/archive-attachment-grants",
@@ -11088,16 +11057,16 @@
     {
       "operationKey": "POST /api/education/portfolios/records/{recordID}/activity-cessation",
       "operationId": "post_api_education_portfolios_records_recordid_activity_cessation",
-      "handler": "RecordPortfolioActivityCessation", "source": "backend/internal/education/service.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "handler": "RecordPortfolioActivityCessation", "source": "backend/internal/education/portfolio_storage_lifecycle.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
       "tenantScope": "institution and tenant are server-derived; retention deadline is database-derived", "requiredPermission": "education.portfolios.school.manage", "pathParameters": ["recordID"], "queryParameters": [],
-      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioCessationRequest"}, "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "explicit activity cessation command starts retention"
+      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioCessationRequest"}, "success": {"status": 202, "contentType": "application/json", "schema": "PortfolioLifecycleOperationResponse"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "Accepted durable cessation operation; storage completion requires verified exact-version retention before custody release."
     },
     {
       "operationKey": "POST /api/education/portfolios/records/{recordID}/legal-hold",
       "operationId": "post_api_education_portfolios_records_recordid_legal_hold",
-      "handler": "SetPortfolioLegalHold", "source": "backend/internal/education/service.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
+      "handler": "SetPortfolioLegalHold", "source": "backend/internal/education/portfolio_storage_lifecycle.go", "contractStatus": "detailed", "security": ["oidcAuthorizationCode"],
       "tenantScope": "institution and tenant are server-derived", "requiredPermission": "education.portfolios.school.manage", "pathParameters": ["recordID"], "queryParameters": [],
-      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioLegalHoldRequest"}, "success": {"status": 200, "contentType": "application/json", "schema": "PortfolioRecord"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "institution lifecycle command with audited legal-hold state"
+      "requestBody": {"required": true, "contentType": "application/json", "schema": "PortfolioLegalHoldRequest"}, "success": {"status": 202, "contentType": "application/json", "schema": "PortfolioLifecycleOperationResponse"}, "errors": [400,401,403,404,409,422,500], "modelEvidence": "Atomic human legal-hold intent and per-version work; effective storage hold includes every active custody and legal-hold reference."
     },
     {
       "operationKey": "GET /api/education/portfolios/procedures",

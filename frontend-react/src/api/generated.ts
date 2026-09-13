@@ -652,6 +652,674 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admissions/appeals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/appeals
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_appeals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/appeals/{appealID}/resolution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/appeals/{appealID}/resolution
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_appeals_appealid_resolution"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/appeals/{appealID}/resolution-preparations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/appeals/{appealID}/resolution-preparations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_appeals_appealid_resolution_preparations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/applications
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_applications"];
+        put?: never;
+        /**
+         * POST /api/admissions/applications
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/applications/{applicationID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_applications_applicationid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/appeals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/appeals
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_appeals"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/assessments
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_assessments"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/decision-preparations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/decision-preparations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_decision_preparations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/decisions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_decisions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/documents/{documentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/documents/{documentID}
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_documents_documentid"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/enrolment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/enrolment
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_enrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/applications/{applicationID}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/applications/{applicationID}/transitions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_applications_applicationid_transitions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/campaigns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/campaigns
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_campaigns"];
+        put?: never;
+        /**
+         * POST /api/admissions/campaigns
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_campaigns"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/campaigns/{campaignID}/criteria": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/campaigns/{campaignID}/criteria
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_campaigns_campaignid_criteria"];
+        put?: never;
+        /**
+         * POST /api/admissions/campaigns/{campaignID}/criteria
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_campaigns_campaignid_criteria"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/campaigns/{campaignID}/document-requirements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/campaigns/{campaignID}/document-requirements
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_campaigns_campaignid_document_requirements"];
+        put?: never;
+        /**
+         * POST /api/admissions/campaigns/{campaignID}/document-requirements
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_campaigns_campaignid_document_requirements"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/campaigns/{campaignID}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/campaigns/{campaignID}/transitions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_campaigns_campaignid_transitions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/candidate-parties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/candidate-parties
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_candidate_parties"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/class-offering-contexts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/class-offering-contexts
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_class_offering_contexts"];
+        put?: never;
+        /**
+         * POST /api/admissions/class-offering-contexts
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_class_offering_contexts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/decisions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_decisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/dss-retention-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/dss-retention-policies
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_dss_retention_policies"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/dss-retention-policies/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/dss-retention-policies/current
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_dss_retention_policies_current"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/eligible-archive-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/eligible-archive-versions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_eligible_archive_versions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/legal-preparations/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/legal-preparations/finalize
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_legal_preparations_finalize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the artifact bound to a legal preparation
+         * @description Returns the scoped, committed archive artifact and its ingestion readiness. Requires archive management and the preparation-specific admission permission. No arbitrary tenant archive version can substitute for this binding.
+         */
+        get: operations["get_api_admissions_legal_preparations_preparationid_artifacts_artifactslot"];
+        put?: never;
+        /**
+         * Upload the signed PDF bound to a legal preparation artifact
+         * @description Accepts only a PDF file. Tenant, institution, actor, retention and object identity are server-derived. Requires archive management and the preparation-specific admission permission. The durable intent precedes the immutable write; retries with the same Idempotency-Key and fingerprint recover the exact object without deletion. Changed content conflicts. Adoption queues OCR; finalization remains blocked until readiness and signature verification.
+         */
+        post: operations["post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/legal-preparations/{preparationID}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/legal-preparations/{preparationID}/cancel
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_legal_preparations_preparationid_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/regulatory-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/regulatory-sources
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_regulatory_sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/retention-rule-versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/retention-rule-versions
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_retention_rule_versions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/retention-rule-versions/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/retention-rule-versions/approve
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_retention_rule_versions_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/signer-authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/signer-authorizations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_signer_authorizations"];
+        put?: never;
+        /**
+         * POST /api/admissions/signer-authorizations
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_signer_authorizations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/signer-authorizations/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/signer-authorizations/approve
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_signer_authorizations_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/signer-authorizations/{authorizationID}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/admissions/signer-authorizations/{authorizationID}/revoke
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        post: operations["post_api_admissions_signer_authorizations_authorizationid_revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admissions/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/admissions/students
+         * @description Generated router contract. Request and response field detail is pending endpoint-level schema review.
+         */
+        get: operations["get_api_admissions_students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/methods": {
         parameters: {
             query?: never;
@@ -806,6 +1474,66 @@ export interface paths {
          * @description Requeues a failed ingestion job after verifying that it belongs to the active tenant. Cross-tenant and non-failed job identifiers return not found.
          */
         post: operations["post_api_earchiva_admin_jobs_jobid_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/portfolio-custody-intents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List portfolio custody recovery work
+         * @description Lists only tenant- and institution-scoped stored intents and durable recovery history. Storage locations, immutable version identifiers, ETags, object metadata and raw worker errors are never exposed.
+         */
+        get: operations["get_api_earchiva_admin_portfolio_custody_intents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request verified portfolio custody recovery
+         * @description Queues durable adoption of the exact held WORM version after database authorization and server-side fingerprint verification. HTTP 202 means queued, not committed. The operation never reduces retention, disables legal hold, deletes or overwrites storage.
+         */
+        post: operations["post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/admin/portfolio-custody-intents/{intentID}/recovery-operations/{operationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read portfolio custody recovery status
+         * @description Returns the tenant- and institution-scoped durable status using safe error codes only. A committed status is the sole success signal.
+         */
+        get: operations["get_api_earchiva_admin_portfolio_custody_intents_intentid_recovery_operations_operationid"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1054,6 +1782,70 @@ export interface paths {
         get: operations["get_api_earchiva_records_filters"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/retention-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List archive-series retention rule versions
+         * @description Host-scoped administrative list with server filtering, sorting and pagination. An internal approval is not external archival certification. Rules are not yet an assertion that a stored document has WORM protection.
+         */
+        get: operations["get_api_earchiva_retention_rules"];
+        put?: never;
+        /**
+         * Propose an archive-series retention rule
+         * @description Administrative proposal bound to an active series and source, with immutable provenance and explicit retention anchor. Ordinary document uploads cannot set their own legal retention. Unsupported anchors or duration models are rejected rather than substituted.
+         */
+        post: operations["post_api_earchiva_retention_rules"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/retention-rules/{ruleID}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a proposed archive-series retention rule
+         * @description Requires a distinct authorized approver and matching version. Activation rejects overlapping active periods for the same series. Existing stored-document retention snapshots are not shortened.
+         */
+        post: operations["post_api_earchiva_retention_rules_ruleid_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/earchiva/retention-rules/{ruleID}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retire an archive-series retention rule
+         * @description Records the actor and mandatory reason under optimistic concurrency. Retirement stops future use without deleting provenance or shortening existing document retention.
+         */
+        post: operations["post_api_earchiva_retention_rules_ruleid_retire"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4600,6 +5392,26 @@ export interface paths {
         patch: operations["patch_api_education_portfolios_me_recordid"];
         trace?: never;
     };
+    "/api/education/portfolios/me/{recordID}/archive-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a PDF for the authenticated teacher's portfolio
+         * @description Owner-scoped upload into an editable portfolio. The server derives tenant, institution and owner, scans the PDF and atomically persists archive provenance and owner attachment access. Queued uploads cannot be attached until processing succeeds. An idempotent replay returns the same document; changed content under the same key is rejected.
+         */
+        post: operations["post_api_education_portfolios_me_recordid_archive_documents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/me/{recordID}/checklist": {
         parameters: {
             query?: never;
@@ -4728,6 +5540,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/me/{recordID}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/me/{recordID}/export
+         * @description Handler-backed Education contract. Server-created complete staged ZIP with portfolio metadata, dated OPIS, persisted immutable manifest, and verified exact original evidence bytes.
+         */
+        post: operations["post_api_education_portfolios_me_recordid_export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/me/{recordID}/lifecycle-operations/{operationID}/storage-transitions/{transitionID}/retention-dispositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/me/{recordID}/lifecycle-operations/{operationID}/storage-transitions/{transitionID}/retention-dispositions
+         * @description Handler-backed Education contract. Owner evidence is append-only; transition and exact WORM version provenance are server-derived and DB-guarded.
+         */
+        post: operations["post_api_education_portfolios_me_recordid_lifecycle_operations_operationid_storage_transitions_transitionid_retention_dispositions"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/me/{recordID}/opis": {
         parameters: {
             query?: never;
@@ -4762,6 +5614,26 @@ export interface paths {
          * @description Regenerates the dated opis from the authenticated teacher's current portfolio evidence. The owner and institution are derived from the OIDC session; this is a bodyless command protected by education.portfolios.manage_own.
          */
         post: operations["post_api_education_portfolios_me_recordid_opis_regenerate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/me/{recordID}/procedure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the authenticated teacher's applied portfolio procedure
+         * @description Returns only the immutable published or superseded procedure version explicitly bound to the authenticated teacher's own portfolio, together with its frozen section rules. It never resolves the current institution procedure and cannot enumerate other procedure versions or owners.
+         */
+        get: operations["get_api_education_portfolios_me_recordid_procedure"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5043,7 +5915,7 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/activity-cessation
-         * @description Handler-backed Education contract. explicit activity cessation command starts retention
+         * @description Handler-backed Education contract. Accepted durable cessation operation; storage completion requires verified exact-version retention before custody release.
          */
         post: operations["post_api_education_portfolios_records_recordid_activity_cessation"];
         delete?: never;
@@ -5279,9 +6151,89 @@ export interface paths {
         put?: never;
         /**
          * POST /api/education/portfolios/records/{recordID}/legal-hold
-         * @description Handler-backed Education contract. institution lifecycle command with audited legal-hold state
+         * @description Handler-backed Education contract. Atomic human legal-hold intent and per-version work; effective storage hold includes every active custody and legal-hold reference.
          */
         post: operations["post_api_education_portfolios_records_recordid_legal_hold"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/lifecycle-operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/lifecycle-operations
+         * @description Handler-backed Education contract. Durable operation history with server-side filtering, stable sorting and pagination; uses the same authorization boundary as the operation status.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_lifecycle_operations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}
+         * @description Handler-backed Education contract. Persisted lifecycle operation and exact-version reconciliation counts; pending is not completed storage protection.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_lifecycle_operations_operationid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/lifecycle-operations/{operationID}/retry
+         * @description Handler-backed Education contract. Audited, reason-required retry of blocked or dead-letter transitions; never steals active leases or repeats completed transitions.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_lifecycle_operations_operationid_retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/managerial-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the managerial portfolio decision
+         * @description Atomically appends an immutable managerial review derived from the authenticated reviewer and transitions submitted to validated or rejected.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_managerial_decision"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5380,6 +6332,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/education/portfolios/records/{recordID}/retention-dispositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * GET /api/education/portfolios/records/{recordID}/retention-dispositions
+         * @description Handler-backed Education contract. Durable, safe review trail with server-side filtering, sorting and pagination; exact object identity remains server-only.
+         */
+        get: operations["get_api_education_portfolios_records_recordid_retention_dispositions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/education/portfolios/records/{recordID}/retention-dispositions/{requestID}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * POST /api/education/portfolios/records/{recordID}/retention-dispositions/{requestID}/decision
+         * @description Handler-backed Education contract. Four-eyes decision creates durable work only after a current blocker recheck; later blockers require a fresh independent review.
+         */
+        post: operations["post_api_education_portfolios_records_recordid_retention_dispositions_requestid_decision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/education/portfolios/records/{recordID}/return": {
         parameters: {
             query?: never;
@@ -5390,8 +6382,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * POST /api/education/portfolios/records/{recordID}/return
-         * @description Handler-backed Education contract. explicit administrator return transition
+         * Return a submitted portfolio for corrections
+         * @description Atomically records an immutable correction review with the authenticated reviewer and transitions the institution-scoped portfolio from submitted to returned.
          */
         post: operations["post_api_education_portfolios_records_recordid_return"];
         delete?: never;
@@ -5413,11 +6405,7 @@ export interface paths {
          */
         get: operations["get_api_education_portfolios_records_recordid_reviews"];
         put?: never;
-        /**
-         * Create or execute Create Portfolio Review
-         * @description Tenant- and institution-scoped Education operation. Handler: CreatePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
-         */
-        post: operations["post_api_education_portfolios_records_recordid_reviews"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5438,18 +6426,10 @@ export interface paths {
         get: operations["get_api_education_portfolios_records_recordid_reviews_itemid"];
         put?: never;
         post?: never;
-        /**
-         * Delete Delete Portfolio Review
-         * @description Tenant- and institution-scoped Education operation. Handler: DeletePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage. Successful deletion returns HTTP 204 with no response body.
-         */
-        delete: operations["delete_api_education_portfolios_records_recordid_reviews_itemid"];
+        delete?: never;
         options?: never;
         head?: never;
-        /**
-         * Update Update Portfolio Review
-         * @description Tenant- and institution-scoped Education operation. Handler: UpdatePortfolioReview. The institution context is derived from authenticated session/token claims and host/tenant membership; no X-Institution-ID request header is consumed. The server validates tenant membership and enforces education.portfolios.manage.
-         */
-        patch: operations["patch_api_education_portfolios_records_recordid_reviews_itemid"];
+        patch?: never;
         trace?: never;
     };
     "/api/education/portfolios/records/{recordID}/transfer-summary": {
@@ -6564,6 +7544,138 @@ export interface paths {
          * @description Returns only the server-derived intersection of active modules, live RBAC, the approved institution profile and effective policy packs; raw policy rules are not exposed.
          */
         get: operations["get_api_institution_capabilities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institution/education-offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List education offerings
+         * @description Returns the effective-dated education offerings of the authenticated institution with server-side filtering, sorting and pagination.
+         */
+        get: operations["get_api_institution_education_offerings"];
+        put?: never;
+        /**
+         * Create an education offering
+         * @description Creates a scope-bound, effective-dated offering. A program or level is not considered authorized until a separate authorization decision exists.
+         */
+        post: operations["post_api_institution_education_offerings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institution/education-offerings/{offeringID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an education offering
+         * @description Updates mutable offering metadata under optimistic concurrency. The level, specialization, language and effective-from identity fields are never rewritten. Deactivation requires an explicit effective end and returns 409 if the new window would invalidate a dependent authorization.
+         */
+        patch: operations["patch_api_institution_education_offerings_offeringid"];
+        trace?: never;
+    };
+    "/api/institution/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List institution locations
+         * @description Returns only locations from the host- and session-bound institution with server-side filtering, sorting and pagination.
+         */
+        get: operations["get_api_institution_locations"];
+        put?: never;
+        /**
+         * Create an institution location
+         * @description Creates a scope-bound, effective-dated location using a replay-safe idempotency key. Tenant, institution and actor are derived by the server.
+         */
+        post: operations["post_api_institution_locations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institution/locations/{locationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update an institution location
+         * @description Updates mutable location metadata under optimistic concurrency. Code and effective-from remain immutable. Deactivation requires an explicit effective end and returns 409 if the new window would invalidate a dependent authorization.
+         */
+        patch: operations["patch_api_institution_locations_locationid"];
+        trace?: never;
+    };
+    "/api/institution/offering-authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List offering authorization history
+         * @description Returns authorization, accreditation, suspension and withdrawal decisions per offering and physical location. Historical decisions remain separate records.
+         */
+        get: operations["get_api_institution_offering_authorizations"];
+        put?: never;
+        /**
+         * Append an offering authorization decision
+         * @description Creates an initial decision or prospectively replaces a prior decision using optimistic concurrency, verified legal provenance and a replay-safe idempotency key. New positive decisions use provisional or accredited status with an explicit capacity unit and shift; the ambiguous legacy value authorized is read-only until classified from its source act.
+         */
+        post: operations["post_api_institution_offering_authorizations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/institution/policy-cutover-preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect the institution policy v2 cutover preflight
+         * @description Returns scope-bound aggregate gaps for the legacy-to-v2 policy migration. A structurally ready response is informational and never authorizes a runtime phase transition.
+         */
+        get: operations["get_api_institution_policy_cutover_preflight"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7786,6 +8898,202 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regulatory-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List scoped regulatory sources
+         * @description Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.
+         */
+        get: operations["get_api_regulatory_sources"];
+        put?: never;
+        /**
+         * Register a regulatory source draft
+         * @description Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.
+         */
+        post: operations["post_api_regulatory_sources"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regulatory-sources/{sourceID}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve verified source applicability
+         * @description Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.
+         */
+        post: operations["post_api_regulatory_sources_sourceid_activate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regulatory-sources/{sourceID}/evidence/{evidenceID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the exact source evidence
+         * @description Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.
+         */
+        get: operations["get_api_regulatory_sources_sourceid_evidence_evidenceid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regulatory-sources/{sourceID}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retrieve and persist publisher evidence
+         * @description Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.
+         */
+        post: operations["post_api_regulatory_sources_sourceid_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/school-operations/contracts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List institution-scoped operational contracts
+         * @description Server-side filtered, sorted and paginated contract index. Tenant and institution scope come solely from the authenticated host-bound session.
+         */
+        get: operations["get_api_school_operations_contracts"];
+        put?: never;
+        /**
+         * Create a draft supplier contract
+         * @description Creates exactly one tenant-scoped draft contract for an idempotency key. Policy evaluation, tenant and institution are server-derived and immutable provenance.
+         */
+        post: operations["post_api_school_operations_contracts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/school-operations/contracts/{contractID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an institution-scoped operational contract
+         * @description Returns one contract only when it belongs to the host-selected tenant and authenticated institution.
+         */
+        get: operations["get_api_school_operations_contracts_contractid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Amend a non-final operational contract
+         * @description Uses expected_version optimistic concurrency and records immutable policy, audit and outbox evidence in the same transaction.
+         */
+        patch: operations["patch_api_school_operations_contracts_contractid"];
+        trace?: never;
+    };
+    "/api/school-operations/contracts/{contractID}/obligations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List contract obligations
+         * @description Server-side filtered, sorted and paginated obligation list for one institution-scoped contract.
+         */
+        get: operations["get_api_school_operations_contracts_contractid_obligations"];
+        put?: never;
+        /**
+         * Create a contract obligation
+         * @description Creates an institution-scoped obligation and its policy, audit and outbox evidence atomically.
+         */
+        post: operations["post_api_school_operations_contracts_contractid_obligations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/school-operations/contracts/{contractID}/transition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Transition an operational contract lifecycle
+         * @description Applies only valid draft-to-archive lifecycle transitions with expected_version optimistic concurrency; final legal records cannot be deleted.
+         */
+        post: operations["post_api_school_operations_contracts_contractid_transition"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/school-operations/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List institution-scoped suppliers
+         * @description Returns active legal/institution parties from the shared tenant party registry for contract selection.
+         */
+        get: operations["get_api_school_operations_suppliers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/dashboard": {
         parameters: {
             query?: never;
@@ -7996,12 +9304,41 @@ export interface components {
             /** Format: uuid */
             archive_version_id: string;
         };
+        AdmissionDSSRetentionPolicy: {
+            effective_from: string;
+            id: string;
+            minimum_retention_days: number;
+            replayed?: boolean;
+            rule_version_id: string;
+            source_id: string;
+            status: string;
+        };
+        AdmissionRetentionRuleVersion: {
+            approved_by_subject?: string;
+            artifact_kind: string;
+            effective_from: string;
+            effective_to?: string | null;
+            id: string;
+            minimum_retention_days: number;
+            proposed_by_subject: string;
+            replayed?: boolean;
+            source_checksum_sha256: string;
+            source_id: string;
+            status: string;
+        };
         AdvancePortfolioTransferRequest: {
             action?: string;
         };
         AdvancePortfolioValorificationPackageRequest: {
             /** @enum {string} */
             action: "submit" | "validate" | "complete";
+        };
+        ApproveAdmissionRetentionRuleRequest: {
+            rule_version_id: string;
+        };
+        ApproveAdmissionSignerAuthorizationRequest: {
+            /** Format: uuid */
+            proposal_id: string;
         };
         ArchiveDocument: {
             /** Format: uuid */
@@ -8029,6 +9366,17 @@ export interface components {
             sourceDocumentId?: string;
             title: string;
         };
+        AssessCriterionRequest: {
+            criterion_id: string;
+            evidence_snapshot: {
+                [key: string]: unknown;
+            };
+            expected_version: number;
+            outcome: string;
+            rationale: string;
+            /** Format: double */
+            score?: number | null;
+        };
         /** Format: binary */
         BinaryCsv: string;
         /**
@@ -8038,6 +9386,8 @@ export interface components {
         BinaryFile: string;
         /** Format: binary */
         BinaryPdf: string;
+        /** Format: binary */
+        BinaryZip: string;
         /** @description Public, deployment-specific bootstrap configuration. It contains no credentials or token material. */
         BootstrapConfig: {
             name?: string;
@@ -8097,6 +9447,83 @@ export interface components {
             status: string;
             title: string;
         };
+        ConfessionalOverlayRequest: {
+            cult_code: string;
+            /** Format: uuid */
+            cult_party_id: string;
+            protocol_reference: string;
+        };
+        ConfigureDSSRetentionPolicyRequest: {
+            effective_from: string;
+            rule_version_id: string;
+        };
+        CreateAppealRequest: {
+            appeal_no: string;
+            archive?: {
+                document_id: string;
+                version_id: string;
+            } | null;
+            decision_id: string;
+            statement: string;
+            submitted_by_party_id: string;
+        };
+        CreateApplicationRequest: {
+            application_no: string;
+            campaign_id: string;
+            candidate_party_id: string;
+            consent_snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        CreateCampaignRequest: {
+            authorization_id: string;
+            capacity_basis: {
+                [key: string]: unknown;
+            };
+            capacity_limit: number;
+            capacity_unit: string;
+            class_offering_context_id: string;
+            closes_on: string;
+            code: string;
+            criteria: {
+                code: string;
+                kind: string;
+                ordinal: number;
+                required: boolean;
+                rule_snapshot: {
+                    [key: string]: unknown;
+                };
+                title: string;
+                /** Format: double */
+                weight: number;
+            }[];
+            decision_due_on?: string | null;
+            document_requirements: {
+                allowed_mime_types: string[];
+                code: string;
+                ordinal: number;
+                required: boolean;
+                title: string;
+            }[];
+            location_id: string;
+            offering_id: string;
+            opens_on: string;
+            school_year: string;
+            shift: string;
+            source_id: string;
+            student_place_limit: number;
+            title: string;
+        };
+        CreateClassOfferingContextRequest: {
+            authorization_id: string;
+            class_id: string;
+            effective_from: string;
+            effective_to?: string | null;
+            location_id: string;
+            offering_id: string;
+            school_year: string;
+            shift: string;
+        };
         CreateCommitteeMemberRequest: {
             /** Format: date */
             appointed_on: string;
@@ -8145,6 +9572,19 @@ export interface components {
             /** Format: int32 */
             step_order: number;
             step_type: string;
+        };
+        CreateEducationOfferingRequest: {
+            active: boolean;
+            code: string;
+            education_level: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            idempotency_key: string;
+            language_code: string;
+            specialization_code?: string;
+            title: string;
         };
         CreateGovernanceDecisionRequest: {
             decision_date: string;
@@ -8434,6 +9874,30 @@ export interface components {
             recipient_role?: string;
             registry_reference?: string;
         };
+        CreateOfferingAuthorizationRequest: {
+            authority_name: string;
+            capacity?: number | null;
+            /** @enum {string} */
+            capacity_unit: "students" | "study_groups";
+            decision_reference: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version?: number | null;
+            idempotency_key: string;
+            /** Format: uuid */
+            location_id: string;
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: uuid */
+            replaces_authorization_id?: string | null;
+            /** @enum {string} */
+            shift: "day" | "afternoon" | "evening";
+            source: components["schemas"]["RegulatorySourceRequest"];
+            /** @enum {string} */
+            status: "provisional" | "accredited" | "suspended" | "withdrawn" | "expired";
+        };
         CreatePersonnelAssignmentRequest: {
             /** Format: date */
             assigned_on: string;
@@ -8714,17 +10178,6 @@ export interface components {
             status: string;
             transfer_status: string;
         };
-        CreatePortfolioReviewEventRequest: {
-            /** Format: int32 */
-            compliance_score?: number;
-            /** Format: int32 */
-            missing_documents?: number;
-            notes?: string;
-            outcome: string;
-            review_stage: string;
-            reviewed_on: string;
-            reviewer_name: string;
-        };
         CreatePortfolioValorificationEventRequest: {
             completed_on?: string;
             notes?: string;
@@ -8840,6 +10293,17 @@ export interface components {
             /** Format: uuid */
             personnel_id: string;
         };
+        CreateSchoolLocationRequest: {
+            active: boolean;
+            address?: string;
+            code: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            idempotency_key: string;
+            name: string;
+        };
         CreateSchoolStudentRequest: {
             /** Format: date */
             birth_date?: string;
@@ -8851,6 +10315,18 @@ export interface components {
              */
             status: "active" | "transferred" | "graduated" | "withdrawn";
             student_code: string;
+        };
+        CriterionInput: {
+            code: string;
+            kind: string;
+            ordinal: number;
+            required: boolean;
+            rule_snapshot: {
+                [key: string]: unknown;
+            };
+            title: string;
+            /** Format: double */
+            weight: number;
         };
         DecisionIssuance: {
             acknowledged_on: string;
@@ -8986,6 +10462,13 @@ export interface components {
             portfolios: components["schemas"]["DirectorCockpitPortfolios"];
             recommended_links: components["schemas"]["DirectorCockpitQuickLink"][];
             school_year: string;
+        };
+        DocumentRequirementInput: {
+            allowed_mime_types: string[];
+            code: string;
+            ordinal: number;
+            required: boolean;
+            title: string;
         };
         DocumentWorkflowActionRequest: {
             /** @enum {string} */
@@ -9361,6 +10844,12 @@ export interface components {
             pageSize: number;
             total: number;
         };
+        EducationPageOfPortfolioLifecycleOperation: {
+            items: components["schemas"]["PortfolioLifecycleOperation"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         EducationPageOfPortfolioOpisEntry: {
             items: components["schemas"]["PortfolioOpisEntry"][];
             page: number;
@@ -9381,6 +10870,12 @@ export interface components {
         };
         EducationPageOfPortfolioRecord: {
             items: components["schemas"]["PortfolioRecord"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        EducationPageOfPortfolioRetentionDisposition: {
+            items: components["schemas"]["PortfolioRetentionDisposition"][];
             page: number;
             pageSize: number;
             total: number;
@@ -9538,6 +11033,11 @@ export interface components {
             /** @enum {string} */
             type: "decision" | "publication" | "managerial_document" | "meeting_document" | "meeting_minute" | "meeting_resolution";
         };
+        EnrolApplicationRequest: {
+            enrolled_from: string;
+            expected_version: number;
+            student_code: string;
+        };
         EvaluationStatusReportRow: {
             employee_code: string;
             evaluation_code: string;
@@ -9548,6 +11048,19 @@ export interface components {
             school_year: string;
             score: number;
             status: string;
+        };
+        FinalizeAdmissionLegalPreparationRequest: {
+            archive: {
+                document_id: string;
+                version_id: string;
+            };
+            /** Format: uuid */
+            preparation_id: string;
+            /** @description Required exactly when the server preparation includes a replacement decision. Must reference a distinct signed WORM artifact; each document is independently validated against its own canonical payload. */
+            resulting_decision_archive?: {
+                document_id: string;
+                version_id: string;
+            } | null;
         };
         GovernanceBodyCompletenessMeetingBlock: {
             /** Format: int32 */
@@ -9863,6 +11376,19 @@ export interface components {
             pending_publications: number;
             readiness_open: number;
             requirements_pending: number;
+        };
+        IssueDecisionRequest: {
+            appeal_deadline?: string | null;
+            archive: {
+                document_id: string;
+                version_id: string;
+            };
+            decision_no: string;
+            expected_version: number;
+            outcome: string;
+            /** Format: double */
+            ranking_value?: number | null;
+            rationale: string;
         };
         JsonWebKey: {
             alg: string;
@@ -10261,6 +11787,10 @@ export interface components {
             scope?: string;
             /** @constant */
             token_type: "Bearer";
+        };
+        OwnPortfolioAppliedProcedureResponse: {
+            procedure: components["schemas"]["PortfolioProcedure"];
+            rules: components["schemas"]["PortfolioProcedureSectionRule"][];
         };
         OwnPortfolioDocumentRequest: {
             added_on: string;
@@ -10760,6 +12290,8 @@ export interface components {
         };
         PortfolioExportManifest: {
             documents: components["schemas"]["PortfolioExportManifestDocument"][];
+            /** @description Exact generated ZIP payload hashes and byte lengths. Downloadable bundles include portfolio.json, opis.json and opis.txt; legacy manifest-only records may omit this field. Manifest and checksum sidecars are excluded to avoid circular hashes. */
+            generated_files?: components["schemas"]["PortfolioExportManifestGeneratedFile"][];
             /** @constant */
             hash_algorithm: "SHA-256";
             institution_id: string;
@@ -10784,10 +12316,21 @@ export interface components {
             evidence_type: string;
             /** Format: date */
             issued_on: string;
+            mime_type: string;
             section_code: string;
             source_bucket: string;
             source_object_key: string;
+            source_object_version_id: string;
             source_sha256: string;
+            /** Format: int64 */
+            source_size_bytes: number;
+            zip_path: string;
+        };
+        PortfolioExportManifestGeneratedFile: {
+            sha256: string;
+            /** Format: int64 */
+            size_bytes: number;
+            zip_path: string;
         };
         PortfolioExportManifestPortfolio: {
             /** Format: uuid */
@@ -10813,6 +12356,37 @@ export interface components {
         PortfolioLegalHoldRequest: {
             active: boolean;
             reason: string;
+        };
+        PortfolioLifecycleOperation: {
+            blocked_versions: number;
+            completed_at?: string;
+            completed_versions: number;
+            id: string;
+            last_error?: string;
+            portfolio_id: string;
+            requested_at: string;
+            /** @enum {string} */
+            status: "pending" | "processing" | "completed" | "blocked" | "dead_letter";
+            total_versions: number;
+            /** @enum {string} */
+            type: "cessation_retention" | "legal_hold_reconcile";
+        };
+        PortfolioLifecycleOperationResponse: {
+            operation: components["schemas"]["PortfolioLifecycleOperation"];
+            portfolio: components["schemas"]["PortfolioRecord"];
+            transitions: components["schemas"]["PortfolioStorageTransition"][];
+        };
+        PortfolioLifecycleRetryRequest: {
+            reason: string;
+        };
+        PortfolioManagerialDecisionRequest: {
+            compliance_score: number;
+            missing_documents: number;
+            notes: string;
+            /** @enum {string} */
+            outcome: "acceptat" | "respins";
+            /** Format: date */
+            reviewed_on: string;
         };
         PortfolioOpisEntry: {
             checked_by: string;
@@ -10934,6 +12508,52 @@ export interface components {
             withdrawal_reason?: string;
             withdrawn_at?: string;
         };
+        PortfolioRetentionDisposition: {
+            decided_at?: string;
+            decided_by_subject?: string;
+            /** @enum {string} */
+            decision?: "approved" | "rejected";
+            decision_reason?: string;
+            evidence: components["schemas"]["PortfolioRetentionDispositionEvidence"];
+            id: string;
+            last_error_code?: string;
+            operation_attempts: number;
+            operation_id?: string;
+            /** @enum {string} */
+            operation_status?: "queued" | "leased" | "released" | "blocked" | "deadletter";
+            /** @enum {string} */
+            outcome?: "released" | "retained" | "blocked";
+            portfolio_id: string;
+            requested_at: string;
+            requested_by_subject: string;
+            /** @enum {string} */
+            status: "submitted" | "approved" | "rejected" | "blocked" | "closed";
+            transition_id: string;
+        };
+        PortfolioRetentionDispositionCommandResponse: {
+            decision?: string;
+            id: string;
+            outcome?: string;
+            status: string;
+        };
+        PortfolioRetentionDispositionDecisionRequest: {
+            approve: boolean;
+            reason: string;
+        };
+        PortfolioRetentionDispositionEvidence: {
+            reference?: string;
+            statement: string;
+        };
+        PortfolioRetentionDispositionRequest: {
+            evidence: components["schemas"]["PortfolioRetentionDispositionEvidence"];
+        };
+        PortfolioReturnForCorrectionsRequest: {
+            compliance_score: number;
+            missing_documents: number;
+            notes: string;
+            /** Format: date */
+            reviewed_on: string;
+        };
         PortfolioReviewEvent: {
             /** Format: int32 */
             compliance_score: number;
@@ -10981,6 +12601,14 @@ export interface components {
             school_year: string;
             status: string;
             transfer_status: string;
+        };
+        PortfolioStorageTransition: {
+            completed_at?: string;
+            id: string;
+            last_error?: string;
+            required_retention_until?: string;
+            /** @enum {string} */
+            status: "pending" | "processing" | "completed" | "blocked" | "dead_letter";
         };
         PortfolioTransferDestination: {
             display_name: string;
@@ -11197,12 +12825,52 @@ export interface components {
             target_reference: string;
             valorification_code: string;
         };
+        PrepareAppealResolutionRequest: {
+            application_expected_version: number;
+            expected_version: number;
+            /** @enum {string} */
+            outcome: "upheld" | "partially_upheld" | "dismissed" | "withdrawn";
+            rationale: string;
+            resulting_decision_no?: string;
+            /** @enum {string} */
+            resulting_outcome?: "admitted" | "waitlisted" | "rejected" | "withdrawn" | "cancelled";
+        } & unknown;
+        PrepareDecisionRequest: {
+            /** Format: date */
+            appeal_deadline?: string | null;
+            decision_no: string;
+            expected_version: number;
+            /** @enum {string} */
+            outcome: "admitted" | "waitlisted" | "rejected" | "withdrawn" | "cancelled";
+            /** Format: double */
+            ranking_value?: number | null;
+            rationale: string;
+        };
         /** @description Stable API error envelope emitted by backend handlers. The machine-readable code is safe for clients; correlation is supplied by the response X-Request-ID header. */
         Problem: {
             /** @example validation_failed */
             code: string;
             /** @description Required permission when the backend exposes a safe authorization hint. */
             permission?: string;
+        };
+        ProposeAdmissionRetentionRuleRequest: {
+            artifact_kind: string;
+            effective_from: string;
+            effective_to: string | null;
+            minimum_retention_days: number;
+            source_id: string;
+        };
+        ProposeAdmissionSignerAuthorizationRequest: {
+            certificate_sha256: string;
+            /** @enum {string} */
+            permission_code: "education.admissions.decide" | "education.admissions.appeals.manage";
+            /** Format: uuid */
+            user_id: string;
+            /**
+             * Format: date-time
+             * @description Must be in the future and less than ten years from the server clock; approval rechecks expiry.
+             */
+            valid_until: string;
         };
         PublicationBacklogReportRow: {
             anonymization_status: string;
@@ -11238,6 +12906,7 @@ export interface components {
             authorization_status: "unknown" | "provisional" | "authorized" | "accredited" | "suspended" | "withdrawn";
             authorized_levels: string[];
             budget_authority_name?: string;
+            confessional_overlay?: components["schemas"]["ConfessionalOverlayRequest"];
             /** Format: date */
             effective_from: string;
             /** Format: date */
@@ -11246,20 +12915,26 @@ export interface components {
             founder_name?: string;
             funder_name?: string;
             has_legal_personality: boolean;
-            is_contracting_authority: boolean;
             payroll_profile?: string;
             procurement_profile?: string;
             program_codes: string[];
-            public_funding: boolean;
             regulatory_profile: string;
             /** @enum {string} */
-            school_legal_form: "public" | "private" | "confessional";
-            source_reference: string;
+            school_legal_form: "public" | "private";
+            source: components["schemas"]["RegulatorySourceRequest"];
             /** @enum {string} */
             status: "draft" | "approved" | "active";
             tax_identifier?: string;
-            treasury_required: boolean;
             vat_profile?: string;
+        };
+        ReconcilePortfolioCustodyRequest: {
+            /** @enum {string} */
+            disposition: "teacher_access" | "institution_archive_only";
+            /** Format: date */
+            document_date?: string | null;
+            original_file_name: string;
+            reason: string;
+            title: string;
         };
         RegistraturaAttachment: {
             category: string;
@@ -11483,6 +13158,20 @@ export interface components {
             started_on: string;
             status: string;
         };
+        RegulatorySourceRequest: {
+            article_reference: string;
+            checksum_sha256: string;
+            citation: string;
+            /** Format: date */
+            consolidated_on?: string | null;
+            issuer: string;
+            /** Format: date */
+            published_on?: string | null;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+            /** Format: uri */
+            source_url: string;
+        };
         ReplacePortfolioProcedureSectionRulesRequest: {
             /** Format: date-time */
             expected_updated_at: string;
@@ -11576,6 +13265,16 @@ export interface components {
             nume: string | null;
             prefix_nr: string | null;
             tip_registru: string | null;
+        };
+        Request_patch_api_school_operations_contracts_contractid: {
+            category: string;
+            currency: string;
+            ends_on: string;
+            expected_version: number;
+            starts_on: string;
+            title: string;
+            /** Format: double */
+            total_value: number;
         };
         Request_post_api_admin_auth_methods: {
             code: string;
@@ -11694,6 +13393,10 @@ export interface components {
             name: string;
             sla_hours: number;
         };
+        Request_post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot: {
+            /** Format: binary */
+            file: string;
+        };
         Request_post_api_earchiva_classification_reviews_reviewid_approve: {
             note: string;
             revision: number;
@@ -11724,6 +13427,35 @@ export interface components {
             taxonomy_label?: string;
             taxonomy_parent_code?: string;
             title?: string;
+        };
+        Request_post_api_earchiva_retention_rules: {
+            /** @enum {string} */
+            anchor_kind: "intake_received_at";
+            /** @enum {string} */
+            duration_model: "minimum_days";
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            minimum_retention_days: number;
+            /** Format: uuid */
+            source_id: string;
+            /** Format: uuid */
+            taxonomy_node_id: string;
+        };
+        Request_post_api_earchiva_retention_rules_ruleid_approve: {
+            expected_version: number;
+        };
+        Request_post_api_earchiva_retention_rules_ruleid_retire: {
+            expected_version: number;
+            reason: string;
+        };
+        Request_post_api_education_portfolios_me_recordid_archive_documents: {
+            /** Format: date */
+            document_date?: string;
+            /** Format: binary */
+            file: string;
+            title: string;
         };
         Request_post_api_gdpr_exports: {
             approved_by: string;
@@ -11773,7 +13505,7 @@ export interface components {
             challenge: string;
             credential_id: string;
             response: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
         };
         Request_post_api_passkeys_login_options: {
@@ -11784,7 +13516,7 @@ export interface components {
             credential_id: string;
             device_name: string;
             response: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
         };
         Request_post_api_passkeys_register_options: {
@@ -11927,6 +13659,53 @@ export interface components {
             prefix_nr: string;
             tip_registru: string;
         };
+        Request_post_api_regulatory_sources: {
+            /** Format: date */
+            applicable_from: string;
+            /** Format: date */
+            applicable_until?: string | null;
+            citation: string;
+            issuer: string;
+            /**
+             * Format: uri
+             * @description HTTPS publisher URL without credentials, query or fragment. Host must be approved by server configuration; redirects are checked independently. A fetch does not approve legal applicability.
+             */
+            publisher_url: string;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+        };
+        Request_post_api_regulatory_sources_sourceid_activate: {
+            assessment: string;
+            /** Format: uuid */
+            evidence_id: string;
+            expected_version: number;
+        };
+        Request_post_api_regulatory_sources_sourceid_verify: {
+            expected_version: number;
+        };
+        Request_post_api_school_operations_contracts: {
+            category: string;
+            contract_number: string;
+            currency: string;
+            ends_on: string;
+            idempotency_key: string;
+            starts_on: string;
+            supplier_party_id: string;
+            title: string;
+            /** Format: double */
+            total_value: number;
+        };
+        Request_post_api_school_operations_contracts_contractid_obligations: {
+            due_on: string;
+            /** Format: double */
+            guarantee_value: number | null;
+            sla_hours: number | null;
+            title: string;
+        };
+        Request_post_api_school_operations_contracts_contractid_transition: {
+            expected_version: number;
+            status: string;
+        };
         Request_put_api_profile: {
             locale: string;
             name: string;
@@ -11936,6 +13715,32 @@ export interface components {
             department_ids: string[];
             organization_id: string | null;
             primary_department_id: string | null;
+        };
+        ResolveAppealRequest: {
+            application_expected_version: number;
+            archive: {
+                document_id: string;
+                version_id: string;
+            };
+            expected_version: number;
+            outcome: string;
+            rationale: string;
+            resulting_decision_no: string;
+            resulting_outcome: string;
+        };
+        ReviewApplicationDocumentRequest: {
+            archive?: {
+                document_id: string;
+                version_id: string;
+            } | null;
+            expected_version: number;
+            review_note: string;
+            /** @enum {string} */
+            status: "accepted" | "rejected" | "waived";
+        };
+        RevokeAdmissionSignerAuthorizationRequest: {
+            expected_version: number;
+            reason: string;
         };
         SchoolAssignmentOption: {
             /** Format: uuid */
@@ -12144,6 +13949,17 @@ export interface components {
             /** Format: int32 */
             sort_order: number;
         };
+        TransitionRequest: {
+            expected_version: number;
+            status: string;
+        };
+        UpdateEducationOfferingRequest: {
+            active: boolean | null;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            title: string;
+        };
         UpdatePortfolioProcedureRequest: components["schemas"]["CreatePortfolioProcedureRequest"] & {
             /** Format: date-time */
             expected_updated_at: string;
@@ -12172,6 +13988,14 @@ export interface components {
             notes?: string;
             /** @enum {string} */
             transfer_type: "predare" | "primire" | "mutare" | "detasare";
+        };
+        UpdateSchoolLocationRequest: {
+            active: boolean | null;
+            address: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            name: string;
         };
         WorkflowRequest: {
             action?: string;
@@ -12537,6 +14361,334 @@ export interface components {
             pageSize?: number;
             total?: number;
         };
+        get_api_admissions_appeals_item: {
+            appeal_no: string;
+            application_id: string;
+            application_no: string;
+            decision_id: string;
+            expected_version: number;
+            id: string;
+            status: string;
+            submitted_at: string | null;
+            submitted_by_party_id: string | null;
+        };
+        get_api_admissions_appeals_response: {
+            items: components["schemas"]["get_api_admissions_appeals_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_applications_applicationid_response: {
+            application: {
+                application_no: string;
+                campaign_code: string;
+                campaign_id: string;
+                candidate_name: string;
+                candidate_party_id: string;
+                consent_snapshot: {
+                    [key: string]: unknown;
+                };
+                criteria_complete: boolean;
+                documents_complete: boolean;
+                expected_version: number;
+                id: string;
+                status: string;
+                student_id: string | null;
+                submitted_at: string | null;
+            };
+            assessments: {
+                code: string;
+                criterion_id: string;
+                evidence_snapshot: {
+                    [key: string]: unknown;
+                };
+                expected_version: number;
+                id: string;
+                outcome: string;
+                rationale: string;
+                required: boolean;
+                /** Format: double */
+                score: number | null;
+                title: string;
+            }[];
+            decisions: {
+                appeal_deadline: string | null;
+                application_id: string;
+                application_no: string;
+                candidate_name: string;
+                capacity_allocation_id: string | null;
+                decided_at: string;
+                decision_no: string;
+                id: string;
+                outcome: string;
+                policy_evaluation_v2_id: string;
+                /** Format: double */
+                ranking_value: number | null;
+                rationale: string;
+            }[];
+            documents: {
+                archive_document_id: string | null;
+                archive_version_id: string | null;
+                document_kind: string;
+                expected_version: number;
+                id: string;
+                requirement_id: string | null;
+                status: string;
+            }[];
+        };
+        get_api_admissions_applications_item: {
+            application_no: string;
+            campaign_code: string;
+            campaign_id: string;
+            candidate_name: string;
+            candidate_party_id: string;
+            consent_snapshot: {
+                [key: string]: unknown;
+            };
+            criteria_complete: boolean;
+            documents_complete: boolean;
+            expected_version: number;
+            id: string;
+            status: string;
+            student_id: string | null;
+            submitted_at: string | null;
+        };
+        get_api_admissions_applications_response: {
+            items: components["schemas"]["get_api_admissions_applications_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_campaigns_campaignid_criteria_item: {
+            campaign_id: string;
+            code: string;
+            expected_version: number;
+            id: string;
+            kind: string;
+            ordinal: number;
+            required: boolean;
+            rule_snapshot: {
+                [key: string]: unknown;
+            };
+            title: string;
+            /** Format: double */
+            weight: number;
+        };
+        get_api_admissions_campaigns_campaignid_criteria_response: {
+            items: components["schemas"]["get_api_admissions_campaigns_campaignid_criteria_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_campaigns_campaignid_document_requirements_item: {
+            allowed_mime_types: string[];
+            campaign_id: string;
+            code: string;
+            expected_version: number;
+            id: string;
+            ordinal: number;
+            required: boolean;
+            title: string;
+        };
+        get_api_admissions_campaigns_campaignid_document_requirements_response: {
+            items: components["schemas"]["get_api_admissions_campaigns_campaignid_document_requirements_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_campaigns_item: {
+            authorization_id: string;
+            capacity_basis: {
+                [key: string]: unknown;
+            };
+            capacity_limit: number;
+            capacity_unit: string;
+            class_offering_context_id: string;
+            closes_on: string;
+            code: string;
+            decision_due_on: string | null;
+            expected_version: number;
+            id: string;
+            location_id: string;
+            offering_id: string;
+            opens_on: string;
+            school_year: string;
+            shift: string;
+            source_id: string;
+            status: string;
+            student_place_limit: number;
+            title: string;
+        };
+        get_api_admissions_campaigns_response: {
+            items: components["schemas"]["get_api_admissions_campaigns_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_candidate_parties_item: {
+            code: string;
+            display_name: string;
+            id: string;
+        };
+        get_api_admissions_candidate_parties_response: {
+            items: components["schemas"]["get_api_admissions_candidate_parties_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_class_offering_contexts_item: {
+            active: boolean;
+            authorization_id: string;
+            class_id: string;
+            effective_from: string;
+            effective_to: string | null;
+            expected_version: number;
+            id: string;
+            location_id: string;
+            offering_id: string;
+            school_year: string;
+            shift: string;
+        };
+        get_api_admissions_class_offering_contexts_response: {
+            items: components["schemas"]["get_api_admissions_class_offering_contexts_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_decisions_item: {
+            appeal_deadline: string | null;
+            application_id: string;
+            application_no: string;
+            candidate_name: string;
+            capacity_allocation_id: string | null;
+            decided_at: string;
+            decision_no: string;
+            id: string;
+            outcome: string;
+            policy_evaluation_v2_id: string;
+            /** Format: double */
+            ranking_value: number | null;
+            rationale: string;
+        };
+        get_api_admissions_decisions_response: {
+            items: components["schemas"]["get_api_admissions_decisions_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_eligible_archive_versions_item: {
+            document_id: string;
+            mime_type: string;
+            original_file_name: string;
+            retention_until: string;
+            sha256: string;
+            title: string;
+            version_id: string;
+            version_no: number;
+        };
+        get_api_admissions_eligible_archive_versions_response: {
+            items: components["schemas"]["get_api_admissions_eligible_archive_versions_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response: {
+            /** @enum {string} */
+            artifact_slot: "primary" | "resulting_decision";
+            document: {
+                /** Format: date-time */
+                created_at: string;
+                current_version_no: number;
+                document_date?: string | null;
+                external_reference: string;
+                id: string;
+                institution_id: string;
+                metadata?: {
+                    [key: string]: unknown;
+                };
+                mime_type: string;
+                original_file_name: string;
+                /** Format: date-time */
+                received_at: string;
+                source_kind: string;
+                source_system: string;
+                status: string;
+                taxonomy_code?: string | null;
+                taxonomy_label?: string | null;
+                taxonomy_node_id?: string | null;
+                title: string;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            /** Format: uuid */
+            intent_id: string;
+            /** Format: uuid */
+            preparation_id: string;
+            replayed: boolean;
+            /** Format: date-time */
+            retention_until: string;
+            version: {
+                /** Format: date-time */
+                created_at: string;
+                document_id: string;
+                id: string;
+                page_count: number;
+                source_sha256: string;
+                /** Format: int64 */
+                source_size_bytes: number;
+                text_status: string;
+                version_no: number;
+            };
+        };
+        get_api_admissions_regulatory_sources_item: {
+            article_reference: string;
+            citation: string;
+            effective_from: string | null;
+            effective_to: string | null;
+            id: string;
+            issuer: string;
+            source_kind: string;
+        };
+        get_api_admissions_regulatory_sources_response: {
+            items: components["schemas"]["get_api_admissions_regulatory_sources_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_signer_authorizations_item: {
+            actor_subject: string;
+            approved_by_subject?: string;
+            certificate_sha256: string;
+            expected_version: number;
+            id: string;
+            permission_code: string;
+            proposal_id?: string;
+            proposed_by_subject: string;
+            replayed?: boolean;
+            status: string;
+            user_id: string;
+            valid_until: string;
+        };
+        get_api_admissions_signer_authorizations_response: {
+            items: components["schemas"]["get_api_admissions_signer_authorizations_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_admissions_students_item: {
+            first_name: string;
+            id: string;
+            last_name: string;
+            party_id: string | null;
+            status: string;
+            student_code: string;
+        };
+        get_api_admissions_students_response: {
+            items: components["schemas"]["get_api_admissions_students_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         get_api_auth_methods_response: {
             methods: {
                 code?: string;
@@ -12622,6 +14774,55 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        get_api_earchiva_admin_portfolio_custody_intents_intentid_recovery_operations_operationid_response: {
+            /** Format: date-time */
+            created_at: string;
+            /** @enum {string} */
+            disposition: "teacher_access" | "institution_archive_only";
+            /** Format: date */
+            document_date?: string | null;
+            /** Format: uuid */
+            intent_id: string;
+            last_error_code?: string;
+            /** Format: uuid */
+            operation_id: string;
+            original_file_name: string;
+            /** Format: uuid */
+            portfolio_id: string;
+            reason: string;
+            /** @enum {string} */
+            status: "stored" | "queued" | "leased" | "committed" | "blocked" | "deadletter";
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        get_api_earchiva_admin_portfolio_custody_intents_item: {
+            /** Format: date-time */
+            created_at: string;
+            /** @enum {string|null} */
+            disposition?: "teacher_access" | "institution_archive_only" | null;
+            /** Format: date */
+            document_date?: string | null;
+            /** Format: uuid */
+            intent_id: string;
+            last_error_code?: string;
+            /** Format: uuid */
+            operation_id?: string | null;
+            original_file_name?: string | null;
+            /** Format: uuid */
+            portfolio_id: string;
+            /** @enum {string} */
+            status: "stored" | "queued" | "leased" | "committed" | "blocked" | "deadletter";
+            title?: string | null;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        get_api_earchiva_admin_portfolio_custody_intents_response: {
+            items: components["schemas"]["get_api_earchiva_admin_portfolio_custody_intents_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         get_api_earchiva_admin_stats_response: {
             /** Format: int64 */
             completed: number;
@@ -12650,7 +14851,7 @@ export interface components {
             items: {
                 document_id: string;
                 final_classification?: {
-                    [key: string]: string;
+                    [key: string]: unknown;
                 };
                 generated_at: string;
                 id: string;
@@ -12741,7 +14942,7 @@ export interface components {
                 version_no: number;
             } | null;
             metadata?: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
             mime_type: string;
             original_file_name: string;
@@ -12776,7 +14977,7 @@ export interface components {
             id: string;
             institution_id: string;
             metadata?: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
             mime_type: string;
             original_file_name: string;
@@ -12832,6 +15033,45 @@ export interface components {
         };
         get_api_earchiva_records_response: {
             items: components["schemas"]["get_api_earchiva_records_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_earchiva_retention_rules_item: {
+            anchor_kind: string;
+            /** Format: date-time */
+            approved_at?: string | null;
+            approved_by_subject: string;
+            /** Format: date-time */
+            created_at: string;
+            duration_model: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            minimum_retention_days?: number | null;
+            /** Format: date-time */
+            proposed_at: string;
+            proposed_by_subject: string;
+            /** Format: date-time */
+            retired_at?: string | null;
+            retired_by_subject: string;
+            retirement_reason: string;
+            source_checksum_sha256: string;
+            /** Format: uuid */
+            source_id: string;
+            /** @enum {string} */
+            status: "proposed" | "active" | "retired" | "revoked";
+            /** Format: uuid */
+            taxonomy_node_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        get_api_earchiva_retention_rules_response: {
+            items: components["schemas"]["get_api_earchiva_retention_rules_item"][];
             page: number;
             pageSize: number;
             total: number;
@@ -13026,6 +15266,114 @@ export interface components {
             school_legal_form: string | null;
             tenant_code: string;
             warnings: string[];
+        };
+        get_api_institution_education_offerings_item: {
+            active: boolean;
+            code: string;
+            education_level: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            language_code: string;
+            specialization_code: string;
+            title: string;
+        };
+        get_api_institution_education_offerings_response: {
+            items: components["schemas"]["get_api_institution_education_offerings_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_institution_locations_item: {
+            active: boolean;
+            address: string;
+            code: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        get_api_institution_locations_response: {
+            items: components["schemas"]["get_api_institution_locations_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_institution_offering_authorizations_item: {
+            authority_name: string;
+            capacity: number | null;
+            /** @enum {string} */
+            capacity_unit: "students" | "study_groups";
+            decision_reference: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            location_code: string;
+            /** Format: uuid */
+            location_id: string;
+            location_name: string;
+            offering_code: string;
+            /** Format: uuid */
+            offering_id: string;
+            offering_title: string;
+            /** Format: uuid */
+            replaces_authorization_id: string | null;
+            /** @enum {string} */
+            shift: "day" | "afternoon" | "evening";
+            source_citation: string;
+            source_url: string;
+            /** @enum {string} */
+            status: "provisional" | "authorized" | "accredited" | "suspended" | "withdrawn" | "expired";
+        };
+        get_api_institution_offering_authorizations_response: {
+            items: components["schemas"]["get_api_institution_offering_authorizations_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_institution_policy_cutover_preflight_response: {
+            /** Format: int64 */
+            consumer_provenance_mismatches: number;
+            /** Format: int64 */
+            inputs_with_multiple_decisions: number;
+            /** Format: int64 */
+            inputs_without_effective_date: number;
+            institution_id: string;
+            /** Format: int64 */
+            legacy_assignments: number;
+            /** Format: int64 */
+            legacy_evaluations: number;
+            /** Format: int64 */
+            legacy_overrides: number;
+            /** Format: int64 */
+            legacy_profiles: number;
+            /** Format: int64 */
+            missing_pack_provenance: number;
+            /** Format: int64 */
+            open_blocking_issues: number;
+            phase: string;
+            structurally_ready_for_dual: boolean;
+            tenant_code: string;
+            /** Format: int64 */
+            unmapped_assignments: number;
+            /** Format: int64 */
+            unmapped_evaluations: number;
+            /** Format: int64 */
+            unmapped_overrides: number;
+            /** Format: int64 */
+            unmapped_profiles: number;
         };
         get_api_institution_regulatory_profile_response: {
             accounting_profile: string;
@@ -13590,6 +15938,111 @@ export interface components {
                 name?: string;
             }[];
         };
+        get_api_regulatory_sources_item: {
+            /** Format: date-time */
+            activated_at: string | null;
+            activated_by_subject: string | null;
+            /** Format: uuid */
+            activation_evidence_id: string | null;
+            /** Format: date */
+            applicable_from: string | null;
+            /** Format: date */
+            applicable_until: string | null;
+            assessment: string | null;
+            citation: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            issuer: string;
+            /** Format: uuid */
+            latest_evidence_id: string | null;
+            /** Format: date-time */
+            latest_evidence_retrieved_at: string | null;
+            latest_evidence_sha256: string | null;
+            publisher_url: string;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+            /** @enum {string} */
+            status: "draft" | "verified" | "active" | "superseded" | "withdrawn";
+            /** Format: date-time */
+            updated_at: string;
+        };
+        get_api_regulatory_sources_response: {
+            items: components["schemas"]["get_api_regulatory_sources_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_school_operations_contracts_contractid_obligations_item: {
+            contract_id: string;
+            due_on?: string | null;
+            expected_version: number;
+            /** Format: double */
+            guarantee_value?: number | null;
+            id: string;
+            sla_hours?: number | null;
+            status: string;
+            title: string;
+        };
+        get_api_school_operations_contracts_contractid_obligations_response: {
+            items: components["schemas"]["get_api_school_operations_contracts_contractid_obligations_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_school_operations_contracts_contractid_response: {
+            archive_status: string;
+            category: string;
+            contract_number: string;
+            currency: string;
+            ends_on?: string | null;
+            expected_version: number;
+            id: string;
+            lifecycle_status: string;
+            starts_on?: string | null;
+            supplier_name: string;
+            supplier_party_id: string;
+            title: string;
+            /** Format: double */
+            total_value: number;
+        };
+        get_api_school_operations_contracts_item: {
+            archive_status: string;
+            category: string;
+            contract_number: string;
+            currency: string;
+            ends_on?: string | null;
+            expected_version: number;
+            id: string;
+            lifecycle_status: string;
+            starts_on?: string | null;
+            supplier_name: string;
+            supplier_party_id: string;
+            title: string;
+            /** Format: double */
+            total_value: number;
+        };
+        get_api_school_operations_contracts_response: {
+            items: components["schemas"]["get_api_school_operations_contracts_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
+        get_api_school_operations_suppliers_item: {
+            code: string;
+            display_name: string;
+            id: string;
+            tax_id: string;
+        };
+        get_api_school_operations_suppliers_response: {
+            items: components["schemas"]["get_api_school_operations_suppliers_item"][];
+            page: number;
+            pageSize: number;
+            total: number;
+        };
         get_api_workflow_dashboard_response: {
             stats: {
                 active_definitions?: number;
@@ -13641,6 +16094,34 @@ export interface components {
             page: number;
             pageSize: number;
             total: number;
+        };
+        patch_api_institution_education_offerings_offeringid_response: {
+            active: boolean;
+            code: string;
+            education_level: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            language_code: string;
+            specialization_code: string;
+            title: string;
+        };
+        patch_api_institution_locations_locationid_response: {
+            active: boolean;
+            address: string;
+            code: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
         };
         patch_api_registratura_admin_departments_id_response: {
             active: boolean;
@@ -13768,6 +16249,11 @@ export interface components {
             prefix_nr: string;
             tip_registru: string;
             updated_at: string;
+        };
+        patch_api_school_operations_contracts_contractid_response: {
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
         };
         post_api_admin_auth_methods_item: {
             code: string;
@@ -14009,6 +16495,263 @@ export interface components {
             pageSize?: number;
             total?: number;
         };
+        post_api_admissions_appeals_appealid_resolution_preparations_response: {
+            appeal_id?: string | null;
+            application_id: string;
+            artifact_id: string;
+            artifact_kind: string;
+            canonical_payload: {
+                [key: string]: unknown;
+            };
+            canonical_payload_base64: string;
+            canonical_payload_sha256: string;
+            expires_at: string;
+            id: string;
+            minimum_retention_days: number;
+            policy_evaluation_v2_id: string;
+            prepared_at: string;
+            prepared_by_subject: string;
+            replayed?: boolean;
+            /**
+             * Format: date-time
+             * @description Immutable server-derived minimum storage deadline based on the approved retention policy and the preparation expiry. The browser cannot choose or shorten this deadline.
+             */
+            required_retention_until: string;
+            resulting_decision_id?: string | null;
+            resulting_decision_payload?: {
+                [key: string]: unknown;
+            };
+            resulting_decision_payload_base64?: string;
+            resulting_decision_payload_sha256?: string;
+            /** Format: date-time */
+            retention_anchor_at: string;
+            /** Format: uuid */
+            retention_policy_id: string;
+            /** Format: uuid */
+            retention_rule_version_id: string;
+            /** Format: uuid */
+            retention_source_id: string;
+            status: string;
+        };
+        post_api_admissions_appeals_appealid_resolution_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_appeals_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_assessments_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_decision_preparations_response: {
+            appeal_id?: string | null;
+            application_id: string;
+            artifact_id: string;
+            artifact_kind: string;
+            canonical_payload: {
+                [key: string]: unknown;
+            };
+            canonical_payload_base64: string;
+            canonical_payload_sha256: string;
+            expires_at: string;
+            id: string;
+            minimum_retention_days: number;
+            policy_evaluation_v2_id: string;
+            prepared_at: string;
+            prepared_by_subject: string;
+            replayed?: boolean;
+            /**
+             * Format: date-time
+             * @description Immutable server-derived minimum storage deadline based on the approved retention policy and the preparation expiry. The browser cannot choose or shorten this deadline.
+             */
+            required_retention_until: string;
+            resulting_decision_id?: string | null;
+            resulting_decision_payload?: {
+                [key: string]: unknown;
+            };
+            resulting_decision_payload_base64?: string;
+            resulting_decision_payload_sha256?: string;
+            /** Format: date-time */
+            retention_anchor_at: string;
+            /** Format: uuid */
+            retention_policy_id: string;
+            /** Format: uuid */
+            retention_rule_version_id: string;
+            /** Format: uuid */
+            retention_source_id: string;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_decisions_response: {
+            appeal_deadline: string | null;
+            application_id: string;
+            application_no: string;
+            candidate_name: string;
+            capacity_allocation_id: string | null;
+            decided_at: string;
+            decision_no: string;
+            id: string;
+            outcome: string;
+            policy_evaluation_v2_id: string;
+            /** Format: double */
+            ranking_value: number | null;
+            rationale: string;
+        };
+        post_api_admissions_applications_applicationid_documents_documentid_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_enrolment_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_applicationid_transitions_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_applications_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_campaigns_campaignid_criteria_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_campaigns_campaignid_document_requirements_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_campaigns_campaignid_transitions_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_campaigns_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_class_offering_contexts_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_legal_preparations_finalize_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response: {
+            /** @enum {string} */
+            artifact_slot: "primary" | "resulting_decision";
+            document: {
+                /** Format: date-time */
+                created_at: string;
+                current_version_no: number;
+                document_date?: string | null;
+                external_reference: string;
+                id: string;
+                institution_id: string;
+                metadata?: {
+                    [key: string]: unknown;
+                };
+                mime_type: string;
+                original_file_name: string;
+                /** Format: date-time */
+                received_at: string;
+                source_kind: string;
+                source_system: string;
+                status: string;
+                taxonomy_code?: string | null;
+                taxonomy_label?: string | null;
+                taxonomy_node_id?: string | null;
+                title: string;
+                /** Format: date-time */
+                updated_at: string;
+            };
+            /** Format: uuid */
+            intent_id: string;
+            /** Format: uuid */
+            preparation_id: string;
+            replayed: boolean;
+            /** Format: date-time */
+            retention_until: string;
+            version: {
+                /** Format: date-time */
+                created_at: string;
+                document_id: string;
+                id: string;
+                page_count: number;
+                source_sha256: string;
+                /** Format: int64 */
+                source_size_bytes: number;
+                text_status: string;
+                version_no: number;
+            };
+        };
+        post_api_admissions_legal_preparations_preparationid_cancel_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_signer_authorizations_approve_response: {
+            actor_subject: string;
+            approved_by_subject?: string;
+            certificate_sha256: string;
+            expected_version: number;
+            id: string;
+            permission_code: string;
+            proposal_id?: string;
+            proposed_by_subject: string;
+            replayed?: boolean;
+            status: string;
+            user_id: string;
+            valid_until: string;
+        };
+        post_api_admissions_signer_authorizations_authorizationid_revoke_response: {
+            expected_version?: number;
+            id: string;
+            replayed?: boolean;
+            status: string;
+        };
+        post_api_admissions_signer_authorizations_response: {
+            actor_subject: string;
+            approved_by_subject?: string;
+            certificate_sha256: string;
+            expected_version: number;
+            id: string;
+            permission_code: string;
+            proposal_id?: string;
+            proposed_by_subject: string;
+            replayed?: boolean;
+            status: string;
+            user_id: string;
+            valid_until: string;
+        };
         post_api_earchiva_admin_jobs_jobid_retry_response: {
             attempts: number;
             available_at: string;
@@ -14025,10 +16768,32 @@ export interface components {
             status: string;
             updated_at: string;
         };
+        post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile_response: {
+            /** Format: date-time */
+            created_at: string;
+            /** @enum {string} */
+            disposition: "teacher_access" | "institution_archive_only";
+            /** Format: date */
+            document_date?: string | null;
+            /** Format: uuid */
+            intent_id: string;
+            last_error_code?: string;
+            /** Format: uuid */
+            operation_id: string;
+            original_file_name: string;
+            /** Format: uuid */
+            portfolio_id: string;
+            reason: string;
+            /** @enum {string} */
+            status: "stored" | "queued" | "leased" | "committed" | "blocked" | "deadletter";
+            title: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
         post_api_earchiva_classification_reviews_reviewid_approve_response: {
             document_id: string;
             final_classification?: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
             generated_at: string;
             id: string;
@@ -14090,7 +16855,7 @@ export interface components {
         post_api_earchiva_classification_reviews_reviewid_correct_response: {
             document_id: string;
             final_classification?: {
-                [key: string]: string;
+                [key: string]: unknown;
             };
             generated_at: string;
             id: string;
@@ -14148,6 +16913,138 @@ export interface components {
             suggestion_confidence: number;
             suggestion_source: string;
             version_id: string;
+        };
+        post_api_earchiva_retention_rules_response: {
+            anchor_kind: string;
+            /** Format: date-time */
+            approved_at?: string | null;
+            approved_by_subject: string;
+            /** Format: date-time */
+            created_at: string;
+            duration_model: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            minimum_retention_days?: number | null;
+            /** Format: date-time */
+            proposed_at: string;
+            proposed_by_subject: string;
+            /** Format: date-time */
+            retired_at?: string | null;
+            retired_by_subject: string;
+            retirement_reason: string;
+            source_checksum_sha256: string;
+            /** Format: uuid */
+            source_id: string;
+            /** @enum {string} */
+            status: "proposed" | "active" | "retired" | "revoked";
+            /** Format: uuid */
+            taxonomy_node_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_earchiva_retention_rules_ruleid_approve_response: {
+            anchor_kind: string;
+            /** Format: date-time */
+            approved_at?: string | null;
+            approved_by_subject: string;
+            /** Format: date-time */
+            created_at: string;
+            duration_model: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            minimum_retention_days?: number | null;
+            /** Format: date-time */
+            proposed_at: string;
+            proposed_by_subject: string;
+            /** Format: date-time */
+            retired_at?: string | null;
+            retired_by_subject: string;
+            retirement_reason: string;
+            source_checksum_sha256: string;
+            /** Format: uuid */
+            source_id: string;
+            /** @enum {string} */
+            status: "proposed" | "active" | "retired" | "revoked";
+            /** Format: uuid */
+            taxonomy_node_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_earchiva_retention_rules_ruleid_retire_response: {
+            anchor_kind: string;
+            /** Format: date-time */
+            approved_at?: string | null;
+            approved_by_subject: string;
+            /** Format: date-time */
+            created_at: string;
+            duration_model: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to?: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            minimum_retention_days?: number | null;
+            /** Format: date-time */
+            proposed_at: string;
+            proposed_by_subject: string;
+            /** Format: date-time */
+            retired_at?: string | null;
+            retired_by_subject: string;
+            retirement_reason: string;
+            source_checksum_sha256: string;
+            /** Format: uuid */
+            source_id: string;
+            /** @enum {string} */
+            status: "proposed" | "active" | "retired" | "revoked";
+            /** Format: uuid */
+            taxonomy_node_id: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_education_portfolios_me_recordid_archive_documents_response: {
+            created_at: string;
+            current_version_no: number;
+            document_date?: string | null;
+            external_reference: string;
+            id: string;
+            institution_id: string;
+            latest_version?: {
+                created_at: string;
+                document_id: string;
+                id: string;
+                page_count: number;
+                source_sha256: string;
+                /** Format: int64 */
+                source_size_bytes: number;
+                text_status: string;
+                version_no: number;
+            } | null;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            mime_type: string;
+            original_file_name: string;
+            received_at: string;
+            source_kind: string;
+            source_system: string;
+            status: string;
+            taxonomy_code?: string | null;
+            taxonomy_label?: string | null;
+            taxonomy_node_id?: string | null;
+            title: string;
+            updated_at: string;
         };
         post_api_eudi_wallet_activate_response: {
             /** @enum {string} */
@@ -14232,6 +17129,64 @@ export interface components {
             page?: number;
             pageSize?: number;
             total?: number;
+        };
+        post_api_institution_education_offerings_response: {
+            active: boolean;
+            code: string;
+            education_level: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            language_code: string;
+            specialization_code: string;
+            title: string;
+        };
+        post_api_institution_locations_response: {
+            active: boolean;
+            address: string;
+            code: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        post_api_institution_offering_authorizations_response: {
+            authority_name: string;
+            capacity: number | null;
+            /** @enum {string} */
+            capacity_unit: "students" | "study_groups";
+            decision_reference: string;
+            /** Format: date */
+            effective_from: string;
+            /** Format: date */
+            effective_to: string | null;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            location_code: string;
+            /** Format: uuid */
+            location_id: string;
+            location_name: string;
+            offering_code: string;
+            /** Format: uuid */
+            offering_id: string;
+            offering_title: string;
+            /** Format: uuid */
+            replaces_authorization_id: string | null;
+            /** @enum {string} */
+            shift: "day" | "afternoon" | "evening";
+            source_citation: string;
+            source_url: string;
+            /** @enum {string} */
+            status: "provisional" | "authorized" | "accredited" | "suspended" | "withdrawn" | "expired";
         };
         post_api_passkeys_login_finish_response: {
             nonce: string;
@@ -14469,6 +17424,120 @@ export interface components {
             prefix_nr: string;
             tip_registru: string;
             updated_at: string;
+        };
+        post_api_regulatory_sources_response: {
+            /** Format: date-time */
+            activated_at: string | null;
+            activated_by_subject: string | null;
+            /** Format: uuid */
+            activation_evidence_id: string | null;
+            /** Format: date */
+            applicable_from: string | null;
+            /** Format: date */
+            applicable_until: string | null;
+            assessment: string | null;
+            citation: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            issuer: string;
+            /** Format: uuid */
+            latest_evidence_id: string | null;
+            /** Format: date-time */
+            latest_evidence_retrieved_at: string | null;
+            latest_evidence_sha256: string | null;
+            publisher_url: string;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+            /** @enum {string} */
+            status: "draft" | "verified" | "active" | "superseded" | "withdrawn";
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_regulatory_sources_sourceid_activate_response: {
+            /** Format: date-time */
+            activated_at: string | null;
+            activated_by_subject: string | null;
+            /** Format: uuid */
+            activation_evidence_id: string | null;
+            /** Format: date */
+            applicable_from: string | null;
+            /** Format: date */
+            applicable_until: string | null;
+            assessment: string | null;
+            citation: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            issuer: string;
+            /** Format: uuid */
+            latest_evidence_id: string | null;
+            /** Format: date-time */
+            latest_evidence_retrieved_at: string | null;
+            latest_evidence_sha256: string | null;
+            publisher_url: string;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+            /** @enum {string} */
+            status: "draft" | "verified" | "active" | "superseded" | "withdrawn";
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_regulatory_sources_sourceid_verify_response: {
+            /** Format: date-time */
+            activated_at: string | null;
+            activated_by_subject: string | null;
+            /** Format: uuid */
+            activation_evidence_id: string | null;
+            /** Format: date */
+            applicable_from: string | null;
+            /** Format: date */
+            applicable_until: string | null;
+            assessment: string | null;
+            citation: string;
+            /** Format: date-time */
+            created_at: string;
+            created_by_subject: string;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            issuer: string;
+            /** Format: uuid */
+            latest_evidence_id: string | null;
+            /** Format: date-time */
+            latest_evidence_retrieved_at: string | null;
+            latest_evidence_sha256: string | null;
+            publisher_url: string;
+            /** @enum {string} */
+            source_kind: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+            /** @enum {string} */
+            status: "draft" | "verified" | "active" | "superseded" | "withdrawn";
+            /** Format: date-time */
+            updated_at: string;
+        };
+        post_api_school_operations_contracts_contractid_obligations_response: {
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+        };
+        post_api_school_operations_contracts_contractid_transition_response: {
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            lifecycle_status: string;
+        };
+        post_api_school_operations_contracts_response: {
+            archive_status: string;
+            expected_version: number;
+            /** Format: uuid */
+            id: string;
+            idempotent?: boolean;
         };
         post_api_workflow_tasks_response: {
             assigned_to: string;
@@ -16102,6 +19171,1379 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_admissions_appeals: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.application_id"?: string;
+                "filter.appeal_no"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_appeals_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_appeals_appealid_resolution: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                appealID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveAppealRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_appeals_appealid_resolution_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_appeals_appealid_resolution_preparations: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                appealID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareAppealResolutionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_appeals_appealid_resolution_preparations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_applications: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.campaign_id"?: string;
+                "filter.application_no"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_applications_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_applications_applicationid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_applications_applicationid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_appeals: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAppealRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_appeals_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_assessments: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessCriterionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_assessments_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_decision_preparations: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_decision_preparations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_decisions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_decisions_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_documents_documentid: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewApplicationDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_documents_documentid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_enrolment: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_enrolment_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_applications_applicationid_transitions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                applicationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_applications_applicationid_transitions_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_campaigns: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.code"?: string;
+                "filter.title"?: string;
+                "filter.school_year"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_campaigns_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_campaigns: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCampaignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_campaigns_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_campaigns_campaignid_criteria: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.code"?: string;
+                "filter.title"?: string;
+                "filter.kind"?: string;
+                "filter.required"?: string;
+            };
+            header?: never;
+            path: {
+                campaignID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_campaigns_campaignid_criteria_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_campaigns_campaignid_criteria: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                campaignID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriterionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_campaigns_campaignid_criteria_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_campaigns_campaignid_document_requirements: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.code"?: string;
+                "filter.title"?: string;
+                "filter.required"?: string;
+            };
+            header?: never;
+            path: {
+                campaignID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_campaigns_campaignid_document_requirements_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_campaigns_campaignid_document_requirements: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                campaignID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentRequirementInput"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_campaigns_campaignid_document_requirements_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_campaigns_campaignid_transitions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                campaignID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_campaigns_campaignid_transitions_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_candidate_parties: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.display_name"?: string;
+                "filter.code"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_candidate_parties_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_class_offering_contexts: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.class_id"?: string;
+                "filter.school_year"?: string;
+                "filter.shift"?: string;
+                "filter.active"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_class_offering_contexts_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_class_offering_contexts: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClassOfferingContextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_class_offering_contexts_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_decisions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.application_id"?: string;
+                "filter.decision_no"?: string;
+                "filter.outcome"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_decisions_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_dss_retention_policies: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigureDSSRetentionPolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionDSSRetentionPolicy"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_dss_retention_policies_current: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionDSSRetentionPolicy"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_eligible_archive_versions: {
+        parameters: {
+            query?: {
+                purpose?: string;
+                q?: string;
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.title"?: string;
+                "filter.version_no"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_eligible_archive_versions_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_legal_preparations_finalize: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeAdmissionLegalPreparationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_legal_preparations_finalize_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_legal_preparations_preparationid_artifacts_artifactslot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                preparationID: string;
+                artifactSlot: "primary" | "resulting_decision";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                preparationID: string;
+                artifactSlot: "primary" | "resulting_decision";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Request_post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot"];
+            };
+        };
+        responses: {
+            /** @description Idempotent replay of the committed artifact */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response"];
+                };
+            };
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_legal_preparations_preparationid_artifacts_artifactslot_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            /** @description Concurrent upload capacity exhausted */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message?: string;
+                    };
+                };
+            };
+            500: components["responses"]["ServerError"];
+            /** @description Object persistence is uncertain; retry with the same file and idempotency key */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message?: string;
+                    };
+                };
+            };
+            /** @description Archive storage unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                        message?: string;
+                    };
+                };
+            };
+        };
+    };
+    post_api_admissions_legal_preparations_preparationid_cancel: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                preparationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_legal_preparations_preparationid_cancel_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_regulatory_sources: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.citation"?: string;
+                "filter.source_kind"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_regulatory_sources_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_retention_rule_versions: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeAdmissionRetentionRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionRetentionRuleVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_retention_rule_versions_approve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAdmissionRetentionRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdmissionRetentionRuleVersion"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_signer_authorizations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.actor_subject"?: string;
+                "filter.permission_code"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_signer_authorizations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_signer_authorizations: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeAdmissionSignerAuthorizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_signer_authorizations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_signer_authorizations_approve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAdmissionSignerAuthorizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_signer_authorizations_approve_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_admissions_signer_authorizations_authorizationid_revoke: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                authorizationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeAdmissionSignerAuthorizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_admissions_signer_authorizations_authorizationid_revoke_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_admissions_students: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.student_code"?: string;
+                "filter.first_name"?: string;
+                "filter.last_name"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_admissions_students_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_auth_methods: {
         parameters: {
             query?: never;
@@ -16308,6 +20750,103 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_admin_portfolio_custody_intents: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: "stored" | "queued" | "leased" | "committed" | "blocked" | "deadletter";
+                disposition?: "teacher_access" | "institution_archive_only";
+                intent_id?: string;
+                portfolio_id?: string;
+                title?: string;
+                original_file_name?: string;
+                created_from?: string;
+                created_to?: string;
+                sort?: "created_at" | "intent_id" | "portfolio_id" | "status" | "disposition" | "title" | "original_file_name";
+                direction?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_admin_portfolio_custody_intents_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReconcilePortfolioCustodyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_admin_portfolio_custody_intents_intentid_reconcile_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_admin_portfolio_custody_intents_intentid_recovery_operations_operationid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intentID: string;
+                operationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_admin_portfolio_custody_intents_intentid_recovery_operations_operationid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             500: components["responses"]["ServerError"];
         };
     };
@@ -16701,6 +21240,155 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_earchiva_retention_rules: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                taxonomy_node_id?: string;
+                source_id?: string;
+                status?: "proposed" | "active" | "retired" | "revoked";
+                anchor_kind?: "intake_received_at" | "event" | "permanent";
+                sort?: "effective_from" | "effective_to" | "status" | "minimum_retention_days" | "created_at" | "updated_at";
+                direction?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_earchiva_retention_rules_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_retention_rules: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_earchiva_retention_rules"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_retention_rules_response"];
+                };
+            };
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_retention_rules_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_retention_rules_ruleid_approve: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                ruleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_earchiva_retention_rules_ruleid_approve"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_retention_rules_ruleid_approve_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_earchiva_retention_rules_ruleid_retire: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                ruleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_earchiva_retention_rules_ruleid_retire"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_earchiva_retention_rules_ruleid_retire_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -25193,6 +29881,82 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    post_api_education_portfolios_me_recordid_archive_documents: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Request_post_api_education_portfolios_me_recordid_archive_documents"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_education_portfolios_me_recordid_archive_documents_response"];
+                };
+            };
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_education_portfolios_me_recordid_archive_documents_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            /** @description Upload capacity exhausted */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            500: components["responses"]["ServerError"];
+            /** @description Object storage unavailable */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+            /** @description Archive storage unconfigured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+        };
+    };
     get_api_education_portfolios_me_recordid_checklist: {
         parameters: {
             query?: {
@@ -25472,6 +30236,86 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    post_api_education_portfolios_me_recordid_export: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": components["schemas"]["BinaryZip"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Export or request exceeds server limits */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+            /** @description Required service temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    post_api_education_portfolios_me_recordid_lifecycle_operations_operationid_storage_transitions_transitionid_retention_dispositions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                operationID: string;
+                transitionID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioRetentionDispositionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioRetentionDispositionCommandResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_education_portfolios_me_recordid_opis: {
         parameters: {
             query?: {
@@ -25531,6 +30375,34 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_me_recordid_procedure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnPortfolioAppliedProcedureResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             422: components["responses"]["Validation"];
             500: components["responses"]["ServerError"];
         };
@@ -26113,12 +30985,12 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortfolioRecord"];
+                    "application/json": components["schemas"]["PortfolioLifecycleOperationResponse"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -26721,6 +31593,135 @@ export interface operations {
         };
         responses: {
             /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioLifecycleOperationResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_lifecycle_operations: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "requested_at" | "status" | "type";
+                direction?: "asc" | "desc";
+                "filter.status"?: "pending" | "processing" | "completed" | "blocked" | "dead_letter";
+                "filter.type"?: "cessation_retention" | "legal_hold_reconcile";
+                "filter.requested_at"?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioLifecycleOperation"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_education_portfolios_records_recordid_lifecycle_operations_operationid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                operationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioLifecycleOperationResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_lifecycle_operations_operationid_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                operationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioLifecycleRetryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioLifecycleOperationResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_managerial_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioManagerialDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -26949,6 +31950,74 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_education_portfolios_records_recordid_retention_dispositions: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.status"?: string;
+                "filter.decision"?: string;
+                "filter.requested_at"?: string;
+            };
+            header?: never;
+            path: {
+                recordID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EducationPageOfPortfolioRetentionDisposition"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_education_portfolios_records_recordid_retention_dispositions_requestid_decision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordID: string;
+                requestID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioRetentionDispositionDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortfolioRetentionDispositionCommandResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     post_api_education_portfolios_records_recordid_return: {
         parameters: {
             query?: never;
@@ -26958,7 +32027,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortfolioReturnForCorrectionsRequest"];
+            };
+        };
         responses: {
             /** @description Successful response */
             200: {
@@ -27012,38 +32085,6 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
-    post_api_education_portfolios_records_recordid_reviews: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortfolioReviewEventRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortfolioReviewEvent"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
     get_api_education_portfolios_records_recordid_reviews_itemid: {
         parameters: {
             query?: never;
@@ -27055,66 +32096,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PortfolioReviewEvent"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    delete_api_education_portfolios_records_recordid_reviews_itemid: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-                itemID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["Validation"];
-            500: components["responses"]["ServerError"];
-        };
-    };
-    patch_api_education_portfolios_records_recordid_reviews_itemid: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                recordID: string;
-                itemID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePortfolioReviewEventRequest"];
-            };
-        };
         responses: {
             /** @description Successful response */
             200: {
@@ -29558,6 +34539,285 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_institution_education_offerings: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.code"?: string;
+                "filter.education_level"?: string;
+                "filter.title"?: string;
+                "filter.language_code"?: string;
+                "filter.active"?: string;
+                "filter.effective_from"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_education_offerings_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_institution_education_offerings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEducationOfferingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_institution_education_offerings_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_institution_education_offerings_offeringid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                offeringID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEducationOfferingRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["patch_api_institution_education_offerings_offeringid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_institution_locations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.code"?: string;
+                "filter.name"?: string;
+                "filter.active"?: string;
+                "filter.effective_from"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_locations_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_institution_locations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSchoolLocationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_institution_locations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_institution_locations_locationid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                locationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSchoolLocationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["patch_api_institution_locations_locationid_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_institution_offering_authorizations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: string;
+                direction?: string;
+                "filter.offering_code"?: string;
+                "filter.location_code"?: string;
+                "filter.status"?: string;
+                "filter.decision_reference"?: string;
+                "filter.effective_from"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_offering_authorizations_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_institution_offering_authorizations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOfferingAuthorizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_institution_offering_authorizations_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_institution_policy_cutover_preflight: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_institution_policy_cutover_preflight_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_institution_regulatory_profile: {
         parameters: {
             query?: never;
@@ -31743,6 +37003,447 @@ export interface operations {
             500: components["responses"]["ServerError"];
         };
     };
+    get_api_regulatory_sources: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                status?: "draft" | "verified" | "active" | "superseded" | "withdrawn";
+                source_kind?: "law" | "government_decision" | "ministerial_order" | "authorization" | "accreditation" | "founder_decision" | "contract" | "other";
+                citation?: string;
+                sort?: "citation" | "source_kind" | "status" | "created_at" | "updated_at";
+                direction?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_regulatory_sources_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_regulatory_sources: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_regulatory_sources"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_regulatory_sources_response"];
+                };
+            };
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_regulatory_sources_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_regulatory_sources_sourceid_activate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                sourceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_regulatory_sources_sourceid_activate"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_regulatory_sources_sourceid_activate_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_regulatory_sources_sourceid_evidence_evidenceid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceID: string;
+                evidenceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": components["schemas"]["BinaryFile"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_regulatory_sources_sourceid_verify: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Caller-generated key used to replay the same command safely within the authenticated tenant, institution and actor scope. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                sourceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_regulatory_sources_sourceid_verify"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_regulatory_sources_sourceid_verify_response"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+            /** @description Publisher retrieval is not configured. No source is marked verified. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code: string;
+                    };
+                };
+            };
+        };
+    };
+    get_api_school_operations_contracts: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "contract_number" | "supplier_name" | "title" | "category" | "lifecycle_status" | "starts_on" | "ends_on" | "total_value" | "archive_status";
+                direction?: "asc" | "desc";
+                "filter.contract_number"?: string;
+                "filter.supplier_name"?: string;
+                "filter.title"?: string;
+                "filter.category"?: string;
+                "filter.lifecycle_status"?: string;
+                "filter.starts_on"?: string;
+                "filter.ends_on"?: string;
+                "filter.archive_status"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_school_operations_contracts_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_school_operations_contracts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_school_operations_contracts"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_school_operations_contracts_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_school_operations_contracts_contractid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contractID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_school_operations_contracts_contractid_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    patch_api_school_operations_contracts_contractid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contractID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_patch_api_school_operations_contracts_contractid"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["patch_api_school_operations_contracts_contractid_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_school_operations_contracts_contractid_obligations: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "title" | "status" | "due_on";
+                direction?: "asc" | "desc";
+                "filter.title"?: string;
+                "filter.status"?: string;
+            };
+            header?: never;
+            path: {
+                contractID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_school_operations_contracts_contractid_obligations_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_school_operations_contracts_contractid_obligations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contractID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_school_operations_contracts_contractid_obligations"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_school_operations_contracts_contractid_obligations_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    post_api_school_operations_contracts_contractid_transition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contractID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request_post_api_school_operations_contracts_contractid_transition"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["post_api_school_operations_contracts_contractid_transition_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+            500: components["responses"]["ServerError"];
+        };
+    };
+    get_api_school_operations_suppliers: {
+        parameters: {
+            query?: {
+                page?: components["parameters"]["Page"];
+                pageSize?: components["parameters"]["PageSize"];
+                sort?: "display_name" | "code" | "tax_id";
+                direction?: "asc" | "desc";
+                "filter.display_name"?: string;
+                "filter.code"?: string;
+                "filter.tax_id"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_api_school_operations_suppliers_response"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["ServerError"];
+        };
+    };
     get_api_workflow_dashboard: {
         parameters: {
             query?: never;
@@ -31927,6 +37628,15 @@ export interface operations {
                     "application/json": components["schemas"]["Health"];
                 };
             };
+            /** @description Required service temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     get_healthz: {
@@ -31947,6 +37657,15 @@ export interface operations {
                     "application/json": components["schemas"]["Health"];
                 };
             };
+            /** @description Required service temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
         };
     };
     get_readyz: {
@@ -31965,6 +37684,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+            /** @description Required service temporarily unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
                 };
             };
         };

@@ -1,4 +1,180 @@
 {
+  "GET /api/regulatory-sources": {
+    "summary": "List scoped regulatory sources",
+    "description": "Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.",
+    "tags": [
+      "Institutie",
+      "Administrare"
+    ],
+    "requiredPermission": "school.regulatory_sources.read",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": "200",
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      500
+    ],
+    "queryParameters": [
+      "page",
+      "pageSize",
+      "status",
+      "source_kind",
+      "citation",
+      "sort",
+      "direction"
+    ]
+  },
+  "POST /api/regulatory-sources": {
+    "summary": "Register a regulatory source draft",
+    "description": "Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.",
+    "tags": [
+      "Institutie",
+      "Administrare"
+    ],
+    "requiredPermission": "school.regulatory_sources.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": "201",
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      500
+    ],
+    "requestSchema": "Mutation"
+  },
+  "POST /api/regulatory-sources/{sourceID}/verify": {
+    "summary": "Retrieve and persist publisher evidence",
+    "description": "Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.",
+    "tags": [
+      "Institutie",
+      "Administrare"
+    ],
+    "requiredPermission": "school.regulatory_sources.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": "200",
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      500
+    ],
+    "requestSchema": "Mutation"
+  },
+  "POST /api/regulatory-sources/{sourceID}/activate": {
+    "summary": "Approve verified source applicability",
+    "description": "Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.",
+    "tags": [
+      "Institutie",
+      "Administrare"
+    ],
+    "requiredPermission": "school.regulatory_sources.approve",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": "200",
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      500
+    ],
+    "requestSchema": "Mutation"
+  },
+  "GET /api/regulatory-sources/{sourceID}/evidence/{evidenceID}": {
+    "responseSchema": "BinaryFile",
+    "responseContentType": "application/octet-stream",
+    "summary": "Download the exact source evidence",
+    "description": "Host and institution scoped. Server-persisted retrieval evidence is distinct from applicability approval and does not certify legal signatures.",
+    "tags": [
+      "Institutie",
+      "Administrare"
+    ],
+    "requiredPermission": "school.regulatory_sources.read",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": "200",
+    "errors": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      500
+    ]
+  },
+  "GET /api/earchiva/retention-rules": {
+    "summary": "List archive-series retention rule versions",
+    "description": "Host-scoped administrative list with server filtering, sorting and pagination. An internal approval is not external archival certification. Rules are not yet an assertion that a stored document has WORM protection.",
+    "tags": ["eArhiva", "Administrare"],
+    "queryParameters": ["page", "pageSize", "taxonomy_node_id", "source_id", "status", "anchor_kind", "sort", "direction"],
+    "requiredPermission": "earchiva.retention.read",
+    "tenantScope": true, "status": "detailed",
+    "errors": [400, 401, 403, 422, 500]
+  },
+  "POST /api/earchiva/retention-rules": {
+    "summary": "Propose an archive-series retention rule",
+    "description": "Administrative proposal bound to an active series and source, with immutable provenance and explicit retention anchor. Ordinary document uploads cannot set their own legal retention. Unsupported anchors or duration models are rejected rather than substituted.",
+    "tags": ["eArhiva", "Administrare"],
+    "requestSchema": "Mutation", "responseStatus": "201",
+    "requiredPermission": "earchiva.retention.manage",
+    "tenantScope": true, "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 422, 500]
+  },
+  "POST /api/earchiva/retention-rules/{ruleID}/approve": {
+    "summary": "Approve a proposed archive-series retention rule",
+    "description": "Requires a distinct authorized approver and matching version. Activation rejects overlapping active periods for the same series. Existing stored-document retention snapshots are not shortened.",
+    "tags": ["eArhiva", "Administrare"],
+    "requestSchema": "Mutation", "responseStatus": "200",
+    "requiredPermission": "earchiva.retention.approve",
+    "tenantScope": true, "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 422, 500]
+  },
+  "POST /api/earchiva/retention-rules/{ruleID}/retire": {
+    "summary": "Retire an archive-series retention rule",
+    "description": "Records the actor and mandatory reason under optimistic concurrency. Retirement stops future use without deleting provenance or shortening existing document retention.",
+    "tags": ["eArhiva", "Administrare"],
+    "requestSchema": "Mutation", "responseStatus": "200",
+    "requiredPermission": "earchiva.retention.manage",
+    "tenantScope": true, "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 422, 500]
+  },
+  "POST /api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}": {
+    "summary": "Upload the signed PDF bound to a legal preparation artifact",
+    "description": "Accepts only a PDF file. Tenant, institution, actor, retention and object identity are server-derived. Requires archive management and the preparation-specific admission permission. The durable intent precedes the immutable write; retries with the same Idempotency-Key and fingerprint recover the exact object without deletion. Changed content conflicts. Adoption queues OCR; finalization remains blocked until readiness and signature verification.",
+    "tags": ["Scoala", "eArhiva"],
+    "requestSchema": "Mutation",
+    "requestContentType": "multipart/form-data",
+    "responseStatus": "201",
+    "requiredPermission": "earchiva.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 422, 429, 500, 502, 503]
+  },
+  "GET /api/admissions/legal-preparations/{preparationID}/artifacts/{artifactSlot}": {
+    "summary": "Read the artifact bound to a legal preparation",
+    "description": "Returns the scoped, committed archive artifact and its ingestion readiness. Requires archive management and the preparation-specific admission permission. No arbitrary tenant archive version can substitute for this binding.",
+    "tags": ["Scoala", "eArhiva"],
+    "requiredPermission": "earchiva.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 404, 409, 500]
+  },
   "GET /api/institution/regulatory-profile": {
     "summary": "Read the active institution regulatory profile",
     "description": "Returns the effective, host-derived institution classification. Tenant and institution fields are response-only provenance.",
@@ -29,6 +205,99 @@
     "tenantScope": true,
     "status": "detailed",
     "errors": [401, 404, 500]
+  },
+  "GET /api/institution/policy-cutover-preflight": {
+    "summary": "Inspect the institution policy v2 cutover preflight",
+    "description": "Returns scope-bound aggregate gaps for the legacy-to-v2 policy migration. A structurally ready response is informational and never authorizes a runtime phase transition.",
+    "tags": ["Institutie", "Administrare"],
+    "responseSchema": "PolicyCutoverPreflightResponse",
+    "requiredPermission": "institution.regulatory_profile.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [401, 403, 500]
+  },
+  "GET /api/institution/locations": {
+    "summary": "List institution locations",
+    "description": "Returns only locations from the host- and session-bound institution with server-side filtering, sorting and pagination.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requiredPermission": "institution.offerings.read",
+    "tenantScope": true,
+    "queryParameters": ["page", "pageSize", "sort", "direction", "filter.code", "filter.name", "filter.active", "filter.effective_from"],
+    "status": "detailed",
+    "errors": [401, 403, 422, 500]
+  },
+  "POST /api/institution/locations": {
+    "summary": "Create an institution location",
+    "description": "Creates a scope-bound, effective-dated location using a replay-safe idempotency key. Tenant, institution and actor are derived by the server.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requestSchema": "CreateSchoolLocationRequest",
+    "requiredPermission": "institution.offerings.manage",
+    "tenantScope": true,
+    "responseStatus": "201",
+    "status": "detailed",
+    "errors": [400, 401, 403, 409, 422, 500]
+  },
+  "PATCH /api/institution/locations/{locationID}": {
+    "summary": "Update an institution location",
+    "description": "Updates mutable location metadata under optimistic concurrency. Code and effective-from remain immutable. Deactivation requires an explicit effective end and returns 409 if the new window would invalidate a dependent authorization.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requestSchema": "UpdateSchoolLocationRequest",
+    "requiredPermission": "institution.offerings.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 409, 422, 500]
+  },
+  "GET /api/institution/education-offerings": {
+    "summary": "List education offerings",
+    "description": "Returns the effective-dated education offerings of the authenticated institution with server-side filtering, sorting and pagination.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requiredPermission": "institution.offerings.read",
+    "tenantScope": true,
+    "queryParameters": ["page", "pageSize", "sort", "direction", "filter.code", "filter.education_level", "filter.title", "filter.language_code", "filter.active", "filter.effective_from"],
+    "status": "detailed",
+    "errors": [401, 403, 422, 500]
+  },
+  "POST /api/institution/education-offerings": {
+    "summary": "Create an education offering",
+    "description": "Creates a scope-bound, effective-dated offering. A program or level is not considered authorized until a separate authorization decision exists.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requestSchema": "CreateEducationOfferingRequest",
+    "requiredPermission": "institution.offerings.manage",
+    "tenantScope": true,
+    "responseStatus": "201",
+    "status": "detailed",
+    "errors": [400, 401, 403, 409, 422, 500]
+  },
+  "PATCH /api/institution/education-offerings/{offeringID}": {
+    "summary": "Update an education offering",
+    "description": "Updates mutable offering metadata under optimistic concurrency. The level, specialization, language and effective-from identity fields are never rewritten. Deactivation requires an explicit effective end and returns 409 if the new window would invalidate a dependent authorization.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requestSchema": "UpdateEducationOfferingRequest",
+    "requiredPermission": "institution.offerings.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 409, 422, 500]
+  },
+  "GET /api/institution/offering-authorizations": {
+    "summary": "List offering authorization history",
+    "description": "Returns authorization, accreditation, suspension and withdrawal decisions per offering and physical location. Historical decisions remain separate records.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requiredPermission": "institution.offerings.read",
+    "tenantScope": true,
+    "queryParameters": ["page", "pageSize", "sort", "direction", "filter.offering_code", "filter.location_code", "filter.status", "filter.decision_reference", "filter.effective_from"],
+    "status": "detailed",
+    "errors": [401, 403, 422, 500]
+  },
+  "POST /api/institution/offering-authorizations": {
+    "summary": "Append an offering authorization decision",
+    "description": "Creates an initial decision or prospectively replaces a prior decision using optimistic concurrency, verified legal provenance and a replay-safe idempotency key. New positive decisions use provisional or accredited status with an explicit capacity unit and shift; the ambiguous legacy value authorized is read-only until classified from its source act.",
+    "tags": ["Institutie", "Oferta educationala"],
+    "requestSchema": "CreateOfferingAuthorizationRequest",
+    "requiredPermission": "institution.offerings.manage",
+    "tenantScope": true,
+    "responseStatus": "201",
+    "status": "detailed",
+    "errors": [400, 401, 403, 409, 422, 500]
   },
   "GET /api/education/governance/eligible-users": {
     "summary": "List active tenant users eligible for governance identities",
@@ -345,5 +614,136 @@
     "responseSchema": "ArchiveClassificationReview",
     "requiredPermission": "earchiva.review",
     "status": "detailed"
+  },
+  "POST /api/education/portfolios/me/{recordID}/archive-documents": {
+    "summary": "Upload a PDF for the authenticated teacher's portfolio",
+    "description": "Owner-scoped upload into an editable portfolio. The server derives tenant, institution and owner, scans the PDF and atomically persists archive provenance and owner attachment access. Queued uploads cannot be attached until processing succeeds. An idempotent replay returns the same document; changed content under the same key is rejected.",
+    "tags": ["Education"],
+    "requestSchema": "Mutation",
+    "requestContentType": "multipart/form-data",
+    "responseSchema": "ArchiveDocumentDetail",
+    "responseStatus": "201",
+    "responseContentType": "application/json",
+    "requiredPermission": "education.portfolios.manage_own",
+    "status": "detailed"
+  },
+    "GET /api/school-operations/suppliers": {
+      "summary": "List institution-scoped suppliers",
+      "description": "Returns active legal/institution parties from the shared tenant party registry for contract selection.",
+      "tags": ["Scoala", "Operatiuni"],
+      "responseSchema": "Page",
+      "requiredPermission": "school_operations.read",
+      "tenantScope": true,
+      "queryParameters": ["page", "pageSize", "sort", "direction", "filter.display_name", "filter.code", "filter.tax_id"],
+      "status": "detailed",
+      "errors": [401, 403, 500]
+    },
+    "GET /api/school-operations/contracts": {
+    "summary": "List institution-scoped operational contracts",
+    "description": "Server-side filtered, sorted and paginated contract index. Tenant and institution scope come solely from the authenticated host-bound session.",
+    "tags": ["Scoala", "Operatiuni"],
+    "responseSchema": "Page",
+    "requiredPermission": "school_operations.read",
+    "tenantScope": true,
+      "queryParameters": ["page", "pageSize", "sort", "direction", "filter.contract_number", "filter.supplier_name", "filter.title", "filter.category", "filter.lifecycle_status", "filter.starts_on", "filter.ends_on", "filter.archive_status"],
+    "status": "detailed",
+    "errors": [401, 403, 500]
+  },
+  "POST /api/school-operations/contracts": {
+    "summary": "Create a draft supplier contract",
+    "description": "Creates exactly one tenant-scoped draft contract for an idempotency key. Policy evaluation, tenant and institution are server-derived and immutable provenance.",
+    "tags": ["Scoala", "Operatiuni"],
+    "requestSchema": "Mutation",
+    "requiredPermission": "school_operations.manage",
+    "tenantScope": true,
+      "requiredPolicyCapability": "education.core",
+      "status": "detailed",
+      "responseStatus": 201,
+      "errors": [401, 403, 409, 422, 500]
+  },
+  "GET /api/school-operations/contracts/{contractID}": {
+    "summary": "Read an institution-scoped operational contract",
+    "description": "Returns one contract only when it belongs to the host-selected tenant and authenticated institution.",
+    "tags": ["Scoala", "Operatiuni"],
+    "responseSchema": "Contract",
+    "requiredPermission": "school_operations.read",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [401, 403, 404, 422, 500]
+  },
+  "PATCH /api/school-operations/contracts/{contractID}": {
+    "summary": "Amend a non-final operational contract",
+    "description": "Uses expected_version optimistic concurrency and records immutable policy, audit and outbox evidence in the same transaction.",
+    "tags": ["Scoala", "Operatiuni"],
+    "requestSchema": "Mutation",
+    "requiredPermission": "school_operations.manage",
+    "requiredPolicyCapability": "education.core",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [401, 403, 409, 422, 500]
+  },
+  "GET /api/school-operations/contracts/{contractID}/obligations": {
+    "summary": "List contract obligations",
+    "description": "Server-side filtered, sorted and paginated obligation list for one institution-scoped contract.",
+    "tags": ["Scoala", "Operatiuni"],
+    "responseSchema": "Page",
+    "requiredPermission": "school_operations.read",
+    "tenantScope": true,
+    "queryParameters": ["page", "pageSize", "sort", "direction", "filter.title", "filter.status"],
+    "status": "detailed",
+    "errors": [401, 403, 404, 422, 500]
+  },
+  "POST /api/school-operations/contracts/{contractID}/obligations": {
+    "summary": "Create a contract obligation",
+    "description": "Creates an institution-scoped obligation and its policy, audit and outbox evidence atomically.",
+    "tags": ["Scoala", "Operatiuni"],
+    "requestSchema": "Mutation",
+    "requiredPermission": "school_operations.manage",
+      "requiredPolicyCapability": "education.core",
+      "tenantScope": true,
+      "status": "detailed",
+      "responseStatus": 201,
+      "errors": [401, 403, 404, 422, 500]
+  },
+  "POST /api/school-operations/contracts/{contractID}/transition": {
+    "summary": "Transition an operational contract lifecycle",
+    "description": "Applies only valid draft-to-archive lifecycle transitions with expected_version optimistic concurrency; final legal records cannot be deleted.",
+    "tags": ["Scoala", "Operatiuni"],
+    "requestSchema": "Mutation",
+    "requiredPermission": "school_operations.approve",
+    "tenantScope": true,
+    "requiredPolicyCapability": "education.core",
+    "status": "detailed",
+    "errors": [401, 403, 409, 422, 500]
+  },
+  "GET /api/earchiva/admin/portfolio-custody-intents": {
+    "summary": "List portfolio custody recovery work",
+    "description": "Lists only tenant- and institution-scoped stored intents and durable recovery history. Storage locations, immutable version identifiers, ETags, object metadata and raw worker errors are never exposed.",
+    "tags": ["eArhiva", "Scoala", "Administrare"],
+    "requiredPermission": "earchiva.manage AND education.portfolios.custody.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "queryParameters": ["page", "pageSize", "status", "disposition", "intent_id", "portfolio_id", "title", "original_file_name", "created_from", "created_to", "sort", "direction"],
+    "errors": [400, 401, 403, 500]
+  },
+  "POST /api/earchiva/admin/portfolio-custody-intents/{intentID}/reconcile": {
+    "summary": "Request verified portfolio custody recovery",
+    "description": "Queues durable adoption of the exact held WORM version after database authorization and server-side fingerprint verification. HTTP 202 means queued, not committed. The operation never reduces retention, disables legal hold, deletes or overwrites storage.",
+    "tags": ["eArhiva", "Scoala", "Administrare"],
+    "requiredPermission": "earchiva.manage AND education.portfolios.custody.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "responseStatus": 202,
+    "requestSchema": "ReconcilePortfolioCustodyRequest",
+    "errors": [400, 401, 403, 404, 409, 500]
+  },
+  "GET /api/earchiva/admin/portfolio-custody-intents/{intentID}/recovery-operations/{operationID}": {
+    "summary": "Read portfolio custody recovery status",
+    "description": "Returns the tenant- and institution-scoped durable status using safe error codes only. A committed status is the sole success signal.",
+    "tags": ["eArhiva", "Scoala", "Administrare"],
+    "requiredPermission": "earchiva.manage AND education.portfolios.custody.manage",
+    "tenantScope": true,
+    "status": "detailed",
+    "errors": [400, 401, 403, 404, 500]
   }
 }

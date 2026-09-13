@@ -23,10 +23,24 @@ func scalar(e ast.Expr, structs map[string]*ast.StructType, visiting map[string]
 		return map[string]any{"type": "array", "items": scalar(t.Elt, structs, visiting)}
 	case *ast.MapType:
 		return map[string]any{"type": "object", "additionalProperties": scalar(t.Value, structs, visiting), "x-free-form-property": true}
+	case *ast.SelectorExpr:
+		// encoding/json writes json.RawMessage as the JSON value it contains, not
+		// as a base64/string field. Admission snapshots are validated as objects
+		// by their handlers and database constraints, so preserve that wire shape.
+		if pkg, ok := t.X.(*ast.Ident); ok && pkg.Name == "json" && t.Sel.Name == "RawMessage" {
+			return map[string]any{"type": "object", "additionalProperties": true, "x-free-form-property": true}
+		}
+		return map[string]any{"type": "string"}
 	case *ast.StructType:
 		return objectSchema(t, structs, visiting)
+	case *ast.InterfaceType:
+		return map[string]any{"x-free-form-property": true}
 	case *ast.Ident:
 		switch t.Name {
+		case "any":
+			// JSON metadata may contain numbers, booleans, arrays and objects.
+			// An unconstrained value schema represents Go's any, not a string.
+			return map[string]any{"x-free-form-property": true}
 		case "bool":
 			return map[string]any{"type": "boolean"}
 		case "int8", "int16", "int32", "uint8", "uint16", "uint32":
