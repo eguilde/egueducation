@@ -377,7 +377,7 @@ jobs:
         run: go build -o /tmp/egueducation-pdf-validator ./cmd/archive-pdf-validator
       - name: Start the pinned MinIO archive store and wait for readiness
         run: |
-          docker run --detach --rm --name egueducation-earchiva-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
+          docker run --detach --rm --name egueducation-earchiva-system-minio --publish 127.0.0.1:9000:9000 --env MINIO_ROOT_USER=minioadmin --env MINIO_ROOT_PASSWORD=minioadmin123 quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z server /data
           for attempt in {1..30}; do
             if curl --fail --silent --show-error http://127.0.0.1:9000/minio/health/live; then exit 0; fi
             sleep 1
